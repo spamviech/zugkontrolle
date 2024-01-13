@@ -1,5 +1,5 @@
-//! Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
-//! bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+//! Style-Struktur für eine [`TabBar`](iced_aw::tab_bar::TabBar)
+//! bei der Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 
 use iced::{Background, Color};
 use iced_aw::style::tab_bar::{Appearance, StyleSheet};
@@ -7,8 +7,8 @@ use iced_core::BorderRadius;
 
 use crate::application::style::thema::Thema;
 
-/// Style-Struktur für eine [TabBar](iced_aw::tab_bar::TabBar)
-/// bei der Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+/// Style-Struktur für eine [`TabBar`](iced_aw::tab_bar::TabBar)
+/// bei der Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TabBar;
 

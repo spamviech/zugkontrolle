@@ -1,4 +1,4 @@
-//! Anzeige und Erstellen einer [Geschwindigkeit].
+//! Anzeige und Erstellen einer [`Geschwindigkeit`].
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -61,10 +61,10 @@ fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -
     }
 }
 
-/// Sortierte Map aller Widget zur Anzeige der [Geschwindigkeiten](Geschwindigkeit).
+/// Sortierte Map aller Widget zur Anzeige der [`Geschwindigkeiten`](Geschwindigkeit).
 pub type Set = BTreeSet<Name>;
 
-/// Zustand des Widgets zur Anzeige einer [Geschwindigkeit].
+/// Zustand des Widgets zur Anzeige einer [`Geschwindigkeit`].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
@@ -77,7 +77,7 @@ pub struct AnzeigeZustand<L: Leiter> {
 }
 
 impl<L: Leiter> AnzeigeZustand<L> {
-    /// Erstelle einen neuen [AnzeigeZustand].
+    /// Erstelle einen neuen [`AnzeigeZustand`].
     pub fn neu(
         name: Name,
         pwm_frequenz: NichtNegativ,
@@ -95,7 +95,7 @@ impl<L: Leiter> AnzeigeZustand<L> {
     }
 }
 
-/// Anzeige und Steuerung einer [Geschwindigkeit].
+/// Anzeige und Steuerung einer [`Geschwindigkeit`].
 pub struct Anzeige<'t, M, R> {
     element: Element<'t, M, R>,
 }
@@ -112,7 +112,7 @@ where
     R: 't + iced_core::text::Renderer,
     <R as Renderer>::Theme: radio::StyleSheet + slider::StyleSheet + text::StyleSheet,
 {
-    /// Erstelle eine neue [Anzeige] für einen [Leiter].
+    /// Erstelle eine neue [Anzeige] für einen [`Leiter`].
     pub fn neu<'s, L: Leiter>(
         name: &'s Name,
         geschwindigkeit: &'s Geschwindigkeit<L>,
@@ -175,7 +175,7 @@ enum TabId {
     KonstanteSpannung,
 }
 
-/// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [Geschwindigkeit].
+/// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [`Geschwindigkeit`].
 #[derive(Debug, PartialEq, Eq)]
 struct AuswahlZustand<S> {
     neu_name: String,
@@ -187,7 +187,7 @@ struct AuswahlZustand<S> {
     geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, (String, GeschwindigkeitSerialisiert<S>)>,
 }
 
-/// Der Startwert für ein [Auswahl]-Widget.
+/// Der Startwert für ein [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
 #[allow(variant_size_differences)]
 pub enum AuswahlStartwert {
@@ -195,7 +195,7 @@ pub enum AuswahlStartwert {
     Pwm {
         /// Anschluss zur Steuerung der Fahrtrichtung.
         umdrehen_anschluss: Option<OutputSerialisiert>,
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         pwm_pin: pwm::Serialisiert,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
@@ -210,7 +210,7 @@ pub enum AuswahlStartwert {
 }
 
 impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
-    /// Erstelle einen neuen [AuswahlZustand].
+    /// Erstelle einen neuen [`AuswahlZustand`].
     fn neu<'t>(
         startwert: Option<(Name, AuswahlStartwert)>,
         geschwindigkeiten: impl Iterator<
@@ -290,18 +290,18 @@ enum InterneAuswahlNachricht {
     Bearbeiten(Name, AuswahlStartwert),
 }
 
-/// Nachricht eines [Auswahl]-Widgets.
+/// Nachricht eines [`Auswahl`]-Widgets.
 #[derive(Debug, Clone)]
 pub enum AuswahlNachricht<LeiterSerialisiert> {
     /// Schließe das Auswahl-Fenster.
     Schließen,
-    /// Füge eine neue [Geschwindigkeit] hinzu.
+    /// Füge eine neue [`Geschwindigkeit`] hinzu.
     Hinzufügen(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>),
-    /// Lösche eine [Geschwindigkeit].
+    /// Lösche eine [`Geschwindigkeit`].
     Löschen(Name),
 }
 
-/// Hinzufügen und Anpassen einer [Geschwindigkeit].
+/// Hinzufügen und Anpassen einer [`Geschwindigkeit`].
 #[derive(Debug)]
 pub struct Auswahl<'t, LeiterSerialisiert, R>(
     MapMitZustand<
@@ -316,12 +316,12 @@ pub struct Auswahl<'t, LeiterSerialisiert, R>(
 /// Wo soll eine Auswahl für einen Anschluss zum Einstellen der Fahrtrichtung angezeigt werden.
 #[derive(Debug, Clone, Copy)]
 pub enum FahrtrichtungAnschluss {
-    /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über ein Pwm-Signal gesteuert werden.
+    /// Nur für [`Geschwindigkeiten`](Geschwindigkeit) die über ein Pwm-Signal gesteuert werden.
     Pwm,
-    /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über mehrere Anschlüsse
+    /// Nur für [`Geschwindigkeiten`](Geschwindigkeit) die über mehrere Anschlüsse
     /// mit konstanter Spannung gesteuert werden.
     KonstanteSpannung,
-    /// Bei allen [Geschwindigkeiten](Geschwindigkeit), unabhängig davon wie sie gesteuert werden.
+    /// Bei allen [`Geschwindigkeiten`](Geschwindigkeit), unabhängig davon wie sie gesteuert werden.
     Immer,
 }
 
@@ -341,7 +341,7 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
-    /// Erstelle eine neue [Auswahl].
+    /// Erstelle eine neue [`Auswahl`].
     pub fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
         startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
@@ -626,15 +626,15 @@ where
     }
 }
 
-/// Ermöglicht Erstellen und Anpassen einer [Geschwindigkeit] mit dieser Leiter-Art.
+/// Ermöglicht Erstellen und Anpassen einer [`Geschwindigkeit`] mit dieser Leiter-Art.
 pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
-    /// Erstelle eine neue [Anzeige].
+    /// Erstelle eine neue [`Anzeige`].
     fn anzeige_neu(
         name: &Name,
         geschwindigkeit: &Geschwindigkeit<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
 
-    /// Erstelle eine neue [Auswahl].
+    /// Erstelle eine neue [`Auswahl`].
     fn auswahl_neu(
         startwert: Option<(Name, GeschwindigkeitSerialisiert<S>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
@@ -642,11 +642,11 @@ pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
         settings: I2cSettings,
     ) -> Auswahl<'t, S, R>;
 
-    /// Erzeuge den [Startwert](AuswahlStartwert) für ein [Auswahl]-Widget.
+    /// Erzeuge den [Startwert](AuswahlStartwert) für ein [`Auswahl`]-Widget.
     fn auswahl_startwert(serialisiert: GeschwindigkeitSerialisiert<S>) -> AuswahlStartwert;
 }
 
-/// Zurücksetzen des Zustands des [Anzeige]-Widgets.
+/// Zurücksetzen des Zustands des [`Anzeige`]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub struct ZustandZurücksetzenMittelleiter {
     /// Die Geschwindigkeit vor der async-Aktion.
@@ -731,7 +731,7 @@ where
     }
 }
 
-/// Zurücksetzen des Zustands des [Anzeige]-Widgets.
+/// Zurücksetzen des Zustands des [`Anzeige`]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub struct ZustandZurücksetzenZweileiter {
     /// Die Fahrgeschwindigkeit vor der async-Aktion.

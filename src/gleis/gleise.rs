@@ -1,5 +1,5 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem
-//! [Canvas](iced::widget::canvas::Canvas).
+//! [`Canvas`](iced::widget::canvas::Canvas).
 
 use std::{collections::HashMap, convert::identity, fmt::Debug, sync::mpsc::Sender, time::Instant};
 
@@ -50,7 +50,7 @@ pub mod steuerung;
 pub mod update;
 
 #[zugkontrolle_macros::erstelle_enum(pub, Modus)]
-/// Aktueller Modus von [Gleise].
+/// Aktueller Modus von [`Gleise`].
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
@@ -95,7 +95,7 @@ pub struct Gleise<L: Leiter, AktualisierenNachricht> {
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// Erstelle ein neues, leeres [Gleise]-struct.
+    /// Erstelle ein neues, leeres [`Gleise`]-struct.
     pub fn neu(
         zugtyp2: Zugtyp<L>,
         modus: Modus,
@@ -133,7 +133,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.modus = ModusDaten::neu(modus);
     }
 
-    /// Gibt es ein zur [KlickQuelle] gehörendes gehaltenes Gleis.
+    /// Gibt es ein zur [`KlickQuelle`] gehörendes gehaltenes Gleis.
     pub fn hat_gehaltenes_gleis(&self, klick_quelle: KlickQuelle) -> bool {
         match &self.modus {
             ModusDaten::Bauen { gehalten, .. } => gehalten.contains_key(&klick_quelle),
@@ -380,14 +380,14 @@ where
     }
 }
 
-/// Fehler, die bei Interaktion mit den [Gleisen](Gleise) auftreten können.
+/// Fehler, die bei Interaktion mit den [`Gleisen`](Gleise) auftreten können.
 #[derive(Debug)]
 pub enum Fehler {
     /// Ein IO-Fehler.
     IO(std::io::Error),
     /// Fehler beim Serialisieren (speichern) der Gleise.
     BincodeSerialisieren(bincode::Error),
-    /// Ein Fehler bei Interaktion mit einem [Anschluss](anschluss::Anschluss).
+    /// Ein Fehler bei Interaktion mit einem [`Anschluss`](anschluss::Anschluss).
     Anschluss(anschluss::Fehler),
 }
 

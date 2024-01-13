@@ -31,7 +31,7 @@ use crate::{
     },
 };
 
-/// Name einer [Geschwindigkeit].
+/// Name einer [`Geschwindigkeit`].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
@@ -47,9 +47,9 @@ impl Display for Name {
     }
 }
 
-/// Ein [Leiter] ermöglicht ein Einstellen der Geschwindigkeit und Umdrehen der Fahrtrichtung.
+/// Ein [`Leiter`] ermöglicht ein Einstellen der Geschwindigkeit und Umdrehen der Fahrtrichtung.
 pub trait Leiter {
-    /// Wie lange ist die Überspannung beim Umdrehen [Fließend](Fließend::Fließend).
+    /// Wie lange ist die Überspannung beim Umdrehen [`Fließend`](Fließend::Fließend).
     type UmdrehenZeit: Clone;
 
     /// Was ist das Verhältnis von Fahrspannung zur Überspannung zum Umdrehen.
@@ -162,7 +162,7 @@ impl<Leiter: Display> Display for Geschwindigkeit<Leiter> {
 }
 
 impl<Leiter> Geschwindigkeit<Leiter> {
-    /// Erstelle eine neue [Geschwindigkeit].
+    /// Erstelle eine neue [`Geschwindigkeit`].
     pub fn neu(leiter: Leiter) -> Self {
         Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
     }
@@ -349,7 +349,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
 
 // Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert
 #[allow(clippy::module_name_repetitions)]
-/// Serialisierbare Repräsentation einer [Geschwindigkeit].
+/// Serialisierbare Repräsentation einer [`Geschwindigkeit`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
     /// Der Leiter der Geschwindigkeit.
@@ -402,7 +402,7 @@ where
     }
 }
 
-/// Stelle eine durch einen [`pwm::Pin`] gesteuerte [Geschwindigkeit] ein.
+/// Stelle eine durch einen [`pwm::Pin`] gesteuerte [`Geschwindigkeit`] ein.
 fn geschwindigkeit_pwm(
     pin: &mut pwm::Pin,
     letzter_wert: &mut u8,
@@ -424,7 +424,7 @@ fn geschwindigkeit_pwm(
     Ok(())
 }
 
-/// Stelle eine durch mehrere [Anschlüsse](crate::anschluss::Anschluss) gesteuerte [Geschwindigkeit] ein.
+/// Stelle eine durch mehrere [Anschlüsse](crate::anschluss::Anschluss) gesteuerte [`Geschwindigkeit`] ein.
 fn geschwindigkeit_ks(
     geschwindigkeit: &mut NonEmpty<OutputAnschluss>,
     letzter_wert: &mut u8,
@@ -474,7 +474,7 @@ fn geschwindigkeit_ks(
 pub enum Mittelleiter {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         pin: pwm::Pin,
         /// Der letzte eingestellte Wert.
         letzter_wert: u8,
@@ -515,13 +515,13 @@ impl Display for Mittelleiter {
     }
 }
 
-/// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
+/// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[allow(variant_size_differences)]
 pub enum MittelleiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         pin: pwm::Serialisiert,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
@@ -629,7 +629,7 @@ impl BekannterLeiter for Mittelleiter {
     const NAME: &'static str = "Mittelleiter";
 }
 
-/// Drehe alle Züge auf einem aktiven [Mittelleiter]-Gleis um.
+/// Drehe alle Züge auf einem aktiven [`Mittelleiter`]-Gleis um.
 macro_rules! umdrehen_mittelleiter {
     (
         $self: ident $(=> $method: ident)*,
@@ -821,7 +821,7 @@ impl Geschwindigkeit<Mittelleiter> {
 pub enum Zweileiter {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         geschwindigkeit: pwm::Pin,
         /// Der letzte eingestellte Wert.
         letzter_wert: u8,
@@ -963,7 +963,7 @@ impl Leiter for Zweileiter {
     }
 }
 
-/// Ändere die Fahrtrichtung auf einem [Zweileiter]-Gleis.
+/// Ändere die Fahrtrichtung auf einem [`Zweileiter`]-Gleis.
 macro_rules! fahrtrichtung_zweileiter {
     (
         $self: ident $(=> $method: ident)*,
@@ -1152,7 +1152,7 @@ impl Geschwindigkeit<Zweileiter> {
         )
     }
 
-    /// Anzahl der konfigurierten [Anschlüsse](crate::anschluss::Anschluss) zum einstellen der Geschwindigkeit.
+    /// Anzahl der konfigurierten [`Anschlüsse`](crate::anschluss::Anschluss) zum einstellen der Geschwindigkeit.
     pub(crate) fn ks_länge(&self) -> Option<usize> {
         match &*self.lock_leiter() {
             Zweileiter::Pwm { .. } => None,
@@ -1161,13 +1161,13 @@ impl Geschwindigkeit<Zweileiter> {
     }
 }
 
-/// Serialisierbare Repräsentation eines [Zweileiters](Zweileiter).
+/// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[allow(variant_size_differences)]
 pub enum ZweileiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         geschwindigkeit: pwm::Serialisiert,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
@@ -1342,9 +1342,9 @@ impl Display for Fahrtrichtung {
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum Fehler {
-    /// Fehler bei Interaktion mit einem [Anschluss](OutputAnschluss).
+    /// Fehler bei Interaktion mit einem [`Anschluss`](OutputAnschluss).
     Anschluss(anschluss::Fehler),
-    /// Fehler bei Interaktion mit einem [Pwm-Pin](pwm::Pin).
+    /// Fehler bei Interaktion mit einem [`Pwm-Pin`](pwm::Pin).
     Pwm(pwm::Fehler),
     /// Zu wenige Anschlüsse für die gewünschte Geschwindigkeit.
     ZuWenigAnschlüsse {

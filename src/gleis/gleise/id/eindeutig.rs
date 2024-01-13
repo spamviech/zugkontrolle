@@ -1,4 +1,4 @@
-//! Erzeuge eindeutige [Ids](Id).
+//! Erzeuge eindeutige [`Ids`](Id).
 
 use std::{
     any::{type_name, TypeId},
@@ -14,9 +14,9 @@ use std::{
 use log::{error, trace};
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
-/// Zahlen-typ, der über [Id::Repräsentation] erhalten werden kann.
+/// Zahlen-typ, der über [`Id::Repräsentation`] erhalten werden kann.
 ///
-/// Implementierungs-Detail: aktuell verwenden Eq, Ord, Hash-Instanzen von [Id] diese Repräsentation.
+/// Implementierungs-Detail: aktuell verwenden Eq, Ord, Hash-Instanzen von [`Id`] diese Repräsentation.
 pub type Repräsentation = u32;
 
 static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<Repräsentation>>> =
@@ -32,7 +32,7 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<Repräsentation>>
     })
 }
 
-/// Eine eindeutige [Id] für den Typ T.
+/// Eine eindeutige [`Id`] für den Typ T.
 #[derive(zugkontrolle_macros::Debug)]
 pub struct Id<T: 'static> {
     id: Repräsentation,
@@ -82,7 +82,7 @@ impl<T> Drop for Id<T> {
     }
 }
 
-/// Alle [Ids](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [Id] verfügbar.
+/// Alle [Ids](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [`Id`] verfügbar.
 #[derive(Debug, Clone, Copy)]
 pub struct KeineIdVerfügbar {
     #[allow(dead_code)]
@@ -92,19 +92,19 @@ pub struct KeineIdVerfügbar {
 }
 
 impl KeineIdVerfügbar {
-    /// Erzeuge einen neuen [KeineIdVerfügbar]-Fehler für den gewünschten Typ.
+    /// Erzeuge einen neuen [`KeineIdVerfügbar`]-Fehler für den gewünschten Typ.
     pub fn für<T: 'static>() -> KeineIdVerfügbar {
         KeineIdVerfügbar { type_id: TypeId::of::<T>(), type_name: type_name::<T>() }
     }
 
-    /// Erzeuge einen neuen [KeineIdVerfügbar]-Fehler für den Typ des Arguments.
+    /// Erzeuge einen neuen [`KeineIdVerfügbar`]-Fehler für den Typ des Arguments.
     pub fn für_ref<T: 'static>(_t: &T) -> KeineIdVerfügbar {
         KeineIdVerfügbar { type_id: TypeId::of::<T>(), type_name: type_name::<T>() }
     }
 }
 
 impl<T> Id<T> {
-    /// Erhalte eine bisher unbenutzte [Id].
+    /// Erhalte eine bisher unbenutzte [`Id`].
     pub fn neu() -> Result<Id<T>, KeineIdVerfügbar> {
         let mut set = type_set::<T>();
         let initial =
@@ -120,12 +120,12 @@ impl<T> Id<T> {
         Ok(Id { id, phantom: PhantomData })
     }
 
-    /// Erhalte eine eindeutige Zahl für die [Id].
+    /// Erhalte eine eindeutige Zahl für die [`Id`].
     ///
-    /// Die selbe [Id] wird bei jedem Aufruf die selbe Zahl zurückgeben.
-    /// Zwei gleichzeitig existierende [Ids](Id) werden unterschiedliche Zahlen zurückgeben.
+    /// Die selbe [`Id`] wird bei jedem Aufruf die selbe Zahl zurückgeben.
+    /// Zwei gleichzeitig existierende [`Ids`](Id) werden unterschiedliche Zahlen zurückgeben.
     ///
-    /// Sobald eine [Id] gedroppt wird kann es sein, dass eine andere [Id] die selbe Zahl zurückgibt.
+    /// Sobald eine [Id] gedroppt wird kann es sein, dass eine andere [`Id`] die selbe Zahl zurückgibt.
     pub fn repräsentation(&self) -> Repräsentation {
         self.id
     }

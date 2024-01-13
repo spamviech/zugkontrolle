@@ -1,4 +1,4 @@
-//! Definition und zeichnen einer [Kreuzung].
+//! Definition und zeichnen einer [`Kreuzung`].
 
 use std::fmt::Debug;
 
@@ -57,7 +57,7 @@ pub enum Variante {
 }
 
 impl KreuzungUnit {
-    /// Erstelle eine neue [Kreuzung].
+    /// Erstelle eine neue [`Kreuzung`].
     pub const fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
         KreuzungUnit {
             länge: länge.als_skalar(),
@@ -68,7 +68,7 @@ impl KreuzungUnit {
         }
     }
 
-    /// Erstelle eine neue [Kreuzung] mit allgemeiner Beschreibung, z.B. der Produktnummer.
+    /// Erstelle eine neue [`Kreuzung`] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -86,7 +86,7 @@ impl KreuzungUnit {
 }
 
 impl<Anschlüsse> Kreuzung<Anschlüsse> {
-    /// Berechne den Winkel der [Kreuzung], ausgehend von der Gleichung
+    /// Berechne den Winkel der [`Kreuzung`], ausgehend von der Gleichung
     /// `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`.
     ///
     /// <https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC>
@@ -101,7 +101,7 @@ impl<Anschlüsse> Kreuzung<Anschlüsse> {
 }
 
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
-/// [Verbindungen](Verbindung) einer [Kreuzung].
+/// [Verbindungen](Verbindung) einer [`Kreuzung`].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     /// Ein Ende der ersten Geraden.

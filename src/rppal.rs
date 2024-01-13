@@ -43,7 +43,7 @@ impl<T, F> ElementOderKonstruktor<T, F> {
     ///
     /// ## Panics
     ///
-    /// Wenn ein [Konstruktor](ElementOderKonstruktor::Konstruktor) enthalten war wird [`panic!`] aufgerufen.
+    /// Wenn ein [`Konstruktor`](ElementOderKonstruktor::Konstruktor) enthalten war wird [`panic!`] aufgerufen.
     fn erhalte_element_mut_unchecked(&mut self) -> &mut T {
         match self {
             ElementOderKonstruktor::Element(element) => element,
@@ -63,8 +63,8 @@ impl<T, F> ElementOderKonstruktor<T, F> {
 #[cfg(not(feature = "raspi"))]
 impl<T, F: FnOnce() -> T> ElementOderKonstruktor<T, F> {
     /// Stellt sicher, dass danach ein Wert enthalten ist.
-    /// Wenn davor kein Wert enthalten ist wird der [Konstruktor](ElementOderKonstruktor::Konstruktor) ausgeführt,
-    /// ansonsten bleibt das [Element](ElementOderKonstruktor::Element) unverändert.
+    /// Wenn davor kein Wert enthalten ist wird der [`Konstruktor`](ElementOderKonstruktor::Konstruktor) ausgeführt,
+    /// ansonsten bleibt das [`Element`](ElementOderKonstruktor::Element) unverändert.
     fn initialisiere_wenn_notwendig(&mut self) {
         take_mut::take(self, |element_oder_konstruktor| match element_oder_konstruktor {
             ElementOderKonstruktor::Element(_) => element_oder_konstruktor,

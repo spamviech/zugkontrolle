@@ -53,9 +53,9 @@ type AssocList<K, V> = Vec<(K, V)>;
 /// Definition und Position eines Gleises.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
-    /// Wie sieht da Gleis aus, welche [Anschlüsse](anschluss::Anschluss) hat es.
+    /// Wie sieht da Gleis aus, welche [`Anschlüsse`](anschluss::Anschluss) hat es.
     pub definition: T,
-    /// Wo auf dem [Canvas](iced::widget::canvas::Canvas) wird das Gleis gezeichnet.
+    /// Wo auf dem [`Canvas`](iced::widget::canvas::Canvas) wird das Gleis gezeichnet.
     pub position: Position,
 }
 

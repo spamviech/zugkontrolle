@@ -1,4 +1,4 @@
-//! Methoden für die [update](iced::Application::update)-Methode des [iced::Application]-Traits.
+//! Methoden für die [update](iced::Application::update)-Methode des [`iced::Application`]-Traits.
 
 use std::{
     convert::identity,
@@ -56,19 +56,19 @@ where
 }
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
-    /// Zeige eine neue [MessageBox] mit Titel und Nachricht.
+    /// Zeige eine neue [`MessageBox`] mit Titel und Nachricht.
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
     pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
         *self.message_box.deref_mut() = Some(MessageBox { titel, nachricht });
     }
 
-    /// Zeige einen neuen [AuswahlZustand], z.B. zum anpassen der Anschlüsse eines Gleises.
+    /// Zeige einen neuen [`AuswahlZustand`], z.B. zum anpassen der Anschlüsse eines Gleises.
     pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand<S>) {
         *self.auswahl_zustand.deref_mut() = Some(auswahl_zustand);
     }
 
-    /// Verstecke den [AuswahlZustand], z.B. nach erfolgreichem anpassen der Anschlüsse eines Gleises.
+    /// Verstecke den [`AuswahlZustand`], z.B. nach erfolgreichem anpassen der Anschlüsse eines Gleises.
     pub fn verstecke_auswahlzustand(&mut self) {
         *self.auswahl_zustand.deref_mut() = None;
     }
@@ -107,7 +107,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    /// Wähle den aktuellen [Streckenabschnitt].
+    /// Wähle den aktuellen [`Streckenabschnitt`].
     pub fn streckenabschnitt_wählen(
         &mut self,
         streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
@@ -115,7 +115,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         self.streckenabschnitt_aktuell = streckenabschnitt
     }
 
-    /// Füge einen neuen [Streckenabschnitt] hinzu.
+    /// Füge einen neuen [`Streckenabschnitt`] hinzu.
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
         geschwindigkeit: Option<geschwindigkeit::Name>,
@@ -198,7 +198,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    /// Lösche einen [Streckenabschnitt].
+    /// Lösche einen [`Streckenabschnitt`].
     pub fn streckenabschnitt_löschen(&mut self, name: &streckenabschnitt::Name) {
         if self
             .streckenabschnitt_aktuell
@@ -217,8 +217,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    /// Ändere den [Streckenabschnitt] für ein Gleis zum aktuellen Streckenabschnitt,
-    /// falls es nicht mit [streckenabschnitt_festlegen](Zugkontrolle::streckenabschnitt_festlegen)
+    /// Ändere den [`Streckenabschnitt`] für ein Gleis zum aktuellen Streckenabschnitt,
+    /// falls es nicht mit [`streckenabschnitt_festlegen`](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId) {
         if self.streckenabschnitt_aktuell_festlegen {
@@ -239,7 +239,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         }
     }
 
-    /// Einstellen ob anklicken eines Gleises dessen [Streckenabschnitt] zum
+    /// Einstellen ob anklicken eines Gleises dessen [`Streckenabschnitt`] zum
     /// aktuellen Streckenabschnitt ändern soll.
     pub fn streckenabschnitt_festlegen(&mut self, festlegen: bool) {
         self.streckenabschnitt_aktuell_festlegen = festlegen;
@@ -336,7 +336,7 @@ where
 }
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, S> {
-    /// Entferne eine [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit).
+    /// Entferne eine [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
             self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
@@ -349,7 +349,7 @@ where
     L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S> + Display,
     S: Debug + Clone + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
-    /// Füge eine  [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
+    /// Füge eine  [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
@@ -455,7 +455,7 @@ where
 }
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
-    /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [update](Gleise::update)-Methode.
+    /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [`update`](Gleise::update)-Methode.
     pub fn gleise_zustand_aktualisieren(
         &mut self,
         nachricht: gleise::nachricht::ZustandAktualisieren,

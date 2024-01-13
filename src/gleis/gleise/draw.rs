@@ -1,4 +1,4 @@
-//! [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
+//! [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
 
 use std::collections::HashSet;
 
@@ -33,7 +33,7 @@ pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
+    /// [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
     pub fn draw(
         &self,
         _state: &<Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,

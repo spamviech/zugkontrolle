@@ -8,7 +8,7 @@ use iced_aw::{card, number_input};
 
 use crate::typen::farbe::Farbe;
 
-/// Unterstützte Graphik-Themen, sehr nah am built-in [iced::Theme].
+/// Unterstützte Graphik-Themen, sehr nah am built-in [`iced::Theme`].
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Thema {
     /// Die helle Variante.

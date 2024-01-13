@@ -42,7 +42,7 @@ static GPIO: LazyMutex<GpioStore> =
 
 #[cfg(not(feature = "raspi"))]
 impl GpioStore {
-    /// Erhalte Zugriff auf das [Singleton](GPIO) mit den aktuell verfügbaren Pins.
+    /// Erhalte Zugriff auf das [`Singleton`](GPIO) mit den aktuell verfügbaren Pins.
     ///
     /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
     fn lock_static<'t>() -> MappedMutexGuard<'t, GpioStore> {
@@ -66,7 +66,7 @@ impl Gpio {
         Ok(Gpio)
     }
 
-    /// Returns a [Pin] for the specified BCM GPIO pin number.
+    /// Returns a [`Pin`] for the specified BCM GPIO pin number.
     ///
     /// Retrieving a GPIO pin grants access to the pin through an owned [`Pin`] instance.
     /// If the pin is already in use, or the GPIO peripheral doesn't expose a pin with the
@@ -210,7 +210,7 @@ impl InputPin {
     /// Configures an asynchronous interrupt trigger, which executes the callback on a
     /// separate thread when the interrupt is triggered.
     ///
-    /// The callback closure or function pointer is called with a single [Level] argument.
+    /// The callback closure or function pointer is called with a single [`Level`] argument.
     ///
     /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared
     /// when `set_async_interrupt` is called, or when `InputPin` goes out of scope.
@@ -343,7 +343,7 @@ pub enum Trigger {
 
 // disambiguate mit self::Result
 #[allow(clippy::absolute_paths)]
-/// Result with [Error].
+/// Result with [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "raspi")]

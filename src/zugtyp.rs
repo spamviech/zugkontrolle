@@ -1,4 +1,4 @@
-//! Alle Eigenschaften und bekannte Gleise für einen [Zugtyp].
+//! Alle Eigenschaften und bekannte Gleise für einen [`Zugtyp`].
 
 use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
@@ -36,19 +36,19 @@ pub struct Zugtyp<L: Leiter> {
     pub leiter: PhantomData<fn() -> L>,
     /// Spurweite
     pub spurweite: Spurweite,
-    /// Alle unterstützten [Geraden](crate::gleis::gerade::Gerade).
+    /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: DefinitionMap<Gerade>,
-    /// Alle unterstützten [Kurven](crate::gleis::kurve::Kurve).
+    /// Alle unterstützten [`Kurven`](crate::gleis::kurve::Kurve).
     pub kurven: DefinitionMap<Kurve>,
-    /// Alle unterstützten [Weichen](crate::gleis::weiche::gerade::Weiche).
+    /// Alle unterstützten [`Weichen`](crate::gleis::weiche::gerade::Weiche).
     pub weichen: DefinitionMap<Weiche>,
-    /// Alle unterstützten [Dreiwege-Weichen](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
+    /// Alle unterstützten [`Dreiwege-Weichen`](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
     pub dreiwege_weichen: DefinitionMap<DreiwegeWeiche>,
-    /// Alle unterstützten [Kurven-Weichen](crate::gleis::weiche::kurve::KurvenWeiche).
+    /// Alle unterstützten [`Kurven-Weichen`](crate::gleis::weiche::kurve::KurvenWeiche).
     pub kurven_weichen: DefinitionMap<KurvenWeiche>,
-    /// Alle unterstützten [S-Kurven-Weichen](crate::gleis::weiche::s_kurve::SKurvenWeiche).
+    /// Alle unterstützten [`S-Kurven-Weichen`](crate::gleis::weiche::s_kurve::SKurvenWeiche).
     pub s_kurven_weichen: DefinitionMap<SKurvenWeiche>,
-    /// Alle unterstützten [Kreuzungen](crate::gleis::kreuzung::Kreuzung).
+    /// Alle unterstützten [`Kreuzungen`](crate::gleis::kreuzung::Kreuzung).
     pub kreuzungen: DefinitionMap<Kreuzung>,
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,

@@ -1,4 +1,4 @@
-//! Methoden für die [view](iced::Application::view)-Methode des [iced::Application]-Traits.
+//! Methoden für die [view](iced::Application::view)-Methode des [`iced::Application`]-Traits.
 
 use std::fmt::Debug;
 
@@ -72,7 +72,7 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Send,
     S: 'static + Clone + PartialEq + Send,
 {
-    /// [view](iced::Application::view)-Methode für [Zugkontrolle].
+    /// [view](iced::Application::view)-Methode für [`Zugkontrolle`].
     pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
         let Zugkontrolle {
             gleise,

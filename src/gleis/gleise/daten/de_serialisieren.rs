@@ -1,4 +1,4 @@
-//! speichern und laden Methode für [Gleise].
+//! speichern und laden Methode für [`Gleise`].
 
 use std::{
     collections::HashMap,
@@ -65,12 +65,12 @@ static BINCODE_OPTIONS: Lazy<
     WithOtherTrailing<WithOtherIntEncoding<DefaultOptions, FixintEncoding>, RejectTrailing>,
 > = Lazy::new(|| DefaultOptions::new().with_fixint_encoding().reject_trailing_bytes());
 
-/// Fehler der beim [Laden](Gleise::laden) auftreten kann.
+/// Fehler der beim [`Laden`](Gleise::laden) auftreten kann.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum LadenFehler<S> {
     /// Ein IO-Fehler.
     IO(io::Error),
-    /// Fehler beim reservieren eines [Anschlusses](anschluss::Anschluss).
+    /// Fehler beim reservieren eines [`Anschlusses`](anschluss::Anschluss).
     Anschluss(anschluss::Fehler),
     /// Fehler beim Deserialisieren (laden) gespeicherter Daten.
     BincodeDeserialisieren {
@@ -81,7 +81,7 @@ pub enum LadenFehler<S> {
         /// Fehler beim Deserialisieren nach Version-2 Speicherformat.
         v2: bincode::Error,
     },
-    /// Unbekannte Anschlüsse sollen in einem [Plan](plan::Plan) verwendet werden.
+    /// Unbekannte Anschlüsse sollen in einem [`Plan`](plan::Plan) verwendet werden.
     UnbekannteAnschlüsse {
         /// Der Name des Plans.
         plan: plan::Name,
@@ -236,7 +236,7 @@ where
     )
 }
 
-/// Mapping von der Zahl aus der serialisierten Darstellung zur [DefinitionId].
+/// Mapping von der Zahl aus der serialisierten Darstellung zur [`DefinitionId`].
 #[derive(Debug)]
 pub(crate) struct DefinitionIdMaps {
     geraden: HashMap<u32, DefinitionId<Gerade>>,
@@ -249,7 +249,7 @@ pub(crate) struct DefinitionIdMaps {
 }
 
 impl DefinitionIdMaps {
-    /// Erzeuge eine neue, leere [DefinitionIdMaps].
+    /// Erzeuge eine neue, leere [`DefinitionIdMaps`].
     pub(crate) fn neu() -> DefinitionIdMaps {
         DefinitionIdMaps {
             geraden: HashMap::new(),
@@ -263,7 +263,7 @@ impl DefinitionIdMaps {
     }
 }
 
-/// Mapping von der Zahl aus der serialisierten Darstellung zur [GleisId].
+/// Mapping von der Zahl aus der serialisierten Darstellung zur [`GleisId`].
 #[derive(Debug)]
 pub(crate) struct IdMaps {
     geraden: HashMap<u32, GleisId<Gerade>>,
@@ -277,7 +277,7 @@ pub(crate) struct IdMaps {
 }
 
 impl IdMaps {
-    /// Erzeuge eine neue, leere [IdMaps].
+    /// Erzeuge eine neue, leere [`IdMaps`].
     pub(crate) fn neu() -> IdMaps {
         IdMaps {
             geraden: HashMap::new(),
@@ -425,8 +425,8 @@ impl<L: BekannterLeiter> Zugtyp<L> {
 pub enum ZugtypDeserialisierenFehler {
     /// Der Leiter des Zugtyps stimmt nicht mit dem Kommandozeilen-Argument überein.
     FalscherLeiter(String),
-    /// Alle [Ids](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
-    /// Es ist aktuell keine eindeutige [Id](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
+    /// Alle [`Ids`](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [`Id`](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
@@ -700,8 +700,8 @@ where
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// Speicher alle Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
-    /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
+    /// Speicher alle Gleise, [`Streckenabschnitte`](streckenabschnitt::Streckenabschnitt),
+    /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [`Zugtyp`]
     /// in einer Datei.
     pub fn speichern<S>(&self, pfad: impl AsRef<std::path::Path>) -> Result<(), Fehler>
     where
@@ -716,8 +716,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         BINCODE_OPTIONS.serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
     }
 
-    /// Lade Gleise, [Streckenabschnitte](streckenabschnitt::Streckenabschnitt),
-    /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [Zugtyp]
+    /// Lade Gleise, [`Streckenabschnitte`](streckenabschnitt::Streckenabschnitt),
+    /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [`Zugtyp`]
     /// aus einer Datei.
     pub fn laden<S>(
         &mut self,

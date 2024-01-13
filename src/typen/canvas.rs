@@ -25,7 +25,7 @@ pub mod pfad;
 
 /// Newtype auf [`iced::widget::canvas::Frame`], dessen Methoden meine Typen verwenden.
 ///
-/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [Frame](canvas::Frame) liegt.
+/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [`Frame`](canvas::Frame) liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
 pub struct Frame<'t>(&'t mut canvas::Frame);
@@ -37,14 +37,14 @@ impl Debug for Frame<'_> {
 }
 
 impl<'t> Frame<'t> {
-    /// Erzeuge einen neuen [Frame].
+    /// Erzeuge einen neuen [`Frame`].
     pub fn neu(frame: &'t mut canvas::Frame) -> Self {
         Frame(frame)
     }
 
     // elided lifetimes in impl-Traits are experimental
     #[allow(single_use_lifetimes)]
-    /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [Stil](Stroke).
+    /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Stroke).
     pub fn stroke<'s>(
         &mut self,
         Pfad { pfad, transformationen }: &Pfad,
@@ -58,7 +58,7 @@ impl<'t> Frame<'t> {
         });
     }
 
-    /// Fülle den gegebenen [Pfad] auf den [Frame] im gewünschten [Stil](Fill).
+    /// Fülle den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Fill).
     pub fn fill(&mut self, Pfad { pfad, transformationen }: &Pfad, fill: impl Into<Fill>) {
         self.with_save(|frame| {
             for transformation in transformationen {
@@ -68,7 +68,7 @@ impl<'t> Frame<'t> {
         });
     }
 
-    /// Zeichne die Buchstaben des [Textes](Text) auf den [Frame]
+    /// Zeichne die Buchstaben des [Textes](Text) auf den [`Frame`]
     /// und fülle sie mit der gewünschten Farbe.
     ///
     /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [`iced::widget::canvas::Frame`]
@@ -78,7 +78,7 @@ impl<'t> Frame<'t> {
         self.0.fill_text(text);
     }
 
-    /// Speichere die aktuelle Transformations-Matrix des [Frame] und führe die gegebenen Operation aus.
+    /// Speichere die aktuelle Transformations-Matrix des [`Frame`] und führe die gegebenen Operation aus.
     /// Anschließend wird die Transformations-Matrix wiederhergestellt.
     ///
     /// Diese Methode ist nützlich um mehrere Transformationen zusammenzufassen und Zeichen-Operationen
@@ -89,7 +89,7 @@ impl<'t> Frame<'t> {
 
     /// Wende die übergebene Transformation auf den Frame an.
     ///
-    /// **ACHTUNG**: Durch die Art wie es in `iced` implementiert ist wird die [Transformation]
+    /// **ACHTUNG**: Durch die Art wie es in `iced` implementiert ist wird die [`Transformation`]
     /// **vor** allen bisherigen ausgeführt.
     ///
     /// Links zum Implementierung verfolgen:
@@ -107,21 +107,21 @@ impl<'t> Frame<'t> {
     }
 }
 
-/// Ein einfacher Cache, der die erzeugte [Geometry] speichert um Neu-Berechnungen zu vermeiden.
+/// Ein einfacher Cache, der die erzeugte [`Geometry`] speichert um Neu-Berechnungen zu vermeiden.
 ///
-/// Ein Cache wird die [Geometry] nicht neu berechnen, sofern
-/// sich seine Dimensionen nicht verändert haben oder er explizit [geleert](Cache::leeren) wurde.
+/// Ein Cache wird die [`Geometry`] nicht neu berechnen, sofern
+/// sich seine Dimensionen nicht verändert haben oder er explizit [`geleert`](Cache::leeren) wurde.
 #[derive(Debug, Default)]
 pub struct Cache(canvas::Cache);
 
 impl Cache {
-    /// Erstelle einen neuen [Cache].
+    /// Erstelle einen neuen [`Cache`].
     #[must_use]
     pub fn neu() -> Self {
         Cache(canvas::Cache::new())
     }
 
-    /// Leere den [Cache], so dass er neu gezeichnet wird.
+    /// Leere den [`Cache`], so dass er neu gezeichnet wird.
 
     pub fn leeren(&self) {
         self.0.clear();
@@ -156,7 +156,7 @@ impl Cache {
         })
     }
 
-    /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [Cache].
+    /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [`Cache`].
     pub fn zeichnen<Theme>(
         &self,
         renderer: &Renderer<Theme>,

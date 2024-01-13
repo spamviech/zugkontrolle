@@ -30,7 +30,7 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-/// Name eines [Plans](Plan).
+/// Name eines [`Plans`](Plan).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
@@ -48,7 +48,7 @@ pub enum AsyncNachricht {
     },
 }
 
-/// Einstellungen, die das [Ausführen] von Aktionen beeinflussen.
+/// Einstellungen, die das [`Ausführen`] von Aktionen beeinflussen.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
@@ -133,7 +133,7 @@ pub(crate) fn erzeuge_aktualisieren_nachricht<Nachricht: From<AsyncNachricht>>()
     AsyncNachricht::Aktualisieren.into()
 }
 
-/// Führe etwas, das [Ausführen] implementiert, in einem neuen Thread aus.
+/// Führe etwas, das [`Ausführen`] implementiert, in einem neuen Thread aus.
 macro_rules! async_ausführen {
     (
         $sender: expr,
@@ -206,7 +206,7 @@ macro_rules! impl_ausführen_simple {
 /// Ein Fahrplan.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanEnum<Aktion> {
-    /// Alle [Aktionen](Aktion) des Plans.
+    /// Alle [`Aktionen`](Aktion) des Plans.
     pub aktionen: Vec<Aktion>,
     /// Werden die Aktionen nach ausführen der letzten wiederholt?
     pub endlosschleife: bool,
@@ -278,7 +278,7 @@ where
 pub type PlanSerialisiert<L, S> = PlanEnum<AktionSerialisiert<L, S>>;
 
 impl<L: Leiter> Plan<L> {
-    /// Serialisiere einen [Plan]
+    /// Serialisiere einen [`Plan`]
     pub fn serialisiere<S>(&self) -> PlanSerialisiert<L, S>
     where
         L: Serialisiere<S>,
@@ -344,22 +344,22 @@ impl<L, S> SteuerungMaps<L, S> {
 /// Serialisierbare Repräsentation der nicht bekannten Anschlüsse.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum UnbekannteAnschlüsse<S> {
-    /// Anschlüsse eine [Geschwindigkeit].
+    /// Anschlüsse eine [`Geschwindigkeit`].
     Geschwindigkeit(UnbekannteGeschwindigkeit<S>),
-    /// Anschlüsse eines [Streckenabschnittes](Streckenabschnitt).
+    /// Anschlüsse eines [`Streckenabschnittes`](Streckenabschnitt).
     Streckenabschnitte(UnbekannterStreckenabschnitt),
-    /// Anschlüsse einer [Weiche].
+    /// Anschlüsse einer [`Weiche`].
     Weiche(AnyUnbekannteWeiche),
-    /// Anschlüsse eines [Kontaktes](Kontakt).
+    /// Anschlüsse eines [`Kontaktes`](Kontakt).
     Kontakt(UnbekannterKontakt),
 }
 
 impl<L: Leiter, S: Eq + Hash> PlanSerialisiert<L, S> {
-    /// Deserialisiere einen [Plan].
+    /// Deserialisiere einen [`Plan`].
     ///
     /// ## Errors
     ///
-    /// Fehler beim [Deserialisieren](Aktion::deserialisiere) einer [`Aktion`].
+    /// Fehler beim [`Deserialisieren`](Aktion::deserialisiere) einer [`Aktion`].
     pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
         bekannte_steuerungen: &SteuerungMaps<L, S>,
@@ -378,15 +378,15 @@ impl<L: Leiter, S: Eq + Hash> PlanSerialisiert<L, S> {
 /// Eine Aktionen in einem Fahrplan.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
-    /// Eine [AktionGeschwindigkeit].
+    /// Eine [`AktionGeschwindigkeit`].
     Geschwindigkeit(Geschwindigkeit),
-    /// Eine [AktionStreckenabschnitt].
+    /// Eine [`AktionStreckenabschnitt`].
     Streckenabschnitt(Streckenabschnitt),
-    /// Eine [AnyAktionSchalten].
+    /// Eine [`AnyAktionSchalten`].
     Schalten(Schalten),
-    /// Eine [AktionWarten].
+    /// Eine [`AktionWarten`].
     Warten(Warten),
-    /// Ausführen eines [Plans](Plan).
+    /// Ausführen eines [`Plans`](Plan).
     Ausführen(PlanEnum<Self>),
 }
 
@@ -394,18 +394,18 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
 pub type Aktion<L> =
     AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AnyAktionSchalten, AktionWarten>;
 
-/// Ein Fehler der beim Ausführen einer [Aktion] auftreten kann.
+/// Ein Fehler der beim Ausführen einer [`Aktion`] auftreten kann.
 #[derive(Debug)]
 pub enum AktionFehler {
-    /// Fehler beim Ausführen einer [AktionGeschwindigkeit].
+    /// Fehler beim Ausführen einer [`AktionGeschwindigkeit`].
     Geschwindigkeit(geschwindigkeit::Fehler),
-    /// Fehler beim Ausführen einer [AktionStreckenabschnitt].
+    /// Fehler beim Ausführen einer [`AktionStreckenabschnitt`].
     Streckenabschnitt(anschluss::Fehler),
-    /// Fehler beim Ausführen einer [AktionSchalten].
+    /// Fehler beim Ausführen einer [`AktionSchalten`].
     Schalten(anschluss::Fehler),
-    /// Fehler beim Ausführen einer [AktionWarten].
+    /// Fehler beim Ausführen einer [`AktionWarten`].
     Warten(RecvError),
-    /// Fehler beim Ausführen eines [Plans](Plan).
+    /// Fehler beim Ausführen eines [`Plans`](Plan).
     Ausführen(Box<PlanFehler>),
 }
 
@@ -460,7 +460,7 @@ pub type AktionSerialisiert<L, S> = AktionEnum<
 >;
 
 impl<L: Leiter> Aktion<L> {
-    /// Serialisiere eine [Aktion].
+    /// Serialisiere eine [`Aktion`].
 
     pub fn serialisiere<S>(&self) -> AktionSerialisiert<L, S>
     where
@@ -483,7 +483,7 @@ impl<L: Leiter> Aktion<L> {
 }
 
 impl<L: Leiter, S: Eq + Hash> AktionSerialisiert<L, S> {
-    /// Deserialisiere eine [Aktion] mithilfe bekannter Anschlüsse.
+    /// Deserialisiere eine [`Aktion`] mithilfe bekannter Anschlüsse.
     ///
     /// ## Errors
     ///
@@ -678,7 +678,7 @@ erstelle_aktion_geschwindigkeit! {
 }
 
 impl<L: Leiter> AktionGeschwindigkeit<L> {
-    /// Serialisiere eine Aktion mit einer [Geschwindigkeit].
+    /// Serialisiere eine Aktion mit einer [`Geschwindigkeit`].
     fn serialisiere<S>(&self) -> AktionGeschwindigkeitSerialisiert<L, S>
     where
         L: Serialisiere<S>,
@@ -707,14 +707,14 @@ impl<L: Leiter> AktionGeschwindigkeit<L> {
     }
 }
 
-/// Eine nicht bekannte [Geschwindigkeit] soll verwendet werden.
+/// Eine nicht bekannte [`Geschwindigkeit`] soll verwendet werden.
 #[derive(Debug, Clone)]
 pub struct UnbekannteGeschwindigkeit<LeiterSerialisiert>(
     pub GeschwindigkeitSerialisiert<LeiterSerialisiert>,
 );
 
 impl<L: Leiter, S: Eq + Hash> AktionGeschwindigkeitSerialisiert<L, S> {
-    /// Deserialisiere eine Aktion mit einer [Geschwindigkeit] mithilfe bekannter Anschlüsse.
+    /// Deserialisiere eine Aktion mit einer [`Geschwindigkeit`] mithilfe bekannter Anschlüsse.
     ///
     /// ## Errors
     ///
@@ -750,7 +750,7 @@ impl<L: Leiter, S: Eq + Hash> AktionGeschwindigkeitSerialisiert<L, S> {
     }
 }
 
-/// Eine Aktion mit einem [Streckenabschnitt].
+/// Eine Aktion mit einem [`Streckenabschnitt`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionStreckenabschnitt<S = Steuerung<Streckenabschnitt>> {
     /// Strom auf einem Streckenabschnitt einstellen.
@@ -762,7 +762,7 @@ pub enum AktionStreckenabschnitt<S = Steuerung<Streckenabschnitt>> {
     },
 }
 
-/// Serialisierbare Repräsentation einer Aktion mit einem [Streckenabschnitt].
+/// Serialisierbare Repräsentation einer Aktion mit einem [`Streckenabschnitt`].
 pub type AktionStreckenabschnittSerialisiert =
     AktionStreckenabschnitt<StreckenabschnittSerialisiert>;
 
@@ -774,13 +774,13 @@ impl_ausführen_simple! {
 }
 
 impl AktionStreckenabschnitt {
-    /// Schalte den Strom für einen [Streckenabschnitt] an oder aus.
+    /// Schalte den Strom für einen [`Streckenabschnitt`] an oder aus.
     fn ausführen_aux(&mut self) -> Result<(), anschluss::Fehler> {
         let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
         streckenabschnitt.as_mut().strom(*fließend)
     }
 
-    /// Serialisiere eine Aktion mit einem [Streckenabschnitt].
+    /// Serialisiere eine Aktion mit einem [`Streckenabschnitt`].
     #[must_use]
     pub fn serialisiere(&self) -> AktionStreckenabschnittSerialisiert {
         match self {
@@ -794,12 +794,12 @@ impl AktionStreckenabschnitt {
     }
 }
 
-/// Ein nicht bekannter [Streckenabschnitt] soll verwendet werden.
+/// Ein nicht bekannter [`Streckenabschnitt`] soll verwendet werden.
 #[derive(Debug, Clone)]
 pub struct UnbekannterStreckenabschnitt(pub StreckenabschnittSerialisiert);
 
 impl AktionStreckenabschnittSerialisiert {
-    /// Deserialisiere eine Aktion mit einem [Streckenabschnitt] mithilfe bekannter Anschlüsse.
+    /// Deserialisiere eine Aktion mit einem [`Streckenabschnitt`] mithilfe bekannter Anschlüsse.
     ///
     /// ## Errors
     ///
@@ -825,19 +825,19 @@ impl AktionStreckenabschnittSerialisiert {
     }
 }
 
-/// Eine Aktion mit einer [Weiche].
+/// Eine Aktion mit einer [`Weiche`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AnyAktionSchalten<
     Gerade = Steuerung<GeradeWeiche>,
     Kurve = Steuerung<KurvenWeiche>,
     Dreiwege = Steuerung<DreiwegeWeiche>,
 > {
-    /// Schalten einer [Weiche](weiche::gerade::Weiche), [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
-    /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
+    /// Schalten einer [Weiche](weiche::gerade::Weiche), [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche)
+    /// oder [`Kreuzung`](crate::gleis::kreuzung::Kreuzung).
     SchalteGerade(AktionSchalten<Gerade, weiche::gerade::Richtung>),
-    /// Schalten einer [KurvenWeiche](weiche::kurve::KurvenWeiche).
+    /// Schalten einer [`KurvenWeiche`](weiche::kurve::KurvenWeiche).
     SchalteKurve(AktionSchalten<Kurve, weiche::kurve::Richtung>),
-    /// Schalten einer [DreiwegeWeiche](weiche::dreiwege::DreiwegeWeiche).
+    /// Schalten einer [`DreiwegeWeiche`](weiche::dreiwege::DreiwegeWeiche).
     SchalteDreiwege(AktionSchalten<Dreiwege, weiche::dreiwege::Richtung>),
 }
 
@@ -872,7 +872,7 @@ impl<L: Leiter> Ausführen<L> for AnyAktionSchalten {
     }
 }
 
-/// Serialisierbare Repräsentation für eine Aktion mit einer [Weiche].
+/// Serialisierbare Repräsentation für eine Aktion mit einer [`Weiche`].
 pub type AnyAktionSchaltenSerialisiert = AnyAktionSchalten<
     GeradeWeicheSerialisiert,
     KurvenWeicheSerialisiert,
@@ -880,7 +880,7 @@ pub type AnyAktionSchaltenSerialisiert = AnyAktionSchalten<
 >;
 
 impl AnyAktionSchalten {
-    /// Serialisiere eine Aktion mit einer [Weiche].
+    /// Serialisiere eine Aktion mit einer [`Weiche`].
     #[must_use]
     pub fn serialisiere(&self) -> AnyAktionSchaltenSerialisiert {
         match self {
@@ -897,21 +897,21 @@ impl AnyAktionSchalten {
     }
 }
 
-/// Eine nicht bekannten [Weiche] soll verwendet werden.
+/// Eine nicht bekannten [`Weiche`] soll verwendet werden.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum AnyUnbekannteWeiche {
-    /// Anschlüsse einer [Weiche](weiche::gerade::Weiche),
-    /// [SKurvenWeiche](weiche::s_kurve::SKurvenWeiche)
-    /// oder [Kreuzung](crate::gleis::kreuzung::Kreuzung).
+    /// Anschlüsse einer [`Weiche`](weiche::gerade::Weiche),
+    /// [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche)
+    /// oder [`Kreuzung`](crate::gleis::kreuzung::Kreuzung).
     Gerade(UnbekannteWeiche<GeradeWeicheSerialisiert>),
-    /// Anschlüsse einer [KurvenWeiche](weiche::kurve::KurvenWeiche).
+    /// Anschlüsse einer [`KurvenWeiche`](weiche::kurve::KurvenWeiche).
     Kurve(UnbekannteWeiche<KurvenWeicheSerialisiert>),
-    /// Anschlüsse einer [DreiwegeWeiche](weiche::dreiwege::DreiwegeWeiche).
+    /// Anschlüsse einer [`DreiwegeWeiche`](weiche::dreiwege::DreiwegeWeiche).
     Dreiwege(UnbekannteWeiche<DreiwegeWeicheSerialisiert>),
 }
 
 impl AnyAktionSchaltenSerialisiert {
-    /// Deserialisiere eine Aktion mit einer [Weiche] mithilfe bekannter Anschlüsse.
+    /// Deserialisiere eine Aktion mit einer [`Weiche`] mithilfe bekannter Anschlüsse.
     ///
     /// ## Errors
     ///
@@ -939,7 +939,7 @@ impl AnyAktionSchaltenSerialisiert {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// Schalten einer [Weiche].
+/// Schalten einer [`Weiche`].
 pub struct AktionSchalten<Weiche, Richtung> {
     /// Die Anschlüsse zum Schalten der Weiche.
     pub weiche: Weiche,
@@ -983,7 +983,7 @@ where
 }
 
 impl<Weiche, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
-    /// Serialisiere eine Aktion mit einer [Weiche].
+    /// Serialisiere eine Aktion mit einer [`Weiche`].
 
     pub fn serialisiere<WeicheSerialisiert>(&self) -> AktionSchalten<WeicheSerialisiert, Richtung>
     where
@@ -995,12 +995,12 @@ impl<Weiche, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
     }
 }
 
-/// Eine nicht bekannten [Weiche] soll verwendet werden.
+/// Eine nicht bekannten [`Weiche`] soll verwendet werden.
 #[derive(Debug, Clone)]
 pub struct UnbekannteWeiche<S>(pub S);
 
 impl<S, Richtung> AktionSchalten<S, Richtung> {
-    /// Deserialisiere eine Aktion mit einer [Weiche] mithilfe bekannter Anschlüsse.
+    /// Deserialisiere eine Aktion mit einer [`Weiche`] mithilfe bekannter Anschlüsse.
     ///
     /// ## Errors
     ///
@@ -1024,13 +1024,13 @@ impl<S, Richtung> AktionSchalten<S, Richtung> {
 /// Eine Warte-Aktion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AktionWarten<K = Steuerung<Kontakt>> {
-    /// Warte auf das Auslösen eines [Kontaktes](Kontakt).
+    /// Warte auf das Auslösen eines [`Kontaktes`](Kontakt).
     WartenAuf {
         /// Die Anschlüsse des Kontaktes.
         kontakt: K,
     },
     /// Warte für eine festgelegte Zeit.
-    /// Es kann vorkommen, dass etwas länger gewartet wird, siehe [std::thread::sleep].
+    /// Es kann vorkommen, dass etwas länger gewartet wird, siehe [`std::thread::sleep`].
     WartenFür {
         /// Die Wartezeit.
         zeit: Duration,
@@ -1044,7 +1044,7 @@ pub type AktionWartenSerialisiert = AktionWarten<KontaktSerialisiert>;
 
 impl AktionWarten {
     /// Warte auf das [`Trigger`](crate::anschluss::trigger::Trigger)-Event eines Kontaktes,
-    /// oder bis eine bestimmte [Zeitspanne](Duration) abgelaufen ist.
+    /// oder bis eine bestimmte [`Zeitspanne`](Duration) abgelaufen ist.
     fn ausführen_aux(&mut self) -> Result<(), RecvError> {
         match self {
             AktionWarten::WartenAuf { kontakt } => {
@@ -1069,12 +1069,12 @@ impl AktionWarten {
     }
 }
 
-/// Ein nicht bekannter [Kontakt] soll verwendet werden.
+/// Ein nicht bekannter [`Kontakt`] soll verwendet werden.
 #[derive(Debug, Clone)]
 pub struct UnbekannterKontakt(pub KontaktSerialisiert);
 
 impl AktionWartenSerialisiert {
-    /// Deserialisiere eine Warte-Aktion mithilfe bekannter [Kontakte](Kontakt).
+    /// Deserialisiere eine Warte-Aktion mithilfe bekannter [`Kontakte`](Kontakt).
     ///
     /// ## Errors
     ///

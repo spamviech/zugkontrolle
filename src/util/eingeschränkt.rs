@@ -21,7 +21,7 @@ pub struct InvaliderWert<T>(pub T);
 macro_rules! definiere_u8_typ {
     ($ident: ident, $max: expr, $docstring: tt) => {
         #[doc = $docstring]
-        /// [Add]-Implementierung verwendet [saturating_add](u8::saturating_add).
+        /// [Add]-Implementierung verwendet [`saturating_add`](u8::saturating_add).
         #[derive(
             Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
         )]

@@ -109,7 +109,7 @@ fn erzeuge_typ_definitionen(
         }
 
         impl<#(#params),*> #unit_ident<#(#params),*> {
-            /// Clone in eine äquivalente Darstellung mit [None] als Anschlüsse.
+            /// Clone in eine äquivalente Darstellung mit [`None`] als Anschlüsse.
             pub fn mit_none<T>(&self) -> #ident<#params_start Option<T>> {
                 let #ident { #(#other_fields),*, .. } = self;
                 #ident {

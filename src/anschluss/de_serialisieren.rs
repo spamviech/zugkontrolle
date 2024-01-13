@@ -1,4 +1,4 @@
-//! Traits zum serialisieren und reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
+//! Traits zum serialisieren und reservieren der benötigten [`Anschlüsse`](crate::anschluss::Anschluss).
 
 use either::Either;
 use log::error;
@@ -6,7 +6,7 @@ use nonempty::NonEmpty;
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
 
-/// Alle [Anschlüsse](anschluss::Anschluss).
+/// Alle [`Anschlüsse`](anschluss::Anschluss).
 #[derive(Debug, Default)]
 pub struct Anschlüsse {
     /// Pwm-Pins.
@@ -18,7 +18,7 @@ pub struct Anschlüsse {
 }
 
 impl Anschlüsse {
-    /// Erzeuge eine leere [Anschlüsse]-Struktur.
+    /// Erzeuge eine leere [`Anschlüsse`]-Struktur.
     #[must_use]
     pub const fn neu() -> Anschlüsse {
         Anschlüsse {
@@ -28,7 +28,7 @@ impl Anschlüsse {
         }
     }
 
-    /// Füge weitere Anschlüsse zu den jeweiligen [Vec] hinzu.
+    /// Füge weitere Anschlüsse zu den jeweiligen [`Vec`] hinzu.
     pub fn anhängen(&mut self, andere: Anschlüsse) {
         let Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse } = andere;
         self.pwm_pins.extend(pwm_pins);
@@ -43,16 +43,16 @@ impl Anschlüsse {
 /// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
-/// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
-/// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
+/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
+/// dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
 /// ```
 /// let clone = s.clone();
 /// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
 ///     assert_eq!(anschluss.serialisiere(), clone)
 /// }
 /// ```
-/// - Sofern kein Klon von `r` existiert ist [reserviere](Reserviere::reserviere) das inverse zu
-/// [serialisiere](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+/// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
+/// [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
 /// ```
 /// let s = r.serialisiere();
 /// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
@@ -67,7 +67,7 @@ pub trait Serialisiere<S>: Sized {
     fn anschlüsse(self) -> Anschlüsse;
 }
 
-/// Ergebnis von [reserviere](Reserviere::reserviere).
+/// Ergebnis von [`reserviere`](Reserviere::reserviere).
 #[derive(Debug)]
 pub enum Ergebnis<R> {
     /// Keine Probleme beim Reservieren.
@@ -111,22 +111,22 @@ impl<R> Ergebnis<R> {
     }
 }
 
-/// Erlaube reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
+/// Erlaube reservieren der benötigten [`Anschlüsse`](crate::anschluss::Anschluss).
 ///
 /// Wenn `R: Serialisiere<S>, S: Reserviere<R>`, dann müssen folgende Gesetze gelten
 /// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
-/// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
-/// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
+/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
+/// dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
 /// ```
 /// let clone = s.clone();
 /// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
 ///     assert_eq!(anschluss.serialisiere(), clone)
 /// }
 /// ```
-/// - Sofern kein Klon von `r` existiert ist [reserviere](Reserviere::reserviere) das inverse zu
-/// [serialisiere](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+/// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
+/// [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
 /// ```
 /// let s = r.serialisiere();
 /// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
@@ -140,7 +140,7 @@ pub trait Reserviere<R> {
     /// Extra veränderliche-Referenz-Argument zum reservieren der Anschlüsse.
     type MutRefArg;
 
-    /// Reserviere die benötigten [Anschlüsse](crate::anschluss::Anschluss),
+    /// Reserviere die benötigten [`Anschlüsse`](crate::anschluss::Anschluss),
     /// potentiell unter Verwendung bereits reservierter Anschlüsse,
     /// um den gewünschten Typ zu erzeugen.
     fn reserviere(
@@ -155,7 +155,7 @@ pub trait Reserviere<R> {
 
 impl<T> Ergebnis<T> {
     /// Reserviere weitere Anschlüsse, ausgehend von dem positiven Ergebnis eines vorherigen
-    /// [reserviere](Reserviere::reserviere)-Aufrufs.
+    /// [`reserviere`](Reserviere::reserviere)-Aufrufs.
     pub fn reserviere_ebenfalls<S: Reserviere<R>, R>(
         self,
         lager: &mut anschluss::Lager,
@@ -180,7 +180,7 @@ impl<T> Ergebnis<T> {
     // Argumente werden alle benötigt und können nicht sinnvoll zusammengefasst werden.
     #[allow(clippy::too_many_arguments)]
     /// Reserviere weitere Anschlüsse, ausgehend von dem Ergebnis eines vorherigen
-    /// [reserviere](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
+    /// [`reserviere`](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
     /// übergebenen Funktion.
     /// Wenn mindestens ein Wert nicht vorhanden ist ([`Ergebnis::Fehler`]) wird stattdessen
     /// mit `fehlerbehandlung` versucht ein Ersatzergebnis zu erzeugen.

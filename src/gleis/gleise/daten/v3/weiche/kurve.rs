@@ -1,4 +1,4 @@
-//! Serialisierbare Darstellung eines [KurvenWeiche] in Version 3.
+//! Serialisierbare Darstellung eines [`KurvenWeiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
 
@@ -89,12 +89,12 @@ impl From<Richtung> for v4::Richtung {
     }
 }
 
-/// Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder.
+/// Eine Struktur mit von [`Richtung`]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    /// [Richtung::Innen]
+    /// [`Richtung::Innen`]
     pub innen: crate::anschluss::OutputSerialisiert,
-    /// [Richtung::Außen]
+    /// [`Richtung::Außen`]
     pub außen: crate::anschluss::OutputSerialisiert,
 }
 

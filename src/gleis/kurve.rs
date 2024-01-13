@@ -1,4 +1,4 @@
-//! Definition und zeichnen einer [Kurve].
+//! Definition und zeichnen einer [`Kurve`].
 
 use std::{f32::consts::PI, fmt::Debug};
 
@@ -37,17 +37,17 @@ pub struct Kurve<Anschluss = Option<Kontakt>> {
     pub winkel: Winkel,
     /// Eine allgemeine Beschreibung der Kurve, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Der Anschluss für einen [Kontakt] an der Schiene.
+    /// Der Anschluss für einen [`Kontakt`] an der Schiene.
     pub kontakt: Anschluss,
 }
 
 impl KurveUnit {
-    /// Erstelle eine neue [Kurve].
+    /// Erstelle eine neue [`Kurve`].
     pub const fn neu(radius: Radius, winkel: Winkel) -> Self {
         KurveUnit { radius: radius.als_skalar(), winkel, beschreibung: None, kontakt: () }
     }
 
-    /// Erstelle eine neue [Kurve] mit einer allgemeinen Beschreibung, z.B. der Produktnummer.
+    /// Erstelle eine neue [`Kurve`] mit einer allgemeinen Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         radius: Radius,
         winkel: Winkel,
@@ -63,7 +63,7 @@ impl KurveUnit {
 }
 
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
-/// [Verbindungen](Verbindung) einer [Kurve].
+/// [Verbindungen](Verbindung) einer [`Kurve`].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     /// Das eine Ende der Kurve.

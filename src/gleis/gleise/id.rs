@@ -56,18 +56,18 @@ impl<T> Hash for GleisId<T> {
 }
 
 impl<T> GleisId<T> {
-    /// Erzeuge eine neue [GleisId] für den entsprechenden Typ.
+    /// Erzeuge eine neue [`GleisId`] für den entsprechenden Typ.
     pub fn neu() -> Result<GleisId<T>, KeineIdVerfügbar> {
         Id::neu().map(|id| GleisId(Arc::new(id)))
     }
 
-    /// Erhalte eine eindeutige Zahl für die [GleisId].
+    /// Erhalte eine eindeutige Zahl für die [`GleisId`].
     ///
-    /// Die selbe [GleisId], sowie alle ihre Kopien, werde bei jedem Aufruf die selbe Zahl zurückgeben.
-    /// Zwei gleichzeitig existierende [GleisIds](GleisId) werden unterschiedliche Zahlen zurückgeben.
+    /// Die selbe [`GleisId`], sowie alle ihre Kopien, werde bei jedem Aufruf die selbe Zahl zurückgeben.
+    /// Zwei gleichzeitig existierende [`GleisIds`](GleisId) werden unterschiedliche Zahlen zurückgeben.
     ///
-    /// Sobald die letzte Kopie einer [GleisId] gedroppt wird kann es sein,
-    /// dass eine andere [GleisId] die selbe Zahl zurückgibt.
+    /// Sobald die letzte Kopie einer [`GleisId`] gedroppt wird kann es sein,
+    /// dass eine andere [`GleisId`] die selbe Zahl zurückgibt.
     pub fn repräsentation(&self) -> Repräsentation {
         self.0.repräsentation()
     }
@@ -92,19 +92,19 @@ macro_rules! erzeuge_any_enum {
         #[derive(zugkontrolle_macros::From, $($derives),*)]
         #[allow(unused_qualifications)]
         $($vis)? enum $name$(<$($lt),*>)? {
-            /// Variante für eine [Gerade](crate::gleis::gerade::Gerade).
+            /// Variante für eine [`Gerade`](crate::gleis::gerade::Gerade).
             Gerade($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::gerade::Gerade, [], $($path)*} ),+),
-            /// Variante für eine [Kurve](crate::gleis::kurve::Kurve).
+            /// Variante für eine [`Kurve`](crate::gleis::kurve::Kurve).
             Kurve($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kurve::Kurve, [], $($path)*} ),+),
-            /// Variante für eine [Weiche](crate::gleis::weiche::gerade::Weiche).
+            /// Variante für eine [`Weiche`](crate::gleis::weiche::gerade::Weiche).
             Weiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::gerade::Weiche, [], $($path)*} ),+),
-            /// Variante für eine [DreiwegeWeiche](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
+            /// Variante für eine [`DreiwegeWeiche`](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
             DreiwegeWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::dreiwege::DreiwegeWeiche, [], $($path)*} ),+),
-            /// Variante für eine [KurvenWeiche](crate::gleis::weiche::kurve::KurvenWeiche).
+            /// Variante für eine [`KurvenWeiche`](crate::gleis::weiche::kurve::KurvenWeiche).
             KurvenWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::kurve::KurvenWeiche, [], $($path)*} ),+),
-            /// Variante für eine [SKurvenWeiche](crate::gleis::weiche::s_kurve::SKurvenWeiche).
+            /// Variante für eine [`SKurvenWeiche`](crate::gleis::weiche::s_kurve::SKurvenWeiche).
             SKurvenWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::s_kurve::SKurvenWeiche, [], $($path)*} ),+),
-            /// Variante für eine [Kreuzung](crate::gleis::kreuzung::Kreuzung).
+            /// Variante für eine [`Kreuzung`](crate::gleis::kreuzung::Kreuzung).
             Kreuzung($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kreuzung::Kreuzung, [], $($path)*} ),+),
         }
     };
@@ -219,7 +219,7 @@ erzeuge_any_enum! {
 }
 
 impl AnyIdSteuerung {
-    /// Erhalte die [Id](AnyId) eines Gleises.
+    /// Erhalte die [`Id`](AnyId) eines Gleises.
     pub fn id(&self) -> AnyId {
         macro_rules! id_aux {
             ($id: expr, $steuerung: expr) => {
@@ -270,7 +270,7 @@ erzeuge_any_enum! {
 }
 
 impl AnyIdSteuerungSerialisiert {
-    /// Erhalte die [Id](AnyId) eines Gleises.
+    /// Erhalte die [`Id`](AnyId) eines Gleises.
     pub fn id(&self) -> AnyId {
         macro_rules! id_aux {
             ($id: expr, $steuerung: expr) => {

@@ -33,26 +33,26 @@ pub mod pin;
 pub mod polarität;
 pub mod trigger;
 
-/// Verwalten nicht verwendeter [Pin]s und [Pcf8574-Ports](pcf8574::Port).
+/// Verwalten nicht verwendeter [Pin]s und [`Pcf8574-Ports`](pcf8574::Port).
 #[derive(Debug)]
 pub struct Lager {
-    /// [Lager](pin::Lager) zum verwalten nicht verwendeter [Pin]s.
+    /// [Lager](pin::Lager) zum verwalten nicht verwendeter [`Pin`]s.
     pub pin: pin::Lager,
-    /// [Lager](pcf8574::Lager) zum verwalten nicht verwendeter [Pcf8574-Ports](pcf8574::Port).
+    /// [Lager](pcf8574::Lager) zum verwalten nicht verwendeter [`Pcf8574-Ports`](pcf8574::Port).
     pub pcf8574: pcf8574::Lager,
 }
 
-/// Fehler beim [Initialisieren](Lager::neu) eines [Lager]s.
+/// Fehler beim [Initialisieren](Lager::neu) eines [`Lager`]s.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum InitFehler {
-    /// Fehler beim Initialisieren des [Pin-Lagers](pin::Lager).
+    /// Fehler beim Initialisieren des [`Pin-Lagers`](pin::Lager).
     Pin(rppal::gpio::Error),
-    /// Fehler beim Initialisieren des [Pcf8574-Lagers](pcf8574::Lager).
+    /// Fehler beim Initialisieren des [`Pcf8574-Lagers`](pcf8574::Lager).
     Pcf8574(pcf8574::InitFehler),
 }
 
 impl Lager {
-    /// Initialisiere ein [Lager], das nicht verwendete [Anschlüsse](Anschluss) verwaltet.
+    /// Initialisiere ein [Lager], das nicht verwendete [`Anschlüsse`](Anschluss) verwaltet.
     ///
     /// ## Errors
     ///
@@ -63,7 +63,7 @@ impl Lager {
         Ok(Lager { pin, pcf8574 })
     }
 
-    /// Reserviere einen [Pin].
+    /// Reserviere einen [`Pin`].
     ///
     /// ## Errors
     ///
@@ -75,7 +75,7 @@ impl Lager {
         }
     }
 
-    /// Reserviere einen [Pcf8574-Port](pcf8574::Port).
+    /// Reserviere einen [`Pcf8574-Port`](pcf8574::Port).
     ///
     /// ## Errors
     ///
@@ -96,9 +96,9 @@ impl Lager {
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum Anschluss {
-    /// Ein [Pin].
+    /// Ein [`Pin`].
     Pin(Pin),
-    /// Ein [Pcf8574-Port](pcf8574::Port).
+    /// Ein [`Pcf8574-Port`](pcf8574::Port).
     Pcf8574Port(pcf8574::Port),
 }
 
@@ -114,7 +114,7 @@ impl Display for Anschluss {
 }
 
 impl Anschluss {
-    /// Konfiguriere den [Anschluss] als [Output](OutputAnschluss).
+    /// Konfiguriere den [Anschluss] als [`Output`](OutputAnschluss).
     pub fn als_output(self, polarität: Polarität) -> (OutputAnschluss, Option<Fehler>) {
         let gesperrt_level = Fließend::Gesperrt.mit_polarität(polarität);
         match self {
@@ -128,7 +128,7 @@ impl Anschluss {
         }
     }
 
-    /// Konfiguriere den [Anschluss] als [Input](InputAnschluss).
+    /// Konfiguriere den [Anschluss] als [`Input`](InputAnschluss).
     pub fn als_input(self) -> (InputAnschluss, Option<Fehler>) {
         match self {
             Anschluss::Pin(pin) => (InputAnschluss::Pin(pin.als_input()), None),
@@ -146,18 +146,18 @@ impl Anschluss {
 #[derive(Debug)]
 #[allow(variant_size_differences)]
 pub enum OutputAnschluss {
-    /// Ein [Pin](output::Pin).
+    /// Ein [`Pin`](output::Pin).
     Pin {
         /// Die GPIO-Zahl.
         pin: output::Pin,
-        /// Die [Polarität] des Anschlusses.
+        /// Die [`Polarität`] des Anschlusses.
         polarität: Polarität,
     },
-    /// Ein [Pcf8574-Port](pcf8574::OutputPort).
+    /// Ein [`Pcf8574-Port`](pcf8574::OutputPort).
     Pcf8574Port {
-        /// Die [Pcf8574-Port](pcf8574::OutputPort).
+        /// Die [`Pcf8574-Port`](pcf8574::OutputPort).
         port: pcf8574::OutputPort,
-        /// Die [Polarität] des Anschlusses.
+        /// Die [`Polarität`] des Anschlusses.
         polarität: Polarität,
     },
 }
@@ -180,7 +180,7 @@ impl OutputAnschluss {
     ///
     /// ## Errors
     ///
-    /// Fehler in der I2C-Kommunikation für einen [Pcf8574-Port](pcf8574::Port).
+    /// Fehler in der I2C-Kommunikation für einen [`Pcf8574-Port`](pcf8574::Port).
     pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
@@ -203,7 +203,7 @@ impl OutputAnschluss {
         }
     }
 
-    /// Ist der [`OutputAnschluss`] aktuell [fließend](Fließend::Fließend).
+    /// Ist der [`OutputAnschluss`] aktuell [`fließend`](Fließend::Fließend).
     #[must_use]
     pub fn ist_fließend(&self) -> bool {
         match self {
@@ -218,18 +218,18 @@ impl OutputAnschluss {
         }
     }
 
-    /// Ist der [`OutputAnschluss`] aktuell [gesperrt](Fließend::Gesperrt).
+    /// Ist der [`OutputAnschluss`] aktuell [`gesperrt`](Fließend::Gesperrt).
     #[must_use]
     pub fn ist_gesperrt(&self) -> bool {
         !self.ist_fließend()
     }
 
-    /// Schalte den Strom von [Fließend](Fließend::Fließend) auf [Gesperrt](Fließend::Gesperrt)
+    /// Schalte den Strom von [Fließend](Fließend::Fließend) auf [`Gesperrt`](Fließend::Gesperrt)
     /// und umgekehrt.
     ///
     /// ## Errors
     ///
-    /// Fehler in der I2C-Kommunikation für einen [Pcf8574-Port](pcf8574::Port).
+    /// Fehler in der I2C-Kommunikation für einen [`Pcf8574-Port`](pcf8574::Port).
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
         match self {
             OutputAnschluss::Pin { pin, .. } => pin.umschalten(),
@@ -243,20 +243,20 @@ impl OutputAnschluss {
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
-    /// Ein [Pin](output::Pin).
+    /// Ein [`Pin`](output::Pin).
     Pin {
         /// Die GPIO-Zahl.
         pin: u8,
-        /// Die [Polarität] des Anschlusses.
+        /// Die [`Polarität`] des Anschlusses.
         polarität: Polarität,
     },
-    /// Ein [Pcf8574-Port](pcf8574::OutputPort).
+    /// Ein [`Pcf8574-Port`](pcf8574::OutputPort).
     Pcf8574Port {
         /// Die Beschreibung des Pcf8574.
         beschreibung: pcf8574::Beschreibung,
         /// Der verwendete Port.
         port: kleiner_8,
-        /// Die [Polarität] des Anschlusses.
+        /// Die [`Polarität`] des Anschlusses.
         polarität: Polarität,
     },
 }
@@ -387,9 +387,9 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
 #[derive(Debug)]
 #[allow(variant_size_differences)]
 pub enum InputAnschluss {
-    /// Ein [Pin](input::Pin).
+    /// Ein [`Pin`](input::Pin).
     Pin(input::Pin),
-    /// Ein [Pcf8574-Port](pcf8574::InputPort).
+    /// Ein [`Pcf8574-Port`](pcf8574::InputPort).
     Pcf8574Port(pcf8574::InputPort),
 }
 
@@ -475,12 +475,12 @@ impl InputAnschluss {
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
-    /// Ein [Pin](input::Pin).
+    /// Ein [`Pin`](input::Pin).
     Pin {
         /// Die GPIO-Zahl.
         pin: u8,
     },
-    /// Ein [Pcf8574-Port](pcf8574::InputPort).
+    /// Ein [`Pcf8574-Port`](pcf8574::InputPort).
     Pcf8574Port {
         /// Die Beschreibung des Pcf8574.
         beschreibung: pcf8574::Beschreibung,
@@ -509,7 +509,7 @@ impl InputSerialisiert {
         }
     }
 
-    /// Der Interrupt-Pin eines [Pcf8574-Port](pcf8574::Port),
+    /// Der Interrupt-Pin eines [`Pcf8574-Port`](pcf8574::Port),
     /// sofern es sich um einen handelt und einer konfiguriert ist.
     #[must_use]
     pub fn interrupt(&self) -> Option<u8> {
@@ -656,28 +656,28 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
     }
 }
 
-/// Fehler, die beim reservieren eines [Anschluss]es auftreten können.
+/// Fehler, die beim reservieren eines [`Anschluss`]es auftreten können.
 #[derive(Debug, zugkontrolle_macros::From)]
 #[allow(variant_size_differences)]
 pub enum ReservierenFehler {
-    /// Ein Fehler beim reservieren eines [Pin]s.
+    /// Ein Fehler beim reservieren eines [`Pin`]s.
     Pin(pin::ReservierenFehler),
-    /// Ein [Pcf8574-Port](pcf8574::Port) wird bereits verwendet.
+    /// Ein [`Pcf8574-Port`](pcf8574::Port) wird bereits verwendet.
     Pcf8574(pcf8574::InVerwendung),
 }
 
-/// Fehler, die bei Interaktion mit einem [Anschluss] auftreten können.
+/// Fehler, die bei Interaktion mit einem [`Anschluss`] auftreten können.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
-    /// Ein Fehler mit einem [Input-Pin](input::Pin).
+    /// Ein Fehler mit einem [`Input-Pin`](input::Pin).
     Input(input::Fehler),
-    /// Ein Fehler mit einem [Pcf8574-Port](pcf8574::Port).
+    /// Ein Fehler mit einem [`Pcf8574-Port`](pcf8574::Port).
     Pcf8574(pcf8574::Fehler),
-    /// Ein Fehler beim Reservieren eines [Anschluss]es.
+    /// Ein Fehler beim Reservieren eines [`Anschluss`]es.
     Reservieren(ReservierenFehler),
     /// Fehler beim Deserialisieren des Zugtyps.
     ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
-    /// Ein Gleis wurde mit unbekannter [DefinitionId] gespeichert.
+    /// Ein Gleis wurde mit unbekannter [`DefinitionId`] gespeichert.
     UnbekannteGespeicherteDefinition {
         /// Die gespeicherte Id.
         id: id::Repräsentation,
@@ -686,9 +686,9 @@ pub enum Fehler {
         /// Der Typ, zu der die Id gehört.
         type_name: &'static str,
     },
-    /// Ein Gleis mit unbekannter [DefinitionId].
+    /// Ein Gleis mit unbekannter [`DefinitionId`].
     UnbekannteDefinition {
-        /// Die Id ohne zugehörigen Eintrag im [Zugtyp].
+        /// Die Id ohne zugehörigen Eintrag im [`Zugtyp`].
         id: AnyDefinitionId,
     },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
@@ -698,8 +698,8 @@ pub enum Fehler {
         /// Der Name des aktuellen Leiters.
         leiter: &'static str,
     },
-    /// Alle [Ids](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
-    /// Es ist aktuell keine eindeutige [Id](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
+    /// Alle [`Ids`](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [`Id`](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 

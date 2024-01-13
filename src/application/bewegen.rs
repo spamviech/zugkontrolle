@@ -59,7 +59,7 @@ impl Bewegung {
     }
 }
 
-/// Nachricht des [Bewegen]-Widgets.
+/// Nachricht des [`Bewegen`]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub enum Nachricht {
     /// Beginne eine kontinuierliche Bewegung.
@@ -75,7 +75,7 @@ pub enum Nachricht {
 pub struct Bewegen(Cache);
 
 impl Bewegen {
-    /// Erstelle ein neues [Bewegen]-Widget.
+    /// Erstelle ein neues [`Bewegen`]-Widget.
     pub fn neu() -> Self {
         Bewegen(Cache::neu())
     }

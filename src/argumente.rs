@@ -156,13 +156,13 @@ impl Argumente {
 }
 
 // TODO erlaube Laden/Deserialisieren aus einer Datei.
-/// [Zugtyp](crate::zugtyp::Zugtyp) für die aktuelle Session.
+/// [`Zugtyp`](crate::zugtyp::Zugtyp) für die aktuelle Session.
 #[derive(Debug, Clone, Copy, EnumArgument)]
 #[kommandozeilen_argumente(case: insensitive)]
 pub enum ZugtypArgument {
-    /// [Märklin](crate::zugtyp::Zugtyp::märklin)
+    /// [`Märklin`](crate::zugtyp::Zugtyp::märklin)
     Märklin,
-    /// [Lego](crate::zugtyp::Zugtyp::lego)
+    /// [`Lego`](crate::zugtyp::Zugtyp::lego)
     Lego,
 }
 

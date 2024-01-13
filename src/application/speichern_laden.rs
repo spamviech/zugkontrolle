@@ -15,14 +15,14 @@ use iced_widget::{
 
 use crate::application::{map_mit_zustand::MapMitZustand, style};
 
-/// Zustand von [SpeichernLaden].
+/// Zustand von [`SpeichernLaden`].
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand {
     aktueller_pfad: String,
 }
 
 impl Zustand {
-    /// Erstelle einen neuen Zustand von [SpeichernLaden].
+    /// Erstelle einen neuen Zustand von [`SpeichernLaden`].
     fn neu(aktueller_pfad: String) -> Self {
         Zustand { aktueller_pfad }
     }
@@ -35,7 +35,7 @@ enum InterneNachricht {
     Pfad(String),
 }
 
-/// Nachricht des [SpeichernLaden]-Widgets.
+/// Nachricht des [`SpeichernLaden`]-Widgets.
 #[derive(Debug, Clone)]
 pub enum Nachricht {
     /// Speichern im gegebenen Pfad gewünscht.
@@ -54,7 +54,7 @@ where
     <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
     <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
 {
-    /// Erstelle ein [SpeichernLaden]-Widget.
+    /// Erstelle ein [`SpeichernLaden`]-Widget.
     pub fn neu(initialer_pfad: &'a str, speichern_gefärbt: Option<bool>) -> Self {
         let erzeuge_zustand = || Zustand::neu(initialer_pfad.to_owned());
         let erzeuge_element =

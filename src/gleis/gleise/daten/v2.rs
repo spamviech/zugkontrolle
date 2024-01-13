@@ -23,16 +23,16 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
-/// Beschreibung eines [anschluss::pcf85747::Pcf8574].
+/// Beschreibung eines [`anschluss::pcf85747::Pcf8574`].
 #[derive(Deserialize)]
 struct Pcf8574Beschreibung {
-    /// Anliegendes [Level] an das `A0` Adress-Bit.
+    /// Anliegendes [`Level`] an das `A0` Adress-Bit.
     a0: Level,
-    /// Anliegendes [Level] an das `A1` Adress-Bit.
+    /// Anliegendes [`Level`] an das `A1` Adress-Bit.
     a1: Level,
-    /// Anliegendes [Level] an das `A2` Adress-Bit.
+    /// Anliegendes [`Level`] an das `A2` Adress-Bit.
     a2: Level,
-    /// Variante des [anschluss::pcf85747::Pcf8574], beeinflusst die I2C-Adresse.
+    /// Variante des [`anschluss::pcf85747::Pcf8574`], beeinflusst die I2C-Adresse.
     variante: pcf8574::Variante,
 }
 
@@ -42,24 +42,24 @@ impl From<Pcf8574Beschreibung> for pcf8574::Beschreibung {
     }
 }
 
-/// Serialisierbare Informationen eines [OutputAnschluss]es.
+/// Serialisierbare Informationen eines [`OutputAnschluss`]es.
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Deserialize)]
 enum OutputSerialisiert {
-    /// Ein [Pin](output::Pin).
+    /// Ein [`Pin`](output::Pin).
     Pin {
         /// Die GPIO-Zahl.
         pin: u8,
-        /// Die [Polarität] des Anschlusses.
+        /// Die [`Polarität`] des Anschlusses.
         polarität: Polarität,
     },
-    /// Ein [Pcf8574-Port](pcf8574::OutputPort).
+    /// Ein [`Pcf8574-Port`](pcf8574::OutputPort).
     Pcf8574Port {
         /// Die Beschreibung des Pcf8574.
         beschreibung: Pcf8574Beschreibung,
         /// Der verwendete Port.
         port: kleiner_8,
-        /// Die [Polarität] des Anschlusses.
+        /// Die [`Polarität`] des Anschlusses.
         polarität: Polarität,
     },
 }
@@ -81,16 +81,16 @@ impl From<OutputSerialisiert> for anschluss::OutputSerialisiert {
     }
 }
 
-/// Serialisierbare Informationen eines [InputAnschlusses](anschluss::InputAnschluss).
+/// Serialisierbare Informationen eines [`InputAnschlusses`](anschluss::InputAnschluss).
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Deserialize)]
 enum InputSerialisiert {
-    /// Ein [Pin](input::Pin).
+    /// Ein [`Pin`](input::Pin).
     Pin {
         /// Die GPIO-Zahl.
         pin: u8,
     },
-    /// Ein [Pcf8574-Port](pcf8574::InputPort).
+    /// Ein [`Pcf8574-Port`](pcf8574::InputPort).
     Pcf8574Port {
         /// Die Beschreibung des Pcf8574.
         beschreibung: Pcf8574Beschreibung,
@@ -116,7 +116,7 @@ impl From<InputSerialisiert> for anschluss::InputSerialisiert {
     }
 }
 
-/// Serialisierte Variante eines [Kontaktes](Kontakt).
+/// Serialisierte Variante eines [`Kontaktes`](Kontakt).
 #[derive(Deserialize)]
 struct KontaktSerialisiert {
     /// Der Name des Kontaktes.
@@ -134,7 +134,7 @@ impl From<KontaktSerialisiert> for kontakt::KontaktSerialisiert {
     }
 }
 
-/// Serialisierbare Repräsentation einer [Gerade](gerade::Gerade).
+/// Serialisierbare Repräsentation einer [`Gerade`](gerade::Gerade).
 #[derive(Deserialize)]
 struct GeradeSerialisiert {
     länge: Skalar,
@@ -149,7 +149,7 @@ impl From<GeradeSerialisiert> for v3::gerade::GeradeSerialisiert {
     }
 }
 
-/// Serialisierbare Repräsentation einer [Kurve](kurve::Kurve).
+/// Serialisierbare Repräsentation einer [`Kurve`](kurve::Kurve).
 #[derive(Deserialize)]
 struct KurveSerialisiert {
     radius: Skalar,
@@ -220,8 +220,8 @@ impl<R1, A1> WeicheSteuerungSerialisiert<R1, A1> {
     }
 }
 
-/// Serialisierbare Repräsentation der [Anschlüsse](gerade_weiche::RichtungAnschlüsse)
-/// einer [Weiche](gerade_weiche::Weiche).
+/// Serialisierbare Repräsentation der [`Anschlüsse`](gerade_weiche::RichtungAnschlüsse)
+/// einer [`Weiche`](gerade_weiche::Weiche).
 #[derive(Deserialize)]
 struct WeicheAnschlüsseSerialisiert {
     gerade: OutputSerialisiert,
@@ -241,7 +241,7 @@ impl From<WeicheAnschlüsseSerialisiert> for v3::weiche::gerade::RichtungAnschl�
 // FIXME richtung, orientierung, variante in v2 definieren -> use in v3
 // FIXME Name in v2 definieren
 
-/// Serialisierbare Repräsentation einer [Weiche](v3::weiche::gerade::Weiche).
+/// Serialisierbare Repräsentation einer [`Weiche`](v3::weiche::gerade::Weiche).
 #[derive(Deserialize)]
 struct WeicheSerialisiert {
     länge: Skalar,
@@ -269,8 +269,8 @@ impl From<WeicheSerialisiert> for v3::weiche::gerade::WeicheSerialisiert {
     }
 }
 
-/// Serialisierbare Repräsentation der [Anschlüsse](kurven_weiche::RichtungAnschlüsse)
-/// einer [KurvenWeiche](kurven_weiche::KurvenWeiche).
+/// Serialisierbare Repräsentation der [`Anschlüsse`](kurven_weiche::RichtungAnschlüsse)
+/// einer [`KurvenWeiche`](kurven_weiche::KurvenWeiche).
 #[derive(Deserialize)]
 struct KurvenWeicheAnschlüsseSerialisiert {
     innen: OutputSerialisiert,
@@ -289,7 +289,7 @@ impl From<KurvenWeicheAnschlüsseSerialisiert>
     }
 }
 
-/// Serialisierbare Repräsentation einer [KurvenWeiche](kurven_weiche::KurvenWeiche).
+/// Serialisierbare Repräsentation einer [`KurvenWeiche`](kurven_weiche::KurvenWeiche).
 #[derive(Deserialize)]
 struct KurvenWeicheSerialisiert {
     länge: Skalar,
@@ -326,8 +326,8 @@ impl From<KurvenWeicheSerialisiert> for v3::weiche::kurve::KurvenWeicheSerialisi
     }
 }
 
-/// Serialisierbare Repräsentation der [Anschlüsse](dreiwege::RichtungAnschlüsse)
-/// einer [DreiwegeWeiche](dreiwege::DreiwegeWeiche).
+/// Serialisierbare Repräsentation der [`Anschlüsse`](dreiwege::RichtungAnschlüsse)
+/// einer [`DreiwegeWeiche`](dreiwege::DreiwegeWeiche).
 #[derive(Deserialize)]
 struct DreiwegeAnschlüsseSerialisiert {
     gerade: OutputSerialisiert,
@@ -348,7 +348,7 @@ impl From<DreiwegeAnschlüsseSerialisiert>
     }
 }
 
-/// Serialisierbare Repräsentation einer [DreiwegeWeiche](dreiwege::DreiwegeWeiche).
+/// Serialisierbare Repräsentation einer [`DreiwegeWeiche`](dreiwege::DreiwegeWeiche).
 #[derive(Deserialize)]
 struct DreiwegeWeicheSerialisiert {
     länge: Skalar,
@@ -373,7 +373,7 @@ impl From<DreiwegeWeicheSerialisiert> for v3::weiche::dreiwege::DreiwegeWeicheSe
     }
 }
 
-/// Serialisierbare Repräsentation einer [SKurvenWeiche](s_kurve::SKurvenWeiche).
+/// Serialisierbare Repräsentation einer [`SKurvenWeiche`](s_kurve::SKurvenWeiche).
 #[derive(Deserialize)]
 struct SKurvenWeicheSerialisiert {
     länge: Skalar,
@@ -413,7 +413,7 @@ impl From<SKurvenWeicheSerialisiert> for v3::weiche::s_kurve::SKurvenWeicheSeria
     }
 }
 
-/// Serialisierbare Repräsentation einer [Kreuzung](kreuzung::Kreuzung).
+/// Serialisierbare Repräsentation einer [`Kreuzung`](kreuzung::Kreuzung).
 #[derive(Deserialize)]
 struct KreuzungSerialisiert {
     länge: Skalar,
@@ -458,8 +458,8 @@ type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 
 /// Ein unterstützten Leiter, mit über Namen identifizierten Zugtypen. Aktuell:
-/// - [Mittelleiter] mit "Märklin".
-/// - [Zweileiter] mit "Lego".
+/// - [`Mittelleiter`] mit "Märklin".
+/// - [`Zweileiter`] mit "Lego".
 pub trait BekannterZugtyp: BekannterLeiter {
     /// Serialisierbare Repräsentation in v2.*
     type V2;
@@ -474,18 +474,18 @@ struct NonEmpty<T> {
     tail: Vec<T>,
 }
 
-/// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
+/// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Deserialize)]
 #[allow(missing_debug_implementations)]
 pub struct MittelleiterSerialisiert(MittelleiterSerialisiertEnum);
 
-/// Serialisierbare Repräsentation eines [Mittelleiters](Mittelleiter).
+/// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Deserialize)]
 #[allow(variant_size_differences)]
 enum MittelleiterSerialisiertEnum {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         pin: pwm::Serialisiert,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
@@ -535,18 +535,18 @@ impl From<MittelleiterSerialisiert> for geschwindigkeit::MittelleiterSerialisier
     }
 }
 
-/// Serialisierbare Repräsentation eines [Zweileiters](Zweileiter).
+/// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Deserialize)]
 #[allow(missing_debug_implementations)]
 pub struct ZweileiterSerialisiert(ZweileiterSerialisiertEnum);
 
-/// Serialisierbare Repräsentation eines [Zweileiters](Zweileiter).
+/// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Deserialize)]
 #[allow(variant_size_differences)]
 enum ZweileiterSerialisiertEnum {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         geschwindigkeit: pwm::Serialisiert,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
@@ -602,7 +602,7 @@ impl From<ZweileiterSerialisiert> for geschwindigkeit::ZweileiterSerialisiert {
     }
 }
 
-/// Serialisierbare Repräsentation einer [Geschwindigkeit](geschwindigkeit::Geschwindigkeit).
+/// Serialisierbare Repräsentation einer [`Geschwindigkeit`](geschwindigkeit::Geschwindigkeit).
 #[derive(Deserialize)]
 struct GeschwindigkeitSerialisiert<LeiterV2> {
     /// Der Leiter der Geschwindigkeit.
@@ -622,7 +622,7 @@ where
 type GeschwindigkeitMapSerialisiert<LeiterV2> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterV2>>;
 
-/// Darstellung eines [Gleises](aktuell::Gleis) bei Version 2.
+/// Darstellung eines [`Gleises`](aktuell::Gleis) bei Version 2.
 #[derive(Deserialize)]
 struct Gleis<T> {
     definition: T,

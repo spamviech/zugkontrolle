@@ -1,4 +1,4 @@
-//! [update](iced::widget::canvas::Program::update)-Methode für [Gleise].
+//! [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`].
 
 use std::{
     sync::mpsc::Sender,
@@ -335,7 +335,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         }
     }
 
-    /// [update](iced::widget::canvas::Program::update)-Methode für [Gleise]
+    /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`]
     pub fn update(
         &self,
         _state: &mut <Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
@@ -408,7 +408,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 }
 
-/// Fehler, die bei [zustand_aktualisieren](Gleise::zustand_aktualisieren) auftreten können.
+/// Fehler, die bei [`zustand_aktualisieren`](Gleise::zustand_aktualisieren) auftreten können.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum AktualisierenFehler {
     /// Fehler beim Bewegen eines Gleises.
@@ -418,7 +418,7 @@ pub enum AktualisierenFehler {
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// Folge-Method für [update](Gleise::update), in der die notwendigen
+    /// Folge-Method für [`update`](Gleise::update), in der die notwendigen
     /// Zustands-Änderungen durchgeführt werden.
     pub fn zustand_aktualisieren(
         &mut self,

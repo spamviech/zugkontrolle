@@ -49,21 +49,21 @@ enum InterneNachricht {
     Schließen,
 }
 
-/// Nachricht, die von einem [Lizenzen]-Widget erzeugt wird.
+/// Nachricht, die von einem [`Lizenzen`]-Widget erzeugt wird.
 #[derive(Debug, Clone, Copy)]
 pub enum Nachricht {
-    /// Schließe die [Lizenzen]-Anzeige.
+    /// Schließe die [`Lizenzen`]-Anzeige.
     Schließen,
 }
 
-/// Zustand eines [Lizenzen]-Widgets.
+/// Zustand eines [`Lizenzen`]-Widgets.
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand {
     aktuell: Option<(UniCaseOrd<String>, Cow<'static, str>)>,
 }
 
 impl Zustand {
-    /// Erstellen einen neuen [Zustand] eines [Lizenzen]-Widgets.
+    /// Erstellen einen neuen [Zustand] eines [`Lizenzen`]-Widgets.
     fn neu(lizenzen: &BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>) -> Self {
         let aktuell = lizenzen.iter().next().map(|(name, f)| (name.clone(), f()));
         Zustand { aktuell }
@@ -88,7 +88,7 @@ where
     <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
-    /// Erstelle ein neues [Lizenzen]-Widget mit den verwendeten Lizenzen.
+    /// Erstelle ein neues [`Lizenzen`]-Widget mit den verwendeten Lizenzen.
     pub fn neu_mit_verwendeten_lizenzen<ScrollableStyle>(scrollable_style: ScrollableStyle) -> Self
     where
         ScrollableStyle: 'a + Clone,
@@ -97,7 +97,7 @@ where
         Self::neu(&*TARGET_LIZENZEN, scrollable_style)
     }
 
-    /// Erstelle ein neues [Lizenzen]-Widget.
+    /// Erstelle ein neues [`Lizenzen`]-Widget.
     pub fn neu<ScrollableStyle>(
         lizenzen: &'a BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>,
         scrollable_style: ScrollableStyle,

@@ -1,4 +1,4 @@
-//! Einstellen der Steuerung eines [Kontaktes](crate::steuerung::kontakt::Kontakt).
+//! Einstellen der Steuerung eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
 
 use std::{fmt::Debug, ops::DerefMut};
 
@@ -32,7 +32,7 @@ use crate::{
     steuerung::kontakt::{KontaktSerialisiert, Name},
 };
 
-/// Zustand eines Widgets zur [Auswahl] der Anschlüsse eines [Kontaktes](crate::steuerung::kontakt::Kontakt).
+/// Zustand eines Widgets zur [Auswahl] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Zustand {
     name: String,
@@ -42,7 +42,7 @@ struct Zustand {
 }
 
 impl Zustand {
-    /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
+    /// Erstelle einen neuen [`Zustand`], potentiell mit voreingestellten Anschlüssen.
     fn neu(option_kontakt: &Option<KontaktSerialisiert>, hat_steuerung: bool) -> Self {
         let (name, anschluss, trigger) =
             if let Some(KontaktSerialisiert { name, anschluss, trigger }) = option_kontakt {
@@ -65,7 +65,7 @@ enum InterneNachricht {
     Schließen,
 }
 
-/// Nachricht einer [Auswahl].
+/// Nachricht einer [`Auswahl`].
 #[derive(Debug, Clone)]
 pub enum Nachricht {
     /// Steuerung einer Weiche anpassen.
@@ -74,7 +74,7 @@ pub enum Nachricht {
     Schließen,
 }
 
-/// Widget zur Auswahl der Anschlüsse eines [Kontaktes](crate::steuerung::kontakt::Kontakt).
+/// Widget zur Auswahl der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug)]
 pub struct Auswahl<'t, R>(MapMitZustand<'t, Zustand, InterneNachricht, Nachricht, R>);
 
@@ -93,7 +93,7 @@ where
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    /// Erstelle eine neue [Auswahl].
+    /// Erstelle eine neue [`Auswahl`].
     pub fn neu(
         gleis_art: &'t str,
         kontakt: Option<KontaktSerialisiert>,

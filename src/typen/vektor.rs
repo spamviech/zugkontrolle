@@ -1,4 +1,4 @@
-//! Vektoren über [f32] mit allen Funktionen für einen 2-dimensionen Vektorraum.
+//! Vektoren über [`f32`] mit allen Funktionen für einen 2-dimensionen Vektorraum.
 
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
@@ -9,13 +9,13 @@ use crate::typen::{
     winkel::{Trigonometrie, Winkel},
 };
 
-/// Vektoren über [Skalar] ([f32]) mit allen Funktionen für einen 2-dimensionen Vektorraum.
+/// Vektoren über [Skalar] ([`f32`]) mit allen Funktionen für einen 2-dimensionen Vektorraum.
 ///
 /// Addition zwischen Vektoren formen einen abelsche Gruppe
 /// mit dem [`null_vektor`](Vektor::null_vektor) als neutrales Element.
 ///
-/// Multiplikation mit einem [Skalar] befolgt Distributivgesetzte mit der Addition von Vektoren.
-/// Multiplikation ist assoziativ mit Multiplikation zwischen zwei [Skalar].
+/// Multiplikation mit einem [`Skalar`] befolgt Distributivgesetzte mit der Addition von Vektoren.
+/// Multiplikation ist assoziativ mit Multiplikation zwischen zwei [`Skalar`].
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Vektor {
     /// x-Koordinate des Vektors.
@@ -53,7 +53,7 @@ impl Vektor {
 
     /// Normalisiere den Vektor auf länge `Skalar(1.)`.
     ///
-    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [Länge](Vektor::länge) `0` angewendet wird.
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [`Länge`](Vektor::länge) `0` angewendet wird.
     pub fn normalisiere(&mut self) {
         // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
         #[allow(clippy::arithmetic_side_effects)]
@@ -64,7 +64,7 @@ impl Vektor {
 
     /// Einheitsvektor mit identischer Richtung.
     ///
-    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [Länge](Vektor::länge) `0` angewendet wird.
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [`Länge`](Vektor::länge) `0` angewendet wird.
     #[must_use]
     pub fn einheitsvektor(mut self) -> Self {
         self.normalisiere();
@@ -96,7 +96,7 @@ impl Vektor {
     ///
     /// Definiert über [`Vektor::skalarprodukt`].
     ///
-    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn ein Vektor mit [Länge](Vektor::länge) `0` beteiligt ist.
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn ein Vektor mit [`Länge`](Vektor::länge) `0` beteiligt ist.
     #[must_use]
     pub fn winkel(&self, other: &Self) -> Winkel {
         // Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt.

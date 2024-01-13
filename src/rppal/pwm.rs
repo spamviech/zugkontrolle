@@ -37,14 +37,14 @@ static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
 
 #[cfg(not(feature = "raspi"))]
 impl PwmStore {
-    /// Erhalte Schreib-Zugriff auf das [Singleton](PWM) mit den aktuell verfügbaren I2C-Bussen.
+    /// Erhalte Schreib-Zugriff auf das [`Singleton`](PWM) mit den aktuell verfügbaren I2C-Bussen.
     ///
     /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
     fn write_static<'t>() -> RwLockWriteGuard<'t, PwmStore> {
         PWM.write()
     }
 
-    /// Erhalte Schreib-Zugriff auf den Pwm-Channel im [Singleton](PWM), sofern noch verfügbar.
+    /// Erhalte Schreib-Zugriff auf den Pwm-Channel im [`Singleton`](PWM), sofern noch verfügbar.
     ///
     /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
     fn write_channel(&mut self, channel: Channel) -> &mut Option<Pwm> {

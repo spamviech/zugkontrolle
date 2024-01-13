@@ -1,4 +1,4 @@
-//! Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+//! Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 
 use std::ops::DerefMut;
 
@@ -40,7 +40,7 @@ enum TabId {
     Pcf8574,
 }
 
-/// Zustand eines Widgets zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+/// Zustand eines Widgets zur Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand<T> {
     /// Welche Tab-Seite wird angezeigt.
@@ -51,7 +51,7 @@ struct Zustand<T> {
     beschreibung: Beschreibung,
     /// Der aktuell ausgewählte Port.
     port: kleiner_8,
-    /// Zusätzlicher Zustand für die Auswahl eines [Input-](InputAnschluss) oder [OutputAnschlusses](OutputAnschluss).
+    /// Zusätzlicher Zustand für die Auswahl eines [Input-](InputAnschluss) oder [`OutputAnschlusses`](OutputAnschluss).
     modus: T,
 }
 
@@ -74,11 +74,11 @@ enum InterneNachricht<T> {
     Variante(Variante),
     /// Neuer aktuell gewählter Port für einen Pcf8574.
     Port(u8),
-    /// Neuer Zustand für die Auswahl eines [Input-](InputAnschluss) oder [OutputAnschlusses](OutputAnschluss).
+    /// Neuer Zustand für die Auswahl eines [Input-](InputAnschluss) oder [`OutputAnschlusses`](OutputAnschluss).
     Modus(T),
 }
 
-/// Interne Nachricht zur [Auswahl] eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
+/// Interne Nachricht zur [`Auswahl`] eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
 #[derive(Debug, Clone, Copy)]
 pub struct InputNachricht {
     /// Neuer aktuell gewählter Interrupt-Pin.
@@ -92,7 +92,7 @@ impl InputNachricht {
     }
 }
 
-/// Interne Nachricht zur [Auswahl] eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
+/// Interne Nachricht zur [`Auswahl`] eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
 #[derive(Debug, Clone, Copy)]
 pub struct OutputNachricht {
     /// Neue aktuell gewählte Polarität.
@@ -106,7 +106,7 @@ impl OutputNachricht {
     }
 }
 
-/// Widget zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+/// Widget zur Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Debug)]
 pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>(
     MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, R>,
@@ -464,7 +464,7 @@ where
     }
 }
 
-/// Wie viel [Platz](Space) soll zwischen Widgets eingefügt werden?
+/// Wie viel [`Platz`](Space) soll zwischen Widgets eingefügt werden?
 const PADDING: f32 = 2.5;
 
 impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
@@ -481,7 +481,7 @@ where
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    /// Erzeuge die interne Widget-Hierarchie für ein [Auswahl]-Widget.
+    /// Erzeuge die interne Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
         zustand: &Zustand<Modus>,
         view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
@@ -600,7 +600,7 @@ where
     }
 }
 
-/// Zustand eines Widgets zur Auswahl eines [Pwm-Pins](pwm::Pin).
+/// Zustand eines Widgets zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
 #[derive(Debug, PartialEq, Eq)]
 struct PwmZustand {
     /// Der aktuell gewählte Pin.
@@ -614,7 +614,7 @@ impl PwmZustand {
     }
 }
 
-/// Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
+/// Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
 #[derive(Debug)]
 pub struct Pwm<'a, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, pwm::Serialisiert, R>);
 
@@ -626,13 +626,13 @@ where
         + container::StyleSheet
         + text_input::StyleSheet,
 {
-    /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
+    /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
         let erzeuge_zustand = move || PwmZustand::neu(pin.map(pwm::Pin::pin));
         Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))
     }
 
-    /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
+    /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu_s(start_pin: Option<pwm::Serialisiert>) -> Self {
         let erzeuge_zustand = move || PwmZustand::neu(start_pin.as_ref().map(|pin| pin.0));
         Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))

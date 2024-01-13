@@ -1,4 +1,4 @@
-//! [Application] für die Gleis-Anzeige.
+//! [`Application`] für die Gleis-Anzeige.
 
 use std::{
     fmt::{Debug, Display},
@@ -89,13 +89,13 @@ pub struct Zugkontrolle<L: Leiter, S> {
     gleise: Gleise<L, Nachricht<L, S>>,
     /// Noch verfügbare Anschlüsse.
     lager: Lager,
-    /// Der Stil für verwendete [Scrollable-Widgets](iced::widget::Scrollable)
+    /// Der Stil für verwendete [`Scrollable-Widgets`](iced::widget::Scrollable)
     scrollable_style: style::sammlung::Sammlung,
-    /// Aktivierte [I2C-Busse](crate::anschluss::pcf8574::I2cBus).
+    /// Aktivierte [`I2C-Busse`](crate::anschluss::pcf8574::I2cBus).
     i2c_settings: I2cSettings,
     /// Der aktuell aktivierte Streckenabschnitt.
     streckenabschnitt_aktuell: Option<(StreckenabschnittName, Farbe)>,
-    /// Führt das anklicken eines Gleises zum setzen des [Streckenabschnittes](crate::steuerung::streckenabschnitt::Streckenabschnitt)?
+    /// Führt das anklicken eines Gleises zum setzen des [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt)?
     streckenabschnitt_aktuell_festlegen: bool,
     /// Zustand für Anzeigen des Widgets für die Positions-Steuerung des [`Gleise`]-canvas.
     bewegen: Bewegen,
@@ -107,18 +107,18 @@ pub struct Zugkontrolle<L: Leiter, S> {
     speichern_gefärbt: Option<(bool, Instant)>,
     /// Wie wird der [`Gleise`]-Canvas aktuell bewegt.
     bewegung: Option<Bewegung>,
-    /// Der aktuelle Zustand des [Auswahl-Widgets](AuswahlZustand).
+    /// Der aktuelle Zustand des [`Auswahl-Widgets`](AuswahlZustand).
     auswahl_zustand: Overlay<AuswahlZustand<S>>,
-    /// Der aktuelle Zustand des [Mitteilungs-Widgets](MessageBox).
+    /// Der aktuelle Zustand des [`Mitteilungs-Widgets`](MessageBox).
     message_box: Overlay<MessageBox>,
-    /// Sender für asynchrone [Nachrichten](Nachricht), die über einen [Kanal](channel) gesendet werden.
+    /// Sender für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
     sender: Sender<Nachricht<L, S>>,
-    /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [Kanal](channel) gesendet werden.
+    /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
     empfänger: Empfänger<Nachricht<L, S>>,
     // TODO Plan
 }
 
-/// Bei der [Ausführung](ausführen) potentiell auftretende Fehler.
+/// Bei der [`Ausführung`](ausführen) potentiell auftretende Fehler.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
     /// Ein Fehler beim anzeigen des GUIs.
@@ -129,7 +129,7 @@ pub enum Fehler {
     Anschluss(InitFehler),
 }
 
-/// Flags für den [Application]-Trait.
+/// Flags für den [`Application`]-Trait.
 type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.

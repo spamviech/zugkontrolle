@@ -27,7 +27,7 @@ use crate::{
     util::sender_trait::erstelle_sender_trait_existential,
 };
 
-/// Name eines [Kontaktes](Kontakt).
+/// Name eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
@@ -45,18 +45,18 @@ impl<T: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send> LetztesLevel
 
 // TODO Würde API verändert, ersetzte durch "Getter".
 #[allow(clippy::partial_pub_fields)]
-/// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
+/// Ein `Kontakt` erlaubt warten auf ein bestimmtes [`Trigger`]-Ereignis.
 #[derive(Debug, Clone)]
 pub struct Kontakt {
     /// Der Name des Kontaktes.
     pub name: Name,
     /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
-    /// Die letzte bekannte [Level] eines [Kontaktes](Kontakt).
+    /// Die letzte bekannte [Level] eines [`Kontaktes`](Kontakt).
     letztes_level: Arc<Mutex<dyn LetztesLevel>>,
     /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
-    /// Wer interessiert sich für das [Trigger]-Event.
+    /// Wer interessiert sich für das [`Trigger`]-Event.
     senders: Arc<Mutex<Vec<SomeLevelSender>>>,
 }
 
@@ -177,8 +177,8 @@ impl Kontakt {
     }
 
     /// Registriere einen neuen Channel, der auf das Trigger-Event reagiert.
-    /// Das übergebene Funktion wird mit dem neuen [Level] aufgerufen,
-    /// das Ergebnis wird mit dem [Sender] geschickt.
+    /// Das übergebene Funktion wird mit dem neuen [`Level`] aufgerufen,
+    /// das Ergebnis wird mit dem [`Sender`] geschickt.
     pub fn registriere_trigger_sender<T, F>(&mut self, sender: Sender<T>, erzeuge_nachricht: F)
     where
         T: 'static + Send,
@@ -207,7 +207,7 @@ impl MitName for Option<Kontakt> {
 
 // Folge der Konvention TypName->TypNameSerialisiert
 #[allow(clippy::module_name_repetitions)]
-/// Serialisierbare Variante eines [Kontaktes](Kontakt).
+/// Serialisierbare Variante eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
     /// Der Name des Kontaktes.
@@ -304,9 +304,9 @@ impl MitName for Option<KontaktSerialisiert> {
 
 // Wird nicht qualifiziert verwendet.
 #[allow(clippy::module_name_repetitions)]
-/// Trait für Typen mit einem [Kontakt].
+/// Trait für Typen mit einem [`Kontakt`].
 pub trait MitKontakt {
-    /// Erhalte das aktuelle [Level] und den gewählten [Trigger].
+    /// Erhalte das aktuelle [Level] und den gewählten [`Trigger`].
     fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)>;
 }
 

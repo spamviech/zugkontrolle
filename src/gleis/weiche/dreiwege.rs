@@ -1,4 +1,4 @@
-//! Definition und zeichnen einer [DreiwegeWeiche].
+//! Definition und zeichnen einer [`DreiwegeWeiche`].
 
 use std::fmt::Debug;
 
@@ -50,7 +50,7 @@ pub struct DreiwegeWeiche<Anschlüsse = Option<Steuerung>> {
 }
 
 impl DreiwegeWeicheUnit {
-    /// Erstelle eine neue [DreiwegeWeiche].
+    /// Erstelle eine neue [`DreiwegeWeiche`].
     pub const fn neu(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
         DreiwegeWeicheUnit {
             länge: länge.als_skalar(),
@@ -61,7 +61,7 @@ impl DreiwegeWeicheUnit {
         }
     }
 
-    /// Erstelle eine neue [DreiwegeWeiche] mit allgemeiner Beschreibung, z.B. der Produktnummer.
+    /// Erstelle eine neue [`DreiwegeWeiche`] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -80,7 +80,7 @@ impl DreiwegeWeicheUnit {
 
 #[erstelle_richtung]
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug, Clone)]
-/// [Verbindungen](Verbindung) einer [DreiwegeWeiche].
+/// [Verbindungen](Verbindung) einer [`DreiwegeWeiche`].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     /// Das Ende, an dem sich die Gerade und beide Kurven treffen.
@@ -93,12 +93,12 @@ pub enum VerbindungName {
     Rechts,
 }
 
-/// Die aktuelle und letzte [Richtung] einer [DreiwegeWeiche].
+/// Die aktuelle und letzte [Richtung] einer [`DreiwegeWeiche`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungInformation {
-    /// Die aktuelle [Richtung] der [DreiwegeWeiche].
+    /// Die aktuelle [Richtung] der [`DreiwegeWeiche`].
     pub aktuelle_richtung: Richtung,
-    /// Die [Richtung] vor der aktuellen [Richtung].
+    /// Die [Richtung] vor der aktuellen [`Richtung`].
     pub letzte_richtung: Richtung,
 }
 

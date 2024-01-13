@@ -26,7 +26,7 @@ use crate::{
     util::nachschlagen::Nachschlagen,
 };
 
-/// Name einer [Weiche].
+/// Name einer [`Weiche`].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
@@ -39,19 +39,19 @@ impl<R, A> MitName for Option<Weiche<R, A>> {
 // TODO Benötigt public API Anpassung, ersetzte durch "Getter"
 #[allow(clippy::partial_pub_fields)]
 // inklusive Kreuzung
-/// [Name], aktuelle Richtung und Anschlüsse einer Weiche.
+/// [`Name`], aktuelle Richtung und Anschlüsse einer Weiche.
 #[derive(Debug, zugkontrolle_macros::Clone)]
 pub struct Weiche<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,
-    /// Die aktuelle und eventuell weitere Richtungen einer [Weiche].
+    /// Die aktuelle und eventuell weitere Richtungen einer [`Weiche`].
     richtung: Arc<Mutex<Steuerung<Richtung>>>,
     /// Die Anschlüsse der Weiche.
     anschlüsse: Arc<Mutex<Anschlüsse>>,
 }
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
-    /// Erstelle eine neue [Weichen-Steuerung](Weiche).
+    /// Erstelle eine neue [`Weichen-Steuerung`](Weiche).
     pub fn neu(
         name: Name,
         richtung: Richtung,
@@ -67,7 +67,7 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
 }
 
 impl<Richtung: Clone, Anschlüsse> Weiche<Richtung, Anschlüsse> {
-    /// Erhalte die aktuelle Richtung einer [Weiche].
+    /// Erhalte die aktuelle Richtung einer [`Weiche`].
     #[must_use]
     pub fn richtung(&self) -> Richtung {
         self.richtung.lock().as_ref().clone()
@@ -75,7 +75,7 @@ impl<Richtung: Clone, Anschlüsse> Weiche<Richtung, Anschlüsse> {
 }
 
 impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
-    /// Erhalte einen Teil der aktuellen Richtung einer [Weiche].
+    /// Erhalte einen Teil der aktuellen Richtung einer [`Weiche`].
     pub fn richtung_ausschnitt<T: Clone>(&self, formatter: impl FnOnce(&Richtung) -> &T) -> T {
         formatter(self.richtung.lock().as_ref()).clone()
     }
@@ -112,7 +112,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
     ///
     /// ## Errors
     ///
-    /// Ansteuerung eines [Anschlusses](crate::anschluss::Anschluss) schlug fehl.
+    /// Ansteuerung eines [`Anschlusses`](crate::anschluss::Anschluss) schlug fehl.
     pub fn schalten<Richtung>(
         &mut self,
         richtung: Richtung,
@@ -133,7 +133,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
         Ok(())
     }
 
-    /// Implementierung für [schalten](Weiche::schalten).
+    /// Implementierung für [`schalten`](Weiche::schalten).
     fn schalten_aux<Richtung>(
         richtung: &Arc<Mutex<Steuerung<T>>>,
         anschlüsse: &Arc<Mutex<Anschlüsse>>,
@@ -179,7 +179,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
 }
 
 impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
-    /// Schalte eine [Weiche] auf die übergebene `Richtung`.
+    /// Schalte eine [`Weiche`] auf die übergebene `Richtung`.
     pub fn async_schalten<Richtung, Nachricht>(
         &mut self,
         richtung: Richtung,
@@ -241,12 +241,12 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
 
 // Folge Konvention TypName->TypNameSerialisiert
 #[allow(clippy::module_name_repetitions)]
-/// Serialisierbare Repräsentation der Steuerung einer [Weiche].
+/// Serialisierbare Repräsentation der Steuerung einer [`Weiche`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,
-    /// Die aktuelle und eventuell weitere Richtungen einer [Weiche].
+    /// Die aktuelle und eventuell weitere Richtungen einer [`Weiche`].
     pub richtung: Richtung,
     /// Die Anschlüsse der Weiche.
     pub anschlüsse: Anschlüsse,

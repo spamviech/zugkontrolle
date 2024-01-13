@@ -1,4 +1,4 @@
-//! [Pcf8574], gesteuert über I2C.
+//! [`Pcf8574`], gesteuert über I2C.
 //!
 //! Alle Methoden in diesem Modul können an einem Mutex blocken (exklusiver I2C-Zugriff).
 //! Der Zugriff auf diese Mutex ist auf dieses Modul beschränkt,
@@ -50,19 +50,19 @@ struct I2cMitPins {
     scl: Pin,
 }
 
-/// Fehler beim Initialisieren eines [Lager].
+/// Fehler beim Initialisieren eines [`Lager`].
 #[derive(Debug)]
 pub enum InitFehler {
     /// Fehler bei einem I2C-Channel.
     I2c {
-        /// Der betroffene [I2cBus].
+        /// Der betroffene [`I2cBus`].
         i2c_bus: I2cBus,
         /// Der aufgetretene Fehler.
         fehler: i2c::Error,
     },
     /// Nicht verfügbarer Pin für den konfigurierten I2C-Channel.
     Pin {
-        /// Der betroffene [I2cBus].
+        /// Der betroffene [`I2cBus`].
         i2c_bus: I2cBus,
         /// Der aufgetretene Fehler.
         fehler: pin::ReservierenFehler,
@@ -129,15 +129,15 @@ fn alle_varianten() -> array::IntoIter<Variante, 2> {
     [Variante::Normal, Variante::A].into_iter()
 }
 
-/// Ein [`Pcf8574`] und seine noch verfügbaren [Ports](Port).
+/// Ein [`Pcf8574`] und seine noch verfügbaren [`Ports`](Port).
 type Pcf8574MitPorts = (Arc<Mutex<Pcf8574>>, [Option<Port>; 8]);
 
-/// Noch verfügbare Pcf8574-[Port]s.
+/// Noch verfügbare Pcf8574-[`Port`]s.
 #[derive(Debug)]
 pub struct Lager(Arc<RwLock<HashMap<Beschreibung, Pcf8574MitPorts>>>);
 
 impl Lager {
-    /// Erstelle ein neues [Lager].
+    /// Erstelle ein neues [`Lager`].
     ///
     /// ## Errors
     ///
@@ -180,7 +180,7 @@ impl Lager {
         Ok(Lager(arc))
     }
 
-    /// Reserviere einen Pcf8574-[Port].
+    /// Reserviere einen Pcf8574-[`Port`].
     ///
     /// ## Errors
     ///
@@ -202,9 +202,9 @@ impl Lager {
             .ok_or(InVerwendung { beschreibung, port })
     }
 
-    /// Gebe einen Pcf8574-[Port] zurück, damit er wieder verwendet werden kann.
+    /// Gebe einen Pcf8574-[`Port`] zurück, damit er wieder verwendet werden kann.
     ///
-    /// Wird vom [Drop]-Handler des [Port]s aufgerufen.
+    /// Wird vom [Drop]-Handler des [`Port`]s aufgerufen.
     pub fn rückgabe_pcf8574_port(&mut self, port: Port) {
         debug!("rückgabe {port:?}");
         let mut guard = self.0.write();
@@ -297,16 +297,16 @@ impl I2cBus {
     }
 }
 
-/// Der [Port] wird bereits verwendet.
+/// Der [`Port`] wird bereits verwendet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InVerwendung {
-    /// [Beschreibung] des [Pcf8574]s.
+    /// [Beschreibung] des [`Pcf8574`]s.
     pub beschreibung: Beschreibung,
-    /// Port des [Pcf8574].
+    /// Port des [`Pcf8574`].
     pub port: kleiner_8,
 }
 
-/// Der aktuelle Zustand eines [`Pcf8574`]-[Ports](Port).
+/// Der aktuelle Zustand eines [`Pcf8574`]-[`Ports`](Port).
 pub(super) enum Modus {
     /// Der Port ist im Input-Modus und wartet potentiell auf eine [`Level`]-Änderung.
     Input {
@@ -362,28 +362,28 @@ impl Eq for Modus {}
 pub struct Pcf8574 {
     /// Die Einstellungen des Pcf8574.
     beschreibung: Beschreibung,
-    /// Aktueller Zustand der [Ports](Port).
+    /// Aktueller Zustand der [`Ports`](Port).
     ports: [Modus; 8],
     /// Der Interrupt-Pin.
     interrupt: Option<input::Pin>,
-    /// Der I2C-Bus, mit dem sich der [Pcf8574] ansprechen lässt.
+    /// Der I2C-Bus, mit dem sich der [`Pcf8574`] ansprechen lässt.
     i2c: Arc<Mutex<I2cMitPins>>,
 }
 
-/// Die Beschreibung eines [Pcf8574].
+/// Die Beschreibung eines [`Pcf8574`].
 ///
 /// Enthält Anschluss-Details notwendig zur Adressierung.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Beschreibung {
-    /// I2CBus, über den das [Pcf8574] angeschlossen ist.
+    /// I2CBus, über den das [`Pcf8574`] angeschlossen ist.
     pub i2c_bus: I2cBus,
-    /// Anliegendes [Level] an das `A0` Adress-Bit.
+    /// Anliegendes [`Level`] an das `A0` Adress-Bit.
     pub a0: Level,
-    /// Anliegendes [Level] an das `A1` Adress-Bit.
+    /// Anliegendes [`Level`] an das `A1` Adress-Bit.
     pub a1: Level,
-    /// Anliegendes [Level] an das `A2` Adress-Bit.
+    /// Anliegendes [`Level`] an das `A2` Adress-Bit.
     pub a2: Level,
-    /// Variante des [Pcf8574], beeinflusst die I2C-Adresse.
+    /// Variante des [`Pcf8574`], beeinflusst die I2C-Adresse.
     pub variante: Variante,
 }
 
@@ -394,7 +394,7 @@ impl PartialEq for Pcf8574 {
 }
 impl Eq for Pcf8574 {}
 
-/// Darstellung des [`I2cBus`] in der [Display]-Implementierung von [Pcf8574].
+/// Darstellung des [`I2cBus`] in der [Display]-Implementierung von [`Pcf8574`].
 fn display_bus_str(i2c_bus: &I2cBus) -> &str {
     match i2c_bus {
         I2cBus::I2c0_1 => "01",
@@ -406,7 +406,7 @@ fn display_bus_str(i2c_bus: &I2cBus) -> &str {
     }
 }
 
-/// Darstellung eines [Levels](Level) in der [Display]-Implementierung von [Pcf8574].
+/// Darstellung eines [Levels](Level) in der [Display]-Implementierung von [`Pcf8574`].
 fn display_level_str(level: &Level) -> &str {
     match level {
         Level::Low => "L",
@@ -414,7 +414,7 @@ fn display_level_str(level: &Level) -> &str {
     }
 }
 
-/// Darstellung der [Variante] in der [Display]-Implementierung von [Pcf8574].
+/// Darstellung der [Variante] in der [Display]-Implementierung von [`Pcf8574`].
 fn display_variante_str(variante: &Variante) -> &str {
     match variante {
         Variante::Normal => " ",
@@ -652,13 +652,13 @@ impl Port {
         Port { pcf8574, lager, beschreibung, port }
     }
 
-    /// Die Beschreibung des [Pcf8574].
+    /// Die Beschreibung des [`Pcf8574`].
     #[must_use]
     pub fn beschreibung(&self) -> &Beschreibung {
         &self.beschreibung
     }
 
-    /// Der angesprochene Port des [Pcf8574].
+    /// Der angesprochene Port des [`Pcf8574`].
     #[must_use]
     pub fn port(&self) -> kleiner_8 {
         self.port
@@ -683,7 +683,7 @@ impl Port {
     }
 }
 
-/// Ein Port eines [Pcf8574], konfiguriert für Output.
+/// Ein Port eines [`Pcf8574`], konfiguriert für Output.
 #[derive(Debug)]
 pub struct OutputPort(Port);
 
@@ -694,19 +694,19 @@ impl Display for OutputPort {
 }
 
 impl OutputPort {
-    /// Die Beschreibung des [Pcf8574].
+    /// Die Beschreibung des [`Pcf8574`].
     #[must_use]
     pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
-    /// Der angesprochene Port des [Pcf8574].
+    /// Der angesprochene Port des [`Pcf8574`].
     #[must_use]
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
 
-    /// Setze den [Port] auf das übergebene [Level].
+    /// Setze den [Port] auf das übergebene [`Level`].
     ///
     /// ## Errors
     ///
@@ -715,7 +715,7 @@ impl OutputPort {
         self.0.pcf8574.lock().schreibe_port(self.0.port, level)
     }
 
-    /// Ist der aktuelle Level [High](Level::High)?
+    /// Ist der aktuelle Level [`High`](Level::High)?
     #[must_use]
     pub fn ist_high(&self) -> bool {
         // 0-7 < 8 == self.ports.len()
@@ -725,7 +725,7 @@ impl OutputPort {
         }
     }
 
-    /// Ist der aktuelle Level [Low](Level::Low)?
+    /// Ist der aktuelle Level [`Low`](Level::Low)?
     #[must_use]
     pub fn ist_low(&self) -> bool {
         // 0-7 < 8 == self.ports.len()
@@ -735,7 +735,7 @@ impl OutputPort {
         }
     }
 
-    /// Wechsle den aktuellen anliegenden [Level] von [High](Level::High) auf [Low](Level::Low)
+    /// Wechsle den aktuellen anliegenden [Level] von [High](Level::High) auf [`Low`](Level::Low)
     /// und umgekehrt.
     ///
     /// ## Errors
@@ -770,19 +770,19 @@ impl Display for InputPort {
 }
 
 impl InputPort {
-    /// Die Beschreibung des [Pcf8574].
+    /// Die Beschreibung des [`Pcf8574`].
     #[must_use]
     pub fn beschreibung(&self) -> &Beschreibung {
         self.0.beschreibung()
     }
 
-    /// Der angesprochene Port des [Pcf8574].
+    /// Der angesprochene Port des [`Pcf8574`].
     #[must_use]
     pub fn port(&self) -> kleiner_8 {
         self.0.port()
     }
 
-    /// Lese das aktuell am [Port] anliegende [Level].
+    /// Lese das aktuell am [Port] anliegende [`Level`].
     ///
     /// ## Errors
     ///
@@ -879,7 +879,7 @@ impl InputPort {
     /// ## Keine synchronen Interrupts
     /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
-    /// [poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    /// [`poll_interrupts`](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.
     /// > Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or
     /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins simultaneously
@@ -910,24 +910,24 @@ impl InputPort {
 }
 
 // TODO genauere Eingrenzung auf einzelne Methoden
-/// Ein bei Interaktion mit einem [Pcf8574] aufgetretener Fehler.
+/// Ein bei Interaktion mit einem [`Pcf8574`] aufgetretener Fehler.
 #[derive(Debug)]
 pub enum Fehler {
     /// Fehler beim I2C-Channel.
     I2c {
-        /// Beschreibung des [Pcf8574].
+        /// Beschreibung des [`Pcf8574`].
         beschreibung: Beschreibung,
         /// Der aufgetretene Fehler.
         fehler: i2c::Error,
     },
-    /// Ein Fehler bei den assoziierten [Pin]s.
+    /// Ein Fehler bei den assoziierten [`Pin`]s.
     Gpio {
-        /// Die Beschreibung des [Pcf8574].
+        /// Die Beschreibung des [`Pcf8574`].
         beschreibung: Beschreibung,
         /// Der aufgetretene Fehler.
         fehler: gpio::Error,
     },
-    /// Für den [Pcf8574] ist kein Interrupt-Pin konfiguriert.
+    /// Für den [`Pcf8574`] ist kein Interrupt-Pin konfiguriert.
     KeinInterruptPin(Beschreibung),
 }
 

@@ -1,4 +1,4 @@
-//! Tests für [GleisId].
+//! Tests für [`GleisId`].
 
 use std::collections::{BTreeSet, HashSet};
 

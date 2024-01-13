@@ -1,4 +1,4 @@
-//! Level eines [Anschlusses](crate::anschluss::Anschluss).
+//! Level eines [`Anschlusses`](crate::anschluss::Anschluss).
 
 use std::fmt::{Display, Formatter, Result};
 use std::ops::Not;
@@ -7,14 +7,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::{anschluss::level::Level, rppal};
 
-/// Bei welchem [Level] fließt der Strom an einem Anschluss.
+/// Bei welchem [`Level`] fließt der Strom an einem Anschluss.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Polarität {
-    /// [High](Level::High) ist [Fließend](Fließend::Fließend),
-    /// [Low](Level::Low) ist [Gesperrt](Fließend::Gesperrt).
+    /// [High](Level::High) ist [`Fließend`](Fließend::Fließend),
+    /// [Low](Level::Low) ist [`Gesperrt`](Fließend::Gesperrt).
     Normal,
-    /// [Low](Level::Low) ist [Fließend](Fließend::Fließend),
-    /// [High](Level::High) ist [Gesperrt](Fließend::Gesperrt).
+    /// [Low](Level::Low) ist [`Fließend`](Fließend::Fließend),
+    /// [High](Level::High) ist [`Gesperrt`](Fließend::Gesperrt).
     Invertiert,
 }
 
@@ -49,7 +49,7 @@ impl From<rppal::pwm::Polarity> for Polarität {
     }
 }
 
-/// Zustand des Stroms, der von einem [Anschluss](crate::anschluss::Anschluss) gesteuert wird.
+/// Zustand des Stroms, der von einem [`Anschluss`](crate::anschluss::Anschluss) gesteuert wird.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Fließend {
     /// Der Strom fließt.
@@ -70,7 +70,7 @@ impl Not for Fließend {
 }
 
 impl Fließend {
-    /// Erhalte den zur [Polarität] passenden [Level].
+    /// Erhalte den zur [Polarität] passenden [`Level`].
     #[must_use]
     pub fn mit_polarität(self, polarität: Polarität) -> Level {
         match (self, polarität) {

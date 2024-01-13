@@ -22,7 +22,7 @@ use crate::{
 };
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
+    /// Füge ein neues Gleis an der [Position] mit dem gewählten [`Streckenabschnitt`](streckenabschnitt::Streckenabschnitt) hinzu.
     pub(crate) fn hinzufügen(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
@@ -96,7 +96,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(gleis_id)
     }
 
-    /// Entferne das [Gleis] assoziiert mit der [GleisId].
+    /// Entferne das [Gleis] assoziiert mit der [`GleisId`].
     pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -124,11 +124,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(())
     }
 
-    /// Setzte (oder entferne) den [Streckenabschnitt](streckenabschnitt::Streckenabschnitt)
-    /// für das [Gleis] assoziiert mit der [GleisId].
+    /// Setzte (oder entferne) den [`Streckenabschnitt`](streckenabschnitt::Streckenabschnitt)
+    /// für das [Gleis] assoziiert mit der [`GleisId`].
     ///
-    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
-    /// [Streckenabschnittes](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
+    /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
+    /// [`Streckenabschnittes`](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
     pub fn setze_streckenabschnitt(
         &mut self,
         gleis_id: impl Into<AnyId>,

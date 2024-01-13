@@ -46,21 +46,21 @@ pub struct Knopf<'t, T: 'static> {
 }
 
 impl<'t, T> Knopf<'t, T> {
-    /// Erstelle einen neuen [Knopf].
+    /// Erstelle einen neuen [`Knopf`].
     pub fn neu(gleis: &'t T, id: GleisId<T>, spurweite: Spurweite) -> Self {
         Knopf { gleis, id, spurweite }
     }
 }
 
 impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
-    /// Die Dimensionen des [Knopfes](Knopf).
+    /// Die Dimensionen des [`Knopfes`](Knopf).
     pub fn rechteck(&self) -> Rechteck {
         self.gleis
             .rechteck(&(), self.spurweite)
             .verschiebe_chain(&Vektor { x: DOUBLE_PADDING, y: DOUBLE_PADDING })
     }
 
-    /// Erstelle ein [Widget](iced_native::Element), dass den [Knopf] anzeigt.
+    /// Erstelle ein [Widget](iced_native::Element), dass den [`Knopf`] anzeigt.
     pub fn als_iced_widget<Nachricht>(
         self,
         breite: Option<f32>,
@@ -80,7 +80,7 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
     }
 }
 
-/// Zustand für ein [Knopf]-Widget.
+/// Zustand für ein [`Knopf`]-Widget.
 #[derive(Debug, Default)]
 pub struct Zustand {
     canvas: Cache,
@@ -218,8 +218,8 @@ pub enum KlickQuelle {
     Touch(Finger),
 }
 
-/// Alle Funktionen eines [Knopfes](Knopf) werden unterstützt.
+/// Alle Funktionen eines [`Knopfes`](Knopf) werden unterstützt.
 pub trait KnopfNachricht<Nachricht> {
-    /// Erzeuge eine Nachricht ausgehend der relativen Position wo der [Knopf] gedrückt wurde.
+    /// Erzeuge eine Nachricht ausgehend der relativen Position wo der [`Knopf`] gedrückt wurde.
     fn nachricht(&self, klick_quelle: KlickQuelle, klick_position: Vektor) -> Nachricht;
 }

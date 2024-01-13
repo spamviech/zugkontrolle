@@ -1,4 +1,4 @@
-//! Style Strukturen für eine [iced::widget::Rule].
+//! Style Strukturen für eine [`iced::widget::Rule`].
 
 use iced::{
     widget::rule::{Appearance, FillMode, StyleSheet},

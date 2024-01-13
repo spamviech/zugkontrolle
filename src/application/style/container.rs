@@ -1,4 +1,4 @@
-//! Style Strukturen für die Hintergrund-Farbe eines [iced::widget::Container].
+//! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Container`].
 
 use iced::{widget::container, BorderRadius, Color};
 
@@ -16,10 +16,10 @@ pub const GRÜN: Container = Container::hintergrund_grün(0.7);
 /// Blauer Hintergrund.
 pub const BLAU: Container = Container::hintergrund_blau(0.7);
 
-/// Style Strukturen für einen [iced::widget::Container].
+/// Style Strukturen für einen [`iced::widget::Container`].
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Container {
-    /// Die Standard-Darstellung des korrespondierenden [iced::Theme].
+    /// Die Standard-Darstellung des korrespondierenden [`iced::Theme`].
     #[default]
     Standard,
     /// Ändere die Hintergrundfarbe.
@@ -36,7 +36,7 @@ pub enum Container {
         /// Radius der abgerundeten Ecken.
         radius: BorderRadius,
     },
-    /// Style-Struktur für die Auswahl einer [Pcf8574-Beschreibung](crate::anschluss::pcf8574::Beschreibung).
+    /// Style-Struktur für die Auswahl einer [`Pcf8574-Beschreibung`](crate::anschluss::pcf8574::Beschreibung).
     Pcf8574Beschreibung,
 }
 

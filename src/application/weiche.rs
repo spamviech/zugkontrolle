@@ -1,4 +1,4 @@
-//! Einstellen der Steuerung einer [Weiche](crate::steuerung::weiche::Weiche).
+//! Einstellen der Steuerung einer [`Weiche`](crate::steuerung::weiche::Weiche).
 
 use std::{
     fmt::{Debug, Display},
@@ -36,7 +36,7 @@ use crate::{
     util::nachschlagen::Nachschlagen,
 };
 
-/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
+/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Zustand<AnschlüsseSerialisiert> {
     name: String,
@@ -45,7 +45,7 @@ struct Zustand<AnschlüsseSerialisiert> {
 }
 
 impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> {
-    /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
+    /// Erstelle einen neuen [`Zustand`], potentiell mit voreingestellten Anschlüssen.
     fn neu<Richtung>(
         option_weiche: &Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
         hat_steuerung: bool,
@@ -69,7 +69,7 @@ enum InterneNachricht<Richtung> {
     Schließen,
 }
 
-/// Nachricht einer [Auswahl].
+/// Nachricht einer [`Auswahl`].
 #[derive(Debug, Clone)]
 pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     /// Steuerung einer Weiche anpassen.
@@ -78,7 +78,7 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-/// Widget zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
+/// Widget zur Auswahl der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
 #[derive(Debug)]
 pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>(
     MapMitZustand<
@@ -109,7 +109,7 @@ where
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    /// Erstelle eine neue [Auswahl].
+    /// Erstelle eine neue [`Auswahl`].
     pub fn neu(
         weichen_art: &'t str,
         weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,

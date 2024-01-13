@@ -49,7 +49,7 @@ pub const FRAC_PI_2: Winkel = Winkel(consts::FRAC_PI_2);
 /// 0
 pub const ZERO: Winkel = Winkel(0.);
 
-/// Winkel \[Bogenmaß\]
+/// Winkel \[`Bogenmaß\`]
 ///
 /// Die [`PartialEq`]- und [`PartialOrd`]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
 /// bevor sie verglichen werden.
@@ -340,7 +340,7 @@ impl Trigonometrie for Winkel {
 
 // TODO behandeln erfordert Anpassung des public API.
 #[allow(clippy::module_name_repetitions)]
-/// Winkel \[Gradmaß\].
+/// Winkel \[`Gradmaß\`].
 ///
 /// Die [`PartialEq`]- und [`PartialOrd`]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
 /// bevor sie verglichen werden.

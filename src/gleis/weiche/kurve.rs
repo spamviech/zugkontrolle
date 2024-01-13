@@ -1,4 +1,4 @@
-//! Definition und zeichnen einer [KurvenWeiche].
+//! Definition und zeichnen einer [`KurvenWeiche`].
 
 use std::fmt::Debug;
 
@@ -49,7 +49,7 @@ pub struct KurvenWeiche<Anschlüsse = Option<Steuerung>> {
 }
 
 impl KurvenWeicheUnit {
-    /// Erstelle eine neue [KurvenWeiche].
+    /// Erstelle eine neue [`KurvenWeiche`].
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -66,7 +66,7 @@ impl KurvenWeicheUnit {
         }
     }
 
-    /// Erstelle eine neue [KurvenWeiche] mit allgemeiner Beschreibung, z.B. der Produktnummer.
+    /// Erstelle eine neue [`KurvenWeiche`] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -87,7 +87,7 @@ impl KurvenWeicheUnit {
 #[erstelle_richtung]
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug, Clone)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-/// [Verbindungen](Verbindung) einer [KurvenWeiche].
+/// [Verbindungen](Verbindung) einer [`KurvenWeiche`].
 pub enum VerbindungName {
     /// Das Ende, an dem sich beide Kurven treffen.
     Anfang,

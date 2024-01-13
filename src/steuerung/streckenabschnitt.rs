@@ -1,4 +1,4 @@
-//! Ein [Streckenabschnitt] regelt die Stromzufuhr.
+//! Ein [`Streckenabschnitt`] regelt die Stromzufuhr.
 
 use std::{
     fmt::{self, Display, Formatter},
@@ -18,7 +18,7 @@ use crate::{
     typen::farbe::Farbe,
 };
 
-/// Name eines [Streckenabschnittes](Streckenabschnitt).
+/// Name eines [`Streckenabschnittes`](Streckenabschnitt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
@@ -46,38 +46,38 @@ pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
 }
 
 impl Streckenabschnitt {
-    /// Erstelle einen neuen [Streckenabschnitt].
+    /// Erstelle einen neuen [`Streckenabschnitt`].
     #[must_use]
     pub fn neu(farbe: Farbe, anschluss: OutputAnschluss) -> Self {
         Streckenabschnitt { farbe, anschluss: Arc::new(Mutex::new(anschluss)) }
     }
 
-    /// Schalte den Strom für einen [Streckenabschnitt].
+    /// Schalte den Strom für einen [`Streckenabschnitt`].
     ///
     /// ## Errors
     ///
-    /// Steuern des [Anschlusses](crate::anschluss::Anschluss) schlug fehl.
+    /// Steuern des [`Anschlusses`](crate::anschluss::Anschluss) schlug fehl.
     pub fn strom(&mut self, fließend: Fließend) -> Result<(), Fehler> {
         self.lock_anschluss().einstellen(fließend)
     }
 
-    /// Schalte den Strom eines [Streckenabschnittes](Streckenabschnitt).
-    /// von [Fließend](Fließend::Fließend) auf [Gesperrt](Fließend::Gesperrt) und umgekehrt.
+    /// Schalte den Strom eines [`Streckenabschnittes`](Streckenabschnitt).
+    /// von [Fließend](Fließend::Fließend) auf [`Gesperrt`](Fließend::Gesperrt) und umgekehrt.
     ///
     /// ## Errors
     ///
-    /// Steuern des [Anschlusses](crate::anschluss::Anschluss) schlug fehl.
+    /// Steuern des [`Anschlusses`](crate::anschluss::Anschluss) schlug fehl.
     pub fn strom_umschalten(&mut self) -> Result<(), Fehler> {
         self.lock_anschluss().umschalten()
     }
 
-    /// Aktuelle Einstellung eines [Streckenabschnittes](Streckenabschnitt).
+    /// Aktuelle Einstellung eines [`Streckenabschnittes`](Streckenabschnitt).
     #[must_use]
     pub fn fließend(&self) -> Fließend {
         self.lock_anschluss().fließend()
     }
 
-    /// Erhalte Zugriff auf den [Anschluss](crate::anschluss::Anschluss) zur Steuerung des Streckenabschnittes.
+    /// Erhalte Zugriff auf den [`Anschluss`](crate::anschluss::Anschluss) zur Steuerung des Streckenabschnittes.
     ///
     /// Blockiert, bis der Zugriff erhalten wurde.
     pub(crate) fn lock_anschluss(&self) -> MutexGuard<'_, OutputAnschluss> {

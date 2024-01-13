@@ -1,5 +1,5 @@
-//! Steuerungs-Struktur eines Gleises, die bei [drop](Drop::drop) ein Neuzeichnen des
-//! [Canvas](iced::widget::canvas::Canvas) erzwingt.
+//! Steuerungs-Struktur eines Gleises, die bei [`drop`](Drop::drop) ein Neuzeichnen des
+//! [`Canvas`](iced::widget::canvas::Canvas) erzwingt.
 
 use std::fmt::{self, Debug, Formatter};
 
@@ -27,7 +27,7 @@ erstelle_sender_trait_existential! {
 }
 
 /// Steuerung eines Gleises.
-/// Bei [AsMut]-Zugriff wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
+/// Bei [`AsMut`]-Zugriff wird ein [Neuzeichen des Canvas](Cache::leeren) ausgelöst.
 #[derive(Clone)]
 pub struct Steuerung<T> {
     steuerung: T,
@@ -60,18 +60,18 @@ impl<T> AsMut<T> for Steuerung<T> {
 }
 
 impl<T> Steuerung<T> {
-    /// Erstelle eine neue [Steuerung].
+    /// Erstelle eine neue [`Steuerung`].
     pub fn neu(steuerung: T, sender: impl Into<SomeAktualisierenSender>) -> Self {
         Steuerung { steuerung, sender: sender.into() }
     }
 
-    /// Erzeuge eine neue [Steuerung], die nur einen Teil der Steuerung überwacht.
+    /// Erzeuge eine neue [`Steuerung`], die nur einen Teil der Steuerung überwacht.
     pub fn konvertiere<'t, S>(&'t self, f: impl FnOnce(&'t T) -> S) -> Steuerung<S> {
         let Steuerung { steuerung, sender } = self;
         Steuerung { steuerung: f(steuerung), sender: sender.clone() }
     }
 
-    /// Konsumiere die [Steuerung] und beende die Überwachung.
+    /// Konsumiere die [`Steuerung`] und beende die Überwachung.
     #[inline(always)]
     pub fn konsumiere<S>(self, f: impl FnOnce(T) -> S) -> S {
         f(self.steuerung)
@@ -84,7 +84,7 @@ impl<T> Steuerung<&Option<T>> {
         self.as_ref().as_ref()
     }
 
-    /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
+    /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [`Some`] ist.
     pub fn nur_some(&self) -> Option<Steuerung<&T>> {
         let Steuerung { steuerung, sender } = self;
         if let Some(steuerung) = steuerung {
@@ -96,7 +96,7 @@ impl<T> Steuerung<&Option<T>> {
 }
 
 impl<T> Steuerung<&mut Option<T>> {
-    /// Erhalte den Wert der zugehörigen Option-Referenz und hinterlasse [None].
+    /// Erhalte den Wert der zugehörigen Option-Referenz und hinterlasse [`None`].
     pub fn take(&mut self) -> Option<T> {
         self.as_mut().take()
     }
@@ -117,7 +117,7 @@ impl<T> Steuerung<&mut Option<T>> {
         self.as_mut().as_mut()
     }
 
-    /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [Some] ist.
+    /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [`Some`] ist.
     pub fn nur_some(&mut self) -> Option<Steuerung<&mut T>> {
         let Steuerung { steuerung, sender } = self;
         if let Some(steuerung) = steuerung {
@@ -140,7 +140,7 @@ pub trait MitSteuerung {
     /// Erzeuge eine Referenz auf die Steuerung, ohne die Möglichkeit sie zu verändern.
     fn steuerung(&self) -> &Self::Steuerung;
 
-    /// Erzeuge eine [Steuerung]-Struktur, die bei [Veränderung](AsMut::as_mut)
+    /// Erzeuge eine [Steuerung]-Struktur, die bei [`Veränderung`](AsMut::as_mut)
     /// ein [Neuzeichnen des Canvas](crate::typen::canvas::Cache::leeren) auslöst.
     fn steuerung_mut(
         &mut self,

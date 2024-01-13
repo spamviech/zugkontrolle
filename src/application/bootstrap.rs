@@ -11,7 +11,7 @@ use crate::application::fonts::BOOTSTRAP;
 /// Bisher sind nur aktuell verwendete Varianten definiert.
 ///
 /// Es kann sein, dass in Zukunft die Fill-Variante bei einem alternativen
-/// [Thema](crate::application::style::thema::Thema) angezeigt wird.
+/// [`Thema`](crate::application::style::thema::Thema) angezeigt wird.
 #[derive(Debug, Clone, Copy)]
 #[allow(missing_docs)]
 pub enum Bootstrap {
@@ -32,7 +32,7 @@ impl Bootstrap {
 
 /// Ein Widget, dass ein Icon darstellt.
 ///
-/// Damit das Icon richtig angezeigt wird muss vorher die [BOOTSTRAP]-Schriftart [geladen](iced::font::load) werden.
+/// Damit das Icon richtig angezeigt wird muss vorher die [BOOTSTRAP]-Schriftart [`geladen`](iced::font::load) werden.
 #[allow(missing_debug_implementations)]
 pub struct Icon<'a, R>(Text<'a, R>)
 where
@@ -45,7 +45,7 @@ where
     <R as Renderer>::Theme: iced_widget::text::StyleSheet,
     <R as text::Renderer>::Font: From<Font>,
 {
-    /// Erzeuge ein neues Widget, dass das gewählte [Bootstrap]-Icon anzeigt.
+    /// Erzeuge ein neues Widget, dass das gewählte [`Bootstrap`]-Icon anzeigt.
     pub fn neu(bootstrap: Bootstrap) -> Icon<'a, R> {
         Icon(Text::new(bootstrap.als_str()).font(BOOTSTRAP))
     }

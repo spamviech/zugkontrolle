@@ -36,7 +36,7 @@ static I2C: LazyMutex<I2cStore> =
 
 #[cfg(not(feature = "raspi"))]
 impl I2cStore {
-    /// Erhalte Zugriff auf das [Singleton](I2C) mit den aktuell verfügbaren I2C-Bussen.
+    /// Erhalte Zugriff auf das [`Singleton`](I2C) mit den aktuell verfügbaren I2C-Bussen.
     ///
     /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
     fn lock_static<'t>() -> MappedMutexGuard<'t, I2cStore> {

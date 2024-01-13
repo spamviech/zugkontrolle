@@ -1,4 +1,4 @@
-//! Serialisierbare Darstellung einer [DreiwegeWeiche] in Version 3.
+//! Serialisierbare Darstellung einer [`DreiwegeWeiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
 
@@ -7,12 +7,12 @@ use crate::{
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
-/// Die aktuelle und letzte [Richtung] einer [DreiwegeWeiche].
+/// Die aktuelle und letzte [Richtung] einer [`DreiwegeWeiche`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungInformation {
-    /// Die aktuelle [Richtung] der [DreiwegeWeiche].
+    /// Die aktuelle [Richtung] der [`DreiwegeWeiche`].
     pub aktuelle_richtung: Richtung,
-    /// Die [Richtung] vor der aktuellen [Richtung].
+    /// Die [Richtung] vor der aktuellen [`Richtung`].
     pub letzte_richtung: Richtung,
 }
 

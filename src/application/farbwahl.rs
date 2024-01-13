@@ -22,7 +22,7 @@ use crate::typen::{
 /// Widget zur Farbwahl.
 ///
 /// Im Gegensatz zum `iced_aw::ColorPicker` wird kein `overlay` verwendet, so dass es innerhalb
-/// eines [Modal](crate::application::modal::Modal) verwendet werden kann.
+/// eines [`Modal`](crate::application::modal::Modal) verwendet werden kann.
 pub struct Farbwahl<'a, M> {
     durchmesser: u16,
     nachricht: &'a dyn Fn(Farbe) -> M,
@@ -38,18 +38,18 @@ impl<M> Debug for Farbwahl<'_, M> {
 }
 
 impl<'a, M> Farbwahl<'a, M> {
-    /// Erstelle eine neue [Farbwahl].
+    /// Erstelle eine neue [`Farbwahl`].
     pub fn neu(nachricht: &'a impl Fn(Farbe) -> M) -> Self {
         Farbwahl { durchmesser: 50, nachricht }
     }
 
-    /// Ändere den Radius der [Farbwahl].
+    /// Ändere den Radius der [`Farbwahl`].
     pub fn radius(mut self, radius: u16) -> Self {
         self.durchmesser = 2 * radius;
         self
     }
 
-    /// Ändere den Durchmesser der [Farbwahl].
+    /// Ändere den Durchmesser der [`Farbwahl`].
     pub fn durchmesser(mut self, durchmesser: u16) -> Self {
         self.durchmesser = durchmesser;
         self

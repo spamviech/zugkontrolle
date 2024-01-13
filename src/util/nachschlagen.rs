@@ -19,6 +19,6 @@ pub trait Nachschlagen<Name, Element> {
     fn zuordnen<F: Fn(&Element) -> Element>(&self, function: F) -> Self;
     /// Erhalte einen Vec über Referenzen aller `Element`e.
     fn referenzen(&self) -> Vec<(Name, &Element)>;
-    /// Erhalte einen [Vec] über mutable Referenzen aller `Element`e.
+    /// Erhalte einen [`Vec`] über mutable Referenzen aller `Element`e.
     fn referenzen_mut(&mut self) -> Vec<(Name, &mut Element)>;
 }

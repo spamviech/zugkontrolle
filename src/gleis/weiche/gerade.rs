@@ -1,4 +1,4 @@
-//! Definition und zeichnen einer [Weiche].
+//! Definition und zeichnen einer [`Weiche`].
 
 use std::fmt::Debug;
 
@@ -49,7 +49,7 @@ pub struct Weiche<Anschlüsse = Option<Steuerung>> {
 }
 
 impl WeicheUnit {
-    /// Erstelle eine neue [Weiche].
+    /// Erstelle eine neue [`Weiche`].
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -66,7 +66,7 @@ impl WeicheUnit {
         }
     }
 
-    /// Erstelle eine neue [Weiche] mit allgemeiner Beschreibung, z.B. der Produktnummer.
+    /// Erstelle eine neue [`Weiche`] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -87,7 +87,7 @@ impl WeicheUnit {
 
 #[erstelle_richtung]
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug, Clone)]
-/// [Verbindungen](Verbindung) einer [Weiche].
+/// [Verbindungen](Verbindung) einer [`Weiche`].
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     /// Das Ende an dem sich Gerade und Kurve treffen.

@@ -54,7 +54,7 @@ pub enum Transformation {
     Skalieren(Skalar),
 }
 
-/// Variante von [`iced::widget::canvas::path::Arc`] mit [Invertiert]-Implementierung.
+/// Variante von [`iced::widget::canvas::path::Arc`] mit [`Invertiert`]-Implementierung.
 ///
 /// Beschreibt einen Bogen um `zentrum` mit `radius` von Winkel `anfang` bis `ende`
 /// (im Uhrzeigersinn, y-Achse wächst nach Unten)
@@ -70,11 +70,11 @@ pub struct Bogen {
     pub ende: Winkel,
 }
 
-/// Marker-Typ für [Invertiert], X-Achse (Horizontal).
+/// Marker-Typ für [`Invertiert`], X-Achse (Horizontal).
 #[derive(Debug, Clone, Copy)]
 pub struct XAchse;
 
-/// Marker-Typ für [Invertiert], Y-Achse (Vertikal).
+/// Marker-Typ für [`Invertiert`], Y-Achse (Vertikal).
 #[derive(Debug, Clone, Copy)]
 pub struct YAchse;
 
@@ -163,7 +163,7 @@ where
 pub struct Erbauer<V, B> {
     /// Der Builder.
     builder: path::Builder,
-    /// [PhantomData] um [Vektor] und [Bogen] unter Berücksichtigung von [Invertiert] zu verwenden.
+    /// [PhantomData] um [Vektor] und [Bogen] unter Berücksichtigung von [`Invertiert`] zu verwenden.
     phantom_data: PhantomData<fn() -> (V, B)>,
 }
 
@@ -178,7 +178,7 @@ impl<V, B> Debug for Erbauer<V, B> {
 }
 
 impl Erbauer<Vektor, Bogen> {
-    /// Erstelle einen neuen [Erbauer].
+    /// Erstelle einen neuen [`Erbauer`].
     #[must_use]
     pub fn neu() -> Self {
         Erbauer { builder: path::Builder::new(), phantom_data: PhantomData }

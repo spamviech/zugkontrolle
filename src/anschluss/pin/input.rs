@@ -1,4 +1,4 @@
-//! Gpio [Pins](Pin) konfiguriert für Input.
+//! Gpio [`Pins`](Pin) konfiguriert für Input.
 
 use crate::{
     anschluss::{level::Level, trigger::Trigger},
@@ -10,7 +10,7 @@ use crate::{
 pub struct Pin(pub(super) gpio::InputPin);
 
 impl Pin {
-    /// Erhalte die GPIO [Pin] Nummer.
+    /// Erhalte die GPIO [`Pin`] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
     #[must_use]
@@ -19,7 +19,7 @@ impl Pin {
     }
 
     // FIXME Unnötiges Result<_, Fehler> entfernen. Lesen ist immer erfolgreich!
-    /// Lese das aktuell am [Pin] anliegende [Level].
+    /// Lese das aktuell am [Pin] anliegende [`Level`].
     #[allow(clippy::missing_errors_doc)]
     pub fn lese(&mut self) -> Result<Level, Fehler> {
         Ok(self.0.read().into())
@@ -41,7 +41,7 @@ impl Pin {
     ///
     /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
-    /// [poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    /// [`poll_interrupts`](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.
     /// > Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or
     /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins simultaneously
@@ -70,7 +70,7 @@ impl Pin {
     }
 }
 
-/// Ein Fehler bei Interaktion mit einem Input-[Pin].
+/// Ein Fehler bei Interaktion mit einem Input-[`Pin`].
 #[derive(Debug)]
 pub struct Fehler {
     /// Der betroffene Pin.

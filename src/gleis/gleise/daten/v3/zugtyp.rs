@@ -1,4 +1,4 @@
-//! Serialisierbare Darstellung eines [Zugtyps](crate::zugtyp::Zugtyp) in Version 3.
+//! Serialisierbare Darstellung eines [`Zugtyps`](crate::zugtyp::Zugtyp) in Version 3.
 
 use std::{collections::HashMap, fmt::Debug, time::Duration};
 
@@ -40,19 +40,19 @@ pub struct ZugtypSerialisiert<L: Leiter> {
     pub leiter: String,
     /// Spurweite
     pub spurweite: Spurweite,
-    /// Alle unterstützten [Geraden](crate::gleis::gerade::Gerade).
+    /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: Vec<GeradeUnit>,
-    /// Alle unterstützten [Kurven](crate::gleis::kurve::Kurve).
+    /// Alle unterstützten [`Kurven`](crate::gleis::kurve::Kurve).
     pub kurven: Vec<KurveUnit>,
-    /// Alle unterstützten [Weichen](crate::gleis::weiche::gerade::Weiche).
+    /// Alle unterstützten [`Weichen`](crate::gleis::weiche::gerade::Weiche).
     pub weichen: Vec<WeicheUnit>,
-    /// Alle unterstützten [Dreiwege-Weichen](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
+    /// Alle unterstützten [`Dreiwege-Weichen`](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
     pub dreiwege_weichen: Vec<DreiwegeWeicheUnit>,
-    /// Alle unterstützten [Kurven-Weichen](crate::gleis::weiche::kurve::KurvenWeiche).
+    /// Alle unterstützten [`Kurven-Weichen`](crate::gleis::weiche::kurve::KurvenWeiche).
     pub kurven_weichen: Vec<KurvenWeicheUnit>,
-    /// Alle unterstützten [S-Kurven-Weichen](crate::gleis::weiche::s_kurve::SKurvenWeiche).
+    /// Alle unterstützten [`S-Kurven-Weichen`](crate::gleis::weiche::s_kurve::SKurvenWeiche).
     pub s_kurven_weichen: Vec<SKurvenWeicheUnit>,
-    /// Alle unterstützten [Kreuzungen](crate::gleis::kreuzung::Kreuzung).
+    /// Alle unterstützten [`Kreuzungen`](crate::gleis::kreuzung::Kreuzung).
     pub kreuzungen: Vec<KreuzungUnit>,
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,

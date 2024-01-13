@@ -25,18 +25,18 @@ use crate::{
 };
 
 /// Ein Widget zum Einstellen des Anzeigewinkels, dargestellt über einen
-/// [Canvas](iced::widget::canvas::Canvas).
+/// [`Canvas`](iced::widget::canvas::Canvas).
 #[derive(Debug)]
 pub struct Drehen(Cache);
 
 impl Drehen {
-    /// Erstelle ein neues [Drehen]-Widget.
+    /// Erstelle ein neues [`Drehen`]-Widget.
     pub fn neu() -> Self {
         Drehen(Cache::neu())
     }
 }
 
-/// Zustand für ein [Drehen]-Widget.
+/// Zustand für ein [`Drehen`]-Widget.
 #[derive(Debug, Clone, Copy)]
 pub struct Zustand {
     winkel: Winkel,

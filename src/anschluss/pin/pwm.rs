@@ -1,4 +1,4 @@
-//! Gpio [Pins](Pin) für Pwm konfiguriert.
+//! Gpio [`Pins`](Pin) für Pwm konfiguriert.
 
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
@@ -39,9 +39,9 @@ impl Eq for Pwm {}
 /// Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Konfiguration {
-    /// Die [Zeit]-Einstellungen eines Pwm-Pulses.
+    /// Die [`Zeit`]-Einstellungen eines Pwm-Pulses.
     pub zeit: Zeit,
-    /// Die [Polarität] eines Pwm-Pulses.
+    /// Die [`Polarität`] eines Pwm-Pulses.
     pub polarität: Polarität,
 }
 
@@ -50,7 +50,7 @@ pub struct Konfiguration {
 pub struct Zeit {
     /// Frequenz des Pwm-Pulses in Herz.
     pub frequenz: NichtNegativ,
-    /// [Fließend](crate::anschluss::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
+    /// [`Fließend`](crate::anschluss::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
     pub betriebszyklus: NullBisEins,
 }
 
@@ -64,7 +64,7 @@ pub struct Pin {
 }
 
 impl Pin {
-    /// Erhalte die GPIO [Pin] Nummer.
+    /// Erhalte die GPIO [`Pin`] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
     #[must_use]
@@ -172,16 +172,16 @@ impl Pin {
 /// Fehler bei Interaktion mit einem Pwm-Puls.
 #[derive(Debug)]
 pub enum Fehler {
-    /// Fehler eines GPIO-[Pin]s.
+    /// Fehler eines GPIO-[`Pin`]s.
     Gpio {
-        /// Der betroffene [Pin].
+        /// Der betroffene [`Pin`].
         pin: u8,
         /// Der aufgetretene Fehler.
         fehler: gpio::Error,
     },
     /// Fehler beim erzeugen des Pwm-Pulses.
     Pwm {
-        /// Der betroffene [Pin].
+        /// Der betroffene [`Pin`].
         pin: u8,
         /// Der aufgetretene Fehler.
         fehler: pwm::Error,

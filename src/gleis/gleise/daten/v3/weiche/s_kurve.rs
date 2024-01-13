@@ -1,4 +1,4 @@
-//! Serialisierbare Darstellung einer [SKurvenWeiche] in Version 3.
+//! Serialisierbare Darstellung einer [`SKurvenWeiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
 

@@ -1,4 +1,4 @@
-//! Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
+//! Ein Hilfs-[`Widget`], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 //! mit potentieller Mutation eines Zustands erlaubt.
 
 use std::{
@@ -21,7 +21,7 @@ use iced_core::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
-/// Ein Wrapper um eine mutable Referenz, die [DerefMut]-Zugriff überwacht.
+/// Ein Wrapper um eine mutable Referenz, die [`DerefMut`]-Zugriff überwacht.
 #[derive(Debug)]
 struct MutTracer<'a, T> {
     mut_ref: &'a mut T,
@@ -29,12 +29,12 @@ struct MutTracer<'a, T> {
 }
 
 impl<'a, T> MutTracer<'a, T> {
-    /// Erzeuge einen neuen [MutTracer].
+    /// Erzeuge einen neuen [`MutTracer`].
     fn neu(mut_ref: &'a mut T) -> Self {
         MutTracer { mut_ref, verändert: false }
     }
 
-    /// Hat bereits ein Zugriff über [DerefMut] stattgefunden?
+    /// Hat bereits ein Zugriff über [`DerefMut`] stattgefunden?
 
     fn verändert(&self) -> bool {
         self.verändert
@@ -56,7 +56,7 @@ impl<T> DerefMut for MutTracer<'_, T> {
     }
 }
 
-/// Ein Hilfs-[Widget], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
+/// Ein Hilfs-[`Widget`], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
 ///
 /// Anmerkung: Das overlay des Elements wird NICHT angezeigt.
@@ -83,7 +83,7 @@ impl<Zustand: Debug, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Int
 }
 
 impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, R> {
-    /// Erzeuge einen neuen [MapMitZustand].
+    /// Erzeuge einen neuen [`MapMitZustand`].
     ///
     /// **ANMERKUNG**: Aus technischen Gründen wird das overlay NICHT angezeigt.
     pub fn neu(

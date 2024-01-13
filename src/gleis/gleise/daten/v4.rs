@@ -62,13 +62,13 @@ type GleisMapSerialisiert<T> = HashMap<id::Repräsentation, GleisSerialisiert<T>
     deserialize = "T: MitSteuerung, <T as MitSteuerung>::Serialisiert: Deserialize<'de>",
 ))]
 pub struct GleisSerialisiert<T: MitSteuerung> {
-    /// Die [Zeichnen]-Definition des Gleises.
+    /// Die [`Zeichnen`]-Definition des Gleises.
     pub definition: id::Repräsentation,
-    /// Die [Anschlüsse](anschluss::Anschluss) des Gleises.
+    /// Die [`Anschlüsse`](anschluss::Anschluss) des Gleises.
     pub steuerung: <T as MitSteuerung>::Serialisiert,
-    /// Die Position des Gleises auf dem [Canvas](iced::widget::canvas::Canvas).
+    /// Die Position des Gleises auf dem [`Canvas`](iced::widget::canvas::Canvas).
     pub position: Position,
-    /// Der [Streckenabschnitt] des Gleises.
+    /// Der [`Streckenabschnitt`] des Gleises.
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
@@ -117,19 +117,19 @@ pub struct ZugtypSerialisiert<L: Leiter> {
     pub leiter: String,
     /// Spurweite
     pub spurweite: Spurweite,
-    /// Alle unterstützten [Geraden](crate::gleis::gerade::Gerade).
+    /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: HashMap<u32, GeradeUnit>,
-    /// Alle unterstützten [Kurven](crate::gleis::kurve::Kurve).
+    /// Alle unterstützten [`Kurven`](crate::gleis::kurve::Kurve).
     pub kurven: HashMap<u32, KurveUnit>,
-    /// Alle unterstützten [Weichen](crate::gleis::weiche::gerade::Weiche).
+    /// Alle unterstützten [`Weichen`](crate::gleis::weiche::gerade::Weiche).
     pub weichen: HashMap<u32, WeicheUnit>,
-    /// Alle unterstützten [Dreiwege-Weichen](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
+    /// Alle unterstützten [`Dreiwege-Weichen`](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
     pub dreiwege_weichen: HashMap<u32, DreiwegeWeicheUnit>,
-    /// Alle unterstützten [Kurven-Weichen](crate::gleis::weiche::kurve::KurvenWeiche).
+    /// Alle unterstützten [`Kurven-Weichen`](crate::gleis::weiche::kurve::KurvenWeiche).
     pub kurven_weichen: HashMap<u32, KurvenWeicheUnit>,
-    /// Alle unterstützten [S-Kurven-Weichen](crate::gleis::weiche::s_kurve::SKurvenWeiche).
+    /// Alle unterstützten [`S-Kurven-Weichen`](crate::gleis::weiche::s_kurve::SKurvenWeiche).
     pub s_kurven_weichen: HashMap<u32, SKurvenWeicheUnit>,
-    /// Alle unterstützten [Kreuzungen](crate::gleis::kreuzung::Kreuzung).
+    /// Alle unterstützten [`Kreuzungen`](crate::gleis::kreuzung::Kreuzung).
     pub kreuzungen: HashMap<u32, KreuzungUnit>,
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,

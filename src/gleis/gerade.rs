@@ -29,21 +29,21 @@ use crate::{
 #[alias_serialisiert_unit(KontaktSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Gerade<Anschluss = Option<Kontakt>> {
-    /// Die Länge der Gerade auf dem [Canvas](iced::widget::canvas::Canvas).
+    /// Die Länge der Gerade auf dem [`Canvas`](iced::widget::canvas::Canvas).
     pub länge: Skalar,
     /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Der Anschluss für einen [Kontakt] an der Schiene.
+    /// Der Anschluss für einen [`Kontakt`] an der Schiene.
     pub kontakt: Anschluss,
 }
 
 impl GeradeUnit {
-    /// Erstelle eine neue [Gerade].
+    /// Erstelle eine neue [`Gerade`].
     pub const fn neu(länge: Länge) -> Self {
         GeradeUnit { länge: länge.als_skalar(), beschreibung: None, kontakt: () }
     }
 
-    /// Erstelle eine neue [Gerade] mit allgemeiner Beschreibung, z.B. der Produktnummer.
+    /// Erstelle eine neue [`Gerade`] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(länge: Länge, beschreibung: impl Into<String>) -> Self {
         GeradeUnit {
             länge: länge.als_skalar(),
@@ -54,7 +54,7 @@ impl GeradeUnit {
 }
 
 #[impl_nachschlagen(Verbindung, Verbindungen, Debug)]
-/// [Verbindungen](Verbindung) einer [Geraden](Gerade).
+/// [Verbindungen](Verbindung) einer [`Geraden`](Gerade).
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum VerbindungName {
     /// Das eine Ende der Gerade.

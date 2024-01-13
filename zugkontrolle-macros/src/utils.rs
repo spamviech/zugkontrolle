@@ -27,17 +27,17 @@ pub(crate) fn mark_fields_generic<'t, T>(
     }
 }
 
-/// Relevante Informationen aus [Generics], partitioniert nach ihrer Art.
+/// Relevante Informationen aus [`Generics`], partitioniert nach ihrer Art.
 pub(crate) struct PartitionierteGenericParameter<'t> {
     /// Lifetime-Parameter
     pub(crate) lifetimes: Vec<&'t LifetimeParam>,
-    /// Typ-Parameter mit Trait-Bounds. Der [bool]-eintrag wird u.a. in [mark_fields_generic] verwendet.
+    /// Typ-Parameter mit Trait-Bounds. Der [bool]-eintrag wird u.a. in [`mark_fields_generic`] verwendet.
     pub(crate) types: HashMap<&'t Ident, (&'t Punctuated<TypeParamBound, Plus>, bool)>,
     /// Typ-Parameter ohne Trait-Bounds
     pub(crate) type_names: Vec<&'t Ident>,
 }
 
-/// Extrahiere relevante Informationen aus den [Generics] und partitioniere sie nach ihrer Art.
+/// Extrahiere relevante Informationen aus den [`Generics`] und partitioniere sie nach ihrer Art.
 pub(crate) fn partitioniere_generics(generics: &Generics) -> PartitionierteGenericParameter<'_> {
     generics.params.iter().fold(
         PartitionierteGenericParameter {
@@ -86,7 +86,7 @@ pub(crate) fn parse_attributes_fn(
     Ok(intermediate.into_iter().flat_map(punctuated::Punctuated::into_iter))
 }
 
-/// Helper für [`parse_attributes_fn`]: Match das [Result] und gebe bei [Err] direkt `quote!(compile_error(#fehler));` zurück.
+/// Helper für [`parse_attributes_fn`]: Match das [Result] und gebe bei [`Err`] direkt `quote!(compile_error(#fehler));` zurück.
 macro_rules! parse_attributes {
     ($attrs:expr, $name:expr) => {
         match crate::utils::parse_attributes_fn($attrs, $name) {

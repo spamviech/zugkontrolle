@@ -29,7 +29,7 @@ impl Rechteck {
         Some(Rechteck { ecke_a: min, ecke_b: max })
     }
 
-    /// Verschiebe das Rechteck um [Vektor].
+    /// Verschiebe das Rechteck um [`Vektor`].
     #[zugkontrolle_macros::chain]
     pub fn verschiebe(&mut self, bewegung: &Vektor) {
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.

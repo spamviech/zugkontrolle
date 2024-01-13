@@ -1,4 +1,4 @@
-//! Serialisierbare Darstellung einer [Kurve] in Version 3.
+//! Serialisierbare Darstellung einer [`Kurve`] in Version 3.
 
 use std::fmt::Debug;
 
@@ -21,7 +21,7 @@ pub struct KurveSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     pub winkel: Winkel,
     /// Eine allgemeine Beschreibung der Kurve, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Der Anschluss für einen [Kontakt] an der Schiene.
+    /// Der Anschluss für einen [`Kontakt`] an der Schiene.
     pub kontakt: Anschluss,
 }
 

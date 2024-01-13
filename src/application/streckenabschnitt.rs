@@ -1,4 +1,4 @@
-//! Anzeige & Erstellen eines [Streckenabschnittes](Streckenabschnitt).
+//! Anzeige & Erstellen eines [`Streckenabschnittes`](Streckenabschnitt).
 
 use std::{
     collections::BTreeMap,
@@ -44,15 +44,15 @@ use crate::{
     util::unicase_ord::UniCaseOrd,
 };
 
-/// Eine Nachricht des [Anzeige]-Widgets.
+/// Eine Nachricht des [`Anzeige`]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub enum AnzeigeNachricht {
-    /// Einstellen ob ein Klick auf ein Gleis den [Streckenabschnitt]
+    /// Einstellen ob ein Klick auf ein Gleis den [`Streckenabschnitt`]
     /// zum aktuellen Streckenabschnitt ändert.
     Festlegen(bool),
 }
 
-/// Widget zur Anzeige des aktuellen [Streckenabschnittes](Streckenabschnitt),
+/// Widget zur Anzeige des aktuellen [`Streckenabschnittes`](Streckenabschnitt),
 /// sowie Buttons zum Öffnen des Auswahl-Fensters.
 pub struct Anzeige<'a, Overlay, R> {
     element: Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, R>,
@@ -72,7 +72,7 @@ where
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
 {
-    /// Erstelle eine neue [Anzeige].
+    /// Erstelle eine neue [`Anzeige`].
     pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool, overlay: Overlay) -> Self {
         let mut children = Vec::new();
         // TODO Assoziierte Geschwindigkeit berücksichtigen
@@ -119,7 +119,7 @@ impl<'a, Overlay, R: 'a + Renderer> From<Anzeige<'a, Overlay, R>>
     }
 }
 
-/// Zustand des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
+/// Zustand des Auswahl-Fensters für [`Streckenabschnitte`](Streckenabschnitt).
 #[derive(Debug, PartialEq)]
 struct AuswahlZustand {
     neu_name: String,
@@ -129,7 +129,7 @@ struct AuswahlZustand {
 }
 
 impl AuswahlZustand {
-    /// Erstelle einen neuen [AuswahlZustand].
+    /// Erstelle einen neuen [`AuswahlZustand`].
     fn neu<L: Leiter, AktualisierenNachricht>(
         startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
         gleise: &Gleise<L, AktualisierenNachricht>,
@@ -178,7 +178,7 @@ enum InterneAuswahlNachricht {
     Bearbeiten(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
 }
 
-/// Nachricht des Auswahl-Fensters für [Streckenabschnitte](Streckenabschnitt).
+/// Nachricht des Auswahl-Fensters für [`Streckenabschnitte`](Streckenabschnitt).
 #[derive(Debug)]
 pub enum AuswahlNachricht {
     /// Schließe das Auswahl-Fenster.
@@ -191,7 +191,7 @@ pub enum AuswahlNachricht {
     Lösche(Name),
 }
 
-/// Auswahl-Fenster für [Streckenabschnitte](Streckenabschnitt).
+/// Auswahl-Fenster für [`Streckenabschnitte`](Streckenabschnitt).
 #[derive(Debug)]
 pub struct Auswahl<'a, R: Renderer>(
     MapMitZustand<'a, AuswahlZustand, InterneAuswahlNachricht, AuswahlNachricht, R>,
@@ -214,7 +214,7 @@ where
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<style::Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
-    /// Erstelle eine neue [Auswahl].
+    /// Erstelle eine neue [`Auswahl`].
     pub fn neu<L: Leiter, AktualisierenNachricht>(
         startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
         gleise: &'a Gleise<L, AktualisierenNachricht>,

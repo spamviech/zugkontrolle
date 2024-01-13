@@ -23,7 +23,7 @@ macro_rules! erstelle_neu_und_als_skalar {
     };
 }
 
-/// Spurweite \[mm\].
+/// Spurweite \[`mm\`].
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Spurweite(f32);
 
@@ -75,7 +75,7 @@ impl Spurweite {
     }
 }
 
-/// Längenmaß \[mm\].
+/// Längenmaß \[`mm\`].
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Länge(f32);
 
@@ -102,7 +102,7 @@ impl Div<Radius> for Länge {
     }
 }
 
-/// Radius \[mm\].
+/// Radius \[`mm\`].
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Radius(f32);
 

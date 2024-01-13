@@ -60,7 +60,7 @@ pub struct SKurvenWeiche<Anschlüsse = Option<Steuerung>> {
 }
 
 impl SKurvenWeicheUnit {
-    /// Erstelle eine neue [SKurvenWeiche].
+    /// Erstelle eine neue [`SKurvenWeiche`].
     pub const fn neu(
         länge: Länge,
         radius: Radius,
@@ -81,7 +81,7 @@ impl SKurvenWeicheUnit {
         }
     }
 
-    /// Erstelle eine neue [SKurvenWeiche] mit allgemeiner Beschreibung, z.B. der Produktnummer.
+    /// Erstelle eine neue [`SKurvenWeiche`] mit allgemeiner Beschreibung, z.B. der Produktnummer.
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,

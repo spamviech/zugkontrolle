@@ -22,7 +22,7 @@ use iced_widget::container::{self, Container};
 
 use crate::application::{map_mit_zustand::MapOperation, style};
 
-/// Nachricht für Underlay und Overlay eines [Modals](Modal).
+/// Nachricht für Underlay und Overlay eines [`Modals`](Modal).
 #[derive(Debug, Clone)]
 pub enum Nachricht<Overlay, ElementNachricht> {
     /// Nach außen durchgereichte Nachricht.
@@ -40,7 +40,7 @@ impl<Overlay, ElementNachricht> From<ElementNachricht> for Nachricht<Overlay, El
 }
 
 impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
-    /// Konvertiere Overlay-Nachrichten mit dem [From]-Trait.
+    /// Konvertiere Overlay-Nachrichten mit dem [`From`]-Trait.
     pub fn overlay_from<O1>(value: Nachricht<O1, ElementNachricht>) -> Self
     where
         Overlay: From<O1>,
@@ -57,7 +57,7 @@ impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
         }
     }
 
-    /// Konvertiere Underlay-Nachrichten mit dem [From]-Trait.
+    /// Konvertiere Underlay-Nachrichten mit dem [`From`]-Trait.
     pub fn underlay_from<N1>(value: Nachricht<Overlay, N1>) -> Self
     where
         ElementNachricht: From<N1>,
@@ -77,7 +77,7 @@ impl<Overlay, ElementNachricht> Nachricht<Overlay, ElementNachricht> {
         }
     }
 
-    /// Konvertiere die Nachricht, wenn das [Modal] innerhalb eines äußeren [Modals](Modal) angezeigt wird,
+    /// Konvertiere die Nachricht, wenn das [Modal] innerhalb eines äußeren [`Modals`](Modal) angezeigt wird,
     /// ohne dieses direkt zu beeinflussen.
     pub fn äußeres_modal<Außen>(
         self,
@@ -115,7 +115,7 @@ impl<O> DerefMut for Overlay<O> {
 }
 
 impl<O> Overlay<O> {
-    /// Erzeuge einen neuen [Overlay]-Wrapper.
+    /// Erzeuge einen neuen [`Overlay`]-Wrapper.
     pub fn neu(overlay: Option<O>) -> Overlay<O> {
         Overlay { overlay, zeitstempel: Instant::now() }
     }
@@ -130,7 +130,7 @@ enum OverlayElement {
     Geändert,
 }
 
-/// Zustand des [Modal]-Widgets.
+/// Zustand des [`Modal`]-Widgets.
 #[derive(Debug)]
 struct Zustand<O> {
     overlay: Option<O>,
@@ -140,7 +140,7 @@ struct Zustand<O> {
 }
 
 impl<O> Zustand<O> {
-    /// Erstelle einen neuen Zustand für das [Modal]-Widget.
+    /// Erstelle einen neuen Zustand für das [`Modal`]-Widget.
     fn neu(initiales_overlay: Overlay<O>) -> Self
     where
         O: Clone,
@@ -228,7 +228,7 @@ fn aktualisiere_overlay_element<'a, Overlay, ElementNachricht, R>(
 }
 
 impl<'a, O, ElementNachricht, R> Modal<'a, O, ElementNachricht, R> {
-    /// Erstelle ein neues [Modal].
+    /// Erstelle ein neues [`Modal`].
     pub fn neu(
         underlay: impl 'a + Into<Element<'a, Nachricht<O, ElementNachricht>, R>>,
         initiales_overlay: &'a Overlay<O>,

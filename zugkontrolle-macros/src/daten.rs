@@ -11,7 +11,7 @@ use syn::{
     Signature, Type, TypeParam, TypeParamBound,
 };
 
-/// Ersetzte den `generic`-Parameter durch den übergebenen [Pfad].
+/// Ersetzte den `generic`-Parameter durch den übergebenen [`Pfad`].
 fn ersetze_generic_path(generic: &Ident, insert: &[PathSegment], mut path: Path) -> Path {
     let num_segments = path.segments.len();
     let (segments, segment) =
@@ -64,7 +64,7 @@ fn ersetze_generic_path(generic: &Ident, insert: &[PathSegment], mut path: Path)
     path
 }
 
-/// Ersetzte den `generic`-Parameter durch den übergebenen [Type].
+/// Ersetzte den `generic`-Parameter durch den übergebenen [`Type`].
 fn ersetze_generic(generic: &Ident, insert: &[PathSegment], ty: Type) -> Type {
     match ty {
         Type::Infer(infer) => Type::Infer(infer),

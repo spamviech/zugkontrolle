@@ -1,4 +1,4 @@
-//! Serialisierbare Darstellung einer [Kreuzung] in Version 3.
+//! Serialisierbare Darstellung einer [`Kreuzung`] in Version 3.
 
 use std::fmt::Debug;
 

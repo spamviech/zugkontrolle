@@ -60,7 +60,7 @@ mod test_util {
     #[derive(Debug)]
     pub(crate) struct ExpectTrue;
 
-    /// Gebe [Ok] zurück wenn der wert [true] ist, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn der wert [true] ist, ansonsten [`Err`].
     pub(crate) fn expect_true(wert: bool) -> Result<(), ExpectTrue> {
         if wert {
             Ok(())
@@ -72,7 +72,7 @@ mod test_util {
     #[derive(Debug)]
     pub(crate) struct ExpectEq(Box<dyn Debug>, Box<dyn Debug>);
 
-    /// Gebe [Ok] zurück wenn beide Werte gleich sind, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn beide Werte gleich sind, ansonsten [`Err`].
     #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_eq<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectEq> {
         expect_true(a == b).map_err(|_expect_true| ExpectEq(Box::new(a), Box::new(b)))
@@ -81,7 +81,7 @@ mod test_util {
     #[derive(Debug)]
     pub(crate) struct ExpectNe(Box<dyn Debug>, Box<dyn Debug>);
 
-    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [`Err`].
     #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_ne<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectNe> {
         expect_true(a != b).map_err(|_expect_true| ExpectNe(Box::new(a), Box::new(b)))
@@ -90,7 +90,7 @@ mod test_util {
     #[derive(Debug)]
     pub(crate) struct ExpectGt(Box<dyn Debug>, Box<dyn Debug>);
 
-    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [`Err`].
     #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_gt<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectGt> {
         expect_true(a != b).map_err(|_expect_true| ExpectGt(Box::new(a), Box::new(b)))

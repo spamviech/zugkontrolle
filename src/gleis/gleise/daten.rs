@@ -82,13 +82,13 @@ pub struct Gleis<T: MitSteuerung>
 where
     <T as MitSteuerung>::SelfUnit: 'static,
 {
-    /// Die [Zeichnen]-Definition des Gleises.
+    /// Die [`Zeichnen`]-Definition des Gleises.
     pub definition: DefinitionId<T>,
-    /// Die [Anschlüsse](anschluss::Anschluss) des Gleises.
+    /// Die [`Anschlüsse`](anschluss::Anschluss) des Gleises.
     pub steuerung: <T as MitSteuerung>::Steuerung,
-    /// Die Position des Gleises auf dem [Canvas](iced::widget::canvas::Canvas).
+    /// Die Position des Gleises auf dem [`Canvas`](iced::widget::canvas::Canvas).
     pub position: Position,
-    /// Der [Streckenabschnitt] des Gleises.
+    /// Der [`Streckenabschnitt`] des Gleises.
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
@@ -164,8 +164,8 @@ pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Option<geschwindigkeit::Name>)>;
 type GeschwindigkeitMap<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
 
-/// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [Streckenabschnitte](Streckenabschnitt),
-/// sowie der verwendete [Zugtyp].
+/// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [`Streckenabschnitte`](Streckenabschnitt),
+/// sowie der verwendete [`Zugtyp`].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
@@ -179,16 +179,16 @@ pub(in crate::gleis::gleise) struct Zustand<L: Leiter> {
     pläne: HashMap<plan::Name, Plan<L>>,
 }
 
-/// Die gesuchte [Geschwindigkeit] wurde entfernt.
+/// Die gesuchte [`Geschwindigkeit`] wurde entfernt.
 #[derive(Debug)]
 pub struct GeschwindigkeitEntferntFehler(pub geschwindigkeit::Name);
 
-/// Der gesuchte [Streckenabschnitt] wurde entfernt.
+/// Der gesuchte [`Streckenabschnitt`] wurde entfernt.
 #[derive(Debug)]
 pub struct StreckenabschnittEntferntFehler(pub streckenabschnitt::Name);
 
 impl<L: Leiter> Zustand<L> {
-    /// Erstelle einen neuen [Zustand].
+    /// Erstelle einen neuen [`Zustand`].
     pub(in crate::gleis::gleise) fn neu(zugtyp: Zugtyp<L>) -> Self {
         Zustand {
             zugtyp,
@@ -291,7 +291,7 @@ impl<L: Leiter> Zustand<L> {
             .ok_or_else(|| StreckenabschnittEntferntFehler(name.clone()))
     }
 
-    /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [Streckenabschnitt] hinzu.
+    /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [`Streckenabschnitt`] hinzu.
     pub(in crate::gleis::gleise) fn hinzufügen(
         &mut self,
         definition_steuerung: impl Into<AnyDefinitionIdSteuerung>,
@@ -308,7 +308,7 @@ impl<L: Leiter> Zustand<L> {
         )
     }
 
-    /// Bewege ein [Gleis] an die neue [Position].
+    /// Bewege ein [Gleis] an die neue [`Position`].
     pub(in crate::gleis::gleise) fn bewegen(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -318,7 +318,7 @@ impl<L: Leiter> Zustand<L> {
         self.gleise.bewegen(&self.zugtyp, gleis_id.into(), position, einrasten)
     }
 
-    /// Entferne das [Gleis] assoziiert mit der [GleisId].
+    /// Entferne das [Gleis] assoziiert mit der [`GleisId`].
     pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -326,10 +326,10 @@ impl<L: Leiter> Zustand<L> {
         self.gleise.entfernen(gleis_id.into())
     }
 
-    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [GleisId].
+    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [`GleisId`].
     ///
-    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
-    /// [Streckenabschnittes](Streckenabschnitt) (falls einer gesetzt war).
+    /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
+    /// [`Streckenabschnittes`](Streckenabschnitt) (falls einer gesetzt war).
     pub(in crate::gleis::gleise) fn setze_streckenabschnitt(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -338,7 +338,7 @@ impl<L: Leiter> Zustand<L> {
         self.gleise.setze_streckenabschnitt(gleis_id.into(), streckenabschnitt)
     }
 
-    /// Aktualisiere die Steuerung für ein [Gleis].
+    /// Aktualisiere die Steuerung für ein [`Gleis`].
     pub(in crate::gleis::gleise) fn steuerung_aktualisieren(
         &mut self,
         lager: &mut Lager,
@@ -430,7 +430,7 @@ pub(crate) struct GleiseDaten {
 }
 
 impl GleiseDaten {
-    /// Erstelle eine leere [GleiseDaten]-Struktur.
+    /// Erstelle eine leere [`GleiseDaten`]-Struktur.
     pub(in crate::gleis::gleise) fn neu() -> Self {
         GleiseDaten {
             geraden: GleisMap::new(),
@@ -447,8 +447,8 @@ impl GleiseDaten {
 
 const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
 
-/// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [RStern].
-/// Der erste Rückgabewert sind alle [Verbindungen](Verbindung) in der Nähe,
+/// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [`RStern`].
+/// Der erste Rückgabewert sind alle [`Verbindungen`](Verbindung) in der Nähe,
 /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
 fn überlappende_verbindungen<'t, L: Leiter>(
     rstern: &'t RStern,
@@ -544,17 +544,17 @@ fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     })
 }
 
-/// Fehler beim [hinzufügen](crate::gleis::gleise::Gleise::hinzufügen) eines Gleises.
+/// Fehler beim [`hinzufügen`](crate::gleis::gleise::Gleise::hinzufügen) eines Gleises.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum HinzufügenFehler2 {
     /// Unbekannte Definition-Id für das neue Gleis.
     DefinitionNichtGefunden(AnyDefinitionId),
-    /// Es ist aktuell keine [GleisId] verfügbar.
+    /// Es ist aktuell keine [`GleisId`] verfügbar.
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
 impl GleiseDaten {
-    /// Füge ein neues [Gleis] hinzu.
+    /// Füge ein neues [`Gleis`] hinzu.
     fn hinzufügen<L: Leiter>(
         &mut self,
         zugtyp: &Zugtyp<L>,
@@ -623,7 +623,7 @@ impl GleiseDaten {
     }
 }
 
-/// Fehler beim [bewegen](crate::gleis::gleise::Gleise::bewegen) eines Gleises.
+/// Fehler beim [`bewegen`](crate::gleis::gleise::Gleise::bewegen) eines Gleises.
 #[derive(Debug, Clone)]
 pub enum BewegenFehler {
     /// Unbekannte Definition-Id für das bewegte Gleis.
@@ -633,7 +633,7 @@ pub enum BewegenFehler {
 }
 
 impl GleiseDaten {
-    /// Bewege ein [Gleis] an die `neue_position`.
+    /// Bewege ein [`Gleis`] an die `neue_position`.
     fn bewegen<L: Leiter>(
         &mut self,
         zugtyp: &Zugtyp<L>,
@@ -708,12 +708,12 @@ impl GleiseDaten {
     }
 }
 
-/// Fehler beim [entfernen](crate::gleis::gleise::Gleise::entfernen) eines Gleises.
+/// Fehler beim [`entfernen`](crate::gleis::gleise::Gleise::entfernen) eines Gleises.
 #[derive(Debug, Clone)]
 pub struct EntfernenFehler(AnyId);
 
 impl GleiseDaten {
-    /// Entferne ein [Gleis].
+    /// Entferne ein [`Gleis`].
     fn entfernen(&mut self, gleis_id: AnyId) -> Result<AnyGleis, EntfernenFehler> {
         macro_rules! entfernen_aux {
             ($gleise: expr, $gleis_id: expr) => {{
@@ -746,10 +746,10 @@ impl GleiseDaten {
 pub struct SetzteStreckenabschnittFehler(AnyId, Option<streckenabschnitt::Name>);
 
 impl GleiseDaten {
-    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [GleisId].
+    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [`GleisId`].
     ///
-    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
-    /// [Streckenabschnittes](Streckenabschnitt) (falls einer gesetzt war).
+    /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
+    /// [`Streckenabschnittes`](Streckenabschnitt) (falls einer gesetzt war).
     fn setze_streckenabschnitt(
         &mut self,
         gleis_id: AnyId,
@@ -773,7 +773,7 @@ impl GleiseDaten {
         mit_any_id!({mut self}, [AnyId => id] gleis_id => setze_streckenabschnitt_aux!())
     }
 
-    /// Entferne einen [Streckenabschnitt] aus allen Gleisen.
+    /// Entferne einen [`Streckenabschnitt`] aus allen Gleisen.
     fn entferne_streckenabschnitt(&mut self, streckenabschnitt: &streckenabschnitt::Name) {
         for (_id, (gleis, _rectangle)) in self.geraden.iter_mut() {
             if Some(streckenabschnitt) == gleis.streckenabschnitt.as_ref() {
@@ -806,7 +806,7 @@ impl GleiseDaten {
 pub enum SteuerungAktualisierenFehler {
     /// Das Gleis wurde nicht gefunden.
     GleisNichtGefunden(AnyId),
-    /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [Anschlüsse](anschluss::Anschluss).
+    /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [`Anschlüsse`](anschluss::Anschluss).
     Deserialisieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
         fehler: NonEmpty<anschluss::Fehler>,
@@ -821,7 +821,7 @@ pub enum SteuerungAktualisierenFehler {
 pub struct GleisNichtGefunden(AnyId);
 
 impl GleiseDaten {
-    /// Aktualisiere die Steuerung für ein [Gleis].
+    /// Aktualisiere die Steuerung für ein [`Gleis`].
     fn steuerung_aktualisieren(
         &mut self,
         lager: &mut Lager,
@@ -1308,7 +1308,7 @@ impl GleiseDaten {
 }
 
 /// SelectionFunction, die jedes Element akzeptiert.
-/// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe [GleiseDaten::verschmelze]).
+/// Haupt-Nutzen ist das vollständiges Leeren eines RTree (siehe [`GleiseDaten::verschmelze`]).
 struct SelectAll;
 
 impl<T: RTreeObject> SelectionFunction<T> for SelectAll {

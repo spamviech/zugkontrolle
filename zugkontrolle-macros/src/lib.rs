@@ -7,7 +7,7 @@ pub(crate) mod utils;
 
 mod debug;
 #[proc_macro_derive(Debug, attributes(zugkontrolle_debug))]
-/// Erzeuge eine [Debug]-Implementierung, ohne Constraints für Generics vorauszusetzen.
+/// Erzeuge eine [`Debug`]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn debug_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -19,7 +19,7 @@ pub fn debug_derive(input: TokenStream) -> TokenStream {
 
 mod clone;
 #[proc_macro_derive(Clone, attributes(zugkontrolle_clone))]
-/// Erzeuge eine [Clone]-Implementierung, ohne Constraints für Generics vorauszusetzen.
+/// Erzeuge eine [`Clone`]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn clone_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -108,7 +108,7 @@ pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStr
 
 mod sum_type_from;
 #[proc_macro_derive(From)]
-/// Erzeuge [From]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
+/// Erzeuge [`From`]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
 pub fn derive_from(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input);
 

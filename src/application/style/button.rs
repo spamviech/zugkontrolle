@@ -1,4 +1,4 @@
-//! Style Strukturen für die Hintergrund-Farbe eines [iced::widget::Button].
+//! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Button`].
 
 use iced::{widget::button, Color};
 
@@ -16,10 +16,10 @@ pub const GRÜN: Button = Button::hintergrund_grün(0.7);
 /// Blauer Hintergrund.
 pub const BLAU: Button = Button::hintergrund_blau(0.7);
 
-/// Style Strukturen für einen [iced::widget::Button].
+/// Style Strukturen für einen [`iced::widget::Button`].
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Button {
-    /// Die Standard-Darstellung des korrespondierenden [iced::Theme].
+    /// Die Standard-Darstellung des korrespondierenden [`iced::Theme`].
     #[default]
     Standard,
     /// Ändere die Hintergrundfarbe.

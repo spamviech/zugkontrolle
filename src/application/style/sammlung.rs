@@ -1,4 +1,4 @@
-//! Style-Strukturen für ein [iced::widget::Scrollable].
+//! Style-Strukturen für ein [`iced::widget::Scrollable`].
 
 use iced::{
     widget::scrollable::{Scrollbar, Scroller, StyleSheet},
@@ -7,11 +7,11 @@ use iced::{
 
 use crate::application::style::thema::Thema;
 
-/// Style-Struktur für ein [iced::widget::Scrollable]
-/// mit fester [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width).
+/// Style-Struktur für ein [`iced::widget::Scrollable`]
+/// mit fester [`Scroller-Breite`](iced_native::widget::scrollable::Properties::scroller_width).
 #[derive(Debug, Clone, Copy)]
 pub struct Sammlung {
-    /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width).
+    /// Die [`Scroller-Breite`](iced_native::widget::scrollable::Properties::scroller_width).
     pub breite: f32,
 }
 
@@ -22,12 +22,12 @@ impl Default for Sammlung {
 }
 
 impl Sammlung {
-    /// Erstelle eine neue [Sammlung] Style-Struktur.
+    /// Erstelle eine neue [`Sammlung`] Style-Struktur.
     pub fn neu(breite: f32) -> Self {
         Sammlung { breite }
     }
 
-    /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width) des [Scrollable](iced::widget::Scrollable).
+    /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width) des [`Scrollable`](iced::widget::Scrollable).
 
     pub fn breite(&self) -> f32 {
         self.breite
