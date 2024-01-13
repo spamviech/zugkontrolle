@@ -2,6 +2,10 @@
 
 ## Unreleased changes
 
+- Drehen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf den Knopf zeigt, oder er gezogen wird.
+
+## 4.0.1
+
 - Gleise-Canvas hört auf Touch-Eingaben. Es können mehrere Gleise gleichzeitig bewegt werden.
 - Modal-Widget unterstützt passthrough_events, die immer vom Underlay verarbeitet werden,
   selbst wenn das Overlay aktuell angezeigt wird.

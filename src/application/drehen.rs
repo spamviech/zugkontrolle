@@ -200,4 +200,41 @@ impl Program<Winkel, Renderer<Thema>> for Drehen {
         }
         (status, winkel)
     }
+
+    fn mouse_interaction(
+        &self,
+        state: &Self::State,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> mouse::Interaction {
+        if state.grabbed {
+            mouse::Interaction::Grabbing
+        } else {
+            let size = bounds.size();
+            let min_width_height = Skalar(size.width.min(size.height));
+            let half_min_width_height = min_width_height.halbiert();
+            let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let kreis_radius = Skalar(0.8) * half_min_width_height;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let knopf_zentrum =
+                kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let knopf_radius = half_min_width_height - kreis_radius;
+            let cursor_über_knopf = cursor.position_in(bounds).map_or(false, |position| {
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
+                let v_r = Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum;
+                v_r.länge() < knopf_radius
+            });
+            if cursor_über_knopf {
+                mouse::Interaction::Grab
+            } else {
+                mouse::Interaction::default()
+            }
+        }
+    }
 }
