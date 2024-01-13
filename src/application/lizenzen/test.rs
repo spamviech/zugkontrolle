@@ -1,8 +1,10 @@
 //! Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fmt::{self, Display, Formatter, Write},
+    fs, io,
     path::Path,
     str::Split,
 };
@@ -27,9 +29,11 @@ use crate::{
 struct OptionD<'t, T>(&'t str, Option<T>);
 
 impl<T: Display> Display for OptionD<'_, T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        // t: T
+        #[allow(clippy::min_ident_chars)]
         if let OptionD(präfix, Some(t)) = self {
-            write!(f, "{präfix}{t}")
+            write!(formatter, "{präfix}{t}")
         } else {
             Ok(())
         }
@@ -68,10 +72,11 @@ release_targets! {
 }
 
 fn cargo_lock_crates() -> HashSet<&'static str> {
-    cargo_lock_lizenzen().into_iter().map(|(name, _lizenz)| name).collect()
+    cargo_lock_lizenzen().into_keys().collect()
 }
 
 #[test]
+#[allow(clippy::type_complexity)]
 /// Test ob alle Lizenzen angezeigt werden.
 fn alle_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, usize)> {
     init_test_logging();
@@ -97,30 +102,27 @@ fn push_letzte_same(
     letzte_same: &mut Option<Split<'_, &String>>,
     split: &str,
 ) {
-    match letzte_same.take() {
-        Some(iter) => {
-            let mut ellipsis = false;
-            let mut vorletztes = None;
-            let mut letztes = None;
-            for s in iter {
-                ellipsis = vorletztes.is_some();
-                vorletztes = letztes;
-                letztes = Some(s);
-            }
-            if let Some(letztes) = letztes {
-                if ellipsis {
-                    string.push_str("...");
-                    string.push_str(split);
-                }
-                if let Some(vorletztes) = vorletztes {
-                    string.push_str(vorletztes);
-                    string.push_str(split);
-                }
-                string.push_str(letztes);
+    if let Some(iter) = letzte_same.take() {
+        let mut ellipsis = false;
+        let mut vorletztes = None;
+        let mut letztes = None;
+        for aktuelles in iter {
+            ellipsis = vorletztes.is_some();
+            vorletztes = letztes;
+            letztes = Some(aktuelles);
+        }
+        if let Some(letztes) = letztes {
+            if ellipsis {
+                string.push_str("...");
                 string.push_str(split);
             }
-        },
-        None => {},
+            if let Some(vorletztes) = vorletztes {
+                string.push_str(vorletztes);
+                string.push_str(split);
+            }
+            string.push_str(letztes);
+            string.push_str(split);
+        }
     }
 }
 
@@ -233,30 +235,13 @@ fn lizenz_dateien(
     .collect()
 }
 
-#[test]
-/// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
-/// Nimmt vorheriges ausführen von `python3 fetch_licenses.py` an.
-fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, usize)> {
-    init_test_logging();
-
-    let release_target_crates = RELEASE_TARGETS
-        .into_iter()
-        .flat_map(|target| {
-            let mut crates: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
-            for (name, version) in target_crates(target).expect("unbekanntes target!") {
-                use std::collections::hash_map::Entry;
-                match crates.entry(name) {
-                    Entry::Occupied(mut o) => o.get_mut().push(version),
-                    Entry::Vacant(v) => {
-                        let _ = v.insert(NonEmpty::singleton(version));
-                    },
-                }
-            }
-            crates
-        })
-        .collect();
-    let lizenzen: BTreeMap<_, _> =
-        verwendete_lizenzen_impl(release_target_crates, |name, version| (name, version));
+#[allow(clippy::type_complexity)]
+fn finde_unterschiede<'t, 'f>(
+    lizenzen: BTreeMap<(&'t str, &'t str), fn() -> Cow<'f, str>>,
+) -> BTreeMap<
+    (&'t str, &'t str),
+    Either<(Changeset, Vec<(MITZeilenumbruch, Changeset)>), (String, io::Error)>,
+> {
     let lizenz_dateien = lizenz_dateien();
     let standard_lizenz_pfade = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "COPYING"]
         .into_iter()
@@ -272,28 +257,21 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
     let fallback_standard_pfad = String::from("UnbekannterStandardLizenzPfad");
 
     let mut unterschiede = BTreeMap::new();
-    let is_diff = |diff: &Difference| {
-        if let Difference::Same(_) = diff {
-            false
-        } else {
-            true
-        }
-    };
-    for ((name, version), f) in lizenzen {
+    let is_diff = |diff: &Difference| !matches!(diff, Difference::Same(_));
+    for ((name, version), funktion) in lizenzen {
         let repo_pfad = env!("CARGO_MANIFEST_DIR");
         let ordner_pfad = format!("{repo_pfad}/licenses/{name}-{version}");
         let standard_lizenz_pfad: &str = standard_lizenz_pfade
             .iter()
-            .filter(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file())
-            .next()
+            .find(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file())
             .unwrap_or(&fallback_standard_pfad);
         let standard_lizenz_pfad_mit_map = (standard_lizenz_pfad, HashMap::new());
         let (pfad, version_spezifisch) =
             lizenz_dateien.get(&UniCaseOrd::neu(name)).unwrap_or(&standard_lizenz_pfad_mit_map);
         let datei = version_spezifisch.get(version).unwrap_or(pfad);
-        let verwendete_lizenz = f();
+        let verwendete_lizenz = funktion();
         let lizenz_pfad = format!("licenses/{name}-{version}/{datei}");
-        match std::fs::read_to_string(lizenz_pfad.clone()) {
+        match fs::read_to_string(lizenz_pfad.clone()) {
             Ok(gespeicherte_lizenz) => {
                 let gespeicherte_lizenz_unix = gespeicherte_lizenz.replace("\r\n", "\n");
                 let changeset = Changeset::new(&gespeicherte_lizenz_unix, &verwendete_lizenz, "\n");
@@ -320,21 +298,52 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
             },
         }
     }
+    unterschiede
+}
+
+#[test]
+#[allow(clippy::type_complexity)]
+/// Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
+/// Nimmt vorheriges ausführen von `python3 fetch_licenses.py` an.
+fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, usize)> {
+    init_test_logging();
+
+    let release_target_crates = RELEASE_TARGETS
+        .into_iter()
+        .flat_map(|target| {
+            let mut crates: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
+            for (name, version) in target_crates(target).expect("unbekanntes target!") {
+                use std::collections::hash_map::Entry;
+                match crates.entry(name) {
+                    Entry::Occupied(mut occupied) => occupied.get_mut().push(version),
+                    Entry::Vacant(vacant) => {
+                        let _ = vacant.insert(NonEmpty::singleton(version));
+                    },
+                }
+            }
+            crates
+        })
+        .collect();
+    let lizenzen: BTreeMap<_, _> =
+        verwendete_lizenzen_impl(release_target_crates, |name, version| (name, version));
+
+    let unterschiede = finde_unterschiede(lizenzen);
 
     if unterschiede.is_empty() {
         Ok(())
     } else {
-        for ((name, version), changeset_oder_fehler) in unterschiede.iter() {
+        for ((name, version), changeset_oder_fehler) in &unterschiede {
             let mut fehlermeldung = format!("{name}-{version}\x1b[0m\n");
             match changeset_oder_fehler {
                 Either::Left((changeset, mit_changesets)) => {
                     fehlermeldung.push_str(&changeset_als_string(changeset));
-                    if let Some((zeilenumbrüche, mit_changeset)) =
-                        mit_changesets.iter().min_by_key(|(_z, c)| c.distance)
+                    if let Some((zeilenumbrüche, mit_changeset)) = mit_changesets
+                        .iter()
+                        .min_by_key(|(_zeilenumbruch, mit_changeset)| mit_changeset.distance)
                     {
                         let is_non_whitespace_same = |diff: &Difference| {
-                            if let Difference::Same(t) = diff {
-                                !t.trim().is_empty()
+                            if let Difference::Same(diff) = diff {
+                                !diff.trim().is_empty()
                             } else {
                                 false
                             }
@@ -350,7 +359,8 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
                             .unwrap();
                         }
                         fehlermeldung.push('\n');
-                        fehlermeldung.push_str(&format!("{name}-{version}"));
+                        write!(fehlermeldung, "{name}-{version}")
+                            .expect("write! auf einem String.");
                         fehlermeldung.push('\n');
                     }
                 },
@@ -359,10 +369,10 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
                         fehlermeldung,
                         "Fehler beim lesen der gespeicherten Lizenz \"{lizenz_pfad}\":\n{lese_fehler}"
                     )
-                    .unwrap();
+                    .expect("writeln! auf einem String.");
                 },
             }
-            error!("{fehlermeldung}")
+            error!("{fehlermeldung}");
         }
         let set: BTreeSet<_> = unterschiede.into_keys().collect();
         let anzahl = set.len();
