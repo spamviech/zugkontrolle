@@ -8,11 +8,11 @@ macro_rules! erstelle_sender_trait_existential {
         #[doc = "Sende eine [$msg]-Nachricht."]
         #[allow(unused_qualifications)]
         $($vis)? trait $trait: Clone + Send {
-            #[doc = "Sende eine [$msg]-Nachricht."]
+            #[doc = "Sende eine [$msg]-Nachricht.\n\n## Errors\n\nFehler beim Senden der Nachricht."]
             fn send(&self, msg: $msg) -> Result<(), std::sync::mpsc::SendError<$msg>>;
 
-            #[doc = "[Debug]-Ausgabe zur Darstellung eines [$existential]."]
-            fn debug_fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
+            #[doc = "[Debug]-Ausgabe zur Darstellung eines [$existential].\n\n## Errors\n\nFehler beim erzeugen der Debug-Darstellung."]
+            fn debug_fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
         }
 
         #[allow(unused_qualifications)]
@@ -21,20 +21,21 @@ macro_rules! erstelle_sender_trait_existential {
                 std::sync::mpsc::Sender::send(self, msg)
             }
 
-            fn debug_fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                <Self as std::fmt::Debug>::fmt(self, f)
+            fn debug_fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                <Self as std::fmt::Debug>::fmt(self, formatter)
             }
         }
 
         #[allow(unused_qualifications)]
         impl<T: Send, F: Fn($msg) -> T + Clone + Send> $trait for (std::sync::mpsc::Sender<T>, F) {
             fn send(&self, msg: $msg) -> Result<(), std::sync::mpsc::SendError<$msg>> {
-                let (sender, f) = self;
-                std::sync::mpsc::Sender::send(sender, f(msg)).map_err(|std::sync::mpsc::SendError(_)| std::sync::mpsc::SendError(msg))
+                let (sender, funktion) = self;
+                std::sync::mpsc::Sender::send(sender, funktion(msg))
+                    .map_err(|std::sync::mpsc::SendError(_)| std::sync::mpsc::SendError(msg))
             }
 
-            fn debug_fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.debug_tuple("").field(&self.0).field(&"<closure>").finish()
+            fn debug_fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.debug_tuple("").field(&self.0).field(&"<closure>").finish()
             }
         }
 
@@ -44,10 +45,10 @@ macro_rules! erstelle_sender_trait_existential {
 
         #[allow(unused_qualifications)]
         impl std::fmt::Debug for $existential {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.write_str("SomeLevelSender(")?;
-                self.0.debug_fmt(f)?;
-                f.write_str(")")
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("SomeLevelSender(")?;
+                self.0.debug_fmt(formatter)?;
+                formatter.write_str(")")
             }
         }
 

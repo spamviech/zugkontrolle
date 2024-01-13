@@ -53,6 +53,10 @@ pub enum InitFehler {
 
 impl Lager {
     /// Initialisiere ein [Lager], das nicht verwendete [Anschlüsse](Anschluss) verwaltet.
+    ///
+    /// ## Errors
+    ///
+    /// Zugriff auf Gpio-Pins oder I2c-Kanäle nicht möglich.
     pub fn neu(settings: I2cSettings) -> Result<Lager, InitFehler> {
         let mut pin = pin::Lager::neu()?;
         let pcf8574 = pcf8574::Lager::neu(&mut pin, settings)?;
@@ -60,6 +64,10 @@ impl Lager {
     }
 
     /// Reserviere einen [Pin].
+    ///
+    /// ## Errors
+    ///
+    /// IO-Fehler (z.B. fehlende Berechtigungen), oder der Pin ist bereits in Verwendung.
     pub fn reserviere_pin(&mut self, pin: u8) -> Result<Anschluss, ReservierenFehler> {
         match self.pin.reserviere_pin(pin) {
             Ok(pin) => Ok(Anschluss::Pin(pin)),
@@ -68,6 +76,10 @@ impl Lager {
     }
 
     /// Reserviere einen [Pcf8574-Port](pcf8574::Port).
+    ///
+    /// ## Errors
+    ///
+    /// IO-Fehler (z.B. fehlende Berechtigungen), oder der Port ist bereits in Verwendung.
     pub fn reserviere_pcf8574_port(
         &mut self,
         beschreibung: pcf8574::Beschreibung,
@@ -91,11 +103,11 @@ pub enum Anschluss {
 }
 
 impl Display for Anschluss {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Anschluss::Pin(pin) => write!(f, "Pin({})", pin.pin()),
+            Anschluss::Pin(pin) => write!(formatter, "Pin({})", pin.pin()),
             Anschluss::Pcf8574Port(port) => {
-                write!(f, "Pcf8574Port({port})")
+                write!(formatter, "Pcf8574Port({port})")
             },
         }
     }
@@ -128,6 +140,8 @@ impl Anschluss {
     }
 }
 
+// TODO Behandeln erfordert Anpassung des public API.
+#[allow(clippy::module_name_repetitions)]
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
 #[allow(variant_size_differences)]
@@ -149,32 +163,38 @@ pub enum OutputAnschluss {
 }
 
 impl Display for OutputAnschluss {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             OutputAnschluss::Pin { pin, polarität } => {
-                write!(f, "Pin({}, {polarität})", pin.pin())
+                write!(formatter, "Pin({}, {polarität})", pin.pin())
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                write!(f, "Pcf8574Port({port}, {polarität}")
+                write!(formatter, "Pcf8574Port({port}, {polarität}")
             },
         }
     }
 }
 
 impl OutputAnschluss {
-    /// Einstellen des [OutputAnschluss]es.
+    /// Einstellen des [`OutputAnschlusses`](OutputAnschluss).
+    ///
+    /// ## Errors
+    ///
+    /// Fehler in der I2C-Kommunikation für einen [Pcf8574-Port](pcf8574::Port).
     pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Fehler> {
-        Ok(match self {
+        match self {
             OutputAnschluss::Pin { pin, polarität } => {
-                pin.schreibe(fließend.mit_polarität(*polarität))
+                pin.schreibe(fließend.mit_polarität(*polarität));
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                port.schreibe(fließend.mit_polarität(*polarität))?
+                port.schreibe(fließend.mit_polarität(*polarität))?;
             },
-        })
+        };
+        Ok(())
     }
 
-    /// Aktuelle Einstellung des [OutputAnschlusses](OutputAnschluss).
+    /// Aktuelle Einstellung des [`OutputAnschlusses`](OutputAnschluss).
+    #[must_use]
     pub fn fließend(&self) -> Fließend {
         if self.ist_fließend() {
             Fließend::Fließend
@@ -183,7 +203,8 @@ impl OutputAnschluss {
         }
     }
 
-    /// Ist der [OutputAnschluss] aktuell [fließend](Fließend::Fließend).
+    /// Ist der [`OutputAnschluss`] aktuell [fließend](Fließend::Fließend).
+    #[must_use]
     pub fn ist_fließend(&self) -> bool {
         match self {
             OutputAnschluss::Pin { pin, polarität } => match polarität {
@@ -197,23 +218,28 @@ impl OutputAnschluss {
         }
     }
 
-    /// Ist der [OutputAnschluss] aktuell [gesperrt](Fließend::Gesperrt).
-
+    /// Ist der [`OutputAnschluss`] aktuell [gesperrt](Fließend::Gesperrt).
+    #[must_use]
     pub fn ist_gesperrt(&self) -> bool {
         !self.ist_fließend()
     }
 
     /// Schalte den Strom von [Fließend](Fließend::Fließend) auf [Gesperrt](Fließend::Gesperrt)
     /// und umgekehrt.
+    ///
+    /// ## Errors
+    ///
+    /// Fehler in der I2C-Kommunikation für einen [Pcf8574-Port](pcf8574::Port).
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
-        Ok(match self {
+        match self {
             OutputAnschluss::Pin { pin, .. } => pin.umschalten(),
             OutputAnschluss::Pcf8574Port { port, .. } => port.umschalten()?,
-        })
+        };
+        Ok(())
     }
 }
 
-/// Serialisierbare Informationen eines [OutputAnschluss]es.
+/// Serialisierbare Informationen eines [`OutputAnschlusses`](OutputAnschluss).
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
@@ -236,13 +262,13 @@ pub enum OutputSerialisiert {
 }
 
 impl Display for OutputSerialisiert {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             OutputSerialisiert::Pin { pin, polarität } => {
-                write!(f, "Pin({pin}, {polarität})")
+                write!(formatter, "Pin({pin}, {polarität})")
             },
             OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
-                write!(f, "Pcf8574Port({beschreibung}-{port}, {polarität}")
+                write!(formatter, "Pcf8574Port({beschreibung}-{port}, {polarität}")
             },
         }
     }
@@ -250,6 +276,7 @@ impl Display for OutputSerialisiert {
 
 impl OutputSerialisiert {
     /// Handelt es sich um den selben Anschluss, unabhängig von der Polarität.
+    #[must_use]
     pub fn selber_anschluss(&self, other: &OutputSerialisiert) -> bool {
         match (self, other) {
             (OutputSerialisiert::Pin { pin: p0, .. }, OutputSerialisiert::Pin { pin: p1, .. }) => {
@@ -279,7 +306,7 @@ impl Serialisiere<OutputSerialisiert> for OutputAnschluss {
                 let port = port.port();
                 OutputSerialisiert::Pcf8574Port {
                     beschreibung: *beschreibung,
-                    port: port.into(),
+                    port,
                     polarität: *polarität,
                 }
             },
@@ -309,8 +336,8 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<OutputAnschluss> {
         let neue_polarität = match self {
-            OutputSerialisiert::Pin { polarität, .. } => polarität,
-            OutputSerialisiert::Pcf8574Port { polarität, .. } => polarität,
+            OutputSerialisiert::Pin { polarität, .. }
+            | OutputSerialisiert::Pcf8574Port { polarität, .. } => polarität,
         };
         let (mut gesucht, andere): (Vec<_>, Vec<_>) = output_anschlüsse
             .into_iter()
@@ -320,8 +347,8 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         let anschlüsse = Anschlüsse { pwm_pins, output_anschlüsse: gesucht, input_anschlüsse };
         if let Some(mut anschluss) = ein_gesuchter {
             match &mut anschluss {
-                OutputAnschluss::Pin { polarität, .. } => *polarität = neue_polarität,
-                OutputAnschluss::Pcf8574Port { polarität, .. } => *polarität = neue_polarität,
+                OutputAnschluss::Pin { polarität, .. }
+                | OutputAnschluss::Pcf8574Port { polarität, .. } => *polarität = neue_polarität,
             }
             Ergebnis::Wert { anschluss, anschlüsse }
         } else {
@@ -339,7 +366,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                     if let Some(fehler) = fehler {
                         Ergebnis::FehlerMitErsatzwert {
                             anschluss: output_anschluss,
-                            fehler: NonEmpty::singleton(fehler.into()),
+                            fehler: NonEmpty::singleton(fehler),
                             anschlüsse,
                         }
                     } else {
@@ -354,6 +381,8 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
     }
 }
 
+// TODO Behandeln erfordert Anpassung des public API.
+#[allow(clippy::module_name_repetitions)]
 /// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
 #[allow(variant_size_differences)]
@@ -365,16 +394,17 @@ pub enum InputAnschluss {
 }
 
 impl Display for InputAnschluss {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            InputAnschluss::Pin(pin) => write!(f, "Pin({})", pin.pin()),
+            InputAnschluss::Pin(pin) => write!(formatter, "Pin({})", pin.pin()),
             InputAnschluss::Pcf8574Port(port) => {
-                write!(f, "Pcf8574Port({port})")
+                write!(formatter, "Pcf8574Port({port})")
             },
         }
     }
 }
 
+/// Rufe die gleich-benannte Methode für den Pin oder Pcf8574-Port auf.
 macro_rules! match_method {
     (
         $method:ident$(($($arg:ident : $arg_ty: ty),+))?
@@ -400,16 +430,25 @@ impl InputAnschluss {
     match_method! {
         lese -> Level,
         "Lese das aktuell am [InputAnschluss] anliegende [Level].",
+        "",
+        "## Errors",
+        "",
+        "Fehler in der I2C-Kommunikation mit dem Pcf8574-Port.",
     }
 
     match_method! {
-        setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static),"Konfiguriere einen asynchronen Interrupt Trigger.",
+        setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static),
+        "Konfiguriere einen asynchronen Interrupt Trigger.",
         "Bei auftreten wird der callback in einem separaten Thread ausgeführt.",
         "",
         "Alle vorher konfigurierten Interrupt Trigger werden gelöscht, sobald",
         "[setze_async_interrupt](self::pin::input::Pin::setze_async_interrupt) oder",
         "[lösche_async_interrupt](self::pin::input::Pin::lösche_async_interrupt) aufgerufen wird",
         "oder der [input::Pin](self::pin::input::Pin) out of scope geht.",
+        "",
+        "## Errors",
+        "",
+        "Setzten des Interrupts schlug fehl.",
         "",
         "## Keine synchronen Interrupts",
         "Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
@@ -425,10 +464,14 @@ impl InputAnschluss {
     match_method! {
         lösche_async_interrupt,
         "Entferne einen vorher konfigurierten asynchronen Interrupt Trigger.",
+        "",
+        "## Errors",
+        "",
+        "Löschen des async interrupts schlug fehl.",
     }
 }
 
-/// Serialisierbare Informationen eines [InputAnschluss]es.
+/// Serialisierbare Informationen eines [`InputAnschlusses`](InputAnschluss).
 #[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
@@ -450,6 +493,7 @@ pub enum InputSerialisiert {
 
 impl InputSerialisiert {
     /// Handelt es sich um den selben Anschluss, unabhängig vom Interrupt Pin.
+    #[must_use]
     pub fn selber_anschluss(&self, other: &InputSerialisiert) -> bool {
         match (self, other) {
             (InputSerialisiert::Pin { pin: p0 }, InputSerialisiert::Pin { pin: p1 }) => p0 == p1,
@@ -467,9 +511,10 @@ impl InputSerialisiert {
 
     /// Der Interrupt-Pin eines [Pcf8574-Port](pcf8574::Port),
     /// sofern es sich um einen handelt und einer konfiguriert ist.
+    #[must_use]
     pub fn interrupt(&self) -> Option<u8> {
         if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self {
-            interrupt.clone()
+            *interrupt
         } else {
             None
         }
@@ -520,15 +565,17 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             Box::new(|anschluss| {
                 if gesuchter_anschluss.is_none() && self.selber_anschluss(&anschluss.serialisiere())
                 {
-                    gesuchter_anschluss = Some(anschluss)
+                    gesuchter_anschluss = Some(anschluss);
                 } else {
                     match anschluss {
                         InputAnschluss::Pin(pin)
                             if gesuchter_interrupt.is_none() && pin.pin() == *interrupt =>
                         {
-                            gesuchter_interrupt = Some(pin)
+                            gesuchter_interrupt = Some(pin);
                         },
-                        _ => verbleibende_input_anschlüsse.push(anschluss),
+                        InputAnschluss::Pin(_) | InputAnschluss::Pcf8574Port(_) => {
+                            verbleibende_input_anschlüsse.push(anschluss);
+                        },
                     }
                 }
             })
@@ -536,14 +583,14 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             Box::new(|anschluss| {
                 if gesuchter_anschluss.is_none() && self.selber_anschluss(&anschluss.serialisiere())
                 {
-                    gesuchter_anschluss = Some(anschluss)
+                    gesuchter_anschluss = Some(anschluss);
                 } else {
-                    verbleibende_input_anschlüsse.push(anschluss)
+                    verbleibende_input_anschlüsse.push(anschluss);
                 }
             })
         };
         for anschluss in input_anschlüsse {
-            anschluss_suchen(anschluss)
+            anschluss_suchen(anschluss);
         }
         drop(anschluss_suchen);
         let interrupt_konfigurieren = |port: &mut pcf8574::InputPort| -> Result<(), Fehler> {
@@ -554,6 +601,8 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                     let interrupt = lager.pin.reserviere_pin(pin)?.als_input();
                     let _ = port.setze_interrupt_pin(interrupt)?;
                 }
+            } else {
+                // Kein konfigurierter Interrupt-Pin.
             }
             Ok(())
         };
@@ -586,10 +635,10 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
                                 .map(Fehler::from)
                                 .chain(fehler2.map(Fehler::from))
                                 .collect();
-                            if let Ok(fehler) = NonEmpty::try_from(fehler_vec) {
+                            if let Ok(non_empty) = NonEmpty::try_from(fehler_vec) {
                                 Ergebnis::FehlerMitErsatzwert {
                                     anschluss: input_anschluss,
-                                    fehler,
+                                    fehler: non_empty,
                                     anschlüsse,
                                 }
                             } else {
