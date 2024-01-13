@@ -3,6 +3,7 @@
 ## Unreleased changes
 
 - Drehen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf den Knopf zeigt, oder er gezogen wird.
+- Bewegen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf aktive Elemente zeigt.
 
 ## 4.0.1
 

@@ -262,4 +262,61 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
 
         (event::Status::Ignored, nachricht)
     }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Self::State,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> mouse::Interaction {
+        let mut interaction = mouse::Interaction::default();
+        if let Some(position) = cursor.position_in(bounds) {
+            let size = bounds.size();
+            let width = Skalar(size.width);
+            let height = Skalar(size.height);
+            let half_width = width.halbiert();
+            let half_height = height.halbiert();
+            // Startpunkte
+            let links = Vektor { x: Skalar(0.), y: half_height };
+            let rechts = Vektor { x: width, y: half_height };
+            let oben = Vektor { x: half_width, y: Skalar(0.) };
+            let unten = Vektor { x: half_width, y: height };
+            let zentrum = Vektor { x: half_width, y: half_height };
+            // relative Bewegung
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let diagonal_runter = Skalar(0.3) * Vektor { x: half_width, y: half_height };
+            // Grenzen
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let links_grenze = links.x + diagonal_runter.x;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let rechts_grenze = rechts.x - diagonal_runter.x;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let oben_grenze = oben.y + diagonal_runter.y;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let unten_grenze = unten.y - diagonal_runter.y;
+            // Inkreis-Radius r = 2A/u
+            // https://de.wikipedia.org/wiki/Inkreis
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let klick_radius =
+                (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
+            if (position.x < links_grenze.0)
+                || (position.x >= rechts_grenze.0)
+                || (position.y < oben_grenze.0)
+                || (position.y >= unten_grenze.0)
+                || (klick_radius < radius)
+            {
+                interaction = mouse::Interaction::Pointer;
+            }
+        }
+        interaction
+    }
 }
