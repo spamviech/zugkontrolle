@@ -1,6 +1,6 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Container`].
 
-use iced::{widget::container, BorderRadius, Color};
+use iced::{theme, widget::container, Background, BorderRadius, Color, Theme};
 
 use crate::application::style::thema::Thema;
 
@@ -42,26 +42,31 @@ pub enum Container {
 
 impl Container {
     /// Ein grauer Hintergrund ohne Transparenz.
+    #[must_use]
     pub const fn hintergrund_grau(grau: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(grau, grau, grau) }
     }
 
     /// Ein roter Hintergrund ohne Transparenz.
+    #[must_use]
     pub const fn hintergrund_rot(rot: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(rot, 0., 0.) }
     }
 
     /// Ein grüner Hintergrund ohne Transparenz.
+    #[must_use]
     pub const fn hintergrund_grün(grün: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(0., grün, 0.) }
     }
 
     /// Ein blauer Hintergrund ohne Transparenz.
+    #[must_use]
     pub const fn hintergrund_blau(blau: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgb(0., 0., blau) }
     }
 
     /// Ein grauer Hintergrund mit Transparenz.
+    #[must_use]
     pub const fn hintergrund_grau_transparent(grau: f32, alpha: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgba(grau, grau, grau, alpha) }
     }
@@ -73,10 +78,10 @@ impl container::StyleSheet for Thema {
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
         match (self, style) {
             (Thema::Hell, Container::Standard) => {
-                container::StyleSheet::appearance(&iced::Theme::Light, &Default::default())
+                container::StyleSheet::appearance(&Theme::Light, &theme::Container::default())
             },
             (Thema::Hell, Container::Hintergrund { farbe }) => container::Appearance {
-                background: Some(iced::Background::Color(*farbe)),
+                background: Some(Background::Color(*farbe)),
                 ..container::Appearance::default()
             },
             (Thema::Hell, Container::Rand { farbe, breite, radius }) => container::Appearance {

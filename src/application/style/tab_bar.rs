@@ -13,7 +13,8 @@ use crate::application::style::thema::Thema;
 pub struct TabBar;
 
 impl TabBar {
-    fn style(&self, tab_label_background: Color) -> Appearance {
+    /// Erhalte die `TabBar`-[`Appearance`] für die gegebene Hintergrund-Farbe.
+    fn style(tab_label_background: Color) -> Appearance {
         Appearance {
             background: Some(Background::Color(Color::WHITE)),
             border_color: Some(Color::BLACK),
@@ -32,25 +33,20 @@ impl TabBar {
 impl StyleSheet for Thema {
     type Style = TabBar;
 
-    fn active(&self, style: &Self::Style, is_active: bool) -> Appearance {
+    fn active(&self, _style: &Self::Style, is_active: bool) -> Appearance {
         match self {
             Thema::Hell => {
-                let grey_value: f32;
-                if is_active {
-                    grey_value = 0.8;
-                } else {
-                    grey_value = 0.9;
-                }
-                style.style(Color::from_rgb(grey_value, grey_value, grey_value))
+                let grey_value = if is_active { 0.8 } else { 0.9 };
+                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
             },
         }
     }
 
-    fn hovered(&self, style: &Self::Style, _is_active: bool) -> Appearance {
+    fn hovered(&self, _style: &Self::Style, _is_active: bool) -> Appearance {
         match self {
             Thema::Hell => {
                 let grey_value = 0.7;
-                style.style(Color::from_rgb(grey_value, grey_value, grey_value))
+                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
             },
         }
     }
