@@ -7,7 +7,7 @@ use std::{
 };
 
 use iced_core::{
-    event,
+    event, text as text_core,
     widget::text::{self, Text},
     Element, Length, Renderer,
 };
@@ -43,9 +43,12 @@ use texte::{
     MITZeilenumbruch,
 };
 
+/// Interne Nachricht zur Interaktion mit einem [`Lizenzen`]-Widget.
 #[derive(Debug, Clone)]
 enum InterneNachricht {
+    /// Zeige den übergebenen Lizenz-Text an.
     Aktuell(UniCaseOrd<String>, fn() -> Cow<'static, str>),
+    /// Schließe das Dialog-Fenster.
     Schließen,
 }
 
@@ -59,13 +62,22 @@ pub enum Nachricht {
 /// Zustand eines [`Lizenzen`]-Widgets.
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand {
+    /// Die aktuell gezeigte Lizenz.
     aktuell: Option<(UniCaseOrd<String>, Cow<'static, str>)>,
 }
 
+/// Eine Map von Namen auf eine Funktion, die den Lizenztext erzeugt.
+///
+/// Die Namen werden mit [`UniCaseOrd`] geordnet.
+type LizenzenMap = BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>;
+
 impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [`Lizenzen`]-Widgets.
-    fn neu(lizenzen: &BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>) -> Self {
-        let aktuell = lizenzen.iter().next().map(|(name, f)| (name.clone(), f()));
+    fn neu(lizenzen: &LizenzenMap) -> Self {
+        let aktuell = lizenzen
+            .iter()
+            .next()
+            .map(|(name, erzeuge_lizenztext)| (name.clone(), erzeuge_lizenztext()));
         Zustand { aktuell }
     }
 }
@@ -74,12 +86,14 @@ impl Zustand {
 #[derive(Debug)]
 pub struct Lizenzen<'a, R>(MapMitZustand<'a, Zustand, InterneNachricht, Nachricht, R>);
 
+/// Der [`Abstand`](Space) zwischen Widgets in Pixel.
 const PADDING: f32 = 5.;
+/// Die Breite der [`Trennlinie`](Rule) zwischen der Auswahl-Liste und dem aktuell gezeigten Lizenztext.
 const TRENNLINIE_BREITE: u16 = 1;
 
 impl<'a, R> Lizenzen<'a, R>
 where
-    R: 'a + iced_core::text::Renderer,
+    R: 'a + text_core::Renderer,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -94,12 +108,12 @@ where
         ScrollableStyle: 'a + Clone,
         <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
-        Self::neu(&*TARGET_LIZENZEN, scrollable_style)
+        Self::neu(&TARGET_LIZENZEN, scrollable_style)
     }
 
     /// Erstelle ein neues [`Lizenzen`]-Widget.
     pub fn neu<ScrollableStyle>(
-        lizenzen: &'a BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>,
+        lizenzen: &'a LizenzenMap,
         scrollable_style: ScrollableStyle,
     ) -> Self
     where
@@ -115,8 +129,8 @@ where
                       status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {
-                InterneNachricht::Aktuell(name, f) => {
-                    zustand.aktuell = Some((name, f()));
+                InterneNachricht::Aktuell(name, erzeuge_lizenz_text) => {
+                    zustand.aktuell = Some((name, erzeuge_lizenz_text()));
                     Vec::new()
                 },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
@@ -125,9 +139,10 @@ where
         Lizenzen(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
+    /// Erzeuge die Widget-Hierarchie für ein [`Lizenzen`]-Widget.
     fn erzeuge_element<ScrollableStyle>(
         zustand: &Zustand,
-        lizenzen: &'a BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>,
+        lizenzen: &'a LizenzenMap,
         scrollable_style: ScrollableStyle,
     ) -> Element<'a, InterneNachricht, R>
     where
@@ -140,13 +155,13 @@ where
         } else {
             (None, None)
         };
-        for (name, f) in lizenzen {
+        for (name, erzeuge_lizenz_text) in lizenzen {
             buttons = buttons.push({
                 let button = Button::new(Text::new(name.as_ref()));
                 if Some(name) == aktuell_name.as_ref() {
                     button
                 } else {
-                    button.on_press(InterneNachricht::Aktuell(name.clone(), *f))
+                    button.on_press(InterneNachricht::Aktuell(name.clone(), *erzeuge_lizenz_text))
                 }
             });
         }
@@ -169,7 +184,7 @@ where
             column_aktuell = column_aktuell
                 .push(Space::with_height(Length::Fixed(PADDING)))
                 .push(text_mit_horizontalem_padding)
-                .push(Space::with_height(Length::Fixed(PADDING)))
+                .push(Space::with_height(Length::Fixed(PADDING)));
         }
         let container = Container::new(
             Row::new()
@@ -184,7 +199,7 @@ where
 
 impl<'a, R> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R>
 where
-    R: 'a + iced_core::text::Renderer,
+    R: 'a + text_core::Renderer,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -198,6 +213,7 @@ where
     }
 }
 
+/// MIT-Lizenz für "The Rust Project Developers" mit dem entsprechenden `jahr`.
 fn mit_rust_project_developers_lizenz<'t>(jahr: &str) -> Cow<'t, str> {
     mit(
         None,
@@ -210,6 +226,7 @@ fn mit_rust_project_developers_lizenz<'t>(jahr: &str) -> Cow<'t, str> {
     )
 }
 
+/// MIT-Lizenz für "Jorge Aparicio" mit dem entsprechenden `jahr`.
 fn mit_lizenz_aparicio<'t>(jahr: &str) -> Cow<'t, str> {
     mit(
         None,
@@ -222,6 +239,7 @@ fn mit_lizenz_aparicio<'t>(jahr: &str) -> Cow<'t, str> {
     )
 }
 
+/// MIT-Lizenz für die "Mozilla Foundation".
 fn mozilla_foundation_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -234,6 +252,7 @@ fn mozilla_foundation_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// Apache-Lizenz, die ich zuerst beim ab_glyph-crate gesehen habe.
 fn ab_glyph_lizenz(appendix: bool, ende_neue_zeile: usize) -> Cow<'static, str> {
     apache_2_0_eingerückt(
         false,
@@ -243,6 +262,7 @@ fn ab_glyph_lizenz(appendix: bool, ende_neue_zeile: usize) -> Cow<'static, str> 
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim arrayref-crate gesehen habe.
 fn arrayref_lizenz(year: &str) -> Cow<'static, str> {
     mit(
         None,
@@ -255,6 +275,7 @@ fn arrayref_lizenz(year: &str) -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim bytemuck-crate gesehen habe.
 fn bytemuck_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
@@ -267,6 +288,7 @@ fn bytemuck_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// Apache-Lizenz, die ich zuerst beim clipboard-crate gesehen habe.
 fn clipboard_apache_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
@@ -277,6 +299,7 @@ fn clipboard_apache_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim crossbeam-crate gesehen habe.
 fn crossbeam_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -289,6 +312,7 @@ fn crossbeam_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim darling-crate gesehen habe.
 fn darling_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
@@ -301,6 +325,7 @@ fn darling_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim foreign-types-crate gesehen habe.
 fn foreign_types_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -313,6 +338,7 @@ fn foreign_types_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim futures-crate gesehen habe.
 fn futures_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -328,6 +354,7 @@ fn futures_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim glutin-crate gesehen habe.
 fn glutin_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
@@ -338,6 +365,7 @@ fn glutin_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim glyph-brush-crate gesehen habe.
 fn glyph_brush_lizenz() -> Cow<'static, str> {
     apache_2_0_eingerückt(
         false,
@@ -347,6 +375,7 @@ fn glyph_brush_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim iced-crate gesehen habe.
 fn iced_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -359,6 +388,7 @@ fn iced_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim kommandozeilen_argumente-crate gesehen habe.
 fn kommandozeilen_argumente_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
@@ -371,6 +401,7 @@ fn kommandozeilen_argumente_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim lyon-crate gesehen habe.
 fn lyon_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -383,6 +414,7 @@ fn lyon_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim memchr-crate gesehen habe.
 fn memchr_lizenz(jahr: &'static str) -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -395,6 +427,7 @@ fn memchr_lizenz(jahr: &'static str) -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim memmap2-crate gesehen habe.
 fn memmap2_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -410,6 +443,7 @@ fn memmap2_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim ndk-crate gesehen habe.
 fn ndk_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
@@ -422,6 +456,7 @@ fn ndk_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim nix-crate gesehen habe.
 fn nix_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -434,6 +469,7 @@ fn nix_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim nonempty-crate gesehen habe.
 fn nonempty_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -446,6 +482,7 @@ fn nonempty_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim rand-crate gesehen habe.
 fn rand_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -461,6 +498,7 @@ fn rand_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim raw-window-handle-crate gesehen habe.
 fn raw_window_handle_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
@@ -473,6 +511,7 @@ fn raw_window_handle_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim serde-crate gesehen habe.
 fn serde_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -485,6 +524,7 @@ fn serde_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim smithy-client-toolkit-crate gesehen habe.
 fn smithay_client_toolkit_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -497,6 +537,7 @@ fn smithay_client_toolkit_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim time-crate gesehen habe.
 fn time_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -509,10 +550,12 @@ fn time_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim vcell-crate gesehen habe.
 fn vcell_lizenz() -> Cow<'static, str> {
     mit_lizenz_aparicio("2017")
 }
 
+/// MIT-Lizenz, die ich zuerst beim vswhom-crate gesehen habe.
 fn vswwhom_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -525,6 +568,7 @@ fn vswwhom_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz für "Alex Crichton" und dem jahr "2014".
 fn crichton_2014_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -537,6 +581,7 @@ fn crichton_2014_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim wayland-crate gesehen habe.
 fn wayland_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -549,6 +594,7 @@ fn wayland_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim winapi-crate gesehen habe.
 fn winapi_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -561,6 +607,7 @@ fn winapi_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim windows-sys-crate gesehen habe.
 fn widows_sys_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
@@ -573,6 +620,7 @@ fn widows_sys_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim tiny-skia-crate gesehen habe.
 fn tiny_skia_lizenz() -> Cow<'static, str> {
     bsd_3(
         vec![
@@ -590,6 +638,7 @@ fn tiny_skia_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim phf-crate gesehen habe.
 fn phf_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -602,6 +651,7 @@ fn phf_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim palette-crate gesehen habe.
 fn palette_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -614,6 +664,7 @@ fn palette_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim freetype-crate gesehen habe.
 fn freetype_lizenz(ende: MITEnde) -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -626,6 +677,7 @@ fn freetype_lizenz(ende: MITEnde) -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim x11rb-crate gesehen habe.
 fn x11rb_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -638,6 +690,7 @@ fn x11rb_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim unicode-ccc-crate gesehen habe.
 fn unicode_ccc_bidi_mirroring_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -654,6 +707,7 @@ fn unicode_ccc_bidi_mirroring_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim toml-crate gesehen habe.
 fn toml_lizenz() -> Cow<'static, str> {
     mit(
         None,
@@ -670,6 +724,7 @@ fn toml_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim ttf-parser-crate gesehen habe.
 fn ttf_parser_lizenz(jahr: &'static str, ende_neue_zeilen: u8) -> Cow<'static, str> {
     mit(
         None,
@@ -682,6 +737,7 @@ fn ttf_parser_lizenz(jahr: &'static str, ende_neue_zeilen: u8) -> Cow<'static, s
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim dyn-clonable-crate gesehen habe.
 fn dyn_clonable_lizenz() -> Cow<'static, str> {
     mit(
         MITPräfix("The MIT License (MIT)", 2),
@@ -698,6 +754,7 @@ fn dyn_clonable_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim object-crate gesehen habe.
 fn gimli_developers_lizenz(großes_g: bool, jahr: &'static str) -> Cow<'static, str> {
     let name = if großes_g { "The Gimli Developers" } else { "The gimli Developers" };
     mit(
@@ -721,21 +778,26 @@ fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static s
     for (name, version) in zugkontrolle_macros::target_crates!() {
         use std::collections::hash_map::Entry;
         match crates_und_schriftarten.entry(name) {
-            Entry::Occupied(mut o) => o.get_mut().push(version),
-            Entry::Vacant(v) => {
-                let _ = v.insert(NonEmpty::singleton(version));
+            Entry::Occupied(mut occupied) => occupied.get_mut().push(version),
+            Entry::Vacant(vacant) => {
+                let _ = vacant.insert(NonEmpty::singleton(version));
             },
         }
     }
     crates_und_schriftarten
 }
 
-static TARGET_LIZENZEN: Lazy<BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>>> =
+/// Alle Lizenzen für die aktuelle target-Platform.
+static TARGET_LIZENZEN: Lazy<LizenzenMap> =
     Lazy::new(|| verwendete_lizenzen(target_crates_und_schriftarten()));
 
+/// Lizenzen für eine dependency, potentiell Unterschiedlich je nach Version.
 #[derive(Debug, Clone)]
 struct Lizenz {
+    /// Die allgemeine Lizenz für alle Versionen.
+    /// Fallback, falls in `version_spezifisch` kein Eintrag für die Version vorhanden ist.
     lizenz: fn() -> Cow<'static, str>,
+    /// Spezielle Lizenztexte für bestimmte Versionen.
     version_spezifisch: HashMap<&'static str, fn() -> Cow<'static, str>>,
 }
 
@@ -746,10 +808,13 @@ impl From<fn() -> Cow<'static, str>> for Lizenz {
 }
 
 impl Lizenz {
+    /// Erzeuge eine neue [`Lizenz`] mit dem selben Text für alle Versionen.
     fn neu(lizenz: fn() -> Cow<'static, str>) -> Self {
         Lizenz { lizenz, version_spezifisch: HashMap::new() }
     }
 
+    /// Erhalte eine Funktion um den Lizenztext für die gewünschte Version zu erzeugen.
+    #[must_use]
     fn lizenz_für_version(&self, version: &str) -> fn() -> Cow<'static, str> {
         *self.version_spezifisch.get(version).unwrap_or(&self.lizenz)
     }
@@ -762,51 +827,45 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
     let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
     let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
     let mit_rust_project_developers_lizenz_2016 = || mit_rust_project_developers_lizenz("2016");
+    let source_lizenz = || {
+        let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
+        let copyright = OflCopyright {
+            copyright_c: false,
+            jahr: "2014-2021",
+            voller_name: "Adobe (http://www.adobe.com/),",
+            font_name: "'Source'",
+            punkt_nach_font_name: true,
+            extra_notice,
+        };
+        ofl_1_1(Some(copyright), false, true, false, false)
+    };
+    let bootstrap_lizenz = || {
+        mit(
+            MITPräfix("The MIT License (MIT)", 2),
+            vec![MITCopyright::neu(true, "2019-2023", "The Bootstrap Authors")],
+            None,
+            MITZeilenumbruch::Standard,
+            MITEinrückung::keine(),
+            false,
+            MITEnde::standard(),
+        )
+    };
+    let lato_lizenz = || {
+        let copyright = OflCopyright {
+            copyright_c: true,
+            jahr: "2010-2014",
+            voller_name: "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
+            font_name: "\"Lato\"",
+            punkt_nach_font_name: false,
+            extra_notice: "",
+        };
+        ofl_1_1(Some(copyright), false, false, true, true)
+    };
     HashMap::from([
-        (
-            "SourceSerif4-Regular",
-            Lizenz::neu(|| {
-                let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
-                let copyright = OflCopyright {
-                    copyright_c: false,
-                    jahr: "2014-2021",
-                    voller_name: "Adobe (http://www.adobe.com/),",
-                    font_name: "'Source'",
-                    punkt_nach_font_name: true,
-                    extra_notice,
-                };
-                ofl_1_1(Some(copyright), false, true, false, false)
-            }),
-        ),
-        (
-            "Bootstrap Icons",
-            Lizenz::neu(|| {
-                mit(
-                    MITPräfix("The MIT License (MIT)", 2),
-                    vec![MITCopyright::neu(true, "2019-2023", "The Bootstrap Authors")],
-                    None,
-                    MITZeilenumbruch::Standard,
-                    MITEinrückung::keine(),
-                    false,
-                    MITEnde::standard(),
-                )
-            }),
-        ),
+        ("SourceSerif4-Regular", Lizenz::neu(source_lizenz)),
+        ("Bootstrap Icons", Lizenz::neu(bootstrap_lizenz)),
         // War über iced_graphics mit feature "font-fallback" eingebunden (dependency von iced_glow)
-        (
-            "Lato",
-            Lizenz::neu(|| {
-                let copyright = OflCopyright {
-                    copyright_c: true,
-                    jahr: "2010-2014",
-                    voller_name: "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
-                    font_name: "\"Lato\"",
-                    punkt_nach_font_name: false,
-                    extra_notice: "",
-                };
-                ofl_1_1(Some(copyright), false, false, true, true)
-            }),
-        ),
+        ("Lato", Lizenz::neu(lato_lizenz)),
         ("ab_glyph", Lizenz::neu(|| ab_glyph_lizenz(false, 0))),
         ("ab_glyph_rasterizer", Lizenz::neu(|| ab_glyph_lizenz(true, 1))),
         ("aho-corasick", Lizenz::neu(|| memchr_lizenz("2015"))),
@@ -1181,7 +1240,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
                         header: "",
                         text: "   ",
                         sub_text: "       ",
-                        finale_url: "\t",
+                        finale_url: "\\\\\\\\t",
                     },
                     true,
                     1,
@@ -2923,6 +2982,7 @@ option.
     ])
 }
 
+/// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
 fn verwendete_lizenzen_impl<K: Ord>(
     target_crates: HashMap<&'static str, NonEmpty<&'static str>>,
     mut erzeuge_key: impl FnMut(&'static str, &'static str) -> K,
@@ -2948,10 +3008,13 @@ fn verwendete_lizenzen_impl<K: Ord>(
         .collect()
 }
 
+// TODO Behandeln erfordert Anpassung des public API.
+#[allow(clippy::module_name_repetitions)]
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
+#[must_use]
 pub fn verwendete_lizenzen(
     target_crates: HashMap<&'static str, NonEmpty<&'static str>>,
-) -> BTreeMap<UniCaseOrd<String>, fn() -> Cow<'static, str>> {
+) -> LizenzenMap {
     verwendete_lizenzen_impl(target_crates, |name, version| {
         UniCaseOrd::neu(format!("{name}-{version}"))
     })

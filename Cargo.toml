@@ -80,8 +80,10 @@ suspicious = "warn"
 complexity = "warn"
 perf = "warn"
 style = "warn"
-pedantic = "warn"
 cargo = "warn"
+# pedantic group lints
+pedantic = "warn"
+implicit_hasher = "allow" # benötigt Typ-Signatur als disambiguator bei Verwendung
 # restriction group lints
 absolute_paths = "warn"
 alloc_instead_of_core = "warn"

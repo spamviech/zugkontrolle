@@ -10,7 +10,7 @@ use iced_aw::{
     tab_bar,
 };
 use iced_core::{
-    event,
+    event, text as text_core,
     widget::text::{self, Text},
     Element, Font, Length, Renderer,
 };
@@ -32,12 +32,18 @@ use crate::{
     steuerung::kontakt::{KontaktSerialisiert, Name},
 };
 
-/// Zustand eines Widgets zur [Auswahl] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
+/// Zustand eines Widgets zur [`Auswahl`] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Zustand {
+    /// Der aktuelle gewählte Name.
     name: String,
+    /// Der aktuell gewählte Anschluss.
     anschluss: InputSerialisiert,
+    /// Der aktuell gewählte [`Trigger`],
+    /// wann [`warte_auf_trigger`](crate::steuerung::kontakt::Kontakt::warte_auf_trigger) ein Ergebnis liefert.
     trigger: Trigger,
+    /// Hat das zu bearbeitende Gleis aktuell eine Steuerung. Beeinflusst den Namen des Knopfes für
+    /// "Keine Anschlüsse"/"Anschlüsse entfernen".
     hat_steuerung: bool,
 }
 
@@ -54,14 +60,21 @@ impl Zustand {
     }
 }
 
+/// Interne Nachricht für Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
 #[allow(variant_size_differences)]
 enum InterneNachricht {
+    /// Neuer gewählter Name.
     Name(String),
+    /// Neuer gewählter Anschluss.
     Anschluss(InputSerialisiert),
+    /// Neuer gewählter Trigger.
     Trigger(Trigger),
+    /// Festlegen des aktuell gewählten Kontaktes.
     Festlegen,
+    /// Entfernen des aktuellen Kontaktes für das bearbeitete Gleis.
     Entfernen,
+    /// Schließen des Auswahl-Dialogs.
     Schließen,
 }
 
@@ -80,7 +93,7 @@ pub struct Auswahl<'t, R>(MapMitZustand<'t, Zustand, InterneNachricht, Nachricht
 
 impl<'t, R> Auswahl<'t, R>
 where
-    R: 't + Renderer + iced_core::text::Renderer<Font = Font>,
+    R: 't + Renderer + text_core::Renderer<Font = Font>,
     <R as Renderer>::Theme: button::StyleSheet
         + card::StyleSheet
         + container::StyleSheet
@@ -94,6 +107,7 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [`Auswahl`].
+    #[must_use]
     pub fn neu(
         gleis_art: &'t str,
         kontakt: Option<KontaktSerialisiert>,
@@ -139,6 +153,7 @@ where
         Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
+    /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand,
