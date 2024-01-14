@@ -213,6 +213,102 @@ where
     }
 }
 
+/// Crates für das aktuelle target, ausgehend von `cargo --filter-platform <target> metadata`.
+fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static str>> {
+    let mut crates_und_schriftarten: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
+    // Schriftarten
+    let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005"));
+    let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.2"));
+    // crates
+    for (name, version) in zugkontrolle_macros::target_crates!() {
+        use std::collections::hash_map::Entry;
+        match crates_und_schriftarten.entry(name) {
+            Entry::Occupied(mut occupied) => occupied.get_mut().push(version),
+            Entry::Vacant(vacant) => {
+                let _ = vacant.insert(NonEmpty::singleton(version));
+            },
+        }
+    }
+    crates_und_schriftarten
+}
+
+/// Alle Lizenzen für die aktuelle target-Platform.
+static TARGET_LIZENZEN: Lazy<LizenzenMap> =
+    Lazy::new(|| verwendete_lizenzen(target_crates_und_schriftarten()));
+
+/// Lizenzen für eine dependency, potentiell Unterschiedlich je nach Version.
+#[derive(Debug, Clone)]
+struct Lizenz {
+    /// Die allgemeine Lizenz für alle Versionen.
+    /// Fallback, falls in `version_spezifisch` kein Eintrag für die Version vorhanden ist.
+    lizenz: fn() -> Cow<'static, str>,
+    /// Spezielle Lizenztexte für bestimmte Versionen.
+    version_spezifisch: HashMap<&'static str, fn() -> Cow<'static, str>>,
+}
+
+impl From<fn() -> Cow<'static, str>> for Lizenz {
+    fn from(value: fn() -> Cow<'static, str>) -> Self {
+        Lizenz::neu(value)
+    }
+}
+
+impl Lizenz {
+    /// Erzeuge eine neue [`Lizenz`] mit dem selben Text für alle Versionen.
+    fn neu(lizenz: fn() -> Cow<'static, str>) -> Self {
+        Lizenz { lizenz, version_spezifisch: HashMap::new() }
+    }
+
+    /// Erhalte eine Funktion um den Lizenztext für die gewünschte Version zu erzeugen.
+    #[must_use]
+    fn lizenz_für_version(&self, version: &str) -> fn() -> Cow<'static, str> {
+        *self.version_spezifisch.get(version).unwrap_or(&self.lizenz)
+    }
+}
+
+/// Source Serif Schriftart
+fn source_lizenz() -> Cow<'static, str> {
+    let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
+    let copyright = OflCopyright {
+        copyright_c: false,
+        jahr: "2014-2021",
+        voller_name: "Adobe (http://www.adobe.com/),",
+        font_name: "'Source'",
+        punkt_nach_font_name: true,
+        extra_notice,
+    };
+    ofl_1_1(Some(copyright), false, true, false, false)
+}
+
+/// Bootstrap Icon Schriftart
+fn bootstrap_lizenz() -> Cow<'static, str> {
+    {
+        mit(
+            MITPräfix("The MIT License (MIT)", 2),
+            vec![MITCopyright::neu(true, "2019-2023", "The Bootstrap Authors")],
+            None,
+            MITZeilenumbruch::Standard,
+            MITEinrückung::keine(),
+            false,
+            MITEnde::standard(),
+        )
+    }
+}
+
+/// Lato Schriftart
+fn lato_lizenz() -> Cow<'static, str> {
+    {
+        let copyright = OflCopyright {
+            copyright_c: true,
+            jahr: "2010-2014",
+            voller_name: "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
+            font_name: "\"Lato\"",
+            punkt_nach_font_name: false,
+            extra_notice: "",
+        };
+        ofl_1_1(Some(copyright), false, false, true, true)
+    }
+}
+
 /// MIT-Lizenz für "The Rust Project Developers" mit dem entsprechenden `jahr`.
 fn mit_rust_project_developers_lizenz<'t>(jahr: &str) -> Cow<'t, str> {
     mit(
@@ -224,6 +320,26 @@ fn mit_rust_project_developers_lizenz<'t>(jahr: &str) -> Cow<'t, str> {
         false,
         MITEnde::standard(),
     )
+}
+
+/// MIT-Lizenz für "The Rust Project Developers" mit dem Jahr 2010.
+fn mit_rust_project_developers_lizenz_2010() -> Cow<'static, str> {
+    mit_rust_project_developers_lizenz("2010")
+}
+
+/// MIT-Lizenz für "The Rust Project Developers" mit dem Jahr 2014.
+fn mit_rust_project_developers_lizenz_2014() -> Cow<'static, str> {
+    mit_rust_project_developers_lizenz("2014")
+}
+
+/// MIT-Lizenz für "The Rust Project Developers" mit dem Jahr 2015.
+fn mit_rust_project_developers_lizenz_2015() -> Cow<'static, str> {
+    mit_rust_project_developers_lizenz("2015")
+}
+
+/// MIT-Lizenz für "The Rust Project Developers" mit dem Jahr 2016.
+fn mit_rust_project_developers_lizenz_2016() -> Cow<'static, str> {
+    mit_rust_project_developers_lizenz("2016")
 }
 
 /// MIT-Lizenz für "Jorge Aparicio" mit dem entsprechenden `jahr`.
@@ -768,106 +884,9 @@ fn gimli_developers_lizenz(großes_g: bool, jahr: &'static str) -> Cow<'static, 
     )
 }
 
-/// Crates für das aktuelle target, ausgehend von `cargo --filter-platform <target> metadata`.
-fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static str>> {
-    let mut crates_und_schriftarten: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
-    // Schriftarten
-    let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005"));
-    let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.2"));
-    // crates
-    for (name, version) in zugkontrolle_macros::target_crates!() {
-        use std::collections::hash_map::Entry;
-        match crates_und_schriftarten.entry(name) {
-            Entry::Occupied(mut occupied) => occupied.get_mut().push(version),
-            Entry::Vacant(vacant) => {
-                let _ = vacant.insert(NonEmpty::singleton(version));
-            },
-        }
-    }
-    crates_und_schriftarten
-}
-
-/// Alle Lizenzen für die aktuelle target-Platform.
-static TARGET_LIZENZEN: Lazy<LizenzenMap> =
-    Lazy::new(|| verwendete_lizenzen(target_crates_und_schriftarten()));
-
-/// Lizenzen für eine dependency, potentiell Unterschiedlich je nach Version.
-#[derive(Debug, Clone)]
-struct Lizenz {
-    /// Die allgemeine Lizenz für alle Versionen.
-    /// Fallback, falls in `version_spezifisch` kein Eintrag für die Version vorhanden ist.
-    lizenz: fn() -> Cow<'static, str>,
-    /// Spezielle Lizenztexte für bestimmte Versionen.
-    version_spezifisch: HashMap<&'static str, fn() -> Cow<'static, str>>,
-}
-
-impl From<fn() -> Cow<'static, str>> for Lizenz {
-    fn from(value: fn() -> Cow<'static, str>) -> Self {
-        Lizenz::neu(value)
-    }
-}
-
-impl Lizenz {
-    /// Erzeuge eine neue [`Lizenz`] mit dem selben Text für alle Versionen.
-    fn neu(lizenz: fn() -> Cow<'static, str>) -> Self {
-        Lizenz { lizenz, version_spezifisch: HashMap::new() }
-    }
-
-    /// Erhalte eine Funktion um den Lizenztext für die gewünschte Version zu erzeugen.
-    #[must_use]
-    fn lizenz_für_version(&self, version: &str) -> fn() -> Cow<'static, str> {
-        *self.version_spezifisch.get(version).unwrap_or(&self.lizenz)
-    }
-}
-
-// TODO wieder aktivieren, sobald Funktionen extrahiert wurden
-#[allow(clippy::too_many_lines)]
-// TODO Fehlende Lizenztexte suchen/Issues öffnen.
-/// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
-fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
-    let mit_rust_project_developers_lizenz_2010 = || mit_rust_project_developers_lizenz("2010");
-    let mit_rust_project_developers_lizenz_2014 = || mit_rust_project_developers_lizenz("2014");
-    let mit_rust_project_developers_lizenz_2015 = || mit_rust_project_developers_lizenz("2015");
-    let mit_rust_project_developers_lizenz_2016 = || mit_rust_project_developers_lizenz("2016");
-    /// Source Serif Schriftart
-    let source_lizenz = || {
-        let extra_notice = " All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.";
-        let copyright = OflCopyright {
-            copyright_c: false,
-            jahr: "2014-2021",
-            voller_name: "Adobe (http://www.adobe.com/),",
-            font_name: "'Source'",
-            punkt_nach_font_name: true,
-            extra_notice,
-        };
-        ofl_1_1(Some(copyright), false, true, false, false)
-    };
-    /// Bootstrap Icon Schriftart
-    let bootstrap_lizenz = || {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2019-2023", "The Bootstrap Authors")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    };
-    /// Lato Schriftart
-    let lato_lizenz = || {
-        let copyright = OflCopyright {
-            copyright_c: true,
-            jahr: "2010-2014",
-            voller_name: "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
-            font_name: "\"Lato\"",
-            punkt_nach_font_name: false,
-            extra_notice: "",
-        };
-        ofl_1_1(Some(copyright), false, false, true, true)
-    };
-    /// android_glue
-    let android_glue_lizenz = || {
+/// Apache-Lizenz des `android_glue`-crates.
+fn android_glue_lizenz() -> Cow<'static, str> {
+    {
         apache_2_0(
             false,
             ApacheCopyright::braces(),
@@ -875,9 +894,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             true,
             1,
         )
-    };
-    /// ansi_term
-    let ansi_term_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `ansi_term`-crates.
+fn ansi_term_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2014", "Benjamin Sago")],
@@ -887,9 +909,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// atomic-polyfill
-    let atomic_polyfill_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `atomic-polyfill`-crates.
+fn atomic_polyfill_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2020", "Dario Nieuwenhuis")],
@@ -899,9 +924,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// atty
-    let atty_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `atty`-crates.
+fn atty_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015-2019", "Doug Tangren")],
@@ -911,9 +939,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// autocfg
-    let autocfg_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `autocfg`-crates.
+fn autocfg_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2018", "Josh Stone")],
@@ -923,9 +954,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// bincode
-    let bincode_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `bincode`-crates.
+fn bincode_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2014", "Ty Overby")],
@@ -935,9 +969,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// bitfield
-    let bitfield_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `bitfield`-crates.
+fn bitfield_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017", "Loïc Damien")],
@@ -947,9 +984,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// bit_field
-    let bit_field_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `bit_field`-crates.
+fn bit_field_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2016", "Philipp Oppermann")],
@@ -959,9 +999,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// bumpalo
-    let bumpalo_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `bumpalo`-crates.
+fn bumpalo_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2019", "Nick Fitzgerald")],
@@ -971,9 +1014,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// callop
-    let calloop_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `calloop`-crates.
+fn calloop_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2018", "Victor Berger")],
@@ -983,9 +1029,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// cfg_aliases
-    let cfg_aliases_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `cfg_aliases`-crates.
+fn cfg_aliases_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2020", "Katharos Technology")],
@@ -995,9 +1044,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// clipboard_x11
-    let clipboard_x11_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `clipboard_x11`-crates.
+fn clipboard_x11_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(
@@ -1011,9 +1063,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// core-video-sys
-    let core_video_sys_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `core-video-sys`-crates.
+fn core_video_sys_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2018", "寧靜")],
@@ -1023,9 +1078,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// cortex-m
-    let cortex_m_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `cortex-m`-crates.
+fn cortex_m_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2016", "Jorge Aparicio")],
@@ -1035,9 +1093,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// difference
-    let difference_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `difference`-crates.
+fn difference_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2015", "Johann Hofmann")],
@@ -1047,9 +1108,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::zwei_neue_zeilen(),
         )
-    };
-    /// downcast-rs
-    let downcast_rs_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `downcast-rs`-crates.
+fn downcast_rs_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2020", "Ashish Myles and contributors")],
@@ -1059,9 +1123,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// either
-    let either_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `either`-crates.
+fn either_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", None)],
@@ -1071,9 +1138,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// embed-resource
-    let embed_resource_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `embed-resource`-crates.
+fn embed_resource_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2017", "nabijaczleweli")],
@@ -1083,9 +1153,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// flexi_logger
-    let flexi_logger_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `flexi_logger`-crates.
+fn flexi_logger_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2018", "The AUTHORS")],
@@ -1095,9 +1168,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// float_next_after
-    let float_next_after_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `float_next_after`-crates.
+fn float_next_after_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2020", "Scripta Qumranica Electronica")],
@@ -1107,9 +1183,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// fnv
-    let fnv_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `fnv`-crates.
+fn fnv_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017", "Contributors")],
@@ -1119,9 +1198,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// gethostname
-    let gethostname_lizenz = || {
+    }
+}
+
+/// Apache-Lizenz des `gethostname`-crates.
+fn gethostname_lizenz() -> Cow<'static, str> {
+    {
         apache_2_0(
             false,
             ApacheCopyright::standard(),
@@ -1137,9 +1219,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             true,
             1,
         )
-    };
-    /// getrandom
-    let getrandom_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `getrandom`-crates.
+fn getrandom_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![
@@ -1152,9 +1237,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// glow
-    let glow_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `glow`-crates.
+fn glow_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             Vec::new(),
@@ -1164,9 +1252,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// iced_aw
-    let iced_aw_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `iced_aw`-crates.
+fn iced_aw_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2020", "Kaiden42")],
@@ -1176,9 +1267,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    /// ident_case
-    let ident_case_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `ident_case`-crates.
+fn ident_case_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             Vec::new(),
@@ -1188,9 +1282,12 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
             false,
             MITEnde::standard(),
         )
-    };
-    let chrono_lizenz = || {
-        let präfix = r#"Rust-chrono is dual-licensed under The MIT License [1] and
+    }
+}
+
+/// MIT- und Apache-Lizenz des `chrono`-crates.
+fn chrono_lizenz() -> Cow<'static, str> {
+    let präfix = "Rust-chrono is dual-licensed under The MIT License [1] and
 Apache 2.0 License [2]. Copyright (c) 2014--2017, Kang Seonghoon and
 contributors.
 
@@ -1198,37 +1295,39 @@ Nota Bene: This is same as the Rust Project's own license.
 
 
 [1]: <http://opensource.org/licenses/MIT>, which is reproduced below:
-"#;
-        let mit = mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2014,", "Kang Seonghoon.")],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        );
-        let infix =
-            "\n\n[2]: <http://www.apache.org/licenses/LICENSE-2.0>, which is reproduced below:\n";
-        let apache = apache_2_0(
-            false,
-            ApacheCopyright::standard(),
-            ApacheEinrückung {
-                titel: "                              ",
-                version: "                        ",
-                url: "                     ",
-                header: "",
-                text: "   ",
-                sub_text: "       ",
-                finale_url: "\t",
-            },
-            true,
-            0,
-        );
-        Cow::Owned(format!("{präfix}\n~~~~\n{mit}\n~~~~\n{infix}\n~~~~\n{apache}\n~~~~\n\n"))
-    };
-    /// instant
-    let instant_lizenz = || {
+";
+    let mit = mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2014,", "Kang Seonghoon.")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    );
+    let infix =
+        "\n\n[2]: <http://www.apache.org/licenses/LICENSE-2.0>, which is reproduced below:\n";
+    let apache = apache_2_0(
+        false,
+        ApacheCopyright::standard(),
+        ApacheEinrückung {
+            titel: "                              ",
+            version: "                        ",
+            url: "                     ",
+            header: "",
+            text: "   ",
+            sub_text: "       ",
+            finale_url: "\t",
+        },
+        true,
+        0,
+    );
+    Cow::Owned(format!("{präfix}\n~~~~\n{mit}\n~~~~\n{infix}\n~~~~\n{apache}\n~~~~\n\n"))
+}
+
+/// BSD3-Lizenz des `instant`-crates.
+fn instant_lizenz() -> Cow<'static, str> {
+    {
         bsd_3(
             vec![BSD3Copyright::neu("2019", true, "Sébastien Crozet", true)],
             BSD3Zeilenumbruch::Instant,
@@ -1240,9 +1339,12 @@ Nota Bene: This is same as the Rust Project's own license.
                 copyright_holder: "HOLDER",
             },
         )
-    };
-    /// itertools
-    let itertools_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `itertools`-crates.
+fn itertools_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", None)],
@@ -1252,9 +1354,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// jni-sys
-    let jni_sys_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `jni-sys`-crates.
+fn jni_sys_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", "The rust-jni-sys Developers")],
@@ -1264,9 +1369,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// malloc_buf
-    let malloc_buf_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `malloc_buf`-crates.
+fn malloc_buf_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2020", "Steven Sheldon")],
@@ -1276,9 +1384,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// memoffset
-    let memoffset_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `memoffset`-crates.
+fn memoffset_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017", "Gilad Naaman")],
@@ -1288,9 +1399,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// nom
-    let nom_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `nom`-crates.
+fn nom_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2014-2019", "Geoffroy Couprie")],
@@ -1300,9 +1414,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// mio
-    let mio_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `mio`-crates.
+fn mio_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2014", "Carl Lerche and other MIO contributors")],
@@ -1312,9 +1429,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// num_cpus
-    let num_cpus_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `num_cpus`-crates.
+fn num_cpus_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", None)],
@@ -1324,9 +1444,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::zwei_neue_zeilen(),
         )
-    };
-    /// num_threads
-    let num_threads_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `num_threads`-crates.
+fn num_threads_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2021", "Jacob Pratt")],
@@ -1336,9 +1459,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// objc
-    let objc_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `objc`-crates.
+fn objc_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, None, "Steven Sheldon")],
@@ -1348,9 +1474,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// ordered-float
-    let ordered_float_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `ordered-float`-crates.
+fn ordered_float_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", "Jonathan Reem")],
@@ -1360,18 +1489,24 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// owned_ttf_parser
-    let owned_ttf_parser_lizenz = || {
+    }
+}
+
+/// Apache-Lizenz des `owned_ttf_parser`-crates.
+fn owned_ttf_parser_lizenz() -> Cow<'static, str> {
+    {
         apache_2_0_eingerückt(
             false,
             ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
             false,
             0,
         )
-    };
-    /// percent-encoding
-    let percent_encoding_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `percent-encoding`-crates.
+fn percent_encoding_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2013-2022", "The rust-url developers")],
@@ -1381,9 +1516,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// pin-utils
-    let pin_utils_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `pin-utils`-crates.
+fn pin_utils_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2018", "The pin-utils authors")],
@@ -1393,9 +1531,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// ppv-lite86
-    let ppv_lite86_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `ppv-lite86`-crates.
+fn ppv_lite86_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2019", "The CryptoCorrosion Contributors")],
@@ -1405,9 +1546,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// redox_syscall
-    let redox_syscall_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `redox_syscall`-crates.
+fn redox_syscall_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017", "Redox OS Developers")],
@@ -1417,9 +1561,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// riscv-target
-    let riscv_target_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `riscv-target`-crates.
+fn riscv_target_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2020", "Ilya Epifanov")],
@@ -1429,9 +1576,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// rppal
-    let rppal_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `rppal`-crates.
+fn rppal_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017-2023", "Rene van der Meer")],
@@ -1441,9 +1591,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// rstar
-    let rstar_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `rstar`-crates.
+fn rstar_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2018", "The rstar project developers")],
@@ -1453,9 +1606,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// ryu
-    let ryu_lizenz = || {
+    }
+}
+
+/// Apache-Lizenz des `ryu`-crates.
+fn ryu_lizenz() -> Cow<'static, str> {
+    {
         apache_2_0(
             false,
             ApacheCopyright::standard(),
@@ -1471,9 +1627,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             0,
         )
-    };
-    /// scopeguard
-    let scopeguard_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `scopeguard`-crates.
+fn scopeguard_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(
@@ -1487,9 +1646,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// semver-parser
-    let semver_parser_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `semver-parser`-crates.
+fn semver_parser_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2016", "Steve Klabnik")],
@@ -1499,9 +1661,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// shared_library
-    let shared_library_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `shared_library`-crates.
+fn shared_library_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017", "Pierre Krieger")],
@@ -1511,9 +1676,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// slab
-    let slab_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `slab`-crates.
+fn slab_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2019", "Carl Lerche")],
@@ -1523,9 +1691,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// smallvec
-    let smallvec_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `smallvec`-crates.
+fn smallvec_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2018", "The Servo Project Developers")],
@@ -1535,9 +1706,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// smithay-clipboard
-    let smithay_clipboard_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `smithay-clipboard`-crates.
+fn smithay_clipboard_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2018", "Lucas Timmins & Victor Berger")],
@@ -1547,9 +1721,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// spin
-    let spin_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `spin`-crates.
+fn spin_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2014", "Mathijs van de Nes")],
@@ -1559,9 +1736,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// stable_deref_trait
-    let stable_deref_trait_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `stable_deref_trait`-crates.
+fn stable_deref_trait_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017", "Robert Grosse")],
@@ -1571,9 +1751,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// static_assertions
-    let static_assertions_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `static_assertions`-crates.
+fn static_assertions_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2017", "Nikolai Vazquez")],
@@ -1583,9 +1766,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// strsim
-    let strsim_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `strsim`-crates.
+fn strsim_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![
@@ -1599,9 +1785,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// take_mut
-    let take_mut_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `take_mut`-crates.
+fn take_mut_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2016", "Sgeo")],
@@ -1611,9 +1800,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::zwei_neue_zeilen(),
         )
-    };
-    /// tinyvec_macros
-    let tinyvec_macros_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `tinyvec_macros`-crates.
+fn tinyvec_macros_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2020", "Soveu")],
@@ -1623,9 +1815,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// twox-hash
-    let twox_hash_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `twox-hash`-crates.
+fn twox_hash_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2015", "Jake Goulding")],
@@ -1635,9 +1830,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// unicase
-    let unicase_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `unicase`-crates.
+fn unicase_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2014-2017", "Sean McArthur")],
@@ -1647,9 +1845,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::zwei_neue_zeilen(),
         )
-    };
-    /// version_check
-    let version_check_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `version_check`-crates.
+fn version_check_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 1),
             vec![MITCopyright::neu(true, "2017-2018", "Sergio Benitez")],
@@ -1659,9 +1860,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// void
-    let void_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `void`-crates.
+fn void_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", "The rust-void Developers")],
@@ -1671,9 +1875,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// wasm-timer
-    let wasm_timer_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `wasm-timer`-crates.
+fn wasm_timer_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![
@@ -1686,9 +1893,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// window_clipboard
-    let window_clipboard_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `window_clipboard`-crates.
+fn window_clipboard_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(false, "2019", "Héctor Ramón, window_clipboard contributors")],
@@ -1698,9 +1908,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// winit
-    let winit_lizenz = || {
+    }
+}
+
+/// Apache-Lizenz des `winit`-crates.
+fn winit_lizenz() -> Cow<'static, str> {
+    {
         apache_2_0(
             false,
             ApacheCopyright::braces(),
@@ -1708,9 +1921,12 @@ Nota Bene: This is same as the Rust Project's own license.
             true,
             0,
         )
-    };
-    /// winreg
-    let winreg_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `winreg`-crates.
+fn winreg_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", "Igor Shaula")],
@@ -1720,9 +1936,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// xcursor
-    let xcursor_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `xcursor`-crates.
+fn xcursor_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2020", "Samuele Esposito")],
@@ -1732,9 +1951,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// xml-rs
-    let xml_rs_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `xml-rs`-crates.
+fn xml_rs_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright::neu(true, "2014", "Vladimir Matveev")],
@@ -1744,9 +1966,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// crc32fast
-    let crc32fast_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `crc32fast`-crates.
+fn crc32fast_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2018", "Sam Rijs, Alex Crichton and contributors")],
@@ -1756,9 +1981,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// crossfont
-    let crossfont_lizenz = || {
+    }
+}
+
+/// Apache-Lizenz des `crossfont`-crates.
+fn crossfont_lizenz() -> Cow<'static, str> {
+    {
         apache_2_0(
             false,
             ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "The Alacritty Project" },
@@ -1774,9 +2002,12 @@ Nota Bene: This is same as the Rust Project's own license.
             true,
             1,
         )
-    };
-    /// foreign-types-macros
-    let foreign_types_macros_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `foreign-types-macros`-crates.
+fn foreign_types_macros_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2017", "The foreign-types Developers")],
@@ -1786,9 +2017,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// hashbrown
-    let hashbrown_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `hashbrown`-crates.
+fn hashbrown_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2016", "Amanieu d'Antras")],
@@ -1798,9 +2032,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// iana-time-zone
-    let iana_time_zone_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `iana-time-zone`-crates.
+fn iana_time_zone_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2020", "Andrew D. Straw")],
@@ -1810,9 +2047,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// indexmap
-    let indexmap_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `indexmap`-crates.
+fn indexmap_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2016--2017", None)],
@@ -1822,9 +2062,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// miniz_oxide
-    let miniz_oxide_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `miniz_oxide`-crates.
+fn miniz_oxide_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2017", "Frommi")],
@@ -1834,9 +2077,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// nu-ansi-term
-    let nu_ansi_term_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `nu-ansi-term`-crates.
+fn nu_ansi_term_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![
@@ -1849,9 +2095,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// overload
-    let overload_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `overload`-crates.
+fn overload_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2019", "Daniel Augusto Rizzi Salvadori")],
@@ -1861,9 +2110,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// png
-    let png_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `png`-crates.
+fn png_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2015", "nwin")],
@@ -1873,9 +2125,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// safe_arch
-    let safe_arch_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `safe_arch`-crates.
+fn safe_arch_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2023", r#"Daniel "Lokathor" Gee."#)],
@@ -1885,9 +2140,12 @@ Nota Bene: This is same as the Rust Project's own license.
             true,
             MITEnde::standard(),
         )
-    };
-    /// sctk-adwaita
-    let sctk_adwaita_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `sctk-adwaita`-crates.
+fn sctk_adwaita_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "2022", "Bartłomiej Maryńczak")],
@@ -1897,9 +2155,12 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// simd-adler32
-    let simd_adler32_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `simd-adler32`-crates.
+fn simd_adler32_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, "[2021]", "[Marvin Countryman]")],
@@ -1909,11 +2170,13 @@ Nota Bene: This is same as the Rust Project's own license.
             false,
             MITEnde::standard(),
         )
-    };
-    /// siphasher
-    let siphasher_lizenz = || {
-        Cow::Borrowed(
-            "Copyright 2012-2016 The Rust Project Developers.
+    }
+}
+
+/// MIT- or Apache-Lizenz des `siphasher`-crates.
+fn siphasher_lizenz() -> Cow<'static, str> {
+    Cow::Borrowed(
+        "Copyright 2012-2016 The Rust Project Developers.
 Copyright 2016-2023 Frank Denis.
 
 Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
@@ -1921,10 +2184,12 @@ http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
 <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 option.
 ",
-        )
-    };
-    /// windows-targets
-    let windows_targets_lizenz = || {
+    )
+}
+
+/// MIT-Lizenz des `windows-targets`-crates.
+fn windows_targets_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright::neu(true, None, "Microsoft Corporation.")],
@@ -1934,9 +2199,12 @@ option.
             false,
             MITEnde { punkt: false, neue_zeile: 1 },
         )
-    };
-    /// equivalent
-    let equivalent_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `equivalent`-crates.
+fn equivalent_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright::neu(true, "2016--2023", None)],
@@ -1946,9 +2214,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// fdeflate
-    let fdeflate_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `fdeflate`-crates.
+fn fdeflate_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             Vec::new(),
@@ -1958,9 +2229,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// zerocopy
-    let zerocopy_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `zerocopy`-crates.
+fn zerocopy_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -1974,9 +2248,12 @@ option.
             false,
             MITEnde::zwei_neue_zeilen(),
         )
-    };
-    /// zeno
-    let zeno_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `zeno`-crates.
+fn zeno_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -1990,9 +2267,12 @@ option.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// yazi
-    let yazi_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `yazi`-crates.
+fn yazi_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2006,9 +2286,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// wayland-backend
-    let wayland_backend_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `wayland-backend`-crates.
+fn wayland_backend_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2022,9 +2305,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// unicode-script
-    let unicode_script_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `unicode-script`-crates.
+fn unicode_script_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright {
@@ -2038,9 +2324,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// sys-locale
-    let sys_locale_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `sys-locale`-crates.
+fn sys_locale_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright {
@@ -2054,9 +2343,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// swash
-    let swash_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `swash`-crates.
+fn swash_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2070,9 +2362,12 @@ option.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// svg_fmt
-    let svg_fmt_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `svg_fmt`-crates.
+fn svg_fmt_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright {
@@ -2086,9 +2381,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// softbuffer
-    let softbuffer_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `softbuffer`-crates.
+fn softbuffer_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2102,9 +2400,12 @@ option.
             false,
             MITEnde::zwei_neue_zeilen(),
         )
-    };
-    /// rustybuzz
-    let rustybuzz_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `rustybuzz`-crates.
+fn rustybuzz_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![
@@ -2125,9 +2426,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// renderdoc-sys
-    let renderdoc_sys_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `renderdoc-sys`-crates.
+fn renderdoc_sys_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2141,9 +2445,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// rangemap
-    let rangemap_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `rangemap`-crates.
+fn rangemap_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2157,9 +2464,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// quick-xml
-    let quick_xml_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `quick-xml`-crates.
+fn quick_xml_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright {
@@ -2173,9 +2483,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// profiling
-    let profiling_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des profiling-lizenz.
+fn profiling_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright {
@@ -2189,9 +2502,12 @@ option.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// naga
-    let naga_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `naga`-crates.
+fn naga_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2205,9 +2521,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// lru
-    let lru_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `lru`-crates.
+fn lru_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright {
@@ -2221,9 +2540,12 @@ option.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// kurbo
-    let kurbo_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `kurbo`-crates.
+fn kurbo_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2237,9 +2559,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// hassle-rs
-    let hassle_rs_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `hassle-rs`-crates.
+fn hassle_rs_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright {
@@ -2253,9 +2578,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// guillotiere
-    let guillotiere_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `guillotiere`-crates.
+fn guillotiere_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("MIT License", 2),
             vec![MITCopyright {
@@ -2269,9 +2597,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// gpu-allocator
-    let gpu_allocator_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `gpu-allocator`-crates.
+fn gpu_allocator_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2285,9 +2616,12 @@ option.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// fontdb
-    let fontdb_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `fontdb`-crates.
+fn fontdb_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright {
@@ -2301,9 +2635,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// fast-srgb8
-    let fast_srgb8_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `fast-srgb8`-crates.
+fn fast_srgb8_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2317,9 +2654,12 @@ option.
             false,
             MITEnde::ohne_neue_zeile(),
         )
-    };
-    /// etagere
-    let etagere_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `etagere`-crates.
+fn etagere_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright {
@@ -2333,9 +2673,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// errno
-    let errno_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `errno`-crates.
+fn errno_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2349,9 +2692,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// cosmic-text
-    let cosmic_text_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `cosmic-text`-crates.
+fn cosmic_text_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright {
@@ -2365,9 +2711,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// com-rs
-    let com_rs_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `com-rs`-crates.
+fn com_rs_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright {
@@ -2381,12 +2730,17 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// codespan-reporting
-    let codespan_reporting_lizenz =
-        || apache_2_0(false, ApacheCopyright::standard(), ApacheEinrückung::eingerückt(), true, 1);
-    /// ash
-    let ash_lizenz = || {
+    }
+}
+
+/// Apache-Lizenz des `codespan-reporting`-crates.
+fn codespan_reporting_lizenz() -> Cow<'static, str> {
+    apache_2_0(false, ApacheCopyright::standard(), ApacheEinrückung::eingerückt(), true, 1)
+}
+
+/// MIT-Lizenz des `ash`-crates.
+fn ash_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2400,9 +2754,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// aliasable
-    let aliasable_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `aliasable`-crates.
+fn aliasable_lizenz() -> Cow<'static, str> {
+    {
         mit(
             MITPräfix("The MIT License (MIT)", 2),
             vec![MITCopyright {
@@ -2416,9 +2773,12 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// ahash
-    let ahash_lizenz = || {
+    }
+}
+
+/// MIT-Lizenz des `ahash`-crates.
+fn ahash_lizenz() -> Cow<'static, str> {
+    {
         mit(
             None,
             vec![MITCopyright {
@@ -2432,12 +2792,24 @@ option.
             false,
             MITEnde::standard(),
         )
-    };
-    /// unicode-linebreak
-    let unicode_linebreak_lizenz =
-        || apache_2_0_eingerückt(false, ApacheCopyright::standard(), true, 1);
-    /// arrayref
-    let arrayref_lizenz = || bsd_2("2015", "David Roundy <roundyd@physics.oregonstate.edu>");
+    }
+}
+
+/// Apache-Lizenz des `unicode-linebreak`-crates.
+fn unicode_linebreak_lizenz() -> Cow<'static, str> {
+    apache_2_0_eingerückt(false, ApacheCopyright::standard(), true, 1)
+}
+
+/// BSD-Lizenz des `arrayref`-crates.
+fn arrayref_lizenz() -> Cow<'static, str> {
+    bsd_2("2015", "David Roundy <roundyd@physics.oregonstate.edu>")
+}
+
+// Mindestens eine Zeile pro dependency notwendig!
+#[allow(clippy::too_many_lines)]
+// TODO Fehlende Lizenztexte suchen/Issues öffnen.
+/// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
+fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
     HashMap::from([
         ("SourceSerif4-Regular", Lizenz::neu(source_lizenz)),
         ("Bootstrap Icons", Lizenz::neu(bootstrap_lizenz)),
