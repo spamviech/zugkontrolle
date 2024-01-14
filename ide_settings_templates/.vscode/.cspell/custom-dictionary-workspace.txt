@@ -10,6 +10,7 @@ ahash
 Akash
 Alacritty
 aliasable
+alloc
 Amanieu
 Andronik
 anfang
@@ -28,6 +29,7 @@ ausgegraut
 auswahl
 autocfg
 Bartłomiej
+bedingung
 begrenzung
 Bekkers
 Benitez
@@ -42,6 +44,7 @@ bindgen
 bitfield
 bitflags
 bluss
+bools
 bumpalo
 Burkert
 bytemuck
@@ -52,6 +55,7 @@ chacha
 Chibisov
 Chiovoloni
 chrono
+clippy
 clonable
 consts
 Contributers
@@ -76,6 +80,7 @@ deque
 deserialisiere
 Deserialisiere
 Deserialisieren
+Distributivgesetzte
 dlib
 docstrings
 dpkg
@@ -83,8 +88,10 @@ Driggs
 dtoverlay
 durchmesser
 Dziedzic
+EEPROM
 einrückung
 elemente
+elems
 empfänger
 emscripten
 Epifanov
@@ -116,6 +123,7 @@ funktion
 gedroppt
 Gedroppte
 genauigkeit
+Genauigkeits
 Geoffroy
 geschwindigkeit
 geschwindigkeiten
@@ -138,11 +146,14 @@ Goulding
 gpio
 Gpio
 GPIO
+gradmaß
+grey
 größe
 guillotiere
 Harf
 hashable
 hashbrown
+Hasher
 heapless
 Héctor
 Hedvall
@@ -184,6 +195,7 @@ kreuzungen
 kurbo
 Kurdekar
 länge
+lato
 Lato
 lego
 leiter
@@ -219,8 +231,10 @@ methoden
 miniz
 mitte
 moduswechsel
+Monoid
 mozilla
 msvc
+Mult
 musleabihf
 Naaman
 nabijaczleweli
@@ -258,7 +272,9 @@ polarität
 Pournader
 präfix
 pullup
+Pulsweite
 punkt
+qself
 quickxml
 Qumranica
 Ramón
@@ -310,6 +326,7 @@ Seonghoon
 serde
 serialisierbar
 Serialisierbar
+serialisierbare
 Serialisierbare
 Sgeo
 simd
@@ -331,6 +348,7 @@ steuerung
 steuerungen
 strom
 strsim
+structs
 sublicensable
 Sverdrup
 syscall
@@ -344,6 +362,7 @@ tinyvec
 tlsv
 toleranz
 transformation
+transformationen
 transparenz
 twox
 typen
@@ -352,6 +371,7 @@ Unconfigured
 ungenauigkeit
 unicase
 unicode
+unseparated
 unterschiede
 validierung
 variante
@@ -359,6 +379,7 @@ varianten
 vcell
 vecs
 vektor
+vektoren
 verbindung
 verbindungen
 vergleich

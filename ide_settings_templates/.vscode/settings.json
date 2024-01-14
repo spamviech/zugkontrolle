@@ -1,5 +1,7 @@
 {
+    "editor.formatOnSaveMode": "file",
     "cSpell.caseSensitive": false,
+    "cSpell.language": "de,en",
     "cSpell.customDictionaries": {
         "custom-dictionary-workspace": {
             "addWords": true,
@@ -11,5 +13,7 @@
     "todo-tree.filtering.excludeGlobs": [
         "licenses/",
         "fonts/"
-    ]
+    ],
+    "rust-analyzer.imports.prefix": "crate",
+    "rust-analyzer.check.command": "clippy"
 }
