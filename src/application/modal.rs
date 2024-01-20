@@ -466,6 +466,7 @@ where
         renderer: &R,
     ) -> Option<overlay::Element<'s, ElementNachricht, R>> {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
+        zustand.viewport = layout.bounds();
         if zustand.initiales_overlay != *self.initiales_overlay {
             // Wenn sich initiales_overlay ändert muss der Zustand zurückgesetzt werden.
             *zustand = Zustand::<Overlay>::neu(self.initiales_overlay.clone());
