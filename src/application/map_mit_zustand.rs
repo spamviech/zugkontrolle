@@ -24,7 +24,9 @@ use iced_core::{
 /// Ein Wrapper um eine mutable Referenz, die [`DerefMut`]-Zugriff überwacht.
 #[derive(Debug)]
 struct MutTracer<'a, T> {
+    /// Die Referenz.
     mut_ref: &'a mut T,
+    /// Gab es einen verändernden Zugriff.
     verändert: bool,
 }
 
@@ -61,18 +63,26 @@ impl<T> DerefMut for MutTracer<'_, T> {
 ///
 /// Anmerkung: Das overlay des Elements wird NICHT angezeigt.
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
+    /// Das ursprüngliche Widget.
     element: Element<'a, Intern, R>,
+    /// Erzeuge einen neuen Zustand.
     erzeuge_zustand: Box<dyn 'a + Fn() -> Zustand>,
+    /// Der initiale Zustand, und ob es seit erzeugen des Widgets weiterhin der initiale Zustand gilt.
     initialer_zustand: (Zustand, bool),
+    /// Erzeuge die Widget-Hierarchie.
+    #[allow(clippy::type_complexity)]
     erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, R>>,
+    /// Konvertiere eine interne Nachricht, potentiell unter Änderung des Zustands.
+    #[allow(clippy::type_complexity)]
     mapper: Box<
         dyn 'a + Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
     >,
 }
 
 impl<Zustand: Debug, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MapMitZustand")
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("MapMitZustand")
             .field("element", &"<Element>")
             .field("erzeuge_zustand", &"<closure>")
             .field("initialerZustand", &self.initialer_zustand)
@@ -104,17 +114,21 @@ impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, 
     }
 }
 
+/// Invalidiere Widgets und Layout der `shell`, wenn sie bei `interne_shell` invalidiert wurden.
 fn synchronisiere_widget_layout_validierung<Intern, Extern>(
     interne_shell: &Shell<'_, Intern>,
     shell: &mut Shell<'_, Extern>,
 ) {
     if interne_shell.are_widgets_invalid() {
-        shell.invalidate_widgets()
-    } else if interne_shell.is_layout_invalid() {
-        shell.invalidate_layout()
+        shell.invalidate_widgets();
+    }
+    if interne_shell.is_layout_invalid() {
+        shell.invalidate_layout();
     }
 }
-
+// mapper-Funktion
+#[allow(clippy::type_complexity)]
+/// Konvertiere interne Nachrichten mit dem `mapper` und erzeuge bei Zustands-Änderung das `element` neu.
 fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
     interne_nachrichten: Vec<Intern>,
     shell: &mut Shell<'_, Extern>,
@@ -128,7 +142,7 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
     for nachricht in interne_nachrichten {
         let externe_nachrichten = mapper(nachricht, &mut mut_tracer, event_status);
         for externe_nachricht in externe_nachrichten {
-            shell.publish(externe_nachricht)
+            shell.publish(externe_nachricht);
         }
     }
     if mut_tracer.verändert() {
@@ -164,14 +178,14 @@ where
         viewport: &Rectangle,
     ) {
         self.element.as_widget().draw(
-            &state.children[0],
+            state.children.first().expect("Keine State-Children gefunden!"),
             renderer,
             theme,
             style,
             layout,
             cursor_position,
             viewport,
-        )
+        );
     }
 
     fn tag(&self) -> Tag {
@@ -187,7 +201,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&[&self.element])
+        tree.diff_children(&[&self.element]);
     }
 
     fn operate(
@@ -197,7 +211,7 @@ where
         renderer: &R,
         operation: &mut dyn Operation<Extern>,
     ) {
-        self.element.as_widget().operate(state, layout, renderer, &mut MapOperation { operation })
+        self.element.as_widget().operate(state, layout, renderer, &mut MapOperation { operation });
     }
 
     fn on_event(
@@ -219,7 +233,7 @@ where
         let mut interne_nachrichten = Vec::new();
         let mut interne_shell = Shell::new(&mut interne_nachrichten);
         let mut event_status = self.element.as_widget_mut().on_event(
-            &mut state.children[0],
+            state.children.first_mut().expect("Keine State-Children gefunden!"),
             event,
             layout,
             cursor_position,
@@ -250,7 +264,7 @@ where
         renderer: &R,
     ) -> mouse::Interaction {
         self.element.as_widget().mouse_interaction(
-            &state.children[0],
+            state.children.first().expect("Keine State-Children gefunden!"),
             layout,
             cursor_position,
             viewport,
@@ -279,8 +293,9 @@ where
     }
 }
 
-// Kopiert von https://docs.rs/iced_native/latest/src/iced_native/element.rs.html#295-335
+/// Kopiert von [`iced_core`](https://docs.rs/iced_core/latest/src/iced_core/element.rs.html#322)
 pub(in crate::application) struct MapOperation<'a, B> {
+    /// [Operation]
     pub(in crate::application) operation: &'a mut dyn Operation<B>,
 }
 
@@ -336,11 +351,20 @@ where
     }
 }
 
+/// Hilfs-Struct für [`MapMitZustand`] zum anzeigen des Overlays.
+///
+/// Funktioniert aktuell nicht.
 struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
+    /// Das Overlay des Elements.
     overlay: overlay::Element<'a, Intern, R>,
+    /// Das Element.
     element: &'a mut Element<'e, Intern, R>,
+    /// Erzeuge ein neues Element aus dem aktuellen Zustand.
     erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
+    /// Der aktuelle Zustand.
     zustand: &'a mut Zustand,
+    /// Konvertiere eine interne Nachricht, potentiell unter Anpassung des aktuellen Zustands.
+    #[allow(clippy::type_complexity)]
     mapper:
         &'a dyn Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
 }
@@ -349,8 +373,9 @@ impl<Zustand, Intern, Extern, R> Debug for MapMitZustandOverlay<'_, '_, Zustand,
 where
     Zustand: Debug,
 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MapMitZustandOverlay")
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("MapMitZustandOverlay")
             .field("overlay", &"<overlay::Element>")
             .field("element", &"<Element>")
             .field("erzeuge_element", &"<closure>")
@@ -368,6 +393,8 @@ where
 {
     fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
         let bisher = self.overlay.position();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let unterschied = position - bisher;
         self.overlay.layout(renderer, bounds, unterschied)
     }
@@ -380,11 +407,11 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        self.overlay.draw(renderer, theme, style, layout, cursor_position)
+        self.overlay.draw(renderer, theme, style, layout, cursor_position);
     }
 
     fn operate(&mut self, layout: Layout<'_>, renderer: &R, operation: &mut dyn Operation<Extern>) {
-        self.overlay.operate(layout, renderer, &mut MapOperation { operation })
+        self.overlay.operate(layout, renderer, &mut MapOperation { operation });
     }
 
     fn on_event(
