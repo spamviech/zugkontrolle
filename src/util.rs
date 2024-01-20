@@ -1,5 +1,6 @@
 //! Utility-Module
 
+pub mod assoc_list;
 #[path = "util/eingeschränkt.rs"]
 pub mod eingeschränkt;
 pub mod enumerate_checked;

@@ -2,7 +2,6 @@
 
 use std::{collections::HashMap, fmt::Debug};
 
-use assoc::vec::{AssocExt, Entry};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +39,7 @@ use crate::{
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::canvas::Position,
+    util::assoc_list::{AssocList, Entry},
 };
 
 pub mod gerade;
@@ -47,8 +47,6 @@ pub mod kreuzung;
 pub mod kurve;
 pub mod weiche;
 pub mod zugtyp;
-
-type AssocList<K, V> = Vec<(K, V)>;
 
 /// Definition und Position eines Gleises.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,13 +97,13 @@ struct DefinitionMaps {
 impl DefinitionMaps {
     fn neu() -> DefinitionMaps {
         DefinitionMaps {
-            geraden: AssocList::new(),
-            kurven: AssocList::new(),
-            weichen: AssocList::new(),
-            dreiwege_weichen: AssocList::new(),
-            kurven_weichen: AssocList::new(),
-            s_kurven_weichen: AssocList::new(),
-            kreuzungen: AssocList::new(),
+            geraden: AssocList::neu(),
+            kurven: AssocList::neu(),
+            weichen: AssocList::neu(),
+            dreiwege_weichen: AssocList::neu(),
+            kurven_weichen: AssocList::neu(),
+            s_kurven_weichen: AssocList::neu(),
+            kreuzungen: AssocList::neu(),
         }
     }
 }
