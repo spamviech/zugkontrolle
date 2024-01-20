@@ -13,7 +13,7 @@ use iced_aw::{
     tab_bar,
 };
 use iced_core::{
-    event,
+    event, text as text_core,
     widget::text::{self, Text},
     Element, Font, Length, Renderer,
 };
@@ -39,8 +39,11 @@ use crate::{
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Zustand<AnschlüsseSerialisiert> {
+    /// Der aktuell gewählte Name.
     name: String,
+    /// Die aktuell gewählten Anschlüsse.
     anschlüsse: AnschlüsseSerialisiert,
+    /// Hat das bearbeitete Gleis aktuell eine Steuerung.
     hat_steuerung: bool,
 }
 
@@ -60,12 +63,18 @@ impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> 
     }
 }
 
+/// Interne Nachricht zur Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
 enum InterneNachricht<Richtung> {
+    /// Neuer aktuell gewählter Name.
     Name(String),
+    /// Neuer aktuell gewählter Anschluss,
     Anschluss(Richtung, OutputSerialisiert),
+    /// Steuerung einer Weiche anpassen.
     Festlegen,
+    /// Entferne die vorhandene Steuerung.
     Entfernen,
+    /// Schließe das Widget, ohne eine Änderung vorzunehmen.
     Schließen,
 }
 
@@ -96,7 +105,7 @@ where
     AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
     RichtungInformation: 't + Clone + Default,
-    R: 't + Renderer + iced_core::text::Renderer<Font = Font>,
+    R: 't + Renderer + text_core::Renderer<Font = Font>,
     <R as Renderer>::Theme: button::StyleSheet
         + card::StyleSheet
         + container::StyleSheet
@@ -150,6 +159,7 @@ where
         Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
+    /// Erzeuge die Widget-Hierarchie.
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand<AnschlüsseSerialisiert>,
@@ -173,7 +183,7 @@ where
                 Element::from(anschluss_auswahl).map(move |anschluss_serialisiert| {
                     InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
                 })
-            }))
+            }));
         }
         column = column.push(
             Row::new()

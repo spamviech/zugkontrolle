@@ -11,6 +11,7 @@ use iced::{
     Alignment, Element, Event, Length, Renderer,
 };
 use itertools::Itertools;
+use log::debug;
 
 use crate::{
     anschluss::de_serialisieren::Serialisiere,
@@ -45,11 +46,13 @@ use crate::{
     zugtyp::DefinitionMap,
 };
 
+/// Ein Widget, dessen Nachricht sich in einen [`Nachricht`] konvertieren lässt.
 trait MitTeilNachricht<'t, Msg, R>: Into<Element<'t, Msg, R>>
 where
     Msg: 'static,
     R: 't + iced_core::Renderer,
 {
+    /// Erzeuge ein [ge`map`tes Element](Element::map).
     fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, R>, S: 'static>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
@@ -72,6 +75,8 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Send,
     S: 'static + Clone + PartialEq + Send,
 {
+    // TODO Behandeln benötigt Anpassung des public API
+    #[allow(clippy::same_name_method)]
     /// [view](iced::Application::view)-Methode für [`Zugkontrolle`].
     pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
         let Zugkontrolle {
@@ -137,10 +142,12 @@ where
                     touch::Event::FingerLifted { id, position: _ }
                     | touch::Event::FingerLost { id, position: _ },
                 ) => KlickQuelle::Touch(*id),
-                _ => return false,
+                Event::Keyboard(_) | Event::Mouse(_) | Event::Window(_) | Event::Touch(_) => {
+                    return false
+                },
             };
             let gehalten = gleise.hat_gehaltenes_gleis(klick_quelle);
-            log::debug!("{event:?} -> {gehalten}");
+            debug!("{event:?} -> {gehalten}");
             gehalten
         };
         let auswahlzustand = Element::from(
@@ -149,17 +156,13 @@ where
                 .schließe_bei_esc(),
         );
 
-        let zeige_message_box = |message_box: &MessageBox| {
-            let MessageBox { titel, nachricht } = message_box;
+        let zeige_message_box = |MessageBox { titel, nachricht }: &MessageBox| {
             Element::new(
                 iced_aw::Card::new(
                     Text::new(titel.clone()),
                     Scrollable::new(Text::new(nachricht.clone())).height(Length::Fixed(300.)),
                 )
-                .foot(
-                    iced::widget::Button::new(Text::new("Ok"))
-                        .on_press(modal::Nachricht::VersteckeOverlay),
-                )
+                .foot(Button::new(Text::new("Ok")).on_press(modal::Nachricht::VersteckeOverlay))
                 .on_close(modal::Nachricht::VersteckeOverlay)
                 .width(Length::Shrink),
             )
@@ -172,12 +175,23 @@ where
     }
 }
 
+/// Die Höhe des [`Bewegen`]-Widgets in Pixeln.
 const BEWEGEN_HÖHE: f32 = 50.;
+/// Die Breite des [`Bewegen`]-Widgets in Pixeln.
 const BEWEGEN_BREITE: f32 = 50.;
+/// Die Höhe des [`Drehen`]-Widgets in Pixeln.
 const DREHEN_HÖHE: f32 = 50.;
+/// Die Breite des [`Drehen`]-Widgets in Pixeln.
 const DREHEN_BREITE: f32 = 50.;
+/// Die Breite des [`Sliders`](Slider) zum Einstellen der Skalierung in Pixeln.
 const SKALIEREN_BREITE: f32 = 75.;
 
+/// [`Nachricht`] mit der Möglichkeit, das [`Auswahl`](AuswahlZustand)-[`Modal`] zu öffnen.
+type AuswahlNachricht<L, S> = modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>;
+
+// Interne Methode, alle Argumente benötigt.
+#[allow(clippy::too_many_arguments)]
+/// Erzeuge die Widgets für die Kopfleiste.
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
     streckenabschnitt_aktuell: &'t Option<(StreckenabschnittName, Farbe)>,
@@ -187,7 +201,7 @@ fn top_row<'t, L, S>(
     aktueller_zoom: Skalar,
     initialer_pfad: &'t str,
     speichern_gefärbt: Option<bool>,
-) -> Row<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>, Renderer<Thema>>
+) -> Row<'t, AuswahlNachricht<L, S>, Renderer<Thema>>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Renderer<Thema>>,
     <L as Leiter>::Fahrtrichtung: Clone,
@@ -256,35 +270,23 @@ where
         .height(Length::Shrink)
 }
 
+/// [`Nachricht`] mit der Möglichkeit, das [`Auswahl`](AuswahlZustand)-[`Modal`] und die [`MessageBox`] zu öffnen.
+type MessageBoxNachricht<L, S> =
+    modal::Nachricht<AuswahlZustand<S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>;
+
+/// Erzeuge die Seitenleiste.
 fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     gleise: &'t Gleise<L, Nachricht<L, S>>,
-) -> Row<
-    't,
-    modal::Nachricht<AuswahlZustand<S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>,
-    Renderer<Thema>,
-> {
+) -> Row<'t, MessageBoxNachricht<L, S>, Renderer<Thema>> {
     let mut scrollable_column: Column<'_, NachrichtClone<_>, Renderer<Thema>> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
 
     match aktueller_modus {
         Modus::Bauen => {
-            let mut max_breite = None;
-            macro_rules! max_breite_berechnen {
-                ($($map: expr),* $(,)?) => {
-                    $(
-                        for button in $map.values() {
-                            let größe = button.rechteck(&(), gleise.spurweite()).größe();
-                            let breite = Some(größe.x.0);
-                            if breite > max_breite {
-                                max_breite = breite;
-                            }
-                        }
-                    )*
-                }
-            }
+            /// Füge für jedes Element der [`DefinitionMap`] einen [`Knopf`] zum `scrollable_column` hinzu.
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 spurweite: Spurweite,
                 max_breite: Option<f32>,
@@ -296,6 +298,8 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 DefinitionId<T>: Into<AnyDefinitionId>,
                 <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
             {
+                // scrollable_column related über take_mut::take
+                #[allow(clippy::shadow_unrelated)]
                 take_mut::take(scrollable_column, |mut scrollable_column| {
                     for (id, button) in buttons.iter().sorted_by_key(|(_id, gleis)| {
                         let (_position, beschreibung, _name) =
@@ -304,15 +308,31 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                     }) {
                         let knopf = Knopf::neu(button, id.clone(), spurweite);
                         scrollable_column =
-                            scrollable_column.push(knopf.als_iced_widget(max_breite))
+                            scrollable_column.push(knopf.als_iced_widget(max_breite));
                     }
                     scrollable_column
-                })
+                });
             }
+            let mut max_breite = None;
+            /// Wrapper um [`knöpfe_hinzufügen`] für mehere [`DefinitionMap`] mit unterschiedlichen Elementen.
             macro_rules! knöpfe_hinzufügen {
                 ($($map: expr => $type: ty),* $(,)?) => {
                     max_breite_berechnen!($($map),*);
                     $(knöpfe_hinzufügen::<L, S, _, $type>(gleise.spurweite(), max_breite, &mut scrollable_column, $map);)*
+                }
+            }
+            /// Berechne die maximale Breite aller Knöpfe.
+            macro_rules! max_breite_berechnen {
+                ($($map: expr),* $(,)?) => {
+                    $(
+                        for button in $map.values() {
+                            let größe = button.rechteck(&(), gleise.spurweite()).größe();
+                            let breite = Some(größe.x.0);
+                            if breite > max_breite {
+                                max_breite = breite;
+                            }
+                        }
+                    )*
                 }
             }
             knöpfe_hinzufügen!(
@@ -331,13 +351,15 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
         Modus::Fahren => {
             scrollable_column = scrollable_column.push(Text::new("Geschwindigkeiten")).spacing(1);
             gleise.mit_allen_geschwindigkeiten(|name, geschwindigkeit| {
+                // scrollable_column related über take_mut::take
+                #[allow(clippy::shadow_unrelated)]
                 take_mut::take(&mut scrollable_column, |scrollable_column| {
                     scrollable_column.push(
-                        Element::from(L::anzeige_neu(name, &*geschwindigkeit))
+                        Element::from(L::anzeige_neu(name, geschwindigkeit))
                             .map(NachrichtClone::AktionGeschwindigkeit),
                     )
-                })
-            })
+                });
+            });
             // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         },
     }
