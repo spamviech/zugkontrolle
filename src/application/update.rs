@@ -2,13 +2,13 @@
 
 use std::{
     convert::identity,
-    fmt::{Debug, Display},
+    fmt::{Debug, Display, Write},
     hash::Hash,
-    ops::DerefMut,
-    thread::{self, sleep},
+    thread,
     time::{Duration, Instant},
 };
 
+use async_io::Timer;
 use iced::{Command, Renderer};
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -45,11 +45,13 @@ where
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
+    /// Gebe die Nachricht zurück, nachdem mindestens `dauer` vergangen ist.
     async fn nach_sleep(self, dauer: Duration) -> Self {
-        sleep(dauer);
+        let _ = Timer::after(dauer).await;
         self
     }
 
+    /// Erzeuge ein [`Command`], dass die Nachricht nach erst weitergibt, wenn mindestens `dauer` vergangen ist.
     fn als_sleep_command(self, dauer: Duration) -> Command<Nachricht<L, S>> {
         Command::perform(self.nach_sleep(dauer), identity)
     }
@@ -60,17 +62,17 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
     pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        *self.message_box.deref_mut() = Some(MessageBox { titel, nachricht });
+        *self.message_box = Some(MessageBox { titel, nachricht });
     }
 
     /// Zeige einen neuen [`AuswahlZustand`], z.B. zum anpassen der Anschlüsse eines Gleises.
     pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand<S>) {
-        *self.auswahl_zustand.deref_mut() = Some(auswahl_zustand);
+        *self.auswahl_zustand = Some(auswahl_zustand);
     }
 
     /// Verstecke den [`AuswahlZustand`], z.B. nach erfolgreichem anpassen der Anschlüsse eines Gleises.
     pub fn verstecke_auswahlzustand(&mut self) {
-        *self.auswahl_zustand.deref_mut() = None;
+        *self.auswahl_zustand = None;
     }
 
     /// Führe eine Aktion aus.
@@ -78,9 +80,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     where
         <Aktion as Ausführen<L>>::Fehler: Debug,
     {
-        let einstellungen = Einstellungen::from(&*self.gleise.zugtyp2());
+        let einstellungen = Einstellungen::from(self.gleise.zugtyp2());
         if let Err(fehler) = aktion.ausführen(einstellungen) {
-            self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"))
+            self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"));
         }
     }
 
@@ -95,7 +97,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         S: 'static + Send,
     {
         let join_handle = aktion
-            .async_ausführen(Einstellungen::from(&*self.gleise.zugtyp2()), self.sender.clone());
+            .async_ausführen(Einstellungen::from(self.gleise.zugtyp2()), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
             let sender = self.sender.clone();
             let _join_handle = thread::spawn(move || {
@@ -112,9 +114,11 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         &mut self,
         streckenabschnitt: Option<(streckenabschnitt::Name, Farbe)>,
     ) {
-        self.streckenabschnitt_aktuell = streckenabschnitt
+        self.streckenabschnitt_aktuell = streckenabschnitt;
     }
 
+    // TODO Behandeln erfordert Anpassen des public API
+    #[allow(clippy::needless_pass_by_value)]
     /// Füge einen neuen [`Streckenabschnitt`] hinzu.
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
@@ -123,6 +127,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
+        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
         self.zeige_auswahlzustand(AuswahlZustand::Streckenabschnitt(Some((
             name.clone(),
             Streckenabschnitt::neu_serialisiert(farbe, anschluss_definition.clone()),
@@ -138,7 +143,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                 let titel = format!("Streckenabschnitt {} anpassen", name.0);
                 let fehlermeldung = if let Err(fehler) = streckenabschnitt.strom(Fließend::Gesperrt)
                 {
-                    format!("{:?}", fehler)
+                    format!("{fehler:?}")
                 } else {
                     format!("Streckenabschnitt {} angepasst.", name.0)
                 };
@@ -149,7 +154,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         };
         // Streckenabschnitt hat nur einen Anschluss.
         // Nachdem dieser unterschiedlich ist, kann der aktuelle Anschluss ignoriert werden.
-        use Ergebnis::*;
         let (anschluss, fehler) = match anschluss_definition.reserviere(
             &mut self.lager,
             Anschlüsse::default(),
@@ -162,8 +166,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             Fehler { fehler, .. } => (None, Some(fehler)),
         };
 
+        // false-positive: fehler related über map
+        #[allow(clippy::shadow_unrelated)]
         let mut fehlermeldung = fehler.map(|fehler| {
-            (format!("Hinzufügen Streckenabschnitt {}", name.0), format!("{:?}", fehler))
+            (format!("Hinzufügen Streckenabschnitt {}", name.0), format!("{fehler:?}"))
         });
 
         if let Some(anschluss) = anschluss {
@@ -183,18 +189,15 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                         String::new()
                     };
                     fehlermeldung = Some((
-                        format!("Streckenabschnitt {:?} anpassen", name),
-                        format!(
-                            "{}Streckenabschnitt {:?} angepasst: {:?}",
-                            bisherige_nachricht, name, ersetzt
-                        ),
+                        format!("Streckenabschnitt {name:?} anpassen"),
+                        format!("{bisherige_nachricht}Streckenabschnitt {name:?} angepasst: {ersetzt:?}"),
                     ));
                 }
             }
         }
 
         if let Some((titel, nachricht)) = fehlermeldung {
-            self.zeige_message_box(titel, nachricht)
+            self.zeige_message_box(titel, nachricht);
         }
     }
 
@@ -205,7 +208,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             .as_ref()
             .map_or(false, |(aktuell_name, _farbe)| aktuell_name == name)
         {
-            self.streckenabschnitt_aktuell = None
+            self.streckenabschnitt_aktuell = None;
         }
 
         match self.gleise.streckenabschnitt_entfernen(name) {
@@ -229,12 +232,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
                     .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone()),
             ) {
                 self.zeige_message_box(
-                    "Gleis entfernt".to_string(),
-                    format!(
-                        "Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {:?}",
-                        fehler
-                    ),
-                )
+                    String::from("Gleis entfernt"),
+                    format!("Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {fehler:?}"),
+                );
             }
         }
     }
@@ -287,23 +287,24 @@ where
             .streckenabschnitt_aktuell
             .as_ref()
             .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone());
-        let streckenabschnitt2 =
-            streckenabschnitt.map(|streckenabschnitt_name| streckenabschnitt_name.clone());
         // FIXME x-position abhängig vom aktuellen pivot-punkt (rotation?)
         if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
             definition_steuerung,
             klick_quelle,
             Vektor { x: Skalar(0.), y: klick_höhe },
-            streckenabschnitt2,
+            streckenabschnitt,
             false,
         ) {
-            self.zeige_message_box(format!("Fehler beim Gleis hinzufügen!"), format!("{fehler:?}"));
+            self.zeige_message_box(
+                String::from("Fehler beim Gleis hinzufügen!"),
+                format!("{fehler:?}"),
+            );
         }
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
-        use SteuerungAktualisierenFehler::*;
+        use SteuerungAktualisierenFehler::{Deserialisieren, GleisNichtGefunden};
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen.clone()) {
             Ok(()) => {},
@@ -311,9 +312,11 @@ where
                 let titel = "Anschlüsse anpassen!".to_owned();
                 let mut nachricht = format!("{fehler:?}");
                 if let Some((w_fehler, anschlüsse)) = wiederherstellen_fehler {
-                    nachricht.push_str(&format!(
+                    write!(
+                        nachricht,
                         "\nFehler beim wiederherstellen der Anschlüsse: {w_fehler:?}\n{anschlüsse}"
-                    ));
+                    )
+                    .expect("write! auf einem String fehlgeschlagen!");
                 }
                 fehlermeldung = Some((titel, nachricht));
             },
@@ -328,7 +331,7 @@ where
             self.zeige_message_box(titel, nachricht);
             let hat_steuerung =
                 self.gleise.hat_steuerung(anschlüsse_anpassen.id()).unwrap_or(false);
-            self.zeige_auswahlzustand(AuswahlZustand::from((anschlüsse_anpassen, hat_steuerung)))
+            self.zeige_auswahlzustand(AuswahlZustand::from((anschlüsse_anpassen, hat_steuerung)));
         } else {
             self.verstecke_auswahlzustand();
         }
@@ -339,7 +342,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, 
     /// Entferne eine [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
-            self.zeige_message_box("Geschwindigkeit entfernen".to_string(), format!("{:?}", fehler))
+            self.zeige_message_box(
+                String::from("Geschwindigkeit entfernen"),
+                format!("{fehler:?}"),
+            );
         }
     }
 }
@@ -355,19 +361,21 @@ where
         name: geschwindigkeit::Name,
         geschwindigkeit: GeschwindigkeitSerialisiert<S>,
     ) {
+        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
         self.zeige_auswahlzustand(AuswahlZustand::Geschwindigkeit(Some((
             name.clone(),
             geschwindigkeit.clone(),
         ))));
         let (alt_serialisiert, anschlüsse) =
-            if let Ok(geschwindigkeit) = self.gleise.geschwindigkeit_entfernen(&name) {
-                let serialisiert = geschwindigkeit.serialisiere();
-                let anschlüsse = geschwindigkeit.anschlüsse();
+            if let Ok(alte_geschwindigkeit) = self.gleise.geschwindigkeit_entfernen(&name) {
+                let serialisiert = alte_geschwindigkeit.serialisiere();
+                let anschlüsse = alte_geschwindigkeit.anschlüsse();
                 (Some(serialisiert), anschlüsse)
             } else {
                 (None, Anschlüsse::default())
             };
-        use Ergebnis::*;
+        // anschlüsse, geschwindigkeit related über `reserviere`
+        #[allow(clippy::shadow_unrelated)]
         let (fehler, anschlüsse) =
             match geschwindigkeit.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                 Wert { anschluss: geschwindigkeit, .. } => {
@@ -391,27 +399,31 @@ where
                 Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
             };
 
-        let mut fehlermeldung = format!("Fehler beim Hinzufügen: {:?}", fehler);
+        let mut fehlermeldung = format!("Fehler beim Hinzufügen: {fehler:?}");
         if let Some(serialisiert) = alt_serialisiert {
             let serialisiert_clone = serialisiert.clone();
-            let (geschwindigkeit, fehler) =
+            let (ursprüngliche_geschwindigkeit, fehler_wiederherstellen) =
                 match serialisiert.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                     Wert { anschluss, .. } => (Some(anschluss), None),
-                    FehlerMitErsatzwert { anschluss, fehler, .. } => {
-                        (Some(anschluss), Some(fehler))
+                    FehlerMitErsatzwert { anschluss, fehler: fehler_wiederherstellen, .. } => {
+                        (Some(anschluss), Some(fehler_wiederherstellen))
                     },
-                    Fehler { fehler, .. } => (None, Some(fehler)),
+                    Fehler { fehler: fehler_wiederherstellen, .. } => {
+                        (None, Some(fehler_wiederherstellen))
+                    },
                 };
-            if let Some(geschwindigkeit) = geschwindigkeit {
+            if let Some(ursprüngliche_geschwindigkeit) = ursprüngliche_geschwindigkeit {
                 // Modal/AnzeigeZustand-Map muss nicht angepasst werden,
                 // nachdem nur wiederhergestellt wird
-                let _ = self.gleise.geschwindigkeit_hinzufügen(name.clone(), geschwindigkeit);
+                let _ = self
+                    .gleise
+                    .geschwindigkeit_hinzufügen(name.clone(), ursprüngliche_geschwindigkeit);
             }
-            if let Some(fehler) = fehler {
-                fehlermeldung.push_str(&format!(
-                    "\nFehler beim Wiederherstellen: {:?}\nGeschwindigkeit {:?} entfernt.",
-                    fehler, serialisiert_clone
-                ));
+            if let Some(fehler_wiederherstellen) = fehler_wiederherstellen {
+                write!(
+                    fehlermeldung,
+                    "\nFehler beim Wiederherstellen: {fehler_wiederherstellen:?}\nGeschwindigkeit {serialisiert_clone:?} entfernt."
+                ).expect("write! auf einem String fehlgeschlagen!");
             }
         }
 
@@ -443,6 +455,8 @@ where
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
+                // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt
+                #[allow(clippy::arithmetic_side_effects)]
                 bewegung
                     .vektor(Skalar(1.) / self.gleise.skalierfaktor())
                     .rotiert(-self.gleise.pivot().winkel),
@@ -464,7 +478,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
             self.zeige_message_box(
                 String::from("Interner Applikations-Fehler."),
                 format!("{fehler:?}"),
-            )
+            );
         }
     }
 }
@@ -477,11 +491,13 @@ where
     <L as Leiter>::UmdrehenZeit: Serialize,
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
 {
+    // TODO Behandeln erfordert anpassen des public API
+    #[allow(clippy::needless_pass_by_value)]
     /// Speicher den aktuellen Zustand in einer Datei.
     pub fn speichern(&mut self, pfad: String) -> Command<Nachricht<L, S>> {
         let ergebnis = self.gleise.speichern(&pfad);
         let speicher_zeit = Instant::now();
-        self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit.clone()));
+        self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit));
         if let Err(fehler) = ergebnis {
             self.zeige_message_box(
                 format!("Fehler beim Speichern in '{pfad}'."),
@@ -498,6 +514,8 @@ where
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
+    // TODO Behandeln erfordert anpassen des public API
+    #[allow(clippy::needless_pass_by_value)]
     /// Lade einen neuen Zustand aus einer Datei.
     pub fn laden(&mut self, pfad: String)
     where
@@ -522,7 +540,7 @@ where
             self.zeige_message_box(
                 format!("Fehler beim Laden von '{pfad}'."),
                 format!("{fehler:?}"),
-            )
+            );
         }
     }
 }

@@ -11,7 +11,7 @@ use iced_aw::{
     style::{number_input, tab_bar},
 };
 use iced_core::{
-    event,
+    event, text as text_core,
     widget::text::{self, Text},
     Alignment, Element, Font, Length, Renderer,
 };
@@ -55,19 +55,20 @@ pub enum AnzeigeNachricht {
 /// Widget zur Anzeige des aktuellen [`Streckenabschnittes`](Streckenabschnitt),
 /// sowie Buttons zum Öffnen des Auswahl-Fensters.
 pub struct Anzeige<'a, Overlay, R> {
+    /// Das [`iced_core::widget::Widget`].
     element: Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, R>,
 }
 
 impl<Overlay, R> Debug for Anzeige<'_, Overlay, R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Anzeige").field("element", &"<Element>").finish()
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
 impl<'a, Overlay, R> Anzeige<'a, Overlay, R>
 where
     Overlay: 'a + Clone,
-    R: 'a + iced_core::text::Renderer,
+    R: 'a + text_core::Renderer,
     <R as Renderer>::Theme:
         container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
     <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
@@ -94,8 +95,8 @@ where
                         .on_press(modal::Nachricht::ZeigeOverlay(overlay)),
                 )
                 .push(
-                    Checkbox::new("Festlegen", festlegen, |festlegen| {
-                        modal::Nachricht::Underlay(AnzeigeNachricht::Festlegen(festlegen))
+                    Checkbox::new("Festlegen", festlegen, |neu_festlegen| {
+                        modal::Nachricht::Underlay(AnzeigeNachricht::Festlegen(neu_festlegen))
                     })
                     .spacing(0),
                 )
@@ -122,9 +123,13 @@ impl<'a, Overlay, R: 'a + Renderer> From<Anzeige<'a, Overlay, R>>
 /// Zustand des Auswahl-Fensters für [`Streckenabschnitte`](Streckenabschnitt).
 #[derive(Debug, PartialEq)]
 struct AuswahlZustand {
+    /// Der aktuell gewählte Name.
     neu_name: String,
+    /// Die aktuell gewählte Farbe.
     neu_farbe: Farbe,
+    /// Der aktuell gewählte Anschluss.
     neu_anschluss: OutputSerialisiert,
+    /// Bekannte Streckenabschnitte.
     streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)>,
 }
 
@@ -155,26 +160,36 @@ impl AuswahlZustand {
         }
     }
 
+    /// Extrahiere zur Anzeige benötigte Informationen aus einen [`Streckenabschnitt`].
     fn iter_map(
         (name, streckenabschnitt): (&Name, &Streckenabschnitt),
     ) -> (UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)) {
         let anschluss = &*streckenabschnitt.lock_anschluss();
         (
             UniCaseOrd::neu(name.clone()),
-            (anschluss.to_string(), streckenabschnitt.farbe.clone(), anschluss.serialisiere()),
+            (anschluss.to_string(), streckenabschnitt.farbe, anschluss.serialisiere()),
         )
     }
 }
 
+/// Interne Nachricht für die Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
 enum InterneAuswahlNachricht {
+    /// Schließe das Auswahl-Fenster.
     Schließe,
+    /// Wähle den aktuellen Streckenabschnitt.
     Wähle(Option<(Name, Farbe)>),
+    /// Füge einen neuen Streckenabschnitt hinzu.
     Hinzufügen,
+    /// Lösche einen Streckenabschnitt.
     Lösche(Name),
+    /// Neuer aktuell gewählter Name.
     Name(String),
+    /// Neue aktuell gewählte Farbe.
     FarbeBestimmen(Farbe),
+    /// Neuer aktuell gewählter Anschluss.
     Anschluss(OutputSerialisiert),
+    /// Bearbeite einen bekannten Streckenabschnitt.
     Bearbeiten(Option<geschwindigkeit::Name>, Name, Farbe, OutputSerialisiert),
 }
 
@@ -199,7 +214,7 @@ pub struct Auswahl<'a, R: Renderer>(
 
 impl<'a, R> Auswahl<'a, R>
 where
-    R: 'a + iced_core::text::Renderer<Font = Font>,
+    R: 'a + text_core::Renderer<Font = Font>,
     <R as Renderer>::Theme: card::StyleSheet
         + text::StyleSheet
         + scrollable::StyleSheet
@@ -232,10 +247,7 @@ where
             match interne_nachricht {
                 InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
                 InterneAuswahlNachricht::Wähle(wahl) => {
-                    vec![
-                        AuswahlNachricht::Wähle(wahl.map(|(name, farbe)| (name, farbe))),
-                        AuswahlNachricht::Schließe,
-                    ]
+                    vec![AuswahlNachricht::Wähle(wahl), AuswahlNachricht::Schließe]
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
                     let nachricht = AuswahlNachricht::Hinzufügen(
@@ -273,6 +285,7 @@ where
         Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
+    /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
         auswahl_zustand: &AuswahlZustand,
         scrollable_style: style::Sammlung,

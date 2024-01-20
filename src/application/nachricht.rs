@@ -66,12 +66,18 @@ pub enum AnyGleisUnit {
 #[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone)]
 pub(in crate::application) enum NachrichtClone<L: Leiter> {
+    /// Ein neues Gleis hinzufügen.
     Gleis {
+        /// Das neue Gleis.
         definition_steuerung: AnyDefinitionIdSteuerung,
+        /// Wie wurde das Gleis angeklickt.
         klick_quelle: KlickQuelle,
+        /// Auf welcher Höhe wurde es ins Bild gezogen.
         klick_höhe: Skalar,
     },
+    /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
+    /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) im [`Fahren`](Modus::Fahren)-Modus.
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
 }
 
@@ -95,6 +101,7 @@ where
     L: Leiter,
 {
     fn nachricht(&self, klick_quelle: KlickQuelle, klick_position: Vektor) -> NachrichtClone<L> {
+        /// Hilfs-Makro für die Verwendung mit [`mit_any_id`].
         macro_rules! erhalte_nachricht {
             ($id: expr) => {
                 AnyDefinitionIdSteuerung::from(($id, None))
@@ -312,7 +319,7 @@ impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht>
     for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from(nachricht: streckenabschnitt::AuswahlNachricht) -> Self {
-        use streckenabschnitt::AuswahlNachricht::*;
+        use streckenabschnitt::AuswahlNachricht::{Hinzufügen, Lösche, Schließe, Wähle};
         match nachricht {
             Schließe => modal::Nachricht::VersteckeOverlay,
             Wähle(wahl) => modal::Nachricht::Underlay(Nachricht::WähleStreckenabschnitt(wahl)),
@@ -328,7 +335,7 @@ impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>>
     for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from(nachricht: geschwindigkeit::AuswahlNachricht<S>) -> Self {
-        use geschwindigkeit::AuswahlNachricht::*;
+        use geschwindigkeit::AuswahlNachricht::{Hinzufügen, Löschen, Schließen};
         match nachricht {
             Schließen => modal::Nachricht::VersteckeOverlay,
             Hinzufügen(name, geschwindigkeit) => modal::Nachricht::Underlay(
@@ -342,7 +349,7 @@ impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)>
     for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, weichen_id): (kontakt::Nachricht, KontaktId)) -> Self {
-        use kontakt::Nachricht::*;
+        use kontakt::Nachricht::{Festlegen, Schließen};
         match nachricht {
             Festlegen(steuerung) => {
                 modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
@@ -359,7 +366,7 @@ impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
     for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, weichen_id): (WeicheNachricht, WeichenId)) -> Self {
-        use weiche::Nachricht::*;
+        use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
             Festlegen(steuerung) => {
                 modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
@@ -379,7 +386,7 @@ impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
     for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, gleis_id): (DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)) -> Self {
-        use weiche::Nachricht::*;
+        use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
             Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
                 AnyIdSteuerungSerialisiert::DreiwegeWeiche(gleis_id, steuerung),
@@ -393,7 +400,7 @@ impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
     for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from((nachricht, gleis_id): (KurvenWeicheNachricht, GleisId<KurvenWeiche>)) -> Self {
-        use weiche::Nachricht::*;
+        use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
             Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
                 AnyIdSteuerungSerialisiert::KurvenWeiche(gleis_id, steuerung),
@@ -407,15 +414,11 @@ impl<L: Leiter, S> From<lizenzen::Nachricht>
     for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
 {
     fn from(nachricht: lizenzen::Nachricht) -> Self {
-        use lizenzen::Nachricht::*;
+        use lizenzen::Nachricht::Schließen;
         match nachricht {
             Schließen => modal::Nachricht::VersteckeOverlay,
         }
     }
-}
-
-async fn async_identity<T>(t: T) -> T {
-    t
 }
 
 impl<L, S> Nachricht<L, S>
@@ -424,7 +427,8 @@ where
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
+    /// Konvertiere eine Nachricht in ein [`Command`].
     pub(in crate::application) fn als_command(self) -> Command<Nachricht<L, S>> {
-        Command::perform(async_identity(self), identity)
+        Command::perform(async { identity(self) }, identity)
     }
 }
