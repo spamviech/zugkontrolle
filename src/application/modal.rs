@@ -144,8 +144,6 @@ struct Zustand<O> {
     initiales_overlay: Overlay<O>,
     /// Muss das overlay-Element aktualisiert werden?
     aktualisiere_element: OverlayElement,
-    /// Der viewport des Elements, wird für [`Widget::on_event`] des overlays verwendet.
-    viewport: Rectangle,
 }
 
 impl<O> Zustand<O> {
@@ -156,7 +154,7 @@ impl<O> Zustand<O> {
     {
         let overlay = initiales_overlay.deref().clone();
         let aktualisiere_element = OverlayElement::Geändert;
-        Zustand { overlay, initiales_overlay, aktualisiere_element, viewport: Rectangle::default() }
+        Zustand { overlay, initiales_overlay, aktualisiere_element }
     }
 
     /// Zeige ein Overlay über dem Widget.
@@ -466,7 +464,6 @@ where
         renderer: &R,
     ) -> Option<overlay::Element<'s, ElementNachricht, R>> {
         let zustand: &mut Zustand<Overlay> = state.state.downcast_mut();
-        zustand.viewport = layout.bounds();
         if zustand.initiales_overlay != *self.initiales_overlay {
             // Wenn sich initiales_overlay ändert muss der Zustand zurückgesetzt werden.
             *zustand = Zustand::<Overlay>::neu(self.initiales_overlay.clone());
@@ -490,6 +487,7 @@ where
             zustand,
             state_overlay,
             passthrough_event: &self.passthrough_event,
+            viewport: layout.bounds(),
         };
         Some(overlay::Element::new(layout.position(), Box::new(overlay)))
     }
@@ -558,6 +556,8 @@ struct ModalOverlay<'a, 'e, Overlay, ElementNachricht, R> {
     zustand: &'a mut Zustand<Overlay>,
     /// Wird das Overlay geschlossen, wenn `Esc` gedrückt wird.
     passthrough_event: &'a dyn Fn(&Event) -> bool,
+    /// Der viewport des Elements, wird für [`Widget::on_event`] des overlays verwendet.
+    viewport: Rectangle,
 }
 
 impl<'e, Overlay, ElementNachricht, R> overlay::Overlay<ElementNachricht, R>
@@ -649,7 +649,7 @@ where
                     renderer,
                     clipboard,
                     &mut inner_shell,
-                    &self.zustand.viewport,
+                    &self.viewport,
                 )
             }
         } else if let Some(overlay) = &mut self.element_overlay {
