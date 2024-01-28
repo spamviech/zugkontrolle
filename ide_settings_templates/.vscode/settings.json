@@ -1,5 +1,8 @@
 {
     "editor.formatOnSaveMode": "file",
+    "editor.rulers": [
+        100
+    ],
     "cSpell.caseSensitive": false,
     "cSpell.language": "de,en",
     "cSpell.customDictionaries": {

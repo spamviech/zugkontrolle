@@ -137,8 +137,11 @@ impl From<KontaktSerialisiert> for kontakt::KontaktSerialisiert {
 /// Serialisierbare Repräsentation einer [`Gerade`](gerade::Gerade).
 #[derive(Deserialize)]
 struct GeradeSerialisiert {
+    /// Die Länge der Geraden.
     länge: Skalar,
+    /// Die Beschreibung der Geraden.
     beschreibung: Option<String>,
+    /// Der mit der Geraden assoziierte Kontakt.
     kontakt: Option<KontaktSerialisiert>,
 }
 
@@ -152,9 +155,13 @@ impl From<GeradeSerialisiert> for v3::gerade::GeradeSerialisiert {
 /// Serialisierbare Repräsentation einer [`Kurve`](kurve::Kurve).
 #[derive(Deserialize)]
 struct KurveSerialisiert {
+    /// Der Radius der Kurve.
     radius: Skalar,
+    /// Der Winkel, wie lange die Kurve geht.
     winkel: Winkel,
+    /// Die Beschreibung der Kurve.
     beschreibung: Option<String>,
+    /// Der Kontakt assoziiert mit der Kurve.
     kontakt: Option<KontaktSerialisiert>,
 }
 
@@ -170,6 +177,7 @@ impl From<KurveSerialisiert> for v3::kurve::KurveSerialisiert {
     }
 }
 
+/// Die serialisierbare Darstellung der Steuerung einer Weiche.
 #[derive(Deserialize)]
 struct WeicheSteuerungSerialisiert<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
@@ -182,11 +190,15 @@ struct WeicheSteuerungSerialisiert<Richtung, Anschlüsse> {
     anschlüsse: Anschlüsse,
 }
 
+/// Die aktuelle und vorherige Richtung.
 struct AktuellUndBisher<R> {
+    #[allow(clippy::missing_docs_in_private_items)]
     aktuelle_richtung: R,
+    #[allow(clippy::missing_docs_in_private_items)]
     letzte_richtung: R,
 }
 
+/// Hilfs-Type für alternative [`From`]-Implementierungen.
 struct Wrapper<T>(T);
 
 impl<R> From<AktuellUndBisher<R>> for Wrapper<R> {
@@ -205,6 +217,7 @@ impl From<AktuellUndBisher<v3::weiche::dreiwege::Richtung>>
 }
 
 impl<R1, A1> WeicheSteuerungSerialisiert<R1, A1> {
+    /// Konvertiere in die Darstellung, wie sie in Version 3 verwendet wird.
     fn konvertiere<R2, A2>(self) -> v3::weiche::steuerung::WeicheSerialisiert<R2, A2>
     where
         Wrapper<R2>: From<AktuellUndBisher<R1>>,
@@ -224,7 +237,9 @@ impl<R1, A1> WeicheSteuerungSerialisiert<R1, A1> {
 /// einer [`Weiche`](gerade_weiche::Weiche).
 #[derive(Deserialize)]
 struct WeicheAnschlüsseSerialisiert {
+    /// Der Anschluss zum Schalten auf die Gerade.
     gerade: OutputSerialisiert,
+    /// Der Anschluss zum Schalten auf die Kurve.
     kurve: OutputSerialisiert,
 }
 
@@ -244,11 +259,17 @@ impl From<WeicheAnschlüsseSerialisiert> for v3::weiche::gerade::RichtungAnschl�
 /// Serialisierbare Repräsentation einer [`Weiche`](v3::weiche::gerade::Weiche).
 #[derive(Deserialize)]
 struct WeicheSerialisiert {
+    /// Die Länge der Geraden der Weiche.
     länge: Skalar,
+    /// Der Radius der Kurve einer Weiche.
     radius: Skalar,
+    /// Der Winkel der Kurve einer Weiche.
     winkel: Winkel,
+    /// Die Orientierung der Kurve einer Weiche.
     orientierung: Orientierung,
+    /// Die Beschreibung der Weiche.
     beschreibung: Option<String>,
+    /// Die Steuerung der Weiche.
     steuerung: Option<
         WeicheSteuerungSerialisiert<v3::weiche::gerade::Richtung, WeicheAnschlüsseSerialisiert>,
     >,
@@ -273,7 +294,9 @@ impl From<WeicheSerialisiert> for v3::weiche::gerade::WeicheSerialisiert {
 /// einer [`KurvenWeiche`](kurven_weiche::KurvenWeiche).
 #[derive(Deserialize)]
 struct KurvenWeicheAnschlüsseSerialisiert {
+    /// Der Anschluss zum Schalten auf die innere Kurve.
     innen: OutputSerialisiert,
+    /// Der Anschluss zum Schalten auf die äußere Kurve.
     außen: OutputSerialisiert,
 }
 
@@ -292,11 +315,17 @@ impl From<KurvenWeicheAnschlüsseSerialisiert>
 /// Serialisierbare Repräsentation einer [`KurvenWeiche`](kurven_weiche::KurvenWeiche).
 #[derive(Deserialize)]
 struct KurvenWeicheSerialisiert {
+    /// Die Länge der Geraden, bevor die äußere Kurve beginnt.
     länge: Skalar,
+    /// Der Radius der Kurven.
     radius: Skalar,
+    /// Der Winkel der Kurven.
     winkel: Winkel,
+    /// Die Orientierung der Kurven der Weiche.
     orientierung: Orientierung,
+    /// Die Beschreibung der Weiche.
     beschreibung: Option<String>,
+    /// Die Steuerung der Weiche.
     steuerung: Option<
         WeicheSteuerungSerialisiert<
             v3::weiche::kurve::Richtung,
@@ -330,8 +359,11 @@ impl From<KurvenWeicheSerialisiert> for v3::weiche::kurve::KurvenWeicheSerialisi
 /// einer [`DreiwegeWeiche`](dreiwege::DreiwegeWeiche).
 #[derive(Deserialize)]
 struct DreiwegeAnschlüsseSerialisiert {
+    /// Der Anschluss zum Schalten auf die Gerade.
     gerade: OutputSerialisiert,
+    /// Der Anschluss zum Schalten auf die linke Kurve.
     links: OutputSerialisiert,
+    /// Der Anschluss zum Schalten auf die rechte Kurve.
     rechts: OutputSerialisiert,
 }
 
@@ -351,10 +383,15 @@ impl From<DreiwegeAnschlüsseSerialisiert>
 /// Serialisierbare Repräsentation einer [`DreiwegeWeiche`](dreiwege::DreiwegeWeiche).
 #[derive(Deserialize)]
 struct DreiwegeWeicheSerialisiert {
+    /// Die Länge der Gerade der Weiche.
     länge: Skalar,
+    /// Der Radius der Kurven der Weiche.
     radius: Skalar,
+    /// Der Winkel der Kurven der Weiche
     winkel: Winkel,
+    /// Die Beschreibung der Weiche.
     beschreibung: Option<String>,
+    /// Die Steuerung der Weiche.
     steuerung: Option<
         WeicheSteuerungSerialisiert<v3::weiche::dreiwege::Richtung, DreiwegeAnschlüsseSerialisiert>,
     >,
@@ -376,13 +413,21 @@ impl From<DreiwegeWeicheSerialisiert> for v3::weiche::dreiwege::DreiwegeWeicheSe
 /// Serialisierbare Repräsentation einer [`SKurvenWeiche`](s_kurve::SKurvenWeiche).
 #[derive(Deserialize)]
 struct SKurvenWeicheSerialisiert {
+    /// Die Länge der Gerade der Weiche.
     länge: Skalar,
+    /// Der Radius der nach außen gehenden Kurve der Weiche.
     radius: Skalar,
+    /// Der Winkel der nach außen gehenden Kurve der Weiche.
     winkel: Winkel,
+    /// Der Radius der nach innen gehenden Kurve der Weiche.
     radius_reverse: Skalar,
+    /// Der Winkel der nach innen gehenden Kurve der Weiche.
     winkel_reverse: Winkel,
+    /// Die Orientierung der Kurve der Weiche.
     orientierung: Orientierung,
+    /// Die Beschreibung der Weiche.
     beschreibung: Option<String>,
+    /// Die Steuerung der Weiche.
     steuerung: Option<
         WeicheSteuerungSerialisiert<v3::weiche::gerade::Richtung, WeicheAnschlüsseSerialisiert>,
     >,
@@ -416,10 +461,15 @@ impl From<SKurvenWeicheSerialisiert> for v3::weiche::s_kurve::SKurvenWeicheSeria
 /// Serialisierbare Repräsentation einer [`Kreuzung`](kreuzung::Kreuzung).
 #[derive(Deserialize)]
 struct KreuzungSerialisiert {
+    /// Die Länge der Geraden der Kreuzung.
     länge: Skalar,
+    /// Der Radius der Kurven der Kreuzung.
     radius: Skalar,
+    /// Sind die Kurven Teil der Kreuzung.
     variante: kreuzung::Variante,
+    /// Die Beschreibung der Kreuzung.
     beschreibung: Option<String>,
+    /// Die Steuerung der Kreuzung.
     steuerung: Option<
         WeicheSteuerungSerialisiert<v3::weiche::gerade::Richtung, WeicheAnschlüsseSerialisiert>,
     >,
@@ -454,6 +504,7 @@ impl From<StreckenabschnittSerialisiert> for streckenabschnitt::Streckenabschnit
     }
 }
 
+/// Streckenabschnitte mit ihrem Namen.
 type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, StreckenabschnittSerialisiert>;
 
@@ -468,9 +519,15 @@ pub trait BekannterZugtyp: BekannterLeiter {
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>>;
 }
 
+/// Nicht-leerer Vektor.
+///
+/// Explizit definiert, anstelle [`nonempty::NonEmpty`],
+/// damit die [`Deserialize`]-Implementierung übereinstimmt.
 #[derive(Deserialize)]
 struct NonEmpty<T> {
+    /// Das erste Element.
     head: T,
+    /// Alle folgenden Elemente.
     tail: Vec<T>,
 }
 
@@ -506,11 +563,7 @@ impl BekannterZugtyp for Mittelleiter {
     type V2 = MittelleiterSerialisiert;
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
-        if name == "Märklin" {
-            Some(Zugtyp::märklin().serialisiere().v3())
-        } else {
-            None
-        }
+        (name == "Märklin").then(|| Zugtyp::märklin().serialisiere().v3())
     }
 }
 
@@ -569,11 +622,7 @@ impl BekannterZugtyp for Zweileiter {
     type V2 = ZweileiterSerialisiert;
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
-        if name == "Lego" {
-            Some(Zugtyp::lego().serialisiere().v3())
-        } else {
-            None
-        }
+        (name == "Lego").then(|| Zugtyp::lego().serialisiere().v3())
     }
 }
 
@@ -619,30 +668,46 @@ where
     }
 }
 
+/// Geschwindigkeiten mit ihrem Namen.
 type GeschwindigkeitMapSerialisiert<LeiterV2> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterV2>>;
 
 /// Darstellung eines [`Gleises`](aktuell::Gleis) bei Version 2.
 #[derive(Deserialize)]
 struct Gleis<T> {
+    /// Die Definition des Gleises.
     definition: T,
+    /// Die Position des Gleises.
     position: Position,
+    /// Der Name des assoziierten Streckenabschnittes.
     streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
+/// Der serialisierbare Zustand, wie er in Version 2 verwendet wurde.
 #[derive(Deserialize)]
 pub(crate) struct GleiseVecs<LeiterV2> {
     /// Der Name des gespeicherten Zugtyps.
     name: String,
+    #[allow(clippy::missing_docs_in_private_items)]
     geraden: Vec<Gleis<GeradeSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven: Vec<Gleis<KurveSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     weichen: Vec<Gleis<WeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     streckenabschnitte: StreckenabschnittMapSerialisiert,
+    #[allow(clippy::missing_docs_in_private_items)]
     geschwindigkeiten: GeschwindigkeitMapSerialisiert<LeiterV2>,
+    /// Die Pläne. In Version 2 wurden keine Pläne unterstützt.
+    #[allow(clippy::zero_sized_map_values)]
     pläne: HashMap<plan::Name, Void>,
 }
 
@@ -652,14 +717,8 @@ impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
     type Error = anschluss::Fehler;
 
     fn try_from(v2: GleiseVecs<<L as BekannterZugtyp>::V2>) -> Result<Self, Self::Error> {
-        let zugtyp = match L::bekannter_zugtyp(&v2.name) {
-            Some(zugtyp) => zugtyp,
-            None => {
-                return Err(anschluss::Fehler::UnbekannterZugtyp {
-                    zugtyp: v2.name,
-                    leiter: L::NAME,
-                })
-            },
+        let Some(zugtyp) = L::bekannter_zugtyp(&v2.name) else {
+            return Err(anschluss::Fehler::UnbekannterZugtyp { zugtyp: v2.name, leiter: L::NAME });
         };
 
         let mut ohne_streckenabschnitt = v3::GleiseDatenSerialisiert::neu();
@@ -670,6 +729,7 @@ impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
                 (name, (streckenabschnitt.into(), v3::GleiseDatenSerialisiert::neu()))
             })
             .collect();
+        /// Verteile die Gleise in den `GleiseDaten` passend zum assoziiertem Streckenabschnitt.
         macro_rules! verteile_gleise {
             ($($gleis: ident),*) => {
                 $(for Gleis { definition, position, streckenabschnitt } in v2.$gleis.into_iter() {
@@ -705,7 +765,7 @@ impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
             ohne_streckenabschnitt,
             ohne_geschwindigkeit: streckenabschnitte,
             geschwindigkeiten,
-            pläne: v2.pläne.into_iter().map(|(_name, void)| void.unreachable()).collect(),
+            pläne: v2.pläne.into_values().map(|void| void.unreachable()).collect(),
         })
     }
 }

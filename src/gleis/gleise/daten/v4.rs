@@ -26,13 +26,16 @@ use crate::{
     util::eingeschränkt::NichtNegativ,
 };
 
+/// Streckenabschnitte und ihre Namen.
 pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert = HashMap<
     streckenabschnitt::Name,
     (StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>),
 >;
+/// Geschwindigkeiten und ihre Namen.
 pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>;
 
+/// Die serialisierbare Darstellung des aktuellen Zustandes, wie er in Version 4 verwendet wird.
 #[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(S: Debug)]
@@ -44,13 +47,19 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSe
     deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
 pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
+    /// Der serialisierbare Zugtyp.
     pub(crate) zugtyp: ZugtypSerialisiert<L>,
+    /// Die serialisierbaren Geschwindigkeiten.
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
+    /// Die serialisierbaren Streckenabschnitte.
     pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
+    /// Die serialisierbaren Gleise.
     pub(crate) gleise: GleiseDatenSerialisiert,
+    /// Die serialisierbaren Pläne.
     pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
+/// Eine Map aller Gleise eines Typs, ansprechbar über ihrer Id.
 type GleisMapSerialisiert<T> = HashMap<id::Repräsentation, GleisSerialisiert<T>>;
 
 /// Definition und Position eines Gleises.
@@ -72,19 +81,29 @@ pub struct GleisSerialisiert<T: MitSteuerung> {
     pub streckenabschnitt: Option<streckenabschnitt::Name>,
 }
 
+/// Serialisierbare Darstellung aller Gleise, wie sie in Version 4 verwendet wird.
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct GleiseDatenSerialisiert {
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) geraden: GleisMapSerialisiert<Gerade>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) kurven: GleisMapSerialisiert<Kurve>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) weichen: GleisMapSerialisiert<Weiche>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) dreiwege_weichen: GleisMapSerialisiert<DreiwegeWeiche>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) kurven_weichen: GleisMapSerialisiert<KurvenWeiche>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) s_kurven_weichen: GleisMapSerialisiert<SKurvenWeiche>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) kreuzungen: GleisMapSerialisiert<Kreuzung>,
 }
 
 impl GleiseDatenSerialisiert {
+    /// Verschmelze zwei [`GleiseDatenSerialisert`], so dass `self` alle Gleise enthält.
     pub(crate) fn verschmelze(&mut self, andere: GleiseDatenSerialisiert) {
+        /// Rufe [`Extend::extend`] auf den [`GleisMapSerialisiert`] auf.
         macro_rules! extend {
             ($($gleis_art: ident),*) => {$(
                 self.$gleis_art.extend(andere.$gleis_art);

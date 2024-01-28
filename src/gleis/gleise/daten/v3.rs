@@ -57,18 +57,27 @@ pub struct Gleis<T> {
     pub position: Position,
 }
 
+/// Die serialisierte Darstellung aller Gleise, wie sie in Version 3 verwendet wurde.
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct GleiseDatenSerialisiert {
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
+    #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
 impl GleiseDatenSerialisiert {
+    /// Erzeuge ein neues, leeres [`GleiseDatenSerialisiert`]
     pub(crate) const fn neu() -> GleiseDatenSerialisiert {
         GleiseDatenSerialisiert {
             geraden: Vec::new(),
@@ -82,19 +91,29 @@ impl GleiseDatenSerialisiert {
     }
 }
 
+/// Mapping von der serialisierten Darstellung zur assoziierten [`id::Repräsentation`]
+/// für eine Definition. Verwendet in [`GleiseDatenSerialisiert::v4`].
 #[derive(Debug)]
 struct DefinitionMaps {
+    #[allow(clippy::missing_docs_in_private_items)]
     geraden: AssocList<GeradeSerialisiert, (id::Repräsentation, GeradeUnit)>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven: AssocList<KurveSerialisiert, (id::Repräsentation, KurveUnit)>,
+    #[allow(clippy::missing_docs_in_private_items)]
     weichen: AssocList<WeicheSerialisiert, (id::Repräsentation, WeicheUnit)>,
+    #[allow(clippy::missing_docs_in_private_items)]
     dreiwege_weichen:
         AssocList<DreiwegeWeicheSerialisiert, (id::Repräsentation, DreiwegeWeicheUnit)>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven_weichen: AssocList<KurvenWeicheSerialisiert, (id::Repräsentation, KurvenWeicheUnit)>,
+    #[allow(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: AssocList<SKurvenWeicheSerialisiert, (id::Repräsentation, SKurvenWeicheUnit)>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kreuzungen: AssocList<KreuzungSerialisiert, (id::Repräsentation, KreuzungUnit)>,
 }
 
 impl DefinitionMaps {
+    /// Erzeuge neue, leere [`DefinitionMaps`].
     fn neu() -> DefinitionMaps {
         DefinitionMaps {
             geraden: AssocList::new(),
@@ -108,18 +127,27 @@ impl DefinitionMaps {
     }
 }
 
+/// Die nächste freie [`id::Repräsentation`] für eine Definition.
 #[derive(Debug)]
 struct NächsteDefinitionIds {
+    #[allow(clippy::missing_docs_in_private_items)]
     geraden: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<id::Repräsentation>,
 }
 
 impl NächsteDefinitionIds {
+    /// Erzeuge eine neue [`NächsteDefinitionIds`], die alle mit [`Some(0)`] initialisiert wurden.
     fn neu() -> NächsteDefinitionIds {
         NächsteDefinitionIds {
             geraden: Some(0),
@@ -133,19 +161,29 @@ impl NächsteDefinitionIds {
     }
 }
 
+/// Die nächste freie [`id::Repräsentation`] für ein Gleis oder eine Definition.
 #[derive(Debug)]
 struct NächsteIds {
+    #[allow(clippy::missing_docs_in_private_items)]
     geraden: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<id::Repräsentation>,
+    #[allow(clippy::missing_docs_in_private_items)]
     definitionen: NächsteDefinitionIds,
 }
 
 impl NächsteIds {
+    /// Erzeuge eine neue [`NächsteIds`], die alle mit [`Some(0)`] initialisiert wurden.
     fn neu() -> NächsteIds {
         NächsteIds {
             geraden: Some(0),
@@ -161,6 +199,7 @@ impl NächsteIds {
 }
 
 impl GleiseDatenSerialisiert {
+    /// Konvertiere in die serialisierbare Darstellung der Version 4.
     fn v4<L: Leiter>(
         self,
         zugtyp: &mut v4::ZugtypSerialisiert<L>,
@@ -169,6 +208,7 @@ impl GleiseDatenSerialisiert {
         fehler: &mut Vec<KeineIdVerfügbar>,
         streckenabschnitt: Option<&streckenabschnitt::Name>,
     ) -> v4::GleiseDatenSerialisiert {
+        /// Erstelle die Maps für die übergebenen `(gleis_art, steuerung_ident, Typ)`-Tripel.
         macro_rules! erstelle_maps {
             ($($gleis_art: ident - $steuerung: ident : $typ: ident),* $(,)?) => {{
                 let GleiseDatenSerialisiert { $($gleis_art),* } = self;
@@ -231,14 +271,17 @@ impl GleiseDatenSerialisiert {
     }
 }
 
+/// Serialisierbare Streckenabschnitte mit Name.
 pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert)>;
+/// Serialisierbare Geschwindigkeiten mit Name.
 pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
     HashMap<
         geschwindigkeit::Name,
         (GeschwindigkeitSerialisiert<LeiterSerialisiert>, StreckenabschnittMapSerialisiert),
     >;
 
+/// Die serialisierbare Darstellung des aktuelle Zustands, wie sie in Version 3 verwendet wurde.
 #[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(S: Debug)]
@@ -250,14 +293,20 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSe
     deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
 pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
+    /// Der serialisierbare Zugtyp.
     pub(crate) zugtyp: ZugtypSerialisiert<L>,
+    /// Gleise ohne einen assoziierten Streckenabschnitt.
     pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
+    /// Streckenabschnitte ohne assoziierte Geschwindigkeit, sowie zugehörige Gleise.
     pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
+    /// Geschwindigkeiten und assoziierte Streckenabschnitte und Gleise.
     pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
+    /// Pläne.
     pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
 impl<L: Leiter, S> ZustandSerialisiert<L, S> {
+    /// Konvertiere in die serialisierbare Darstellung der Version 4.
     pub(crate) fn v4(self, fehler: &mut Vec<KeineIdVerfügbar>) -> v4::ZustandSerialisiert<L, S> {
         let ZustandSerialisiert {
             zugtyp,

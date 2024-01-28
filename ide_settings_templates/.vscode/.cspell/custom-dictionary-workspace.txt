@@ -330,6 +330,7 @@ serialisierbar
 Serialisierbar
 serialisierbare
 Serialisierbare
+serialisierbaren
 Sgeo
 simd
 siphasher
