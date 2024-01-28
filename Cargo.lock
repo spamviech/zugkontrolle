@@ -127,6 +127,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "associated_list"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02c358b34715554cebf48073fd6f21139fa89d301bf058f025684860a8b851e6"
+
+[[package]]
 name = "async-io"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3647,6 +3653,7 @@ dependencies = [
 name = "zugkontrolle"
 version = "4.0.2"
 dependencies = [
+ "associated_list",
  "async-io",
  "bincode",
  "difference",

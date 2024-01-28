@@ -2,6 +2,7 @@
 
 use std::{collections::HashMap, fmt::Debug};
 
+use associated_list::{entry::Entry, AssocList};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -39,7 +40,6 @@ use crate::{
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     typen::canvas::Position,
-    util::assoc_list::{AssocList, Entry},
 };
 
 pub mod gerade;
@@ -97,13 +97,13 @@ struct DefinitionMaps {
 impl DefinitionMaps {
     fn neu() -> DefinitionMaps {
         DefinitionMaps {
-            geraden: AssocList::neu(),
-            kurven: AssocList::neu(),
-            weichen: AssocList::neu(),
-            dreiwege_weichen: AssocList::neu(),
-            kurven_weichen: AssocList::neu(),
-            s_kurven_weichen: AssocList::neu(),
-            kreuzungen: AssocList::neu(),
+            geraden: AssocList::new(),
+            kurven: AssocList::new(),
+            weichen: AssocList::new(),
+            dreiwege_weichen: AssocList::new(),
+            kurven_weichen: AssocList::new(),
+            s_kurven_weichen: AssocList::new(),
+            kreuzungen: AssocList::new(),
         }
     }
 }
