@@ -25,7 +25,9 @@ use crate::{
     util::{eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt},
 };
 
-/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
+// Folge Konvention TypName -> TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
+/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
@@ -67,7 +69,10 @@ pub struct ZugtypSerialisiert<L: Leiter> {
 }
 
 impl<L: Leiter> ZugtypSerialisiert<L> {
+    /// Konvertiere in die serialisierbare Darstellung eines [`Zugtyp`],
+    /// wie er in Version 4 verwendet wird.
     pub(crate) fn v4(self, fehler: &mut Vec<KeineIdVerfügbar>) -> v4::ZugtypSerialisiert<L> {
+        /// Erstelle die Maps mit einer eindeutigen [`id::Repräsentation`] als Schlüssel.
         macro_rules! erstelle_maps {
             ($($gleis_art: ident : $typ: ident),* $(,)?) => {{
                 let ZugtypSerialisiert {
@@ -121,8 +126,11 @@ impl<L: Leiter> ZugtypSerialisiert<L> {
 }
 
 impl<L: Leiter> v4::ZugtypSerialisiert<L> {
+    /// Konvertiere in die serialisierbare Darstellung eines [`Zugtyp`],
+    /// wie er in Version 3 verwendet wird.
     pub(crate) fn v3(self) -> ZugtypSerialisiert<L> {
-        macro_rules! erstelle_maps {
+        /// Konvertiere die id-maps in [`Vecs`](Vec).
+        macro_rules! erstelle_vecs {
             ($($gleis_art: ident : $typ: ident),* $(,)?) => {{
                 let v4::ZugtypSerialisiert {
                     name,
@@ -152,7 +160,7 @@ impl<L: Leiter> v4::ZugtypSerialisiert<L> {
             }};
         }
 
-        erstelle_maps!(
+        erstelle_vecs!(
             geraden : GeradeUnit,
             kurven : KurveUnit,
             weichen : WeicheUnit,

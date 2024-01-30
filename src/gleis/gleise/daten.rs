@@ -413,8 +413,9 @@ impl<L: Leiter> Zustand<L> {
 
 type GleisMap<T> = HashMap<GleisId<T>, (Gleis<T>, Rectangle<Vektor>)>;
 
-pub(in crate::gleis::gleise) type RStern =
-    RTree<GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId, Position)>>;
+type RSternEintrag = GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId, Position)>;
+
+pub(in crate::gleis::gleise) type RStern = RTree<RSternEintrag>;
 
 #[derive(Debug)]
 pub(crate) struct GleiseDaten {

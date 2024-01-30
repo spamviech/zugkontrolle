@@ -10,6 +10,8 @@ use crate::{
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
+// Folge Konvention TypName -> TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
 /// Definition einer Kurve.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
@@ -25,6 +27,8 @@ pub struct KurveSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     pub kontakt: Anschluss,
 }
 
+// Folge Konvention TypName -> TypNameUnit
+#[allow(clippy::module_name_repetitions)]
 /// Eine Variante ohne Anschlüsse.
 pub type KurveUnit = KurveSerialisiert<()>;
 

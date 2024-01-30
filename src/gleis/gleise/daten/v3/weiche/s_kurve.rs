@@ -10,12 +10,14 @@ use crate::{
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
+/// Serialisierbare Darstellung der Steuerung einer [`SKurvenWeiche`].
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<gerade::Richtung, gerade::RichtungAnschlüsseSerialisiert>;
 
 /// Definition einer Weiche mit S-Kurve.
 ///
-/// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
+/// Bei extremen Winkeln (`<0°`, `>90°`, `angle_reverse>winkel`)
+/// wird in negativen x,y-Werten gezeichnet!
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SKurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden.

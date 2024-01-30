@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{gleis::gerade as v4, steuerung::kontakt::KontaktSerialisiert, typen::skalar::Skalar};
 
+// Folge Konvention TypName -> TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
 /// Definition einer Gerade.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GeradeSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
@@ -15,6 +17,8 @@ pub struct GeradeSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     pub kontakt: Anschluss,
 }
 
+// Folge Konvention TypName -> TypNameUnit
+#[allow(clippy::module_name_repetitions)]
 /// Eine Variante ohne Anschlüsse.
 pub type GeradeUnit = GeradeSerialisiert<()>;
 

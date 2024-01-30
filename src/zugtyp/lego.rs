@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::daten::de_serialisieren::erzeuge_zugtyp_maps2,
+        gleise::daten::de_serialisieren::erzeuge_zugtyp_maps,
         kreuzung::{self, Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -36,7 +36,7 @@ static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
     let kurven_weichen = [];
     let s_kurven_weichen = [weiche(Orientierung::Links), weiche(Orientierung::Rechts)];
     let kreuzungen = [kreuzung()];
-    erzeuge_zugtyp_maps2!(
+    erzeuge_zugtyp_maps!(
         geraden: Gerade | "Anzahl der Geraden kann man an den Händen abzählen.",
         kurven: Kurve | "Anzahl der Kurven kann man an den Händen abzählen.",
         weichen: Weiche | "Anzahl der Weichen kann man an den Händen abzählen.",
