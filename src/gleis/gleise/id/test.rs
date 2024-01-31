@@ -4,7 +4,7 @@ use std::collections::{BTreeSet, HashSet};
 
 use crate::{
     gleis::gleise::id::GleisId,
-    test_util::{expect_eq, expect_gt, expect_ne, init_test_logging, ExpectNe, Expectation},
+    test_util::{expect_eq, expect_gt, expect_ne, init_test_logging, Expectation},
 };
 
 #[test]
@@ -77,10 +77,10 @@ fn clone() -> Result<(), Expectation> {
     // durch drop des Original-Werts wird die Id nicht wieder freigegeben.
     drop(id);
 
-    let ids =
+    let mut neue_ids =
         (0..32).map(|_i| GleisId::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!"));
 
     // alle erzeugten Ids haben einen anderen Wert.
-    ids.map(|id| expect_ne(id_clone.clone(), id)).collect::<Result<_, ExpectNe>>()?;
+    neue_ids.try_for_each(|neue_id| expect_ne(id_clone.clone(), neue_id))?;
     Ok(())
 }

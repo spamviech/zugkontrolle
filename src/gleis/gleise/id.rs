@@ -1,5 +1,8 @@
 //! Ids zur Identifikation der Gleise.
 
+// Erlaubt id::Repräsentation
+#![allow(clippy::pub_use)]
+
 use std::{
     cmp::Ordering,
     hash::{Hash, Hasher},
@@ -22,10 +25,14 @@ mod test;
 
 pub use eindeutig::Repräsentation;
 
+// soll direkt importiert werden
+#[allow(clippy::module_name_repetitions)]
 /// Id für ein Gleis.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct GleisId<T: 'static>(Arc<Id<T>>);
 
+// soll direkt importiert werden
+#[allow(clippy::module_name_repetitions)]
 /// Id für die Definition eines Gleises.
 pub type DefinitionId<T> = GleisId<<T as MitSteuerung>::SelfUnit>;
 
@@ -39,7 +46,7 @@ impl<T> Eq for GleisId<T> {}
 
 impl<T> PartialOrd for GleisId<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 
@@ -57,6 +64,10 @@ impl<T> Hash for GleisId<T> {
 
 impl<T> GleisId<T> {
     /// Erzeuge eine neue [`GleisId`] für den entsprechenden Typ.
+    ///
+    /// ## Errors
+    ///
+    /// Wenn für `T` keine neue [`GleisId`] erzeugt werden kann.
     pub fn neu() -> Result<GleisId<T>, KeineIdVerfügbar> {
         Id::neu().map(|id| GleisId(Arc::new(id)))
     }
@@ -68,11 +79,13 @@ impl<T> GleisId<T> {
     ///
     /// Sobald die letzte Kopie einer [`GleisId`] gedroppt wird kann es sein,
     /// dass eine andere [`GleisId`] die selbe Zahl zurückgibt.
+    #[must_use]
     pub fn repräsentation(&self) -> Repräsentation {
         self.0.repräsentation()
     }
 }
 
+/// Helper-Macro für [`erzeuge_any_enum`]: ersetzte `[]` durch `$ty`.
 macro_rules! ersetzte_eckige_klammern {
     ($ty: ty, [$($acc: tt)*], [] $($tail: tt)*) => {
         $crate::gleis::gleise::id::ersetzte_eckige_klammern! {$ty, [$($acc)* $ty], $($tail)*}
@@ -86,6 +99,7 @@ macro_rules! ersetzte_eckige_klammern {
 }
 pub(in crate::gleis::gleise) use ersetzte_eckige_klammern;
 
+/// Erzeuge ein `enum` mit einer Variante für jede Gleis-Art.
 macro_rules! erzeuge_any_enum {
     ($(($vis: vis))? $name: ident$(<$($lt: lifetime),*>)?, $doc: literal, [$($derives: ident),*], $( ($($path: tt)*) ),+ $(,)?) => {
         #[doc = $doc]
@@ -111,6 +125,8 @@ macro_rules! erzeuge_any_enum {
 }
 pub(in crate::gleis::gleise) use erzeuge_any_enum;
 
+/// Helper-Macro für [`mit_any_id`]: Erzeuge die passende Referenz von `$wert`,
+/// ausgehend von einem (optionalen) `ref` oder `mut` suffix.
 macro_rules! als_ref {
     (mut $wert: expr) => {
         &mut $wert
@@ -124,13 +140,15 @@ macro_rules! als_ref {
 }
 pub(crate) use als_ref;
 
+/// Erzeuge ein `match`-statement und führe das `$macro!`/die `$funktion`
+/// mit den als `$ident` gematchten Varianten-Feldern als Argumente aus.
 macro_rules! mit_any_id {
     (
         { $($($mut: tt)? $collection: expr),* },
         [$id: ty => $($ident: ident),+] $any_id: expr
         => $macro: ident ! ( $($extra_arg: expr),* $(,)? )
     ) => {{
-        use $id::*;
+        use $id::{Gerade, Kurve, Weiche, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Kreuzung};
         match $any_id {
             Gerade( $($ident),+ ) => {
                 $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.geraden) , )* $($ident),+ $(, $extra_arg)*)
@@ -160,7 +178,7 @@ macro_rules! mit_any_id {
         [$id: ty => $($ident: ident),+] $any_id: expr
         => $function: ident ( $($extra_arg: expr),* $(,)? )
     ) => {{
-        use $id::*;
+        use $id::{Gerade, Kurve, Weiche, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Kreuzung};
         match $any_id {
             Gerade( $($ident),+ ) => {
                 $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
@@ -220,7 +238,9 @@ erzeuge_any_enum! {
 
 impl AnyIdSteuerung {
     /// Erhalte die [`Id`](AnyId) eines Gleises.
+    #[must_use]
     pub fn id(&self) -> AnyId {
+        /// Hilfs-Macro zur Verwendung mit [`mit_any_id!`].
         macro_rules! id_aux {
             ($id: expr, $steuerung: expr) => {
                 AnyId::from($id.clone())
@@ -244,7 +264,9 @@ erzeuge_any_enum! {
 
 impl AnyIdSteuerung {
     /// Serialisiere die Steuerung des Gleises.
+    #[must_use]
     pub fn serialisiere(&self) -> AnyIdSteuerungSerialisiert {
+        /// Hilfs-Macro zur Verwendung mit [`mit_any_id!`].
         macro_rules! serialisiere_aux {
             ($id: expr, $steuerung: expr) => {
                 AnyIdSteuerungSerialisiert::from((
@@ -271,7 +293,9 @@ erzeuge_any_enum! {
 
 impl AnyIdSteuerungSerialisiert {
     /// Erhalte die [`Id`](AnyId) eines Gleises.
+    #[must_use]
     pub fn id(&self) -> AnyId {
+        /// Hilfs-Macro zur Verwendung mit [`mit_any_id!`].
         macro_rules! id_aux {
             ($id: expr, $steuerung: expr) => {
                 AnyId::from($id.clone())

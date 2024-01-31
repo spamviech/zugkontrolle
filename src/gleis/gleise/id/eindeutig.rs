@@ -14,20 +14,24 @@ use std::{
 use log::{error, trace};
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
-/// Zahlen-typ, der über [`Id::Repräsentation`] erhalten werden kann.
+/// Zahlen-typ, der über [`Id::repräsentation`] erhalten werden kann.
 ///
 /// Implementierungs-Detail: aktuell verwenden Eq, Ord, Hash-Instanzen von [`Id`] diese Repräsentation.
 pub type Repräsentation = u32;
 
+/// Alle aktuelle bereits verwendete Ids.
 static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<Repräsentation>>> =
     const_mutex(BTreeMap::new());
 
+/// Erhalte das [Id-Set](VERWENDETE_IDS) für den gewünschten Typ.
+///
+/// Wenn sie noch nicht existiert wird eine leeres [`BTreeSet`] erzeugt.
 fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<Repräsentation>> {
     MutexGuard::map(VERWENDETE_IDS.lock(), |id_map| {
         let type_id = TypeId::of::<T>();
         match id_map.entry(type_id) {
-            Entry::Vacant(v) => v.insert(BTreeSet::new()),
-            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(vacant) => vacant.insert(BTreeSet::new()),
+            Entry::Occupied(occupied) => occupied.into_mut(),
         }
     })
 }
@@ -35,7 +39,9 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<Repräsentation>>
 /// Eine eindeutige [`Id`] für den Typ T.
 #[derive(zugkontrolle_macros::Debug)]
 pub struct Id<T: 'static> {
+    /// Der Zahlenwert für die Unterscheidung unterschiedlicher [`Ids`](Id).
     id: Repräsentation,
+    /// PhantomData
     phantom: PhantomData<fn() -> T>,
 }
 
@@ -49,7 +55,7 @@ impl<T> Eq for Id<T> {}
 
 impl<T> PartialOrd for Id<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.id.partial_cmp(&other.id)
+        Some(self.cmp(other))
     }
 }
 
@@ -70,34 +76,38 @@ impl<T> Hash for Id<T> {
 impl<T> Drop for Id<T> {
     fn drop(&mut self) {
         let mut set = type_set::<T>();
-        if !set.remove(&self.id) {
+        if set.remove(&self.id) {
+            trace!("Drop Id '{}' für Typ '{}'.", self.id, type_name::<T>());
+        } else {
             error!(
                 "Gedroppte Id '{}' für Typ '{}' war nicht als verwendet markiert!",
                 self.id,
                 type_name::<T>()
             );
-        } else {
-            trace!("Drop Id '{}' für Typ '{}'.", self.id, type_name::<T>());
         }
     }
 }
 
-/// Alle [Ids](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [`Id`] verfügbar.
+/// Alle [`Ids`](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [`Id`] verfügbar.
 #[derive(Debug, Clone, Copy)]
 pub struct KeineIdVerfügbar {
+    /// Die [`TypeId`] des Typs für den eine [`Id`] gewünscht wurde.
     #[allow(dead_code)]
     type_id: TypeId,
+    /// Der [`Typ-Name`](type_name) des Typs für den eine [`Id`] gewünscht wurde.
     #[allow(dead_code)]
     type_name: &'static str,
 }
 
 impl KeineIdVerfügbar {
     /// Erzeuge einen neuen [`KeineIdVerfügbar`]-Fehler für den gewünschten Typ.
+    #[must_use]
     pub fn für<T: 'static>() -> KeineIdVerfügbar {
         KeineIdVerfügbar { type_id: TypeId::of::<T>(), type_name: type_name::<T>() }
     }
 
     /// Erzeuge einen neuen [`KeineIdVerfügbar`]-Fehler für den Typ des Arguments.
+    #[must_use]
     pub fn für_ref<T: 'static>(_t: &T) -> KeineIdVerfügbar {
         KeineIdVerfügbar { type_id: TypeId::of::<T>(), type_name: type_name::<T>() }
     }
@@ -105,6 +115,11 @@ impl KeineIdVerfügbar {
 
 impl<T> Id<T> {
     /// Erhalte eine bisher unbenutzte [`Id`].
+    ///
+    /// ## Errors
+    ///
+    /// Alle Ids für `T` sind bereits in Verwendung.
+    /// Es kann aktuell keine neue [`Id`] erzeugt werden.
     pub fn neu() -> Result<Id<T>, KeineIdVerfügbar> {
         let mut set = type_set::<T>();
         let initial =
@@ -126,6 +141,7 @@ impl<T> Id<T> {
     /// Zwei gleichzeitig existierende [`Ids`](Id) werden unterschiedliche Zahlen zurückgeben.
     ///
     /// Sobald eine [Id] gedroppt wird kann es sein, dass eine andere [`Id`] die selbe Zahl zurückgibt.
+    #[must_use]
     pub fn repräsentation(&self) -> Repräsentation {
         self.id
     }
@@ -179,10 +195,10 @@ mod test {
 
     #[test]
     fn freigeben() -> Result<(), Expectation> {
-        init_test_logging();
-
-        // verwende eigenen Typ um nicht mit parallel laufenden Tests zu konkurrieren.
+        /// verwende eigenen Typ um nicht mit parallel laufenden Tests zu konkurrieren.
         struct Dummy;
+
+        init_test_logging();
 
         let ids: Vec<_> = (0..32)
             .map(|_i| Id::<Dummy>::neu().expect("Test verwendet weniger als usize::MAX Ids!"))
@@ -202,16 +218,16 @@ mod test {
 
     #[test]
     fn unabhängig() -> Result<(), Expectation> {
-        init_test_logging();
-
-        // verwende eigenen Typ um nicht mit parallel laufenden Tests zu konkurrieren.
+        /// verwende eigenen Typ um nicht mit parallel laufenden Tests zu konkurrieren.
         struct Param<T>(T);
 
-        let a = Id::<Param<()>>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
-        let b = Id::<Param<bool>>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
+        init_test_logging();
+
+        let id_unit = Id::<Param<()>>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
+        let id_bool = Id::<Param<bool>>::neu().expect("Test verwendet weniger als usize::MAX Ids!");
 
         // die erste Id ist identisch (Ids sind unabhängig)
-        expect_eq(a.id, b.id)?;
+        expect_eq(id_unit.id, id_bool.id)?;
         Ok(())
     }
 }
