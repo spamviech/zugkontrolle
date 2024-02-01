@@ -463,31 +463,49 @@ pub(in crate::gleis::gleise) struct GleisAnPosition<'t, L> {
 /// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
 /// Informationen über den [Streckenabschnitt] des Gleises an der gesuchten Position.
 pub(in crate::gleis::gleise) struct AssoziierterStreckenabschnitt<'t, L> {
+    // TODO Methoden/Datentyp public machen?
+    #[allow(dead_code)]
     /// Der Name des Streckenabschnittes.
     pub(in crate::gleis::gleise) name: streckenabschnitt::Name,
     /// Der Streckenabschnitt.
     pub(in crate::gleis::gleise) streckenabschnitt: &'t Streckenabschnitt,
+    #[allow(dead_code)]
     /// Die assoziierte [Geschwindigkeit].
     pub(in crate::gleis::gleise) geschwindigkeit:
         Option<(geschwindigkeit::Name, &'t Geschwindigkeit<L>)>,
 }
 
+/// Alle Gleise, sowie das Rechteck zum speichern im [`RStern`] mit ihrer Id.
 type GleisMap<T> = HashMap<GleisId<T>, (Gleis<T>, Rectangle<Vektor>)>;
 
+/// Ein Element im [`RStern`].
 type RSternEintrag = GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId, Position)>;
 
+/// Alle Gleise/GleisIds, optimiert für die örtliche Suche,
+/// z.B. alle Einträge innerhalb eines Rechtecks.
 pub(in crate::gleis::gleise) type RStern = RTree<RSternEintrag>;
 
+/// Alle aktuell bekannten Gleise.
 #[derive(Debug)]
 pub(crate) struct GleiseDaten {
+    /// Alle bekannten Geraden.
     geraden: GleisMap<Gerade>,
+    /// Alle bekannten Kurven.
     kurven: GleisMap<Kurve>,
+    /// Alle bekannten Weichen.
     weichen: GleisMap<Weiche>,
+    /// Alle bekannten DreiwegeWeichen.
     dreiwege_weichen: GleisMap<DreiwegeWeiche>,
+    /// Alle bekannten KurvenWeichen.
     kurven_weichen: GleisMap<KurvenWeiche>,
+    /// Alle bekannten SKurvenWeichen.
     s_kurven_weichen: GleisMap<SKurvenWeiche>,
+    /// Alle bekannten Kreuzungen.
     kreuzungen: GleisMap<Kreuzung>,
-    // Invariante: Jeder Eintrag hat einen zur Position passenden Eintrag in der RStern-Struktur
+    /// Alle Gleise/GleisIds, optimiert für die örtliche Suche,
+    /// z.B. alle Einträge innerhalb eines Rechtecks.
+    ///
+    /// Invariante: Jeder Eintrag hat einen zur Position passenden Eintrag in der RStern-Struktur
     rstern: RStern,
 }
 
@@ -507,6 +525,8 @@ impl GleiseDaten {
     }
 }
 
+/// Wie weit dürfen Verbindungen voneinander entfernt sein,
+/// bevor sie nicht mehr als überlappend angesehen werden.
 const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
 
 /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [`RStern`].
@@ -521,6 +541,8 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 ) -> (impl 't + Iterator<Item = Verbindung>, bool) {
     let vektor_genauigkeit =
         Vektor { x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT, y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT };
+    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
+    #[allow(clippy::arithmetic_side_effects)]
     let kandidaten_rechteck = Rechteck {
         ecke_a: verbindung.position + vektor_genauigkeit,
         ecke_b: verbindung.position - vektor_genauigkeit,
@@ -529,16 +551,19 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         rstern.locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
     let mut gehalten = false;
     let überlappend = kandidaten.flat_map(move |kandidat| {
-        let (kandidat_ids, position) = &kandidat.data;
-        let mut überlappend = Vec::new();
-
-        fn alle_verbindungen<T, Name>(t: T) -> Vec<Verbindung>
+        /// Erhalte alle Verbindungen für eine Definition.
+        fn alle_verbindungen<T, Name>(definition: &T) -> Vec<Verbindung>
         where
             T: verbindung::Nachschlagen<Name>,
         {
-            t.referenzen().into_iter().map(|(_name, verbindung)| *verbindung).collect()
+            definition.referenzen().into_iter().map(|(_name, verbindung)| *verbindung).collect()
         }
 
+        let (kandidat_ids, position) = &kandidat.data;
+        let mut überlappend = Vec::new();
+
+        /// Hilfs-Makro für [`mit_any_id`]:
+        /// Erhalte alle Verbindungen für die `kandidat_id` und ob sie aktuell gehalten ist.
         macro_rules! erhalte_alle_verbindungen {
             ($definitionen:expr, $gleis_id: expr, $definition_id: expr) => {{
                 let kandidat_id = AnyId::from($gleis_id.clone());
@@ -546,7 +571,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
                 nicht_eigene_id.then(|| {
                     $definitionen.get(&$definition_id).map(|definition| {
                         (
-                            alle_verbindungen(definition.verbindungen_an_position(
+                            alle_verbindungen(&definition.verbindungen_an_position(
                                 &(),
                                 zugtyp.spurweite,
                                 position.clone(),
@@ -559,15 +584,21 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         }
 
         let (kandidat_verbindungen, kandidat_ist_gehalten) = {
-            mit_any_id!({ref zugtyp}, [AnyGleisDefinitionId => gleis_id, definition_id] &kandidat_ids => erhalte_alle_verbindungen!())
+            mit_any_id!(
+                {ref zugtyp},
+                [AnyGleisDefinitionId => gleis_id, definition_id] &kandidat_ids
+                => erhalte_alle_verbindungen!()
+            )
         }
         .flatten()
         .unwrap_or((Vec::new(), false));
         for kandidat_verbindung in kandidat_verbindungen {
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
+            #[allow(clippy::arithmetic_side_effects)]
             if (verbindung.position - kandidat_verbindung.position).länge()
                 < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
             {
-                überlappend.push(kandidat_verbindung.clone());
+                überlappend.push(kandidat_verbindung);
                 gehalten = gehalten || kandidat_ist_gehalten;
             }
         }
@@ -576,11 +607,17 @@ fn überlappende_verbindungen<'t, L: Leiter>(
     (überlappend, gehalten)
 }
 
+/// Berechne die Einraste-Position für ein Gleis `U` an der `position`,
+/// abhängig von den Gleisen im [`RStern`]:  
+/// Wenn eine [`Verbindung`] der `definition` mit einer Verbindung aus dem [`RStern`]
+/// [überlappt](ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT) wird die `position` so angepasst,
+/// dass die Verbindungen entgegengesetzt an gleicher Position sind.  
+/// Wenn keine Verbindung überlappt, gebe die `position` unverändert zurück.
 fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     rstern: &RStern,
     zugtyp: &Zugtyp<L>,
     definition: &U,
-    id: Option<AnyId>,
+    id: &Option<AnyId>,
     z: &Z,
     position: Position,
 ) -> Position {
@@ -606,6 +643,7 @@ fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     })
 }
 
+// FIXME 2-suffix entfernen
 /// Fehler beim [`hinzufügen`](crate::gleis::gleise::Gleise::hinzufügen) eines Gleises.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum HinzufügenFehler2 {
@@ -625,21 +663,19 @@ impl GleiseDaten {
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
     ) -> Result<AnyId, HinzufügenFehler2> {
+        /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! hinzufügen_aux {
             ($gleise: expr, $definitionen: expr, $definition_id: expr, $steuerung: expr) => {{
                 // Erhalte Definition.
-                let definition = match $definitionen.get(&$definition_id) {
-                    Some(definition) => definition,
-                    None => {
-                        return Err(HinzufügenFehler2::DefinitionNichtGefunden(
-                            AnyDefinitionId::from($definition_id),
-                        ))
-                    },
+                let Some(definition) = $definitionen.get(&$definition_id) else {
+                    return Err(HinzufügenFehler2::DefinitionNichtGefunden(
+                        AnyDefinitionId::from($definition_id),
+                    ));
                 };
                 // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
                 if einrasten {
                     position =
-                        einraste_position(&self.rstern, zugtyp, definition, None, &(), position)
+                        einraste_position(&self.rstern, zugtyp, definition, &None, &(), position)
                 }
                 // Erzeuge neue Id.
                 let id = GleisId::neu()?;
@@ -703,14 +739,12 @@ impl GleiseDaten {
         mut neue_position: Position,
         einrasten: bool,
     ) -> Result<(), BewegenFehler> {
+        /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! bewegen_aux {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
                 // Erhalte Referenz auf das Gleis.
-                let (gleis, rectangle) = match $gleise.get_mut(&$gleis_id) {
-                    Some(entry) => entry,
-                    None => {
-                        return Err(BewegenFehler::GleisNichtGefunden(AnyId::from($gleis_id)));
-                    },
+                let Some((gleis, rectangle)) = $gleise.get_mut(&$gleis_id) else {
+                    return Err(BewegenFehler::GleisNichtGefunden(AnyId::from($gleis_id)));
                 };
                 let neues_rectangle = match $definitionen.get(&gleis.definition) {
                     Some(definition) => {
@@ -720,7 +754,7 @@ impl GleiseDaten {
                                 &self.rstern,
                                 zugtyp,
                                 definition,
-                                Some(AnyId::from($gleis_id.clone())),
+                                &Some(AnyId::from($gleis_id.clone())),
                                 &(),
                                 neue_position,
                             );
@@ -777,12 +811,10 @@ pub struct EntfernenFehler(AnyId);
 impl GleiseDaten {
     /// Entferne ein [`Gleis`].
     fn entfernen(&mut self, gleis_id: AnyId) -> Result<AnyGleis, EntfernenFehler> {
+        /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! entfernen_aux {
             ($gleise: expr, $gleis_id: expr) => {{
-                let (gleis, rectangle) = match $gleise.remove(&$gleis_id) {
-                    Some(entry) => entry,
-                    None => return Err(EntfernenFehler(AnyId::from($gleis_id))),
-                };
+                let Some((gleis, rectangle)) = $gleise.remove(&$gleis_id) else { return Err(EntfernenFehler(AnyId::from($gleis_id))) };
                 let id_clone = $gleis_id.clone();
                 let result = self.rstern.remove(&GeomWithData::new(
                     rectangle,
@@ -817,16 +849,14 @@ impl GleiseDaten {
         gleis_id: AnyId,
         mut streckenabschnitt: Option<streckenabschnitt::Name>,
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler> {
+        /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! setze_streckenabschnitt_aux {
             ($gleise: expr, $gleis_id: expr) => {{
-                let (gleis, _rectangle) = match $gleise.get_mut(&$gleis_id) {
-                    Some(entry) => entry,
-                    None => {
-                        return Err(SetzteStreckenabschnittFehler(
-                            AnyId::from($gleis_id),
-                            streckenabschnitt,
-                        ))
-                    },
+                let Some((gleis, _rectangle)) = $gleise.get_mut(&$gleis_id) else {
+                    return Err(SetzteStreckenabschnittFehler(
+                        AnyId::from($gleis_id),
+                        streckenabschnitt,
+                    ));
                 };
                 std::mem::swap(&mut gleis.streckenabschnitt, &mut streckenabschnitt);
                 Ok(streckenabschnitt)
@@ -837,11 +867,12 @@ impl GleiseDaten {
 
     /// Entferne einen [`Streckenabschnitt`] aus allen Gleisen.
     fn entferne_streckenabschnitt(&mut self, streckenabschnitt: &streckenabschnitt::Name) {
-        for (_id, (gleis, _rectangle)) in self.geraden.iter_mut() {
+        for (gleis, _rectangle) in self.geraden.values_mut() {
             if Some(streckenabschnitt) == gleis.streckenabschnitt.as_ref() {
                 gleis.streckenabschnitt = None;
             }
         }
+        /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! entferne_streckenabschnitt_aux {
             ($($gleis_map: ident),* $(,)?) => {{$(
                 for (_id, (gleis, _rectangle)) in self.$gleis_map.iter_mut() {
@@ -859,7 +890,7 @@ impl GleiseDaten {
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
-        )
+        );
     }
 }
 
@@ -890,6 +921,7 @@ impl GleiseDaten {
         gleis_steuerung: AnyIdSteuerungSerialisiert,
         sender: SomeAktualisierenSender,
     ) -> Result<(), SteuerungAktualisierenFehler> {
+        /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! steuerung_aktualisieren_aux {
             ($gleise: expr, $gleis_id: expr, $anschlüsse_serialisiert: expr) => {{
                 let (Gleis { steuerung, .. }, _rectangle) =
@@ -897,43 +929,45 @@ impl GleiseDaten {
                         SteuerungAktualisierenFehler::GleisNichtGefunden(AnyId::from($gleis_id)),
                     )?;
 
-                let anschlüsse_serialisiert =
-                    if let Some(anschlüsse_serialisiert) = $anschlüsse_serialisiert {
-                        anschlüsse_serialisiert
-                    } else {
-                        let _ = steuerung.take();
-                        return Ok(());
-                    };
-                let (steuerung_serialisiert, anschlüsse) = if let Some(s) = steuerung.take() {
-                    (Some(s.serialisiere()), s.anschlüsse())
+                let Some(anschlüsse_serialisiert) = $anschlüsse_serialisiert else {
+                    let _ = steuerung.take();
+                    return Ok(());
+                };
+                let (steuerung_serialisiert, anschlüsse) = if let Some(steuerung) = steuerung.take() {
+                    (Some(steuerung.serialisiere()), steuerung.anschlüsse())
                 } else {
                     (None, Anschlüsse::default())
                 };
-                use Ergebnis::*;
                 let (fehler, anschlüsse) =
-                    match anschlüsse_serialisiert.reserviere(lager, anschlüsse, sender.clone(), &(), &mut ()) {
-                        Wert { anschluss, .. } => {
+                    match anschlüsse_serialisiert.reserviere(
+                        lager,
+                        anschlüsse,
+                        sender.clone(),
+                        &(),
+                        &mut ()
+                    ) {
+                        Ergebnis::Wert { anschluss, .. } => {
                             let _ = steuerung.insert(anschluss);
                             return Ok(());
                         },
-                        FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
+                        Ergebnis::FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
                             anschlüsse.anhängen(anschluss.anschlüsse());
                             (fehler, anschlüsse)
                         },
-                        Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
+                        Ergebnis::Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
                     };
                 let mut wiederherstellen_fehler = None;
                 if let Some(steuerung_serialisiert) = steuerung_serialisiert {
                     let serialisiert_string = format!("{steuerung_serialisiert:?}");
                     match steuerung_serialisiert.reserviere(lager, anschlüsse, sender, &(), &mut ()) {
-                        Wert { anschluss, .. } => {
+                        Ergebnis::Wert { anschluss, .. } => {
                             let _ = steuerung.insert(anschluss);
                         },
-                        FehlerMitErsatzwert { anschluss, fehler, .. } => {
+                        Ergebnis::FehlerMitErsatzwert { anschluss, fehler, .. } => {
                             let _ = steuerung.insert(anschluss);
                             wiederherstellen_fehler = Some((fehler, serialisiert_string));
                         },
-                        Fehler { fehler, .. } => {
+                        Ergebnis::Fehler { fehler, .. } => {
                             wiederherstellen_fehler = Some((fehler, serialisiert_string))
                         },
                     }
@@ -953,6 +987,7 @@ impl GleiseDaten {
 
     /// Sind für ein Gleis Anschlüsse definiert?
     fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
+        /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! hat_steuerung_aux {
             ($gleise: expr, $gleis_id: expr) => {{
                 let (Gleis { steuerung, .. }, _rectangle) =
@@ -968,6 +1003,8 @@ impl GleiseDaten {
     }
 }
 
+/// Führe die notwendigen [`Transformationen`](Transformation) aus,
+/// um folgende aktionen relativ zur übergebenen [`Position`] auszuführen.
 pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     // bewege Kontext zur Position
     frame.transformation(&Transformation::Translation(position.punkt));
@@ -1007,6 +1044,8 @@ fn fülle_gleis<T>(
             )),
         };
         if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
+            // related über `Frame::with_save`.
+            #[allow(clippy::shadow_unrelated)]
             frame.with_save(|frame| {
                 let color = Color { r: rot, g: grün, b: blau, a: alpha };
                 frame.fill(
@@ -1033,13 +1072,15 @@ fn zeichne_gleis<T>(
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
 {
     for path in definition.zeichne(steuerung, spurweite) {
+        // related über `Frame::with_save`.
+        #[allow(clippy::shadow_unrelated)]
         frame.with_save(|frame| {
-            let a =
+            let alpha =
                 Transparenz::true_reduziert(ist_gehalten(AnyId::from(gleis_id.clone()))).alpha();
             frame.stroke(
                 &path,
                 Stroke {
-                    style: stroke::Style::Solid(Color { a, ..Color::from(farbe) }),
+                    style: stroke::Style::Solid(Color { a: alpha, ..Color::from(farbe) }),
                     width: 1.5,
                     ..Stroke::default()
                 },
