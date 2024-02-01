@@ -20,7 +20,10 @@ use crate::{
     gleis::{
         gleise::{
             self,
-            daten::{BewegenFehler, EntfernenFehler, Zustand},
+            daten::{
+                AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition,
+                Zustand,
+            },
             id::AnyIdSteuerung,
             nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
             steuerung::Steuerung,
@@ -208,12 +211,16 @@ where
                         aktueller_klick.clone(),
                         now,
                     )));
-                    if let Some((gleis_steuerung, halte_position, winkel, _streckenabschnitt)) =
-                        gleis_an_position
+                    if let Some(GleisAnPosition {
+                        id_steuerung,
+                        position: halte_position,
+                        winkel,
+                        streckenabschnitt: _,
+                    }) = gleis_an_position
                     {
                         aktion_bauen(
                             &mut nachrichten,
-                            gleis_steuerung,
+                            id_steuerung,
                             aktueller_klick,
                             now,
                             letzter_klick,
@@ -224,13 +231,21 @@ where
                     }
                 },
                 ModusDaten::Fahren => {
-                    if let Some((id_steuerung, _halte_position, _winkel, streckenabschnitt)) =
-                        gleis_an_position
+                    if let Some(GleisAnPosition {
+                        id_steuerung,
+                        position: _,
+                        winkel: _,
+                        streckenabschnitt,
+                    }) = gleis_an_position
                     {
                         let nachricht = aktion_fahren(
                             id_steuerung,
                             streckenabschnitt.map(
-                                |(_name, streckenabschnitt, _geschwindigkeit)| streckenabschnitt,
+                                |AssoziierterStreckenabschnitt {
+                                     name: _,
+                                     streckenabschnitt,
+                                     geschwindigkeit: _,
+                                 }| streckenabschnitt,
                             ),
                             sender.clone(),
                         );

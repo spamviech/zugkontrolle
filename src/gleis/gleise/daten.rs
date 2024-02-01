@@ -1,6 +1,10 @@
 //! Struktur zum Speichern aller Gleise.
 
-use std::{any::TypeId, collections::hash_map::HashMap, fmt::Debug};
+use std::{
+    any::{type_name, TypeId},
+    collections::hash_map::HashMap,
+    fmt::Debug,
+};
 
 use iced::{
     widget::canvas::{
@@ -138,18 +142,23 @@ where
         bekannte_definition_ids: &Self::RefArg,
         mut_ref_arg_steuerung: &mut Self::MutRefArg,
     ) -> Ergebnis<Gleis<T>> {
-        let GleisSerialisiert { definition, position, steuerung, streckenabschnitt } = self;
+        let GleisSerialisiert {
+            definition,
+            position,
+            steuerung: steuerung_serialisiert,
+            streckenabschnitt,
+        } = self;
         let Some(id) = bekannte_definition_ids.get(&definition) else {
             return Ergebnis::Fehler {
                 fehler: nonempty![anschluss::Fehler::UnbekannteGespeicherteDefinition {
                     id: definition,
                     type_id: TypeId::of::<T>(),
-                    type_name: std::any::type_name::<T>()
+                    type_name: type_name::<T>()
                 }],
                 anschlüsse,
             };
         };
-        steuerung
+        steuerung_serialisiert
             .reserviere(lager, anschlüsse, move_arg_steuerung, &(), mut_ref_arg_steuerung)
             .konvertiere(|steuerung| Gleis {
                 definition: id.clone(),
@@ -160,11 +169,14 @@ where
     }
 }
 
+/// Streckenabschnitte und ihre Namen.
 pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Option<geschwindigkeit::Name>)>;
+/// Geschwindigkeiten und ihre Namen.
 type GeschwindigkeitMap<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
 
-/// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit) und [`Streckenabschnitte`](Streckenabschnitt),
+/// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit),
+/// [`Streckenabschnitte`](Streckenabschnitt), [Pläne](Plan),
 /// sowie der verwendete [`Zugtyp`].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(L: Debug)]
@@ -172,10 +184,15 @@ type GeschwindigkeitMap<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub(in crate::gleis::gleise) struct Zustand<L: Leiter> {
+    /// Der verwendete Zugtyp.
     zugtyp: Zugtyp<L>,
+    /// Aktuell bekannte Geschwindigkeiten.
     geschwindigkeiten: GeschwindigkeitMap<L>,
+    /// Aktuell bekannte Streckenabschnitte.
     streckenabschnitte: StreckenabschnittMap,
+    /// Aktuell bekannte Gleise.
     gleise: GleiseDaten,
+    /// Aktuell bekannte Pläne.
     pläne: HashMap<plan::Name, Plan<L>>,
 }
 
@@ -199,14 +216,17 @@ impl<L: Leiter> Zustand<L> {
         }
     }
 
+    /// Erhalte den verwendeten [Zugtyp].
     pub(in crate::gleis::gleise) fn zugtyp(&self) -> &Zugtyp<L> {
         &self.zugtyp
     }
 
+    /// Erhalte die aktuell bekannten [Geschwindigkeiten](Geschwindigkeit).
     pub(in crate::gleis::gleise) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap<L> {
         &self.geschwindigkeiten
     }
 
+    /// Erhalte eine Referenz der [Geschwindigkeit] mit Name `name`.
     pub(in crate::gleis::gleise) fn geschwindigkeit(
         &self,
         name: &geschwindigkeit::Name,
@@ -214,6 +234,7 @@ impl<L: Leiter> Zustand<L> {
         self.geschwindigkeiten.get(name).ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
     }
 
+    /// Erhalte eine veränderliche Referenz der [Geschwindigkeit] mit Name `name`.
     pub(in crate::gleis::gleise) fn geschwindigkeit_mut(
         &mut self,
         name: &geschwindigkeit::Name,
@@ -223,6 +244,10 @@ impl<L: Leiter> Zustand<L> {
             .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
     }
 
+    /// Füge eine neue [Geschwindigkeit] hinzu.
+    ///
+    /// Wenn es bereits eine [Geschwindigkeit] mit Name `name` gibt,
+    /// wird diese ersetzt und zurückgegeben.
     pub(in crate::gleis::gleise) fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
@@ -231,11 +256,16 @@ impl<L: Leiter> Zustand<L> {
         self.geschwindigkeiten.insert(name, geschwindigkeit)
     }
 
+    /// Entferne eine [Geschwindigkeit] mit Name `name` und gebe sie zurück.
+    ///
+    /// ## Errors
+    ///
+    /// Es gibt keine [Geschwindigkeit] mit Name `name`.
     pub(in crate::gleis::gleise) fn geschwindigkeit_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
     ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
-        for (_name, (_streckenabschnitt, geschwindigkeit)) in self.streckenabschnitte.iter_mut() {
+        for (_streckenabschnitt, geschwindigkeit) in self.streckenabschnitte.values_mut() {
             if Some(name) == geschwindigkeit.as_ref() {
                 *geschwindigkeit = None;
             }
@@ -245,10 +275,13 @@ impl<L: Leiter> Zustand<L> {
             .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
     }
 
+    /// Erhalte die aktuell bekannten [Streckenabschnitte](Streckenabschnitt).
     pub(in crate::gleis::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap {
         &self.streckenabschnitte
     }
 
+    /// Erhalte eine Referenz des [Streckenabschnittes](Streckenabschnitt)
+    /// und der assoziierten [Geschwindigkeit] mit Name `name`.
     pub(in crate::gleis::gleise) fn streckenabschnitt(
         &self,
         name: &streckenabschnitt::Name,
@@ -259,6 +292,8 @@ impl<L: Leiter> Zustand<L> {
             .ok_or_else(|| StreckenabschnittEntferntFehler(name.clone()))
     }
 
+    /// Erhalte eine veränderliche Referenz des [Streckenabschnittes](Streckenabschnitt)
+    /// und der assoziierten [Geschwindigkeit] mit Name `name`.
     pub(in crate::gleis::gleise) fn streckenabschnitt_mut(
         &mut self,
         name: &streckenabschnitt::Name,
@@ -271,6 +306,10 @@ impl<L: Leiter> Zustand<L> {
             .ok_or_else(|| StreckenabschnittEntferntFehler(name.clone()))
     }
 
+    /// Füge einen neuen [Streckenabschnitt] hinzu.
+    ///
+    /// Wenn es bereits einen [Streckenabschnitt] mit Name `name` gibt,
+    /// wird dieser (zusammen mit seiner assoziierten [Geschwindigkeit]) zurückgegeben.
     pub(in crate::gleis::gleise) fn streckenabschnitt_hinzufügen(
         &mut self,
         name: streckenabschnitt::Name,
@@ -280,6 +319,11 @@ impl<L: Leiter> Zustand<L> {
         self.streckenabschnitte.insert(name, (streckenabschnitt, geschwindigkeit))
     }
 
+    /// Entferne einen [Streckenabschnitt] mit Name `name` und gebe sie zurück.
+    ///
+    /// ## Errors
+    ///
+    /// Es gibt keinen [Streckenabschnitt] mit Name `name`.
     pub(in crate::gleis::gleise) fn streckenabschnitt_entfernen(
         &mut self,
         name: &streckenabschnitt::Name,
@@ -373,42 +417,59 @@ impl<L: Leiter> Zustand<L> {
             ist_gehalten,
             farbe,
             skalieren,
-        )
+        );
     }
 
-    /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
+    /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt
+    /// des Gleises an der gesuchten Position.
     pub(in crate::gleis::gleise) fn gleis_an_position(
         &self,
         canvas_pos: Vektor,
-    ) -> Option<(
-        AnyIdSteuerung,
-        Vektor,
-        Winkel,
-        Option<(
-            streckenabschnitt::Name,
-            &Streckenabschnitt,
-            Option<(geschwindigkeit::Name, &Geschwindigkeit<L>)>,
-        )>,
-    )> {
+    ) -> Option<GleisAnPosition<'_, L>> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
             self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
-        let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_id| {
-            self.streckenabschnitte.get(&streckenabschnitt_id).map(
-                |(streckenabschnitt, geschwindigkeit_id)| {
-                    (
-                        streckenabschnitt_id,
-                        streckenabschnitt,
-                        geschwindigkeit_id.as_ref().and_then(|geschwindigkeit_id| {
-                            self.geschwindigkeiten.get(geschwindigkeit_id).map(|geschwindigkeit| {
-                                (geschwindigkeit_id.clone(), geschwindigkeit)
-                            })
-                        }),
-                    )
+        // streckenabschnitt_id, geschwindigkeit_id related über `and_then`
+        #[allow(clippy::shadow_unrelated)]
+        let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_name| {
+            self.streckenabschnitte.get(&streckenabschnitt_name).map(
+                |(streckenabschnitt, geschwindigkeit_name)| AssoziierterStreckenabschnitt {
+                    name: streckenabschnitt_name,
+                    streckenabschnitt,
+                    geschwindigkeit: geschwindigkeit_name.as_ref().and_then(|geschwindigkeit_id| {
+                        self.geschwindigkeiten
+                            .get(geschwindigkeit_id)
+                            .map(|geschwindigkeit| (geschwindigkeit_id.clone(), geschwindigkeit))
+                    }),
                 },
             )
         });
-        Some((id_steuerung, position, winkel, streckenabschnitt))
+        Some(GleisAnPosition { id_steuerung, position, winkel, streckenabschnitt })
     }
+}
+
+/// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
+/// Informationen über das Gleis an der gesuchten Position.
+pub(in crate::gleis::gleise) struct GleisAnPosition<'t, L> {
+    /// Id, Steuerung
+    pub(in crate::gleis::gleise) id_steuerung: AnyIdSteuerung,
+    /// relative Klick-Position
+    pub(in crate::gleis::gleise) position: Vektor,
+    /// Winkel
+    pub(in crate::gleis::gleise) winkel: Winkel,
+    /// Streckenabschnitt
+    pub(in crate::gleis::gleise) streckenabschnitt: Option<AssoziierterStreckenabschnitt<'t, L>>,
+}
+
+/// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
+/// Informationen über den [Streckenabschnitt] des Gleises an der gesuchten Position.
+pub(in crate::gleis::gleise) struct AssoziierterStreckenabschnitt<'t, L> {
+    /// Der Name des Streckenabschnittes.
+    pub(in crate::gleis::gleise) name: streckenabschnitt::Name,
+    /// Der Streckenabschnitt.
+    pub(in crate::gleis::gleise) streckenabschnitt: &'t Streckenabschnitt,
+    /// Die assoziierte [Geschwindigkeit].
+    pub(in crate::gleis::gleise) geschwindigkeit:
+        Option<(geschwindigkeit::Name, &'t Geschwindigkeit<L>)>,
 }
 
 type GleisMap<T> = HashMap<GleisId<T>, (Gleis<T>, Rectangle<Vektor>)>;
