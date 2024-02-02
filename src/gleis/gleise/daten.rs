@@ -1230,20 +1230,13 @@ fn schreibe_gleis_beschreibung_name<T>(
 }
 
 impl GleiseDaten {
-    // TODO split off
-    #[allow(clippy::too_many_lines)]
-    // Alle Argumente benötigt
-    #[allow(clippy::too_many_arguments)]
-    /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(in crate::gleis::gleise) fn darstellen_aller_gleise<L: Leiter>(
+    /// Füge die gefärbten Hintergründe aller Gleise dem Frame hinzu.
+    pub(in crate::gleis::gleise) fn färbe_alle_hintergründe<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
         streckenabschnitte: &StreckenabschnittMap,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
-        ist_gehalten: impl Fn(AnyId) -> bool,
-        farbe: Farbe,
-        skalieren: Skalar,
     ) {
         /// Färbe den Hintergrund des zur `$gleis_id` gehörenden Gleises.
         macro_rules! färbe_hintergrund {
@@ -1278,6 +1271,24 @@ impl GleiseDaten {
                 })
             }};
         }
+        for geom_with_data in &self.rstern {
+            let (gleis_definition_id, position) = &geom_with_data.data;
+            mit_any_id!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
+                => färbe_hintergrund!(zugtyp.spurweite, position)
+            );
+        }
+    }
+
+    /// Füge die Konturen aller Gleise dem Frame hinzu.
+    pub(in crate::gleis::gleise) fn zeichne_alle_konturen<L: Leiter>(
+        &self,
+        frame: &mut Frame<'_>,
+        zugtyp: &Zugtyp<L>,
+        ist_gehalten: impl Fn(AnyId) -> bool,
+        farbe: Farbe,
+    ) {
         /// Zeichne den Kontur des zur `$gleis_id` gehörenden Gleises.
         macro_rules! zeichne_kontur {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
@@ -1304,6 +1315,23 @@ impl GleiseDaten {
                 })
             }};
         }
+        for geom_with_data in &self.rstern {
+            let (gleis_definition_id, position) = &geom_with_data.data;
+            mit_any_id!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
+                => zeichne_kontur!(zugtyp.spurweite, position)
+            );
+        }
+    }
+
+    /// Füge die Darstellung der Verbindungen aller Gleise dem Frame hinzu.
+    pub(in crate::gleis::gleise) fn zeichne_alle_verbindungen<L: Leiter>(
+        &self,
+        frame: &mut Frame<'_>,
+        zugtyp: &Zugtyp<L>,
+        ist_gehalten: impl Fn(AnyId) -> bool,
+    ) {
         /// Zeichne und Färbe die Verbindungen des zur `$gleis_id` gehörenden Gleises.
         macro_rules! zeichne_verbindungen {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
@@ -1331,6 +1359,25 @@ impl GleiseDaten {
                 })
             }};
         }
+        for geom_with_data in &self.rstern {
+            let (gleis_definition_id, position) = &geom_with_data.data;
+            mit_any_id!(
+                {ref self, ref zugtyp},
+                [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
+                => zeichne_verbindungen!(zugtyp.spurweite, position)
+            );
+        }
+    }
+
+    /// Füge die Namen und Beschreibungen aller Gleise dem Frame hinzu.
+    pub(in crate::gleis::gleise) fn schreibe_alle_namen_und_beschreibungen<L: Leiter>(
+        &self,
+        frame: &mut Frame<'_>,
+        zugtyp: &Zugtyp<L>,
+        ist_gehalten: impl Fn(AnyId) -> bool,
+        farbe: Farbe,
+        skalieren: Skalar,
+    ) {
         /// Erzeuge den Text für Name und Beschreibung des zur `$gleis_id` gehörenden Gleises.
         macro_rules! schreibe_name_und_beschreibung {
             ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
@@ -1358,30 +1405,33 @@ impl GleiseDaten {
                 })
             }};
         }
-        // FIXME auf mehrere Loops nach aktion aufteilen
         for geom_with_data in &self.rstern {
             let (gleis_definition_id, position) = &geom_with_data.data;
-            mit_any_id!(
-                {ref self, ref zugtyp},
-                [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
-                => färbe_hintergrund!(zugtyp.spurweite, position)
-            );
-            mit_any_id!(
-                {ref self, ref zugtyp},
-                [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
-                => zeichne_kontur!(zugtyp.spurweite, position)
-            );
-            mit_any_id!(
-                {ref self, ref zugtyp},
-                [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
-                => zeichne_verbindungen!(zugtyp.spurweite, position)
-            );
             mit_any_id!(
                 {ref self, ref zugtyp},
                 [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
                 => schreibe_name_und_beschreibung!(zugtyp.spurweite, position)
             );
         }
+    }
+
+    // Alle Argumente benötigt
+    #[allow(clippy::too_many_arguments)]
+    /// Füge die Darstellung aller Gleise dem Frame hinzu.
+    pub(in crate::gleis::gleise) fn darstellen_aller_gleise<L: Leiter>(
+        &self,
+        frame: &mut Frame<'_>,
+        zugtyp: &Zugtyp<L>,
+        streckenabschnitte: &StreckenabschnittMap,
+        transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
+        ist_gehalten: impl Fn(AnyId) -> bool,
+        farbe: Farbe,
+        skalieren: Skalar,
+    ) {
+        self.färbe_alle_hintergründe(frame, zugtyp, streckenabschnitte, &transparent_hintergrund);
+        self.zeichne_alle_konturen(frame, zugtyp, &ist_gehalten, farbe);
+        self.zeichne_alle_verbindungen(frame, zugtyp, &ist_gehalten);
+        self.schreibe_alle_namen_und_beschreibungen(frame, zugtyp, ist_gehalten, farbe, skalieren);
     }
 }
 

@@ -5,6 +5,8 @@
 - Drehen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf den Knopf zeigt, oder er gezogen wird.
 - Bewegen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf aktive Elemente zeigt.
 - Verwende async_io für die async-Funktion `Nachricht::nach_sleep`.
+- Korrigiere Zeichen-Reihenfolge der `Gleise::draw`-Methode.
+  Es werden z.B. wieder beide Seiten von überlappenden Verbindungen angezeigt.
 
 ## 4.0.1
 
