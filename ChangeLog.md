@@ -7,6 +7,7 @@
 - Verwende async_io für die async-Funktion `Nachricht::nach_sleep`.
 - Korrigiere Zeichen-Reihenfolge der `Gleise::draw`-Methode.
   Es werden z.B. wieder beide Seiten von überlappenden Verbindungen angezeigt.
+- Färbe den Hintergrund von überlappenden Verbindungen mit Gehalten-Beteiligung erneut ein.
 
 ## 4.0.1
 

@@ -538,7 +538,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
     verbindung: &'t Verbindung,
     eigene_id: Option<&'t AnyId>,
     ist_gehalten: impl 't + Fn(AnyId) -> bool,
-) -> (impl 't + Iterator<Item = Verbindung>, bool) {
+) -> (Vec<Verbindung>, bool) {
     let vektor_genauigkeit =
         Vektor { x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT, y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT };
     // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
@@ -550,7 +550,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
     let kandidaten =
         rstern.locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
     let mut gehalten = false;
-    let überlappend = kandidaten.flat_map(move |kandidat| {
+    let überlappend = kandidaten.flat_map(|kandidat| {
         /// Erhalte alle Verbindungen für eine Definition.
         fn alle_verbindungen<T, Name>(definition: &T) -> Vec<Verbindung>
         where
@@ -599,12 +599,12 @@ fn überlappende_verbindungen<'t, L: Leiter>(
                 < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
             {
                 überlappend.push(kandidat_verbindung);
-                gehalten = gehalten || kandidat_ist_gehalten;
+                gehalten |= kandidat_ist_gehalten;
             }
         }
         überlappend
     });
-    (überlappend, gehalten)
+    (überlappend.collect(), gehalten)
 }
 
 /// Berechne die Einraste-Position für ein Gleis `U` an der `position`,
@@ -625,11 +625,12 @@ fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     let verbindungen = definition.verbindungen_an_position(z, zugtyp.spurweite, position.clone());
     verbindungen.für_alle(|verbindung_name, verbindung| {
         if snap.is_none() {
-            let (mut überlappende, _gehalten) =
+            let (überlappende, _gehalten) =
                 überlappende_verbindungen(rstern, zugtyp, verbindung, id.as_ref(), |_gleis_id| {
                     false
                 });
-            snap = überlappende.next().map(|überlappend| (verbindung_name, überlappend));
+            snap =
+                überlappende.into_iter().next().map(|überlappend| (verbindung_name, überlappend));
         }
     });
     snap.map_or(position, |(einrasten_name, einrasten_verbindung)| {
@@ -1089,10 +1090,14 @@ fn zeichne_gleis<T>(
     }
 }
 
+// Internes struct
+#[allow(clippy::struct_excessive_bools)]
 /// Hilfs-Typ für [`ist_gehalten_und_andere_verbindung`].
 pub(in crate::gleis::gleise) struct GehaltenVerbindung {
     /// Ist die `gleis_id` aktuell gehalten.
     gehalten: bool,
+    /// Gibt es eine [überlappende](ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT) Verbindung.
+    andere: bool,
     /// Gibt es eine entgegengesetzte,
     /// [überlappende](ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT) Verbindung.
     andere_entgegengesetzt: bool,
@@ -1109,15 +1114,16 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
     verbindung: Verbindung,
 ) -> GehaltenVerbindung {
     let gehalten = ist_gehalten(gleis_id.clone());
-    let (mut überlappende, andere_gehalten) =
+    let (überlappende, andere_gehalten) =
         überlappende_verbindungen(rstern, zugtyp, &verbindung, Some(gleis_id), &ist_gehalten);
+    let andere = !überlappende.is_empty();
     // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
     #[allow(clippy::arithmetic_side_effects)]
     let ist_entgegengesetzt = |überlappend: Verbindung| {
         (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs() < Winkel(0.1)
     };
-    let andere_entgegengesetzt = überlappende.any(ist_entgegengesetzt);
-    GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten }
+    let andere_entgegengesetzt = überlappende.into_iter().any(ist_entgegengesetzt);
+    GehaltenVerbindung { gehalten, andere, andere_entgegengesetzt, andere_gehalten }
 }
 
 // Alle Argumente benötigt
@@ -1145,7 +1151,7 @@ fn zeichne_verbindungen<T, L: Leiter>(
             position: position.transformation(verbindung.position),
             richtung: position.winkel + verbindung.richtung,
         };
-        let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere_gehalten } =
+        let GehaltenVerbindung { gehalten, andere_entgegengesetzt, andere, andere_gehalten } =
             ist_gehalten_und_andere_verbindung(
                 rstern,
                 zugtyp,
@@ -1180,7 +1186,7 @@ fn zeichne_verbindungen<T, L: Leiter>(
                 Stroke { style: stroke::Style::Solid(color), width: 1.5, ..Stroke::default() },
             );
             // Füllen für verbundene/einrasten bei drag&drop
-            if andere_gehalten {
+            if andere_gehalten || (gehalten && andere) {
                 frame.fill(&path, Fill { style: fill::Style::Solid(color), ..Fill::default() });
             }
         });
