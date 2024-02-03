@@ -160,7 +160,7 @@ where
                         color: thema.strich().into(),
                         ..standard_text()
                     });
-                })
+                });
             }
         })]
     }
@@ -172,11 +172,6 @@ where
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Nachricht>) {
-        let in_bounds = cursor.is_over(bounds);
-        if state.in_bounds != in_bounds {
-            state.canvas.leeren();
-            state.in_bounds = in_bounds;
-        }
         fn pressed<T, Nachricht>(
             id: &GleisId<T>,
             klick_quelle: KlickQuelle,
@@ -194,6 +189,11 @@ where
             } else {
                 (event::Status::Ignored, None)
             }
+        }
+        let in_bounds = cursor.is_over(bounds);
+        if state.in_bounds != in_bounds {
+            state.canvas.leeren();
+            state.in_bounds = in_bounds;
         }
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {

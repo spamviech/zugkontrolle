@@ -27,10 +27,14 @@ use crate::{
     util::nachschlagen::impl_nachschlagen,
 };
 
+/// Die Steuerung einer [`DreiwegeWeiche`].
+type Steuerung = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlüsse>;
+/// Serialisierbare Darstellung der Steuerung einer [`DreiwegeWeiche`].
 type AnschlüsseSerialisiert =
     steuerung::weiche::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
-type Steuerung = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlüsse>;
 
+// TODO Behandeln erfordert anpassen des public API.
+#[allow(clippy::module_name_repetitions)]
 /// Definition einer Dreiwege-Weiche.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
@@ -51,6 +55,7 @@ pub struct DreiwegeWeiche<Anschlüsse = Option<Steuerung>> {
 
 impl DreiwegeWeicheUnit {
     /// Erstelle eine neue [`DreiwegeWeiche`].
+    #[must_use]
     pub const fn neu(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
         DreiwegeWeicheUnit {
             länge: länge.als_skalar(),
@@ -62,6 +67,7 @@ impl DreiwegeWeicheUnit {
     }
 
     /// Erstelle eine neue [`DreiwegeWeiche`] mit allgemeiner Beschreibung, z.B. der Produktnummer.
+    #[must_use]
     pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
@@ -144,6 +150,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let rechteck_gerade = gerade::rechteck(spurweite, länge);
         let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
         let beschränkung = spurweite.beschränkung();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let höhe_verschoben = rechteck_kurve.ecke_max().y - beschränkung;
         let verschieben = Vektor { x: Skalar(0.), y: höhe_verschoben };
         let rechteck_gerade_verschoben = rechteck_gerade.verschiebe_chain(&verschieben);
@@ -155,42 +163,43 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
 
     fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
+        let size = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let beschränkung = spurweite.beschränkung();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
-        let mut pfade = Vec::new();
         let rechts_transformationen = vec![Transformation::Translation(start)];
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let links_transformationen =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
-        // Gerade
-        pfade.push(gerade::zeichne(
+        // Pfade
+        let gerade = gerade::zeichne(
             spurweite,
             self.länge,
             true,
             rechts_transformationen.clone(),
             pfad::Erbauer::with_normal_axis,
-        ));
-        // Links
-        pfade.push(kurve::zeichne(
+        );
+        let links = kurve::zeichne(
             spurweite,
             self.radius,
             self.winkel,
             kurve::Beschränkung::Ende,
             links_transformationen,
             pfad::Erbauer::with_invert_y,
-        ));
-        // Rechts
-        pfade.push(kurve::zeichne(
+        );
+        let rechts = kurve::zeichne(
             spurweite,
             self.radius,
             self.winkel,
             kurve::Beschränkung::Ende,
             rechts_transformationen,
             pfad::Erbauer::with_normal_axis,
-        ));
-        // return value
-        pfade
+        );
+        // Rückgabewert
+        vec![gerade, links, rechts]
     }
 
     fn fülle(
@@ -199,11 +208,15 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         spurweite: Spurweite,
     ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
-        let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
+        let size = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let beschränkung = spurweite.beschränkung();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         let rechts_transformationen = vec![Transformation::Translation(start)];
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let links_transformationen =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         let (gerade_transparenz, links_transparenz, rechts_transparenz) =
@@ -219,9 +232,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                     (Transparenz::Reduziert, Transparenz::Reduziert, Transparenz::Voll)
                 },
             };
-        let mut pfade = Vec::new();
-        // Gerade
-        pfade.push((
+        // Pfade
+        let gerade = (
             gerade::fülle(
                 spurweite,
                 self.länge,
@@ -230,9 +242,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             ),
             None,
             gerade_transparenz,
-        ));
-        // Links
-        pfade.push((
+        );
+        let links = (
             kurve::fülle(
                 spurweite,
                 self.radius,
@@ -242,9 +253,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             ),
             None,
             links_transparenz,
-        ));
-        // Rechts
-        pfade.push((
+        );
+        let rechts = (
             kurve::fülle(
                 spurweite,
                 self.radius,
@@ -254,9 +264,9 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             ),
             None,
             rechts_transparenz,
-        ));
+        );
         // Rückgabewert
-        pfade
+        vec![gerade, links, rechts]
     }
 
     fn beschreibung_und_name<'s, 't>(
@@ -264,16 +274,20 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
     ) -> (Position, Option<&'s str>, Option<&'t str>) {
-        let size: Vektor = self.rechteck(anschlüsse, spurweite).ecke_max();
+        let size = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
         (
             Position {
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
                 punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
                 winkel: winkel::ZERO,
             },
-            self.beschreibung.as_ref().map(String::as_str),
+            self.beschreibung.as_deref(),
             anschlüsse.name(),
         )
     }
@@ -289,9 +303,15 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let Vektor { x: _, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = height.halbiert();
         let beschränkung = spurweite.beschränkung();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         // sub-checks
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let relative_vector = relative_position - start;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let inverted_vector = Vektor { x: relative_vector.x, y: beschränkung - relative_vector.y };
         gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
             || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
@@ -307,10 +327,14 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },
             gerade: Verbindung {
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
                 position: anfang + Vektor { x: länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
             links: Verbindung {
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
                 position: anfang
                     + Vektor {
                         x: radius * self.winkel.sin(),
@@ -319,11 +343,15 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 richtung: self.winkel,
             },
             rechts: Verbindung {
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
                 position: anfang
                     + Vektor {
                         x: radius * self.winkel.sin(),
                         y: -radius * (Skalar(1.) - self.winkel.cos()),
                     },
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
                 richtung: -self.winkel,
             },
         }
