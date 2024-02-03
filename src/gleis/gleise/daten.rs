@@ -336,6 +336,12 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Füge ein neues [Gleis] an der [Position] mit dem gewählten [`Streckenabschnitt`] hinzu.
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`DefinitionId`](crate::gleis::gleise::id::DefinitionId) gehörende
+    /// Definition gefunden, oder es war keine [`GleisId`](crate::gleis::gleise::id::GleisId)
+    /// verfügbar.
     pub(in crate::gleis::gleise) fn hinzufügen(
         &mut self,
         definition_steuerung: impl Into<AnyDefinitionIdSteuerung>,
@@ -353,6 +359,10 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Bewege ein [Gleis] an die neue [`Position`].
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub(in crate::gleis::gleise) fn bewegen(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -374,6 +384,10 @@ impl<L: Leiter> Zustand<L> {
     ///
     /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
     /// [`Streckenabschnittes`](Streckenabschnitt) (falls einer gesetzt war).
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur `gleis_id` gehörendes Gleis gefunden.
     pub(in crate::gleis::gleise) fn setze_streckenabschnitt(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -383,6 +397,10 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Aktualisiere die Steuerung für ein [`Gleis`].
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub(in crate::gleis::gleise) fn steuerung_aktualisieren(
         &mut self,
         lager: &mut Lager,
@@ -393,6 +411,10 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Sind für ein Gleis Anschlüsse definiert?
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub(in crate::gleis::gleise) fn hat_steuerung(
         &self,
         gleis: AnyId,
@@ -656,6 +678,12 @@ pub enum HinzufügenFehler2 {
 
 impl GleiseDaten {
     /// Füge ein neues [`Gleis`] hinzu.
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`DefinitionId`](crate::gleis::gleise::id::DefinitionId) gehörende
+    /// Definition gefunden, oder es war keine [`GleisId`](crate::gleis::gleise::id::GleisId)
+    /// verfügbar.
     fn hinzufügen<L: Leiter>(
         &mut self,
         zugtyp: &Zugtyp<L>,
@@ -845,6 +873,10 @@ impl GleiseDaten {
     ///
     /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
     /// [`Streckenabschnittes`](Streckenabschnitt) (falls einer gesetzt war).
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur `gleis_id` gehörendes Gleis gefunden.
     fn setze_streckenabschnitt(
         &mut self,
         gleis_id: AnyId,

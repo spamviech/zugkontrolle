@@ -11,11 +11,16 @@ use crate::{
     typen::{vektor::Vektor, winkel::Winkel},
 };
 
+/// Ein aktuell gehaltenes Gleis.
 #[derive(Debug)]
 pub(in crate::gleis::gleise) struct Gehalten {
+    /// Das [`GleisId`](crate::gleis::gleise::id::GleisId) und Steuerung des Gleises.
     pub(in crate::gleis::gleise) gleis_steuerung: AnyIdSteuerung,
+    /// Die relative Position, wo das gleis Gehalten wird.
     pub(in crate::gleis::gleise) halte_position: Vektor,
+    /// Der aktuelle Winkel des Gleises auf dem Canvas.
     pub(in crate::gleis::gleise) winkel: Winkel,
+    /// Wurde das Gleis bewegt.
     pub(in crate::gleis::gleise) bewegt: bool,
 }
 
@@ -44,6 +49,7 @@ pub enum Nachricht {
 #[derive(Debug)]
 pub struct ZustandAktualisieren(pub(in crate::gleis::gleise) ZustandAktualisierenEnum);
 
+/// Interne Nachricht, wie der [`Zustand`](crate::gleis::gleise::Zustand) aktualisiert werden soll.
 #[derive(Debug)]
 pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
     /// Aktualisiere die letzte bekannte Maus-Position.
