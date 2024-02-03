@@ -112,7 +112,7 @@ pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 match s {
                     #(#enum_variants_str => Ok(#enum_ident::#enum_variants)),*,
-                    _ => Err(s.to_string()),
+                    _ => Err(String::from(s)),
                 }
             }
         }
