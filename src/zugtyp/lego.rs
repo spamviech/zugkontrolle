@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::daten::de_serialisieren::erzeuge_zugtyp_maps2,
+        gleise::daten::de_serialisieren::erzeuge_zugtyp_maps,
         kreuzung::{self, Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -27,6 +27,7 @@ use crate::{
     zugtyp::Zugtyp,
 };
 
+/// Alle bekannten Gleise und Eigenschaften für eine Lego-Eisenbahn.
 static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
     let geraden = [gerade()];
     let kurven = [kurve()];
@@ -35,7 +36,7 @@ static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
     let kurven_weichen = [];
     let s_kurven_weichen = [weiche(Orientierung::Links), weiche(Orientierung::Rechts)];
     let kreuzungen = [kreuzung()];
-    erzeuge_zugtyp_maps2!(
+    erzeuge_zugtyp_maps!(
         geraden: Gerade | "Anzahl der Geraden kann man an den Händen abzählen.",
         kurven: Kurve | "Anzahl der Kurven kann man an den Händen abzählen.",
         weichen: Weiche | "Anzahl der Weichen kann man an den Händen abzählen.",
@@ -45,7 +46,7 @@ static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
         kreuzungen: Kreuzung | "Anzahl der Kreuzungen kann man an den Händen abzählen.",
     );
     Zugtyp {
-        name: "Lego".to_string(),
+        name: String::from("Lego"),
         leiter: PhantomData,
         spurweite: Spurweite::neu(38.),
         geraden,
@@ -65,6 +66,7 @@ static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
 
 impl Zugtyp<Zweileiter> {
     /// Lego
+    #[must_use]
     pub fn lego() -> &'static Zugtyp<Zweileiter> {
         &LEGO
     }
@@ -92,21 +94,30 @@ Ein Kreis benötigt 16 Lego-PF-Kurven.
     Kreis-Radius (halber Kreis, Außen bis Kreismittelpunkt): ca. 44 Noppen / 35 cm
 Lego Spurweite: 38mm
 */
-const LENGTH_VALUE: f32 = 128.;
-const LENGTH: Länge = Länge::neu(LENGTH_VALUE);
-const RADIUS_VALUE: f32 = 320.;
-const RADIUS: Radius = Radius::neu(RADIUS_VALUE);
-const ANGLE_VALUE_DEGREE: f32 = 22.5;
-const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 
-/// Eine Lego-Gerade mit `13.6cm` Länge.
+/// Die Länge einer [`Gerade`] in mm.
+const LENGTH_VALUE: f32 = 128.;
+/// [`LENGTH_VALUE`] als [`Länge`].
+const LENGTH: Länge = Länge::neu(LENGTH_VALUE);
+/// Der Radius einer Kurve in mm.
+const RADIUS_VALUE: f32 = 320.;
+/// [`RADIUS_VALUE`] als [`Radius`].
+const RADIUS: Radius = Radius::neu(RADIUS_VALUE);
+/// Der Winkel einer [`Kurve`] im Bogenmaß.
+const ANGLE_VALUE_DEGREE: f32 = 22.5;
+/// [`ANGLE_VALUE_DEGREE`] im Gradmaß.
+const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
+/// [`ANGLE_VALUE`] als [`Winkel`].
+const ANGLE: Winkel = Winkel(ANGLE_VALUE);
+
+/// Eine Lego-Gerade mit `12.8cm` Länge.
+#[must_use]
 pub fn gerade() -> GeradeUnit {
     Gerade::neu(LENGTH)
 }
 
-const ANGLE: Winkel = Winkel(ANGLE_VALUE);
-
 /// Eine Lego-Kurve mit `32cm` Kurvenradius und `22.5°` Winkel.
+#[must_use]
 pub fn kurve() -> KurveUnit {
     Kurve::neu(RADIUS, ANGLE)
 }
@@ -126,21 +137,28 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 1 Noppe ist rund 0,8 cm (genauer: 0,79675... cm)
 1,00 cm sind rund 1,25 Noppen (genauer: 1,255...)
 */
+/// Die Länge einer [`SKurvenWeiche`] (doppelte Länge einer [`Gerade`]).
 const DOUBLE_LENGTH: Länge = Länge::neu(2. * LENGTH_VALUE);
+/// Der Winkel der nach außen gehenden Kurve im Bogenmaß.
 // const ANGLE_OUTWARDS_VALUE: f32 = (1.5 * LENGTH_VALUE / RADIUS_VALUE).asin();
 // https://www.wolframalpha.com/input/?i=asin%281.5+*+128%2F+320%29
-const ANGLE_OUTWARDS_VALUE: f32 = 0.6435011087932843868028092287173226380415105911153123828656;
+const ANGLE_OUTWARDS_VALUE: f32 = 0.643_501_1;
+/// [`ANGLE_OUTWARDS_VALUE`] als [`Winkel`].
 const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
+/// Der Winkel der nach innen gehenden Kurve als [`Winkel`].
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
 
-/// Eine Lego-Weiche, nach einer zusätzlichen Gerade/Kurve sind beide Gleise auf der selben Höhe.
+/// Eine Lego-Weiche. Nach einer zusätzlichen [Gerade]/[`Kurve`] sind beide Gleise auf der selben Höhe.
+#[must_use]
 pub fn weiche(orientierung: Orientierung) -> SKurvenWeicheUnit {
     SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, orientierung)
 }
 
+/// Der Radius einer [Kreuzung] als [`Radius`].
 const HALF_LENGTH_RADIUS: Radius = Radius::neu(0.5 * LENGTH_VALUE);
 
 /// Eine Lego-Kreuzung: `90°`-Winkel ohne Schaltmöglichkeit, Länge `13.6cm`.
+#[must_use]
 pub fn kreuzung() -> KreuzungUnit {
     Kreuzung::neu(LENGTH, HALF_LENGTH_RADIUS, kreuzung::Variante::OhneKurve)
 }

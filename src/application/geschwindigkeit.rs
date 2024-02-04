@@ -1,4 +1,4 @@
-//! Anzeige und Erstellen einer [Geschwindigkeit].
+//! Anzeige und Erstellen einer [`Geschwindigkeit`].
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -16,7 +16,7 @@ use iced_aw::{
     style::{number_input, tab_bar},
 };
 use iced_core::{
-    event,
+    event, text as text_core,
     widget::text::{self, Text},
     Element, Font, Length, Renderer,
 };
@@ -51,33 +51,43 @@ use crate::{
     util::{eingeschränkt::NichtNegativ, unicase_ord::UniCaseOrd},
 };
 
+/// Versuche ein Element vom [`NonEmpty::tail`] zu entfernen.
 fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -> Option<T> {
     let i = ix.get();
     // no need to check head, since `i` is non-zero
-    if i < non_empty.len() {
-        Some(non_empty.tail.remove(i - 1))
-    } else {
-        None
-    }
+    (i < non_empty.len()).then(|| {
+        non_empty.tail.remove(
+            // 1 <= i < non_empty.len()
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                i - 1
+            },
+        )
+    })
 }
 
-/// Sortierte Map aller Widget zur Anzeige der [Geschwindigkeiten](Geschwindigkeit).
+/// Sortierte Map aller Widget zur Anzeige der [`Geschwindigkeiten`](Geschwindigkeit).
 pub type Set = BTreeSet<Name>;
 
-/// Zustand des Widgets zur Anzeige einer [Geschwindigkeit].
+/// Zustand des Widgets zur Anzeige einer [`Geschwindigkeit`].
 #[derive(zugkontrolle_macros::Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 pub struct AnzeigeZustand<L: Leiter> {
+    /// Der Name der Geschwindigkeit.
     name: Name,
+    /// Die aktuelle Pwm-Frequenz.
     pwm_frequenz: NichtNegativ,
+    /// Wie groß ist die maximale Fahrspannung im Verhältnis zur Spannung zum Umdrehen (aktuell nur für [Mittelleiter]).
     verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+    /// Wie lange wird nach anhalten gewartet, bis die Fahrtrichtung umgedreht wird.
     stopp_zeit: Duration,
+    /// Wie lange ist die Überspannung beim Umdrehen [`Fließend`](crate::anschluss::polarität::Fließend::Fließend).
     umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
 }
 
 impl<L: Leiter> AnzeigeZustand<L> {
-    /// Erstelle einen neuen [AnzeigeZustand].
+    /// Erstelle einen neuen [`AnzeigeZustand`].
     pub fn neu(
         name: Name,
         pwm_frequenz: NichtNegativ,
@@ -95,24 +105,25 @@ impl<L: Leiter> AnzeigeZustand<L> {
     }
 }
 
-/// Anzeige und Steuerung einer [Geschwindigkeit].
+/// Anzeige und Steuerung einer [`Geschwindigkeit`].
 pub struct Anzeige<'t, M, R> {
+    /// Das Element mit der Widget-Hierarchie.
     element: Element<'t, M, R>,
 }
 
 impl<M, R> Debug for Anzeige<'_, M, R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Anzeige").field("element", &"<Element>").finish()
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
 impl<'t, M, R> Anzeige<'t, M, R>
 where
     M: 't + Clone,
-    R: 't + iced_core::text::Renderer,
+    R: 't + text_core::Renderer,
     <R as Renderer>::Theme: radio::StyleSheet + slider::StyleSheet + text::StyleSheet,
 {
-    /// Erstelle eine neue [Anzeige] für einen [Leiter].
+    /// Erstelle eine neue [Anzeige] für einen [`Leiter`].
     pub fn neu<'s, L: Leiter>(
         name: &'s Name,
         geschwindigkeit: &'s Geschwindigkeit<L>,
@@ -169,25 +180,35 @@ where
     }
 }
 
+/// Welche Tab-Seite wird angezeigt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TabId {
+    /// Auswahl für Steuerung über einen Pwm-Pin wird angezeigt.
     Pwm,
+    /// Auswahl für Steuerung über mehrere Anschlüsse mit unterschiedlicher konstanter Spannung wird angezeigt.
     KonstanteSpannung,
 }
 
-/// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [Geschwindigkeit].
+/// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [`Geschwindigkeit`].
 #[derive(Debug, PartialEq, Eq)]
 struct AuswahlZustand<S> {
+    /// Der aktuell gewählte Name.
     neu_name: String,
+    /// Der aktuell angezeigt Tab.
     aktueller_tab: TabId,
+    /// Der aktuelle Anschluss zum einstellen der Fahrtrichtung.
     umdrehen_anschluss: OutputSerialisiert,
+    /// Der aktuell gewählte Pin zur Steuerung über ein Pwm-Signal.
     pwm_pin: pwm::Serialisiert,
+    /// Die aktuell gewählte Polarität des Pwm-Signals
     pwm_polarität: Polarität,
+    /// Die aktuell gewählten Anschlüsse zur Steuerung über konstante Spannungswerte.
     ks_anschlüsse: NonEmpty<OutputSerialisiert>,
+    /// Bereits existierende Geschwindigkeiten.
     geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, (String, GeschwindigkeitSerialisiert<S>)>,
 }
 
-/// Der Startwert für ein [Auswahl]-Widget.
+/// Der Startwert für ein [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
 #[allow(variant_size_differences)]
 pub enum AuswahlStartwert {
@@ -195,7 +216,7 @@ pub enum AuswahlStartwert {
     Pwm {
         /// Anschluss zur Steuerung der Fahrtrichtung.
         umdrehen_anschluss: Option<OutputSerialisiert>,
-        /// Der [Pwm-Pin](pwm::Pin).
+        /// Der [`Pwm-Pin`](pwm::Pin).
         pwm_pin: pwm::Serialisiert,
         /// Die Polarität des Pwm-Signals.
         polarität: Polarität,
@@ -210,7 +231,7 @@ pub enum AuswahlStartwert {
 }
 
 impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
-    /// Erstelle einen neuen [AuswahlZustand].
+    /// Erstelle einen neuen [`AuswahlZustand`].
     fn neu<'t>(
         startwert: Option<(Name, AuswahlStartwert)>,
         geschwindigkeiten: impl Iterator<
@@ -264,6 +285,7 @@ impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
         }
     }
 
+    /// Konvertiere Map-Einträge für Geschwindigkeiten in benötigte Informationen zur Darstellung.
     fn iter_map(
         (name, geschwindigkeit): (&Name, &GeschwindigkeitSerialisiert<LeiterSerialisiert>),
     ) -> (UniCaseOrd<Name>, (String, GeschwindigkeitSerialisiert<LeiterSerialisiert>))
@@ -274,34 +296,47 @@ impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
     }
 }
 
+/// Interne Nachrichten zur Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
 enum InterneAuswahlNachricht {
+    /// Schließe das Auswahl-Fenster.
     Schließen,
+    /// Wechsle auf die gewünschten Tab-Seite.
     WähleTab(TabId),
+    /// Neuer gewählter Name.
     Name(String),
+    /// Neuer gewählter Anschluss für das einstellen der Fahrtrichtung.
     UmdrehenAnschluss(OutputSerialisiert),
+    /// Neuer Pin zur Steuerung über ein Pwm-Signal.
     PwmPin(pwm::Serialisiert),
+    /// Neue Polarität bei der Steuerung über ein Pwm-Signal.
     PwmPolarität(Polarität),
+    /// Anpassen eines Anschlusses zu Steuerung über konstante Spannungswerte.
     KonstanteSpannungAnschluss(usize, OutputSerialisiert),
+    /// Neuer Anschluss zur Steuerung über konstante Spannungswerte.
     NeuerKonstanteSpannungAnschluss,
+    /// Entferne einen Anschluss zur Steuerung über konstante Spannungswerte.
     LöscheKonstanteSpannungAnschluss(NonZeroUsize),
+    /// Füge die aktuell gewählte Geschwindigkeit hinzu.
     Hinzufügen,
+    /// Entferne eine bekannte Geschwindigkeit.
     Löschen(Name),
+    /// Bearbeite eine bekannte Geschwindigkeit.
     Bearbeiten(Name, AuswahlStartwert),
 }
 
-/// Nachricht eines [Auswahl]-Widgets.
+/// Nachricht eines [`Auswahl`]-Widgets.
 #[derive(Debug, Clone)]
 pub enum AuswahlNachricht<LeiterSerialisiert> {
     /// Schließe das Auswahl-Fenster.
     Schließen,
-    /// Füge eine neue [Geschwindigkeit] hinzu.
+    /// Füge eine neue [`Geschwindigkeit`] hinzu.
     Hinzufügen(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>),
-    /// Lösche eine [Geschwindigkeit].
+    /// Lösche eine [`Geschwindigkeit`].
     Löschen(Name),
 }
 
-/// Hinzufügen und Anpassen einer [Geschwindigkeit].
+/// Hinzufügen und Anpassen einer [`Geschwindigkeit`].
 #[derive(Debug)]
 pub struct Auswahl<'t, LeiterSerialisiert, R>(
     MapMitZustand<
@@ -316,19 +351,19 @@ pub struct Auswahl<'t, LeiterSerialisiert, R>(
 /// Wo soll eine Auswahl für einen Anschluss zum Einstellen der Fahrtrichtung angezeigt werden.
 #[derive(Debug, Clone, Copy)]
 pub enum FahrtrichtungAnschluss {
-    /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über ein Pwm-Signal gesteuert werden.
+    /// Nur für [`Geschwindigkeiten`](Geschwindigkeit) die über ein Pwm-Signal gesteuert werden.
     Pwm,
-    /// Nur für [Geschwindigkeiten](Geschwindigkeit) die über mehrere Anschlüsse
+    /// Nur für [`Geschwindigkeiten`](Geschwindigkeit) die über mehrere Anschlüsse
     /// mit konstanter Spannung gesteuert werden.
     KonstanteSpannung,
-    /// Bei allen [Geschwindigkeiten](Geschwindigkeit), unabhängig davon wie sie gesteuert werden.
+    /// Bei allen [`Geschwindigkeiten`](Geschwindigkeit), unabhängig davon wie sie gesteuert werden.
     Immer,
 }
 
 impl<'t, LeiterSerialisiert, R> Auswahl<'t, LeiterSerialisiert, R>
 where
     LeiterSerialisiert: 't + Display + Clone,
-    R: 't + iced_core::text::Renderer<Font = Font>,
+    R: 't + text_core::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -341,7 +376,9 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
-    /// Erstelle eine neue [Auswahl].
+    /// TODO Behandeln benötigt Anpassung des public API.
+    #[allow(clippy::too_many_arguments)]
+    /// Erstelle eine neue [`Auswahl`].
     pub fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
         startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
@@ -360,8 +397,13 @@ where
         settings: I2cSettings,
     ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
-        let auswahl_startwert = startwert.map(|(name, startwert)| {
-            (name, <L as LeiterAnzeige<'l, LeiterSerialisiert, R>>::auswahl_startwert(startwert))
+        let auswahl_startwert = startwert.map(|(name, start_geschwindigkeit)| {
+            (
+                name,
+                <L as LeiterAnzeige<'l, LeiterSerialisiert, R>>::auswahl_startwert(
+                    start_geschwindigkeit,
+                ),
+            )
         });
         let erzeuge_zustand =
             move || AuswahlZustand::neu(auswahl_startwert.clone(), geschwindigkeiten.iter());
@@ -374,53 +416,66 @@ where
                 settings,
             )
         };
-        let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = AuswahlZustand<LeiterSerialisiert>>,
-                      status: &mut event::Status| {
+        let mapper = Self::mapper(pwm_nachricht, ks_nachricht);
+        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+    }
+
+    /// Konvertiere eine [`InterneAuswahlNachricht`] in eine [`AuswahlNachricht`].
+    fn mapper(
+        pwm_nachricht: &'t impl Fn(
+            OutputSerialisiert,
+            pwm::Serialisiert,
+            Polarität,
+        ) -> LeiterSerialisiert,
+        ks_nachricht: &'t impl Fn(
+            OutputSerialisiert,
+            NonEmpty<OutputSerialisiert>,
+        ) -> LeiterSerialisiert,
+    ) -> impl 't
+           + Fn(
+        InterneAuswahlNachricht,
+        &mut (dyn DerefMut<Target = AuswahlZustand<LeiterSerialisiert>>),
+        &mut event::Status,
+    ) -> Vec<AuswahlNachricht<LeiterSerialisiert>> {
+        |interne_nachricht, zustand, status| {
             *status = event::Status::Captured;
+            let mut nachrichten = Vec::new();
             match interne_nachricht {
-                InterneAuswahlNachricht::Schließen => vec![AuswahlNachricht::Schließen],
+                InterneAuswahlNachricht::Schließen => {
+                    nachrichten.push(AuswahlNachricht::Schließen);
+                },
                 InterneAuswahlNachricht::WähleTab(tab) => {
                     zustand.aktueller_tab = tab;
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::Name(name) => {
                     zustand.neu_name = name;
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::UmdrehenAnschluss(anschluss) => {
                     zustand.umdrehen_anschluss = anschluss;
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::PwmPin(pin) => {
                     zustand.pwm_pin = pin;
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::PwmPolarität(polarität) => {
                     zustand.pwm_polarität = polarität;
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::KonstanteSpannungAnschluss(ix, anschluss_neu) => {
                     if let Some(anschluss) = zustand.ks_anschlüsse.get_mut(ix) {
                         *anschluss = anschluss_neu;
                     } else {
                         error!(
-                            "Update-Nachricht für Anschluss {}, es gibt aber nur {}!",
-                            ix,
+                            "Update-Nachricht für Anschluss {ix}, es gibt aber nur {}!",
                             zustand.ks_anschlüsse.len()
-                        )
+                        );
                     }
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss => {
                     zustand
                         .ks_anschlüsse
                         .push(OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal });
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::LöscheKonstanteSpannungAnschluss(ix) => {
                     let _ = remove_from_nonempty_tail(&mut zustand.ks_anschlüsse, ix);
-                    Vec::new()
                 },
                 InterneAuswahlNachricht::Hinzufügen => {
                     let leiter = match zustand.aktueller_tab {
@@ -447,10 +502,10 @@ where
                         Name(zustand.neu_name.clone()),
                         GeschwindigkeitSerialisiert { leiter },
                     );
-                    vec![nachricht]
+                    nachrichten.push(nachricht);
                 },
                 InterneAuswahlNachricht::Löschen(name) => {
-                    vec![AuswahlNachricht::Löschen(name)]
+                    nachrichten.push(AuswahlNachricht::Löschen(name));
                 },
                 InterneAuswahlNachricht::Bearbeiten(name, startwert) => {
                     zustand.neu_name = name.0;
@@ -474,62 +529,52 @@ where
                             zustand.ks_anschlüsse = geschwindigkeit_anschlüsse;
                         },
                     };
-                    Vec::new()
                 },
             }
-        };
-        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+            nachrichten
+        }
     }
 
-    fn erzeuge_element<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
-        zustand: &AuswahlZustand<LeiterSerialisiert>,
-        fahrtrichtung_anschluss: FahrtrichtungAnschluss,
+    /// Erzeuge die Anschluss-Auswahl zum Einstellen der Fahrtrichtung.
+    fn umdrehen_auswahl(
         fahrtrichtung_beschreibung: &str,
         scrollable_style: Sammlung,
         settings: I2cSettings,
+        umdrehen_anschluss: &OutputSerialisiert,
     ) -> Element<'t, InterneAuswahlNachricht, R> {
-        let AuswahlZustand {
-            neu_name,
-            aktueller_tab,
-            umdrehen_anschluss,
-            pwm_pin,
-            pwm_polarität,
-            ks_anschlüsse,
-            geschwindigkeiten,
-        } = zustand;
-        let width = Length::Fixed(950.);
-        let mut neuer_anschluss = Column::new().push(
-            TextInput::new("<Name>", neu_name).on_input(InterneAuswahlNachricht::Name).width(width),
-        );
-        let umdrehen_auswahl =
-            Column::new().push(Text::new(fahrtrichtung_beschreibung.to_owned())).push(
+        Column::new()
+            .push(Text::new(fahrtrichtung_beschreibung.to_owned()))
+            .push(
                 Element::from(anschluss::Auswahl::neu_output_s(
                     Some(umdrehen_anschluss.clone()),
                     scrollable_style,
                     settings,
                 ))
                 .map(InterneAuswahlNachricht::UmdrehenAnschluss),
-            );
+            )
+            .into()
+    }
+
+    /// Erzeuge die Widgets für die Pin-Auswahl zu Steuerung über ein Pwm-Signal.
+    fn pwm_auswahl(
+        fahrtrichtung_anschluss: FahrtrichtungAnschluss,
+        umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, R>,
+        pwm_pin: &pwm::Serialisiert,
+        pwm_polarität: Polarität,
+    ) -> Element<'t, InterneAuswahlNachricht, R> {
         let make_radio = |polarität: Polarität| {
             Radio::new(
                 polarität.to_string(),
                 polarität,
-                Some(*pwm_polarität),
+                Some(pwm_polarität),
                 InterneAuswahlNachricht::PwmPolarität,
             )
         };
         let mut pwm_auswahl = Row::new();
-        let mut ks_auswahl = Column::new().height(Length::Shrink);
-        match fahrtrichtung_anschluss {
-            FahrtrichtungAnschluss::Pwm => pwm_auswahl = pwm_auswahl.push(umdrehen_auswahl),
-            FahrtrichtungAnschluss::KonstanteSpannung => {
-                ks_auswahl = ks_auswahl.push(umdrehen_auswahl)
-            },
-            FahrtrichtungAnschluss::Immer => {
-                neuer_anschluss = neuer_anschluss.push(umdrehen_auswahl)
-            },
+        if let FahrtrichtungAnschluss::Pwm = fahrtrichtung_anschluss {
+            pwm_auswahl = pwm_auswahl.push(umdrehen_auswahl());
         }
-        let pwm_auswahl = pwm_auswahl
+        pwm_auswahl = pwm_auswahl
             .push(
                 Element::from(anschluss::Pwm::neu_s(Some(pwm_pin.clone())))
                     .map(InterneAuswahlNachricht::PwmPin),
@@ -539,6 +584,21 @@ where
                     .push(make_radio(Polarität::Normal))
                     .push(make_radio(Polarität::Invertiert)),
             );
+        pwm_auswahl.into()
+    }
+
+    /// Erzeuge die Widgets für die Anschlüsse-Auswahl zur Steuerung über konstante Spannungswerte.
+    fn ks_auswahl(
+        fahrtrichtung_anschluss: FahrtrichtungAnschluss,
+        umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, R>,
+        scrollable_style: Sammlung,
+        settings: I2cSettings,
+        ks_anschlüsse: &NonEmpty<OutputSerialisiert>,
+    ) -> Element<'t, InterneAuswahlNachricht, R> {
+        let mut ks_auswahl = Column::new().height(Length::Shrink);
+        if let FahrtrichtungAnschluss::KonstanteSpannung = fahrtrichtung_anschluss {
+            ks_auswahl = ks_auswahl.push(umdrehen_auswahl());
+        }
         ks_auswahl = ks_auswahl
             .push(Space::with_height(Length::Fixed(1.)))
             .push(Text::new("Geschwindigkeit"));
@@ -567,11 +627,59 @@ where
                 )
             });
             row = row.push(Space::new(Length::Fixed(7.5), Length::Shrink));
-            ks_auswahl = ks_auswahl.push(row)
+            ks_auswahl = ks_auswahl.push(row);
         }
+        ks_auswahl.into()
+    }
+
+    /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.
+    fn erzeuge_element<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
+        zustand: &AuswahlZustand<LeiterSerialisiert>,
+        fahrtrichtung_anschluss: FahrtrichtungAnschluss,
+        fahrtrichtung_beschreibung: &str,
+        scrollable_style: Sammlung,
+        settings: I2cSettings,
+    ) -> Element<'t, InterneAuswahlNachricht, R> {
+        let AuswahlZustand {
+            neu_name,
+            aktueller_tab,
+            umdrehen_anschluss,
+            pwm_pin,
+            pwm_polarität,
+            ks_anschlüsse,
+            geschwindigkeiten,
+        } = zustand;
+        let width = Length::Fixed(950.);
+        let mut neuer_anschluss = Column::new().push(
+            TextInput::new("<Name>", neu_name).on_input(InterneAuswahlNachricht::Name).width(width),
+        );
+        let erzeuge_umdrehen_auswahl = || {
+            Self::umdrehen_auswahl(
+                fahrtrichtung_beschreibung,
+                scrollable_style,
+                settings,
+                umdrehen_anschluss,
+            )
+        };
+        if let FahrtrichtungAnschluss::Immer = fahrtrichtung_anschluss {
+            neuer_anschluss = neuer_anschluss.push(erzeuge_umdrehen_auswahl());
+        }
+        let pwm_auswahl = Self::pwm_auswahl(
+            fahrtrichtung_anschluss,
+            erzeuge_umdrehen_auswahl,
+            pwm_pin,
+            *pwm_polarität,
+        );
+        let ks_auswahl = Self::ks_auswahl(
+            fahrtrichtung_anschluss,
+            erzeuge_umdrehen_auswahl,
+            scrollable_style,
+            settings,
+            ks_anschlüsse,
+        );
         let tabs = Tabs::with_tabs(
             vec![
-                (TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl.into()),
+                (TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl),
                 (
                     TabId::KonstanteSpannung,
                     TabLabel::Text("Konstante Spannung".to_owned()),
@@ -588,7 +696,7 @@ where
         let mut column = Column::new().push(neuer_anschluss).push(
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),
         );
-        for (name, (anschlüsse_str, anschlüsse)) in geschwindigkeiten.iter() {
+        for (name, (anschlüsse_str, anschlüsse)) in geschwindigkeiten {
             let bearbeiten = Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                 InterneAuswahlNachricht::Bearbeiten(
                     name.clone().into_inner(),
@@ -619,22 +727,22 @@ impl<'t, LeiterSerialisiert, R> From<Auswahl<'t, LeiterSerialisiert, R>>
     for Element<'t, AuswahlNachricht<LeiterSerialisiert>, R>
 where
     LeiterSerialisiert: 'static + PartialEq,
-    R: 't + iced_core::text::Renderer<Font = Font>,
+    R: 't + text_core::Renderer<Font = Font>,
 {
     fn from(anzeige: Auswahl<'t, LeiterSerialisiert, R>) -> Self {
         Element::new(anzeige.0)
     }
 }
 
-/// Ermöglicht Erstellen und Anpassen einer [Geschwindigkeit] mit dieser Leiter-Art.
+/// Ermöglicht Erstellen und Anpassen einer [`Geschwindigkeit`] mit dieser Leiter-Art.
 pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
-    /// Erstelle eine neue [Anzeige].
+    /// Erstelle eine neue [`Anzeige`].
     fn anzeige_neu(
         name: &Name,
         geschwindigkeit: &Geschwindigkeit<Self>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
 
-    /// Erstelle eine neue [Auswahl].
+    /// Erstelle eine neue [`Auswahl`].
     fn auswahl_neu(
         startwert: Option<(Name, GeschwindigkeitSerialisiert<S>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
@@ -642,11 +750,11 @@ pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
         settings: I2cSettings,
     ) -> Auswahl<'t, S, R>;
 
-    /// Erzeuge den [Startwert](AuswahlStartwert) für ein [Auswahl]-Widget.
+    /// Erzeuge den [Startwert](AuswahlStartwert) für ein [`Auswahl`]-Widget.
     fn auswahl_startwert(serialisiert: GeschwindigkeitSerialisiert<S>) -> AuswahlStartwert;
 }
 
-/// Zurücksetzen des Zustands des [Anzeige]-Widgets.
+/// Zurücksetzen des Zustands des [`Anzeige`]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub struct ZustandZurücksetzenMittelleiter {
     /// Die Geschwindigkeit vor der async-Aktion.
@@ -655,7 +763,7 @@ pub struct ZustandZurücksetzenMittelleiter {
 
 impl<'t, R> LeiterAnzeige<'t, MittelleiterSerialisiert, R> for Mittelleiter
 where
-    R: 't + iced_core::text::Renderer<Font = Font>,
+    R: 't + text_core::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -731,7 +839,7 @@ where
     }
 }
 
-/// Zurücksetzen des Zustands des [Anzeige]-Widgets.
+/// Zurücksetzen des Zustands des [`Anzeige`]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub struct ZustandZurücksetzenZweileiter {
     /// Die Fahrgeschwindigkeit vor der async-Aktion.
@@ -742,7 +850,7 @@ pub struct ZustandZurücksetzenZweileiter {
 
 impl<'t, R: 't> LeiterAnzeige<'t, ZweileiterSerialisiert, R> for Zweileiter
 where
-    R: iced_core::text::Renderer<Font = Font>,
+    R: text_core::Renderer<Font = Font>,
     <R as Renderer>::Theme: container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
@@ -760,15 +868,15 @@ where
         name: &Name,
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
     ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
-        let clone = geschwindigkeit.clone();
+        let geschwindigkeit_radio_clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
                 fahrtrichtung.to_string(),
                 fahrtrichtung,
                 Some(*aktuell),
-                move |fahrtrichtung| AktionGeschwindigkeit::Fahrtrichtung {
-                    geschwindigkeit: clone.clone(),
-                    fahrtrichtung,
+                move |gewählte_fahrtrichtung| AktionGeschwindigkeit::Fahrtrichtung {
+                    geschwindigkeit: geschwindigkeit_radio_clone.clone(),
+                    fahrtrichtung: gewählte_fahrtrichtung,
                 },
             )
         };
@@ -779,13 +887,13 @@ where
                 .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts, &fahrtrichtung))
                 .into()
         };
-        let clone = geschwindigkeit.clone();
+        let geschwindigkeit_clone = geschwindigkeit.clone();
         Anzeige::neu(
             name,
             geschwindigkeit,
             Geschwindigkeit::<Zweileiter>::ks_länge,
             move |wert| AktionGeschwindigkeit::Geschwindigkeit {
-                geschwindigkeit: clone.clone(),
+                geschwindigkeit: geschwindigkeit_clone.clone(),
                 wert,
             },
             zeige_fahrtrichtung,

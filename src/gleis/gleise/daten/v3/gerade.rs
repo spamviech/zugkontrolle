@@ -1,20 +1,24 @@
-//! Serialisierbare Darstellung einer [Gerade] in Version 3.
+//! Serialisierbare Darstellung einer [`Gerade`] in Version 3.
 
 use serde::{Deserialize, Serialize};
 
 use crate::{gleis::gerade as v4, steuerung::kontakt::KontaktSerialisiert, typen::skalar::Skalar};
 
+// Folge Konvention TypName -> TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
 /// Definition einer Gerade.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GeradeSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
-    /// Die Länge der Gerade auf dem [Canvas](iced::widget::canvas::Canvas).
+    /// Die Länge der Gerade auf dem [`Canvas`](iced::widget::canvas::Canvas).
     pub länge: Skalar,
     /// Eine allgemeine Beschreibung der Kreuzung, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Der Anschluss für einen [Kontakt] an der Schiene.
+    /// Der Anschluss für einen [`Kontakt`] an der Schiene.
     pub kontakt: Anschluss,
 }
 
+// Folge Konvention TypName -> TypNameUnit
+#[allow(clippy::module_name_repetitions)]
 /// Eine Variante ohne Anschlüsse.
 pub type GeradeUnit = GeradeSerialisiert<()>;
 

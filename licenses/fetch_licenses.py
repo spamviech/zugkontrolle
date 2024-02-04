@@ -122,7 +122,7 @@ def download_licenses(repository, dst_dir, log_file):
     raw_prefix = "https://raw.githubusercontent.com"
     https_repository = make_https(repository)
     found = False
-    if https_repository is not None and https_repository.startswith(github_prefix):
+    if (https_repository is not None) and https_repository.startswith(github_prefix):
         tree_start = https_repository.find("/tree/")
         if tree_start > -1:
             base_repository = https_repository[:tree_start]
@@ -141,7 +141,7 @@ def download_licenses(repository, dst_dir, log_file):
                 url = raw_branch_repository + "/" + license
                 try:
                     root, ext = os.path.splitext(license)
-                    file_path = os.path.join(dst_dir, f"{root}-GITHUB.{ext}")
+                    file_path = os.path.join(dst_dir, f"{root}-GITHUB{ext}")
                     with urllib.request.urlopen(url) as remote:
                         with open(file_path, 'wb') as f:
                             f.write(remote.read())

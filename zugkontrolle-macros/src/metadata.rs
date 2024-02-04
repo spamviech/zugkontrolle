@@ -7,7 +7,8 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::LitStr;
 
-pub(crate) fn verwendete_crates(target: LitStr) -> TokenStream {
+/// [`crate::verwendete_crates`]
+pub(crate) fn verwendete_crates(target: &LitStr) -> TokenStream {
     let metadata_res = MetadataCommand::new()
         .other_options([
             String::from("--filter-platform"),
@@ -29,7 +30,8 @@ pub(crate) fn verwendete_crates(target: LitStr) -> TokenStream {
     quote!([#(#packages),*])
 }
 
-pub(crate) fn target_crates(input: TokenStream) -> TokenStream {
+/// [`crate::target_crates`]
+pub(crate) fn target_crates(input: &TokenStream) -> TokenStream {
     if !input.is_empty() {
         let fehlermeldung = format!("No argument supported, but \"{input}\" was given.");
         return quote!(compile_error!(#fehlermeldung));

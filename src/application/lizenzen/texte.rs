@@ -10,15 +10,16 @@ use enum_iterator::Sequence;
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz mit Standardwerten
 /// und Anmerkung über fehlende Lizenzdatei.
+#[must_use]
 pub fn mit_missing_note<'t>() -> Cow<'t, str> {
     mit(
         MITPräfix(
-            r#"Note:
+            "Note:
 No License file was provided with the crate,
 but the intend to use a MIT license was specified in the `Cargo.toml` file.
 The following shows a template for the MIT license with meta variables not replaced.
 
-MIT License"#,
+MIT License",
             2,
         ),
         vec![MITCopyright::neu(true, "[year]", "[full_name]")],
@@ -31,11 +32,13 @@ MIT License"#,
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen.
+#[must_use]
 pub fn mit_ohne_copyright<'t>(zeilenumbrüche: MITZeilenumbruch) -> Cow<'t, str> {
     mit(None, Vec::new(), None, zeilenumbrüche, MITEinrückung::keine(), false, MITEnde::standard())
 }
 
 /// Erzeuge den Lizenztext für die MIT-Lizenz ohne Copyright-Informationen mit X11-Zeilenumbrüchen.
+#[must_use]
 pub fn mit_ohne_copyright_x11<'t>() -> Cow<'t, str> {
     mit_ohne_copyright(MITZeilenumbruch::X11)
 }
@@ -52,7 +55,7 @@ pub struct MITCopyright<'t> {
 }
 
 impl<'t> MITCopyright<'t> {
-    /// Erstelle ein neues [MITCopyright] struct.
+    /// Erstelle ein neues [`MITCopyright`] struct.
     pub fn neu(
         c_in_klammern: bool,
         jahr: impl Into<Option<&'t str>>,
@@ -63,33 +66,34 @@ impl<'t> MITCopyright<'t> {
 }
 
 impl Display for MITCopyright<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         let MITCopyright { c_in_klammern, jahr, voller_name } = self;
         let c_in_klammern_str = if *c_in_klammern { " (c)" } else { "" };
-        write!(f, "Copyright{c_in_klammern_str} ")?;
+        write!(formatter, "Copyright{c_in_klammern_str} ")?;
         if let Some(jahr) = jahr {
-            write!(f, "{jahr}")?;
+            write!(formatter, "{jahr}")?;
             if voller_name.is_some() {
-                f.write_str(" ")?;
+                formatter.write_str(" ")?;
             }
         }
         if let Some(voller_name) = voller_name {
-            write!(f, "{voller_name}")?;
+            write!(formatter, "{voller_name}")?;
         }
         Ok(())
     }
 }
 
+/// Newtype über [`Vec`] mit [`Display`]-Implementierung: zeige Elemente in jeweils einer neuen Zeile an.
 struct VecD<T, E>(Vec<T>, E);
 
 impl Display for VecD<MITCopyright<'_>, MITEinrückung<'_>> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         let VecD(vec, einrückung) = self;
         if !vec.is_empty() {
             for copyright in vec {
-                write!(f, "{einrückung}{copyright}\n")?;
+                writeln!(formatter, "{einrückung}{copyright}")?;
             }
-            write!(f, "\n")?;
+            writeln!(formatter)?;
         }
         Ok(())
     }
@@ -99,14 +103,15 @@ impl Display for VecD<MITCopyright<'_>, MITEinrückung<'_>> {
 #[derive(Debug, Clone, Copy)]
 pub struct MITPräfix<'t>(pub &'t str, pub u8);
 
+/// Newtype über [`Option`] mit [`Display`]-Implementierung: zeige [`Some`]-Werte an.
 struct OptionD<T, E>(Option<T>, E);
 
 impl Display for OptionD<MITPräfix<'_>, MITEinrückung<'_>> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let OptionD(Some(MITPräfix(s, neue_zeilen)), einrückung) = self {
-            write!(f, "{einrückung}{s}")?;
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        if let OptionD(Some(MITPräfix(präfix, neue_zeilen)), einrückung) = self {
+            write!(formatter, "{einrückung}{präfix}")?;
             for _ in 0..*neue_zeilen {
-                write!(f, "\n")?;
+                writeln!(formatter)?;
             }
         }
         Ok(())
@@ -119,11 +124,11 @@ impl Display for OptionD<MITPräfix<'_>, MITEinrückung<'_>> {
 pub struct MITInfix<'t>(pub &'t str, pub u8);
 
 impl Display for OptionD<MITInfix<'_>, MITEinrückung<'_>> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let OptionD(Some(MITInfix(s, neue_zeilen)), einrückung) = self {
-            write!(f, "{einrückung}{s}")?;
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        if let OptionD(Some(MITInfix(infix, neue_zeilen)), einrückung) = self {
+            write!(formatter, "{einrückung}{infix}")?;
             for _ in 0..*neue_zeilen {
-                write!(f, "\n")?;
+                writeln!(formatter)?;
             }
         }
         Ok(())
@@ -135,18 +140,20 @@ impl Display for OptionD<MITInfix<'_>, MITEinrückung<'_>> {
 pub struct MITEinrückung<'t>(&'t str);
 
 impl Display for MITEinrückung<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(self.0)
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.0)
     }
 }
 
 impl MITEinrückung<'_> {
     /// Keine Einrückung.
+    #[must_use]
     pub const fn keine() -> Self {
         MITEinrückung("")
     }
 
     /// Einrückung mit 4 Leerzeichen.
+    #[must_use]
     pub const fn leerzeichen_4() -> Self {
         MITEinrückung("    ")
     }
@@ -191,23 +198,29 @@ pub struct MITEnde {
 
 impl MITEnde {
     /// Ende des MIT-Lizenztextes mit Punkt und finaler neuer Zeile.
+    #[must_use]
     pub fn standard() -> Self {
         MITEnde { punkt: true, neue_zeile: 1 }
     }
 
     /// Ende des MIT-Lizenztextes mit Punkt, ohne finaler neuer Zeile.
+    #[must_use]
     pub fn ohne_neue_zeile() -> Self {
         MITEnde { punkt: true, neue_zeile: 0 }
     }
 
     /// Ende des MIT-Lizenztextes mit Punkt und zwei finalen Leerzeilen.
+    #[must_use]
     pub fn zwei_neue_zeilen() -> Self {
         MITEnde { punkt: true, neue_zeile: 2 }
     }
 }
 
-/// Erzeuge den Lizenztext für die MIT-Lizenz.
+// Viel zu viele Varianten...
+#[allow(clippy::too_many_lines)]
+// anonymous lifetimes in `impl Trait` are unstable
 #[allow(single_use_lifetimes)]
+/// Erzeuge den Lizenztext für die MIT-Lizenz.
 pub fn mit<'t, 'p, 'i>(
     präfix: impl Into<Option<MITPräfix<'p>>>,
     copyright: Vec<MITCopyright<'_>>,
@@ -217,13 +230,15 @@ pub fn mit<'t, 'p, 'i>(
     including_next_paragraph: bool,
     ende: MITEnde,
 ) -> Cow<'t, str> {
+    use MITZeilenumbruch::{
+        Iced, NonEmpty, QuickXml, RPPal, Redox, Softbuffer, Standard, WasmTimer, Winreg, X11,
+    };
     let präfix_d = OptionD(präfix.into(), einrückung);
     let copyright_d = VecD(copyright, einrückung);
     let infix_d = OptionD(infix.into(), einrückung);
     let neue_zeile = format!("\n{einrückung}");
     let neue_zeile_str = neue_zeile.as_str();
-    let neue_zeile_oder_leerzeichen = |b| if b { neue_zeile_str } else { " " };
-    use MITZeilenumbruch::*;
+    let neue_zeile_oder_leerzeichen = |bedingung| if bedingung { neue_zeile_str } else { " " };
     let quickxml_extra_leerzeichen = if zeilenumbrüche == QuickXml { " " } else { "" };
     let neuer_paragraph = if zeilenumbrüche == QuickXml { "\n\n\n" } else { "\n\n" };
     let standard_winreg_quickxml =
@@ -274,6 +289,7 @@ pub fn mit<'t, 'p, 'i>(
     let including_next_paragraph_str =
         if including_next_paragraph { " (including the next paragraph)" } else { "" };
     let mut string = format!("{präfix_d}{copyright_d}{infix_d}{einrückung}");
+    /// Füge alle Expressions über [`String::push_str`] zu `string` hinzu.
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
             string.push_str($h);
@@ -420,23 +436,23 @@ pub fn mit<'t, 'p, 'i>(
         "SOFTWARE",
     );
     if ende.punkt {
-        string.push_str(".");
+        string.push('.');
     }
     for _ in 0..ende.neue_zeile {
-        string.push_str("\n");
+        string.push('\n');
     }
     Cow::Owned(string)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit Standardwerten
 /// ohne Einrückung und ohne Leerzeile am Anfang.
-#[inline(always)]
+#[must_use]
 pub fn apache_2_0_standard_nicht_eingerückt<'t>() -> Cow<'t, str> {
     apache_2_0_nicht_eingerückt(false, ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
-#[inline(always)]
+#[must_use]
 pub fn apache_2_0_nicht_eingerückt<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,
@@ -454,13 +470,13 @@ pub fn apache_2_0_nicht_eingerückt<'t>(
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit Standardwerten, eingerücktem Text
 /// und Leerzeile am Anfang.
-#[inline(always)]
+#[must_use]
 pub fn apache_2_0_standard_eingerückt<'t>() -> Cow<'t, str> {
     apache_2_0_eingerückt(true, ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit eingerücktem Text.
-#[inline(always)]
+#[must_use]
 pub fn apache_2_0_eingerückt<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,
@@ -496,7 +512,8 @@ pub struct ApacheEinrückung<'t> {
 }
 
 impl ApacheEinrückung<'_> {
-    /// [ApacheEinrückung] für die nicht eingerückte Version des Lizenz-Textes.
+    /// [`ApacheEinrückung`] für die nicht eingerückte Version des Lizenz-Textes.
+    #[must_use]
     pub const fn nicht_eingerückt() -> Self {
         ApacheEinrückung {
             titel: "        ",
@@ -509,7 +526,8 @@ impl ApacheEinrückung<'_> {
         }
     }
 
-    /// [ApacheEinrückung] für die eingerückte Version des Lizenz-Textes.
+    /// [`ApacheEinrückung`] für die eingerückte Version des Lizenz-Textes.
+    #[must_use]
     pub const fn eingerückt() -> Self {
         ApacheEinrückung {
             titel: "                                 ",
@@ -536,17 +554,24 @@ pub struct ApacheCopyright<'t> {
 
 impl ApacheCopyright<'_> {
     /// Standard-Werte für Copyright-Informationen in einer Apache-2.0-Lizenz.
+    #[must_use]
     pub fn standard() -> Self {
         ApacheCopyright { brackets: "[]", jahr: "[yyyy]", voller_name: "[name of copyright owner]" }
     }
 
     /// Standard-Werte für Copyright-Informationen in einer Apache-2.0-Lizenz mit geschweiften Klammern.
+    #[must_use]
     pub fn braces() -> Self {
         ApacheCopyright { brackets: "{}", jahr: "{yyyy}", voller_name: "{name of copyright owner}" }
     }
 }
 
+// Hauptsächlich der Lizenztext.
+#[allow(clippy::too_many_lines)]
+// TODO Beheben erfordert anpassen des public API.
+#[allow(clippy::needless_pass_by_value)]
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
+#[must_use]
 pub fn apache_2_0<'t>(
     beginn_leerzeile: bool,
     copyright: ApacheCopyright<'_>,
@@ -779,6 +804,7 @@ pub fn apache_2_0<'t>(
 }
 
 /// Erzeuge den Lizenztext für die 0BSD-Lizenz.
+#[must_use]
 pub fn bsd_0<'t>(jahr: &'t str, name: &'t str) -> Cow<'t, str> {
     Cow::Owned(format!(
         r#"Copyright (C) {jahr} {name}
@@ -798,6 +824,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 }
 
 /// Erzeuge den Lizenztext für die BSD-2-Lizenz.
+#[must_use]
 pub fn bsd_2<'t>(jahr: &'t str, name: &'t str) -> Cow<'t, str> {
     Cow::Owned(format!(
         r#"Copyright (c) {jahr} {name}
@@ -844,7 +871,8 @@ pub struct BSD3Copyright<'t> {
 }
 
 impl<'t> BSD3Copyright<'t> {
-    /// Erstelle ein neues [BSD3Copyright] struct.
+    /// Erstelle ein neues [`BSD3Copyright`] struct.
+    #[must_use]
     pub fn neu(
         jahr: &'t str,
         komma_nach_jahr: bool,
@@ -856,23 +884,26 @@ impl<'t> BSD3Copyright<'t> {
 }
 
 impl Display for BSD3Copyright<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         let BSD3Copyright { jahr, komma_nach_jahr, voller_name, all_rights_neue_zeile } = self;
         let komma = if *komma_nach_jahr { "," } else { "" };
         let neue_zeile_oder_leerzeichen = if *all_rights_neue_zeile { "\n" } else { " " };
-        write!(f, "Copyright (c) {jahr}{komma} {voller_name}{neue_zeile_oder_leerzeichen}")?;
+        write!(
+            formatter,
+            "Copyright (c) {jahr}{komma} {voller_name}{neue_zeile_oder_leerzeichen}"
+        )?;
         Ok(())
     }
 }
 
 impl Display for VecD<BSD3Copyright<'_>, ()> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         let VecD(vec, ()) = self;
         if !vec.is_empty() {
             for copyright in vec {
-                write!(f, "{copyright}All rights reserved.\n")?;
+                writeln!(formatter, "{copyright}All rights reserved.")?;
             }
-            write!(f, "\n")?;
+            writeln!(formatter)?;
         }
         Ok(())
     }
@@ -902,16 +933,26 @@ pub struct BSD3Darstellung<'t> {
     pub copyright_holder: &'t str,
 }
 
+// Hauptsächlich der Lizenztext.
+#[allow(clippy::too_many_lines)]
+// TODO Beheben erfordert Anpassung des public APIs.
+#[allow(clippy::needless_pass_by_value)]
 /// Erzeuge den Lizenztext für die BSD-3-Lizenz.
+#[must_use]
 pub fn bsd_3<'t>(
     copyright: Vec<BSD3Copyright<'t>>,
     zeilenumbrüche: BSD3Zeilenumbruch,
     darstellung: BSD3Darstellung<'t>,
 ) -> Cow<'t, str> {
+    use BSD3Zeilenumbruch::{Instant, TinySkia};
     let copyright_d = VecD(copyright, ());
-    let neue_zeile_oder_leerzeichen =
-        |b, einrückung| if b { format!("\n{einrückung}") } else { String::from(" ") };
-    use BSD3Zeilenumbruch::*;
+    let neue_zeile_oder_leerzeichen = |bedingung, einrückung| {
+        if bedingung {
+            format!("\n{einrückung}")
+        } else {
+            String::from(" ")
+        }
+    };
     let instant = |einrückung| neue_zeile_oder_leerzeichen(zeilenumbrüche == Instant, einrückung);
     let tiny_skia =
         |einrückung| neue_zeile_oder_leerzeichen(zeilenumbrüche == TinySkia, einrückung);
@@ -921,6 +962,7 @@ pub fn bsd_3<'t>(
     let BSD3Darstellung { punkte, einrückung_punkte, einrückung_text, author, copyright_holder } =
         darstellung;
     let mut string = format!("{copyright_d}");
+    /// Füge alle Expressions über [`String::push_str`] zu `string` hinzu.
     macro_rules! push_string {
             ($h: expr $(, $t: expr)* $(,)?) => {
                 string.push_str($h);
@@ -1017,6 +1059,7 @@ pub fn bsd_3<'t>(
 }
 
 /// Erzeuge den Lizenztext für die CC-0-Lizenz.
+#[must_use]
 pub fn cc_0<'t>() -> Cow<'t, str> {
     Cow::Borrowed(
         r#"Statement of Purpose
@@ -1052,6 +1095,7 @@ Affirmer understands and acknowledges that Creative Commons is not a party to th
 }
 
 /// Erzeuge den Lizenztext für die BSL-1.0-Lizenz.
+#[must_use]
 pub fn bsl_1_0<'t>() -> Cow<'t, str> {
     Cow::Borrowed(
         r#"Boost Software License - Version 1.0 - August 17th, 2003
@@ -1091,22 +1135,24 @@ pub enum ISCZeilenumbruch {
 }
 
 /// Erzeuge den Lizenztext für die ISC-Lizenz.
+#[must_use]
 pub fn isc<'t>(
     copyright_c_und_komma: bool,
     jahr: &str,
     voller_name: &str,
     zeilenumbrüche: ISCZeilenumbruch,
 ) -> Cow<'t, str> {
+    use ISCZeilenumbruch::{Libloading, Riscv};
     let (copyright_c_str, copyright_komma_str) =
         if copyright_c_und_komma { ("© ", ",") } else { ("", "") };
     let mut string =
         format!("Copyright {copyright_c_str}{jahr}{copyright_komma_str} {voller_name}\n\n");
-    let neue_zeile_oder_leerzeichen = |b| if b { "\n" } else { " " };
-    use ISCZeilenumbruch::*;
+    let neue_zeile_oder_leerzeichen = |bedingung| if bedingung { "\n" } else { " " };
     let libloading = neue_zeile_oder_leerzeichen(zeilenumbrüche == Libloading);
     let riscv = neue_zeile_oder_leerzeichen(zeilenumbrüche == Riscv);
     let libloading_riscv =
         neue_zeile_oder_leerzeichen([Libloading, Riscv].contains(&zeilenumbrüche));
+    /// Füge alle Expressions über [`String::push_str`] zu `string` hinzu.
     macro_rules! push_string {
         ($h: expr, $($t: expr),* $(,)?) => {
             string.push_str($h);
@@ -1151,6 +1197,7 @@ pub fn isc<'t>(
 
 /// Lizenztext des servo-fontconfig-sys crates.
 /// Sehr nah an isc-Lizenz, aber genug Unterschiede, dass plain-text deutlich einfacher ist.
+#[must_use]
 pub fn servo_fontconfig_sys<'t>() -> Cow<'t, str> {
     Cow::Borrowed(
         r#"fontconfig/COPYING
@@ -1185,7 +1232,10 @@ PERFORMANCE OF THIS SOFTWARE.
     )
 }
 
+// Hauptsächlich der Lizenztext.
+#[allow(clippy::too_many_lines)]
 /// Erzeuge den Lizenztext für die MPL-2.0 Lizenz.
+#[must_use]
 pub fn mpl_2_0<'t>() -> Cow<'t, str> {
     Cow::Borrowed(
         r#"Mozilla Public License Version 2.0
@@ -1566,6 +1616,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 }
 
 /// Erzeuge den Lizenztext für die ZLIB-Lizenz
+#[must_use]
 pub fn zlib<'t>(jahr: &str, voller_name: &str) -> Cow<'t, str> {
     Cow::Owned(format!(
         r#"Copyright (c) {jahr} {voller_name}
@@ -1609,7 +1660,7 @@ pub struct OflCopyright<'t> {
 }
 
 impl Display for OptionD<OflCopyright<'_>, ()> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         if let Some(copyright) = &self.0 {
             let OflCopyright {
                 copyright_c,
@@ -1621,14 +1672,17 @@ impl Display for OptionD<OflCopyright<'_>, ()> {
             } = copyright;
             let copyright_c_str = if *copyright_c { "(c) " } else { "" };
             let punkt_nach_font_name_str = if *punkt_nach_font_name { "." } else { "" };
-            write!(f, "Copyright {copyright_c_str}{jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}\n\n")
+            write!(formatter, "Copyright {copyright_c_str}{jahr} {voller_name} with Reserved Font Name {font_name}{punkt_nach_font_name_str}{extra_notice}\n\n")
         } else {
             Ok(())
         }
     }
 }
 
+// TODO Beheben erfordert Anpassung des public APIs
+#[allow(clippy::fn_params_excessive_bools)]
 /// Erzeuge einen Lizenz-Text für die OFL-Lizenz.
+#[must_use]
 pub fn ofl_1_1<'t>(
     copyright: Option<OflCopyright<'_>>,
     neue_zeile_vor_version: bool,

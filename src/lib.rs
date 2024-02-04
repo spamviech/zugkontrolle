@@ -1,38 +1,7 @@
 //! Steuerung einer Model-Eisenbahn über einen Raspberry Pi.
 
-// Aktiviere alle Warnungen/Lints, außer:
-// box_pointers, non_ascii_idents, unstable_features
-#![warn(
-    absolute_paths_not_starting_with_crate,
-    elided_lifetimes_in_paths,
-    explicit_outlives_requirements,
-    keyword_idents,
-    macro_use_extern_crate,
-    meta_variable_misuse,
-    missing_abi,
-    missing_copy_implementations,
-    missing_debug_implementations,
-    missing_docs,
-    noop_method_call,
-    pointer_structural_match,
-    rust_2021_incompatible_closure_captures,
-    rust_2021_incompatible_or_patterns,
-    rust_2021_prefixes_incompatible_syntax,
-    rust_2021_prelude_collisions,
-    single_use_lifetimes,
-    trivial_casts,
-    trivial_numeric_casts,
-    unreachable_pub,
-    unsafe_code,
-    unsafe_op_in_unsafe_fn,
-    unused_crate_dependencies,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_lifetimes,
-    unused_qualifications,
-    unused_results,
-    variant_size_differences
-)]
+// Zu viele/große dependencies, um das wirklich zu vermeiden.
+#![allow(clippy::multiple_crate_versions)]
 // Erlaube mehr rekursive Aufrufe von Macros.
 #![recursion_limit = "256"]
 
@@ -59,7 +28,7 @@ mod test_util {
 
     static LOGGER_HANDLE: Mutex<Option<LoggerHandle>> = const_mutex(None);
 
-    /// Initialisiere FlexiLogger einmalig, speichere den Handle in einer globalen Variable.
+    /// Initialisiere `FlexiLogger` einmalig, speichere den Handle in einer globalen Variable.
     ///
     /// Notwendig, da `cargo test` mehrere Tests parallel ausführt, aber nur ein Logger aktiv sein kann.
     pub(crate) fn init_test_logging() {
@@ -75,22 +44,23 @@ mod test_util {
                     .log_to_stderr()
                     .start()
                     .expect("Logging initialisieren fehlgeschlagen!"),
-            )
+            );
         }
     }
 
+    /// Eine fehlgeschlagene Annahme in einem Test.
     #[derive(Debug, zugkontrolle_macros::From)]
     pub(crate) enum Expectation {
-        ExpectTrue(ExpectTrue),
-        ExpectEq(ExpectEq),
-        ExpectNe(ExpectNe),
-        ExpectGt(ExpectGt),
+        True(ExpectTrue),
+        Eq(ExpectEq),
+        Ne(ExpectNe),
+        Gt(ExpectGt),
     }
 
     #[derive(Debug)]
     pub(crate) struct ExpectTrue;
 
-    /// Gebe [Ok] zurück wenn der wert [true] ist, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn der wert [true] ist, ansonsten [`Err`].
     pub(crate) fn expect_true(wert: bool) -> Result<(), ExpectTrue> {
         if wert {
             Ok(())
@@ -102,24 +72,27 @@ mod test_util {
     #[derive(Debug)]
     pub(crate) struct ExpectEq(Box<dyn Debug>, Box<dyn Debug>);
 
-    /// Gebe [Ok] zurück wenn beide Werte gleich sind, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn beide Werte gleich sind, ansonsten [`Err`].
+    #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_eq<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectEq> {
-        expect_true(a == b).map_err(|_| ExpectEq(Box::new(a), Box::new(b)))
+        expect_true(a == b).map_err(|_expect_true| ExpectEq(Box::new(a), Box::new(b)))
     }
 
     #[derive(Debug)]
     pub(crate) struct ExpectNe(Box<dyn Debug>, Box<dyn Debug>);
 
-    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [`Err`].
+    #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_ne<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectNe> {
-        expect_true(a != b).map_err(|_| ExpectNe(Box::new(a), Box::new(b)))
+        expect_true(a != b).map_err(|_expect_true| ExpectNe(Box::new(a), Box::new(b)))
     }
 
     #[derive(Debug)]
     pub(crate) struct ExpectGt(Box<dyn Debug>, Box<dyn Debug>);
 
-    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [Err].
+    /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [`Err`].
+    #[allow(clippy::min_ident_chars)]
     pub(crate) fn expect_gt<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectGt> {
-        expect_true(a != b).map_err(|_| ExpectGt(Box::new(a), Box::new(b)))
+        expect_true(a != b).map_err(|_expect_true| ExpectGt(Box::new(a), Box::new(b)))
     }
 }

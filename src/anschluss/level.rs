@@ -1,10 +1,10 @@
-//! Level eines [Anschlusses](crate::anschluss::Anschluss).
+//! Level eines [`Anschlusses`](crate::anschluss::Anschluss).
 
 use serde::{Deserialize, Serialize};
 
 use crate::rppal::gpio;
 
-/// Level eines [Anschlusses](crate::anschluss::Anschluss).
+/// Level eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Level {
     /// Tiefes Volt-Level.

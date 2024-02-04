@@ -3,19 +3,19 @@
 use iced::Color;
 use serde::{Deserialize, Serialize};
 
-/// Rote [Farbe].
+/// Rote [`Farbe`].
 pub const ROT: Farbe = Farbe { rot: 1., grün: 0., blau: 0. };
 
-/// Grüne [Farbe].
+/// Grüne [`Farbe`].
 pub const GRÜN: Farbe = Farbe { rot: 0., grün: 1., blau: 0. };
 
-/// Blaue [Farbe].
+/// Blaue [`Farbe`].
 pub const BLAU: Farbe = Farbe { rot: 0., grün: 0., blau: 1. };
 
-/// Weiße [Farbe].
+/// Weiße [`Farbe`].
 pub const WEIẞ: Farbe = Farbe { rot: 1., grün: 1., blau: 1. };
 
-/// Schwarze [Farbe].
+/// Schwarze [`Farbe`].
 pub const SCHWARZ: Farbe = Farbe { rot: 0., grün: 0., blau: 0. };
 
 /// Eine Farbe im RGB-Schema.

@@ -1,47 +1,13 @@
 //! Macros für zugkontrolle.
 
-// Aktiviere alle Warnungen/Lints, außer:
-// box_pointers, non_ascii_idents, unstable_features
-#![warn(
-    absolute_paths_not_starting_with_crate,
-    elided_lifetimes_in_paths,
-    explicit_outlives_requirements,
-    keyword_idents,
-    macro_use_extern_crate,
-    meta_variable_misuse,
-    missing_abi,
-    missing_copy_implementations,
-    missing_debug_implementations,
-    missing_docs,
-    noop_method_call,
-    pointer_structural_match,
-    rust_2021_incompatible_closure_captures,
-    rust_2021_incompatible_or_patterns,
-    rust_2021_prefixes_incompatible_syntax,
-    rust_2021_prelude_collisions,
-    single_use_lifetimes,
-    trivial_casts,
-    trivial_numeric_casts,
-    unreachable_pub,
-    unsafe_code,
-    unsafe_op_in_unsafe_fn,
-    unused_crate_dependencies,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_lifetimes,
-    unused_qualifications,
-    unused_results,
-    variant_size_differences
-)]
-
 use proc_macro::TokenStream;
-use syn::parse_macro_input;
+use syn::{parse_macro_input, punctuated::Punctuated};
 
 pub(crate) mod utils;
 
 mod debug;
 #[proc_macro_derive(Debug, attributes(zugkontrolle_debug))]
-/// Erzeuge eine [Debug]-Implementierung, ohne Constraints für Generics vorauszusetzen.
+/// Erzeuge eine [`Debug`]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn debug_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -53,7 +19,7 @@ pub fn debug_derive(input: TokenStream) -> TokenStream {
 
 mod clone;
 #[proc_macro_derive(Clone, attributes(zugkontrolle_clone))]
-/// Erzeuge eine [Clone]-Implementierung, ohne Constraints für Generics vorauszusetzen.
+/// Erzeuge eine [`Clone`]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn clone_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -67,10 +33,10 @@ mod nachschlagen;
 #[proc_macro_attribute]
 /// Erzeuge eine Struktur und zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Implementierung für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(attr with syn::punctuated::Punctuated::parse_terminated);
+    let args = parse_macro_input!(attr with Punctuated::parse_terminated);
     let ast = parse_macro_input!(item);
 
-    nachschlagen::impl_nachschlagen(args, ast).into()
+    nachschlagen::impl_nachschlagen(&args, &ast).into()
 }
 
 mod erstelle_enum;
@@ -80,7 +46,7 @@ pub fn erstelle_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 
-    erstelle_enum::erstelle_enum(args, ast).into()
+    erstelle_enum::erstelle_enum(args, &ast).into()
 }
 
 mod chain;
@@ -90,7 +56,7 @@ pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 
-    chain::make_chain(args, ast).into()
+    chain::make_chain(&args, &ast).into()
 }
 
 mod richtung;
@@ -101,7 +67,7 @@ pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 
-    richtung::erstelle_richtung(args, ast).into()
+    richtung::erstelle_richtung(&args, &ast).into()
 }
 
 mod alias;
@@ -117,11 +83,12 @@ mod alias;
 pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
-    alias::alias_serialisiert_unit(attr.into(), ast).into()
+    alias::alias_serialisiert_unit(&attr.into(), &ast).into()
 }
 
 mod daten;
 #[proc_macro_attribute]
+#[deprecated]
 /// Erstelle spezialisierte Methoden für alle Gleis-Typen mit entsprechendem Suffix.
 /// Notwendig, damit `DatenAuswahl` kein Teil des APIs wird.
 ///
@@ -132,16 +99,16 @@ mod daten;
 /// Das erste Argument muss `&mut self`, oder `&'t mut self` und
 /// alle anderen Argumente reine Namen-Pattern sein.
 /// Die `where`-Klausel wird nicht inspiziert oder kopiert.
-/// Für assoziierte Typen wird eine vollständig qualifizierte Form \<T as Trait\>::Typ empfohlen.
+/// Für assoziierte Typen wird eine vollständig qualifizierte Form `<T as Trait>::Typ` empfohlen.
 pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 
-    daten::erstelle_methoden(attr.into(), ast).into()
+    daten::erstelle_methoden(&attr.into(), &ast).into()
 }
 
 mod sum_type_from;
 #[proc_macro_derive(From)]
-/// Erzeuge [From]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
+/// Erzeuge [`From`]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
 pub fn derive_from(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input);
 
@@ -154,13 +121,13 @@ mod metadata;
 pub fn verwendete_crates(input: TokenStream) -> TokenStream {
     let target = parse_macro_input!(input);
 
-    metadata::verwendete_crates(target).into()
+    metadata::verwendete_crates(&target).into()
 }
 
 #[proc_macro]
 /// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten.
-/// Dazu werden viele über cfg-Aufrufe von [verwendete_crates!] erzeugt.
+/// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
 /// Die targets werden über `rustc --print target-list` ausgelesen.
 pub fn target_crates(input: TokenStream) -> TokenStream {
-    metadata::target_crates(input.into()).into()
+    metadata::target_crates(&input.into()).into()
 }

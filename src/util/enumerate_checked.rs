@@ -1,22 +1,26 @@
-//! Ein analog zu [enumerate](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
+//! Ein analog zu [`enumerate`](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
 
 use num_traits::{bounds::LowerBounded, CheckedAdd, One};
 
-/// Ein analog zu [enumerate](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
+/// Ein analog zu [`enumerate`](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
 ///
-/// Beginnend mit [LowerBounded::min_value] wird jedes Element des Iterators mit einem aufsteigenden Zähler annotiert.
-/// Nach einem Overflow wird jedes Item mit [None] annotiert.
+/// Beginnend mit [`LowerBounded::min_value`] wird jedes Element des Iterators mit einem aufsteigenden Zähler annotiert.
+/// Nach einem Overflow wird jedes Item mit [`None`] annotiert.
 #[derive(Debug)]
 pub struct EnumerateChecked<C, I> {
+    /// Der Nächste Zähler-Wert.
     next: Option<C>,
+    /// Der verzierte Iterator.
     iterator: I,
 }
 
+// Repetition bewusst gewählt.
+#[allow(clippy::module_name_repetitions)]
 /// Erweiterungs-trait für alle Iteratoren, damit die
-/// [enumerate_checked](EnumerateCheckedExt::enumerate_checked)-Methode verfügbar ist.
+/// [`enumerate_checked`](EnumerateCheckedExt::enumerate_checked)-Methode verfügbar ist.
 pub trait EnumerateCheckedExt<C, I> {
-    /// Beginnend mit [LowerBounded::min_value] wird jedes Element des Iterators mit einem aufsteigenden Zähler annotiert.
-    /// Nach einem Overflow wird jedes Item mit [None] annotiert.
+    /// Beginnend mit [`LowerBounded::min_value`] wird jedes Element des Iterators mit einem aufsteigenden Zähler annotiert.
+    /// Nach einem Overflow wird jedes Item mit [`None`] annotiert.
     fn enumerate_checked(self) -> EnumerateChecked<C, I>;
 }
 

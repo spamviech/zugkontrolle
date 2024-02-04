@@ -1,8 +1,11 @@
 //! Kommandozeilen-Argumente.
 
+// TODO durch derive-Macro für Parse ausgelöst.
+#![allow(clippy::shadow_unrelated)]
+
 use std::{
     env,
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display, Formatter},
     num::NonZeroI32,
 };
 
@@ -60,6 +63,7 @@ pub struct Argumente {
 /// Einstellung über aktivierte I2c-Channel.
 #[derive(Debug, Clone, Copy, Parse)]
 #[kommandozeilen_argumente(sprache: deutsch)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct I2cSettings {
     /// I2C channel auf pins 2 und 3 (bus 0 oder 1).
     #[kommandozeilen_argumente(lang: [i2c0_1, i2c0, i2c1])]
@@ -127,38 +131,43 @@ impl ParseArgument for Skalar {
 }
 
 impl Argumente {
+    // TODO Behandeln benötigt Anpassung des public API.
+    #[allow(clippy::same_name_method)]
     /// Parse Kommandozeilen-Argumente.
     /// Ein einzelnes Argument (das nicht mit "-" beginnt) wird als Pfad interpretiert.
+    ///
+    /// ## Panics
+    ///
+    /// Programmierfehler, wenn [`NonZeroI32::new`] [`None`] für den Exit-Code zurückgibt.
+    #[must_use]
     pub fn parse_aus_env() -> Self {
         let mut args: Vec<_> = env::args_os().skip(1).collect();
-        if args.len() == 1 {
-            if !args
+        if args.len() == 1
+            && !args
                 .first()
                 .and_then(|os_string| os_string.to_str())
-                .map(|string| string.starts_with('-'))
-                .unwrap_or(false)
-            {
-                // Einzelnes Argument, dass nicht mit '-' beginnt.
-                args.insert(0, "--pfad".to_owned().into());
-            }
+                .is_some_and(|string| string.starts_with('-'))
+        {
+            // Einzelnes Argument, dass nicht mit '-' beginnt.
+            args.insert(0, "--pfad".to_owned().into());
         }
         Argumente::parse_mit_fehlermeldung(args.into_iter(), NonZeroI32::new(1).expect("1 != 0"))
     }
 }
 
 // TODO erlaube Laden/Deserialisieren aus einer Datei.
-/// [Zugtyp](crate::zugtyp::Zugtyp) für die aktuelle Session.
+/// [`Zugtyp`](crate::zugtyp::Zugtyp) für die aktuelle Session.
 #[derive(Debug, Clone, Copy, EnumArgument)]
 #[kommandozeilen_argumente(case: insensitive)]
 pub enum ZugtypArgument {
-    /// [Märklin](crate::zugtyp::Zugtyp::märklin)
+    /// [`Märklin`](crate::zugtyp::Zugtyp::märklin)
     Märklin,
-    /// [Lego](crate::zugtyp::Zugtyp::lego)
+    /// [`Lego`](crate::zugtyp::Zugtyp::lego)
     Lego,
 }
 
 impl Display for ZugtypArgument {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self, f)
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self, formatter)
     }
 }

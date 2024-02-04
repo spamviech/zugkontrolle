@@ -1,4 +1,4 @@
-//! [Trigger] für auslösen eines Interrupt-Events.
+//! [`Trigger`] für auslösen eines Interrupt-Events.
 
 use std::fmt::{Display, Formatter, Result};
 
@@ -6,23 +6,23 @@ use serde::{Deserialize, Serialize};
 
 use crate::{anschluss::level::Level, rppal};
 
-/// [Trigger] für auslösen eines Interrupt-Events.
+/// [`Trigger`] für auslösen eines Interrupt-Events.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Trigger {
     /// Deaktiviert, es wird kein Event ausgelöst.
     Disabled,
-    /// Löse ein Event aus, wenn die Spannung von [Low](Level::Low) auf [High](Level::High) wechselt.
+    /// Löse ein Event aus, wenn die Spannung von [Low](Level::Low) auf [`High`](Level::High) wechselt.
     RisingEdge,
-    /// Löse ein Event aus, wenn die Spannung von [High](Level::High) auf [Low](Level::Low) wechselt.
+    /// Löse ein Event aus, wenn die Spannung von [High](Level::High) auf [`Low`](Level::Low) wechselt.
     FallingEdge,
     /// Löse ein Event bei jeder Veränderung aus.
     Both,
 }
 
 impl Display for Trigger {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> Result {
         write!(
-            f,
+            formatter,
             "{}",
             match self {
                 Trigger::Disabled => "Disabled",
@@ -47,7 +47,7 @@ impl From<Trigger> for rppal::gpio::Trigger {
 
 impl Trigger {
     /// Ist die konfigurierte Trigger-Bedingung aufgetreten?
-    pub(crate) fn callback_aufrufen(&self, aktuell: Level, bisher: Level) -> bool {
+    pub(crate) fn callback_aufrufen(self, aktuell: Level, bisher: Level) -> bool {
         match self {
             Trigger::Both => aktuell != bisher,
             Trigger::FallingEdge => aktuell < bisher,

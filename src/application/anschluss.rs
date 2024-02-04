@@ -1,15 +1,16 @@
-//! Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+//! Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 
 use std::ops::DerefMut;
 
 use iced_aw::{
     native::{NumberInput, TabLabel, Tabs},
-    style::tab_bar,
+    number_input, style, tab_bar,
 };
-use iced_core::{event, text, widget::Text, Element, Font, Length, Renderer};
+use iced_core::{event, text as text_core, widget::Text, Element, Font, Length, Renderer};
 use iced_widget::{
+    container, radio,
     scrollable::{self, Scrollable},
-    Column, Container, Radio, Row, Space,
+    text, text_input, Column, Container, Radio, Row, Space,
 };
 use log::error;
 
@@ -30,60 +31,82 @@ use crate::{
     util::eingeschränkt::{kleiner_8, InvaliderWert},
 };
 
+/// Welche Tab-Seite wird angezeigt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TabId {
+    /// Auswahl eines Pins.
     Pin,
+    /// Auswahl eines Pcf8574-Ports.
     Pcf8574,
 }
 
-/// Zustand eines Widgets zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+/// Zustand eines Widgets zur Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand<T> {
+    /// Welche Tab-Seite wird angezeigt.
     active_tab: TabId,
+    /// Der aktuell ausgewählte Pin.
     pin: u8,
+    /// Der aktuell ausgewählte Pcf8574.
     beschreibung: Beschreibung,
+    /// Der aktuell ausgewählte Port.
     port: kleiner_8,
+    /// Zusätzlicher Zustand für die Auswahl eines [Input-](InputAnschluss) oder [`OutputAnschlusses`](OutputAnschluss).
     modus: T,
 }
 
+/// Eine interne Nachricht für die Auswahl eines Anschlusses.
 #[derive(Debug, Clone)]
 enum InterneNachricht<T> {
+    /// Wechsel auf eine Tab-Seite.
     TabSelected(TabId),
+    /// Neuer aktuell gewählter Pin.
     Pin(u8),
+    /// Neuer aktuell gewählter I2cBus für einen Pcf8574.
     I2cBus(I2cBus),
+    /// Neues aktuell gewähltes A0-Level für einen Pcf8574.
     A0(Level),
+    /// Neues aktuell gewähltes A1-Level für einen Pcf8574.
     A1(Level),
+    /// Neues aktuell gewähltes A2-Level für einen Pcf8574.
     A2(Level),
+    /// Neue aktuell gewählte Variante für einen Pcf8574.
     Variante(Variante),
+    /// Neuer aktuell gewählter Port für einen Pcf8574.
     Port(u8),
+    /// Neuer Zustand für die Auswahl eines [Input-](InputAnschluss) oder [`OutputAnschlusses`](OutputAnschluss).
     Modus(T),
 }
 
-/// Interne Nachricht zur [Auswahl] eines [InputAnschluss](crate::anschluss::InputAnschluss).
+/// Interne Nachricht zur [`Auswahl`] eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
 #[derive(Debug, Clone, Copy)]
 pub struct InputNachricht {
+    /// Neuer aktuell gewählter Interrupt-Pin.
     interrupt: u8,
 }
 
 impl InputNachricht {
+    /// Erstelle eine neue Nachricht mit dem gewählten Interrupt-Pin.
     fn interrupt(interrupt: u8) -> Self {
         InputNachricht { interrupt }
     }
 }
 
-/// Interne Nachricht zur [Auswahl] eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
+/// Interne Nachricht zur [`Auswahl`] eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
 #[derive(Debug, Clone, Copy)]
 pub struct OutputNachricht {
+    /// Neue aktuell gewählte Polarität.
     polarität: Polarität,
 }
 
 impl OutputNachricht {
+    /// Erstelle eine neue Nachricht mit der gewählten Polarität.
     fn polarität(polarität: Polarität) -> Self {
         OutputNachricht { polarität }
     }
 }
 
-/// Widget zur Auswahl eines [Anschlusses](crate::anschluss::Anschluss).
+/// Widget zur Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Debug)]
 pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>(
     MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, R>,
@@ -91,18 +114,19 @@ pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>(
 
 impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
 where
-    R: 'a + text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet
-        + iced_widget::container::StyleSheet
-        + iced_widget::radio::StyleSheet
-        + iced_widget::scrollable::StyleSheet
-        + iced_widget::text::StyleSheet
-        + iced_widget::text_input::StyleSheet,
+    R: 'a + text_core::Renderer<Font = Font>,
+    <R as Renderer>::Theme: number_input::StyleSheet
+        + tab_bar::StyleSheet
+        + container::StyleSheet
+        + radio::StyleSheet
+        + scrollable::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
+    /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
+    #[must_use]
     pub fn neu_input(
         start_wert: Option<&'a InputAnschluss>,
         lager: &'a Lager,
@@ -132,7 +156,10 @@ where
         )
     }
 
-    /// Erstelle ein Widget zur Auswahl eines [InputAnschluss](crate::anschluss::InputAnschluss).
+    // TODO Behandeln erfordert Anpassung des public API.
+    #[allow(clippy::needless_pass_by_value)]
+    /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
+    #[must_use]
     pub fn neu_input_s(
         start_wert: Option<InputSerialisiert>,
         lager: &'a Lager,
@@ -158,25 +185,29 @@ where
         )
     }
 
+    // Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?
+    #[allow(clippy::too_many_arguments)]
+    /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     fn neu_input_aux(
         active_tab: TabId,
-        pin: Option<u8>,
-        beschreibung: Option<Beschreibung>,
-        port: Option<kleiner_8>,
-        modus: Option<u8>,
+        start_pin: Option<u8>,
+        start_beschreibung: Option<Beschreibung>,
+        start_port: Option<kleiner_8>,
+        start_modus: Option<u8>,
         lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        Auswahl::neu_mit_interrupt_view(
+        Auswahl::neu_mit_modus_view(
             ZeigeModus::Pcf8574,
             |pin, beschreibung| {
+                // TODO Erlaube immer Anpassen des Interrupt-Pins.
                 let interrupt_pin = lager.interrupt_pin(&beschreibung).map_or(
                     Element::from(
                         NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
                     ),
-                    |pin| {
-                        let text: Text<'_, R> = Text::new(pin.to_string());
+                    |interrupt_pin| {
+                        let text: Text<'_, R> = Text::new(interrupt_pin.to_string());
                         Element::from(text)
                     },
                 );
@@ -204,16 +235,16 @@ where
             },
             move || Zustand {
                 active_tab,
-                pin: pin.unwrap_or(0),
-                beschreibung: beschreibung.unwrap_or(Beschreibung {
+                pin: start_pin.unwrap_or(0),
+                beschreibung: start_beschreibung.unwrap_or(Beschreibung {
                     i2c_bus: pcf8574::I2cBus::I2c0_1,
                     a0: Level::Low,
                     a1: Level::Low,
                     a2: Level::Low,
                     variante: Variante::Normal,
                 }),
-                port: port.unwrap_or(kleiner_8::MIN),
-                modus: modus.unwrap_or(0),
+                port: start_port.unwrap_or(kleiner_8::MIN),
+                modus: start_modus.unwrap_or(0),
             },
             scrollable_style,
             settings,
@@ -223,18 +254,19 @@ where
 
 impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
 where
-    R: 'a + text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet
-        + iced_widget::container::StyleSheet
-        + iced_widget::radio::StyleSheet
-        + iced_widget::scrollable::StyleSheet
-        + iced_widget::text::StyleSheet
-        + iced_widget::text_input::StyleSheet,
+    R: 'a + text_core::Renderer<Font = Font>,
+    <R as Renderer>::Theme: number_input::StyleSheet
+        + tab_bar::StyleSheet
+        + container::StyleSheet
+        + radio::StyleSheet
+        + scrollable::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
+    /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
+    #[must_use]
     pub fn neu_output(
         start_wert: Option<&'a OutputAnschluss>,
         scrollable_style: Sammlung,
@@ -256,7 +288,10 @@ where
         Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
-    /// Erstelle ein Widget zur Auswahl eines [OutputAnschluss](crate::anschluss::OutputAnschluss).
+    // TODO Behandeln erfordert Anpassung des public API.
+    #[allow(clippy::needless_pass_by_value)]
+    /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
+    #[must_use]
     pub fn neu_output_s(
         start_wert: Option<OutputSerialisiert>,
         scrollable_style: Sammlung,
@@ -274,16 +309,17 @@ where
         Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
+    /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     fn neu_output_aux(
         active_tab: TabId,
-        pin: Option<u8>,
-        beschreibung: Option<Beschreibung>,
-        port: Option<kleiner_8>,
-        modus: Option<Polarität>,
+        start_pin: Option<u8>,
+        start_beschreibung: Option<Beschreibung>,
+        start_port: Option<kleiner_8>,
+        start_polarität: Option<Polarität>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        Auswahl::neu_mit_interrupt_view(
+        Auswahl::neu_mit_modus_view(
             ZeigeModus::Beide,
             |polarität, _beschreibung| {
                 Column::new()
@@ -310,16 +346,16 @@ where
             },
             move || Zustand {
                 active_tab,
-                pin: pin.unwrap_or(0),
-                beschreibung: beschreibung.unwrap_or(Beschreibung {
+                pin: start_pin.unwrap_or(0),
+                beschreibung: start_beschreibung.unwrap_or(Beschreibung {
                     i2c_bus: pcf8574::I2cBus::I2c0_1,
                     a0: Level::Low,
                     a1: Level::Low,
                     a2: Level::Low,
                     variante: Variante::Normal,
                 }),
-                port: port.unwrap_or(kleiner_8::MIN),
-                modus: modus.unwrap_or(Polarität::Normal),
+                port: start_port.unwrap_or(kleiner_8::MIN),
+                modus: start_polarität.unwrap_or(Polarität::Normal),
             },
             scrollable_style,
             settings,
@@ -327,13 +363,18 @@ where
     }
 }
 
+/// Wann soll die Auswahl für die Modus-spezifischen Einstellungen gezeigt werden?
 #[derive(Debug, Clone, Copy)]
 enum ZeigeModus {
+    /// Die Auswahl wird bei beiden Tabs gezeigt.
     Beide,
+    /// Die Auswahl wird nur bei dem Tab für einen Pcf8574 gezeigt.
     Pcf8574,
 }
 
+// anonymous lifetimes in `impl Trait` are unstable
 #[allow(single_use_lifetimes)]
+/// Erstelle einen [`Radio`] für alle `elemente` und füge sie zu einem [`Column`] hinzu.
 pub(in crate::application) fn make_radios<'a, 'b, T, M, R>(
     aktuell: &T,
     elemente: impl IntoIterator<Item = (&'b str, T)>,
@@ -342,17 +383,16 @@ pub(in crate::application) fn make_radios<'a, 'b, T, M, R>(
 where
     T: Eq + Copy,
     M: 'a + Clone,
-    R: 'a + text::Renderer,
-    <R as Renderer>::Theme: iced_widget::radio::StyleSheet + iced_widget::text::StyleSheet,
-    <R as iced_core::text::Renderer>::Font: From<Font>,
+    R: 'a + text_core::Renderer,
+    <R as Renderer>::Theme: radio::StyleSheet + text::StyleSheet,
+    <R as text_core::Renderer>::Font: From<Font>,
 {
     let mut column = Column::new();
     let mut leerer_iterator = true;
     for (label, value) in elemente {
         leerer_iterator = false;
-        column = column.push(
-            Radio::new(label, value, Some(aktuell.clone()), als_nachricht.clone()).spacing(0),
-        );
+        column =
+            column.push(Radio::new(label, value, Some(*aktuell), als_nachricht.clone()).spacing(0));
     }
     if leerer_iterator {
         column = column.push(Icon::neu(Bootstrap::ExclamationTriangle));
@@ -364,18 +404,21 @@ impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachric
 where
     Modus: Copy,
     ModusNachricht: 'static + Clone,
-    R: 'a + text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet
-        + iced_widget::container::StyleSheet
-        + iced_widget::radio::StyleSheet
-        + iced_widget::scrollable::StyleSheet
-        + iced_widget::text::StyleSheet
-        + iced_widget::text_input::StyleSheet,
+    R: 'a + text_core::Renderer<Font = Font>,
+    <R as Renderer>::Theme: number_input::StyleSheet
+        + tab_bar::StyleSheet
+        + container::StyleSheet
+        + radio::StyleSheet
+        + scrollable::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    fn neu_mit_interrupt_view(
+    // Alle Argumente werden benötigt.
+    #[allow(clippy::too_many_arguments)]
+    /// Erzeuge ein neues [`Auswahl`]-Widget.
+    fn neu_mit_modus_view(
         zeige_modus: ZeigeModus,
         view_modus: impl 'a + Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
         update_modus: &'a impl Fn(&mut Modus, ModusNachricht),
@@ -421,22 +464,24 @@ where
     }
 }
 
+/// Wie viel [`Platz`](Space) soll zwischen Widgets eingefügt werden?
 const PADDING: f32 = 2.5;
 
 impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
 where
     ModusNachricht: 'static + Clone,
-    R: 'a + text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_aw::tab_bar::StyleSheet
-        + iced_widget::container::StyleSheet
-        + iced_widget::radio::StyleSheet
-        + iced_widget::scrollable::StyleSheet
-        + iced_widget::text::StyleSheet
-        + iced_widget::text_input::StyleSheet,
+    R: 'a + text_core::Renderer<Font = Font>,
+    <R as Renderer>::Theme: number_input::StyleSheet
+        + tab_bar::StyleSheet
+        + container::StyleSheet
+        + radio::StyleSheet
+        + scrollable::StyleSheet
+        + text::StyleSheet
+        + text_input::StyleSheet,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
+    /// Erzeuge die interne Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
         zustand: &Zustand<Modus>,
         view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
@@ -445,7 +490,7 @@ where
         settings: I2cSettings,
     ) -> Element<'a, InterneNachricht<ModusNachricht>, R> {
         let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
-        let element_modus = view_modus(&modus, *beschreibung);
+        let element_modus = view_modus(modus, *beschreibung);
         let Beschreibung { i2c_bus, a0, a1, a2, variante } = beschreibung;
         let view_modus_mapped = element_modus.map(InterneNachricht::Modus);
         let high_low_column =
@@ -468,7 +513,7 @@ where
                                 ("6", I2cBus::I2c6),
                             ]
                             .into_iter()
-                            .filter(|(_label, i2c_bus)| settings.aktiviert(*i2c_bus)),
+                            .filter(|(_label, kandidat)| settings.aktiviert(*kandidat)),
                             InterneNachricht::I2cBus,
                         ))
                         .push(Space::with_width(Length::Fixed(scrollable_style.breite()))),
@@ -555,47 +600,50 @@ where
     }
 }
 
-/// Zustand eines Widgets zur Auswahl eines [Pwm-Pins](pwm::Pin).
+/// Zustand eines Widgets zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
 #[derive(Debug, PartialEq, Eq)]
 struct PwmZustand {
+    /// Der aktuell gewählte Pin.
     pin: u8,
 }
 
 impl PwmZustand {
-    /// Erstelle einen neuen [PwmZustand].
+    /// Erstelle einen neuen [`PwmZustand`].
     fn neu(pin: Option<u8>) -> Self {
         PwmZustand { pin: pin.unwrap_or(0) }
     }
 }
 
-/// Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
+/// Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
 #[derive(Debug)]
 pub struct Pwm<'a, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, pwm::Serialisiert, R>);
 
 impl<'a, R> Pwm<'a, R>
 where
-    R: 'a + iced_core::text::Renderer<Font = Font>,
-    <R as Renderer>::Theme: iced_aw::number_input::StyleSheet
-        + iced_core::widget::text::StyleSheet
-        + iced_widget::container::StyleSheet
-        + iced_widget::text_input::StyleSheet,
+    R: 'a + text_core::Renderer<Font = Font>,
+    <R as Renderer>::Theme: number_input::StyleSheet
+        + text::StyleSheet
+        + container::StyleSheet
+        + text_input::StyleSheet,
 {
-    /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
+    /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
         let erzeuge_zustand = move || PwmZustand::neu(pin.map(pwm::Pin::pin));
         Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))
     }
 
-    /// Erstelle ein Widget zur Auswahl eines [Pwm-Pins](pwm::Pin).
-    pub fn neu_s(pin: Option<pwm::Serialisiert>) -> Self {
-        let erzeuge_zustand = move || PwmZustand::neu(pin.as_ref().map(|pin| pin.0));
+    /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
+    pub fn neu_s(start_pin: Option<pwm::Serialisiert>) -> Self {
+        let erzeuge_zustand = move || PwmZustand::neu(start_pin.as_ref().map(|pin| pin.0));
         Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))
     }
 
+    /// Erzeuge die Widget-Hierarchie für ein [`Pwm`]-Widget.
     fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, R> {
         NumberInput::new(zustand.pin, 32, pwm::Serialisiert).into()
     }
 
+    /// Konvertiere die interne Nachricht für ein [`Pwm`]-Widget.
     fn mapper(
         nachricht: pwm::Serialisiert,
         zustand: &mut (dyn DerefMut<Target = PwmZustand>),

@@ -1,4 +1,4 @@
-//! Einstellen der Steuerung einer [Weiche](crate::steuerung::weiche::Weiche).
+//! Einstellen der Steuerung einer [`Weiche`](crate::steuerung::weiche::Weiche).
 
 use std::{
     fmt::{Debug, Display},
@@ -13,7 +13,7 @@ use iced_aw::{
     tab_bar,
 };
 use iced_core::{
-    event,
+    event, text as text_core,
     widget::text::{self, Text},
     Element, Font, Length, Renderer,
 };
@@ -36,16 +36,19 @@ use crate::{
     util::nachschlagen::Nachschlagen,
 };
 
-/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
+/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Zustand<AnschlüsseSerialisiert> {
+    /// Der aktuell gewählte Name.
     name: String,
+    /// Die aktuell gewählten Anschlüsse.
     anschlüsse: AnschlüsseSerialisiert,
+    /// Hat das bearbeitete Gleis aktuell eine Steuerung.
     hat_steuerung: bool,
 }
 
 impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> {
-    /// Erstelle einen neuen [Zustand], potentiell mit voreingestellten Anschlüssen.
+    /// Erstelle einen neuen [`Zustand`], potentiell mit voreingestellten Anschlüssen.
     fn neu<Richtung>(
         option_weiche: &Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
         hat_steuerung: bool,
@@ -60,16 +63,22 @@ impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> 
     }
 }
 
+/// Interne Nachricht zur Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
 enum InterneNachricht<Richtung> {
+    /// Neuer aktuell gewählter Name.
     Name(String),
+    /// Neuer aktuell gewählter Anschluss,
     Anschluss(Richtung, OutputSerialisiert),
+    /// Steuerung einer Weiche anpassen.
     Festlegen,
+    /// Entferne die vorhandene Steuerung.
     Entfernen,
+    /// Schließe das Widget, ohne eine Änderung vorzunehmen.
     Schließen,
 }
 
-/// Nachricht einer [Auswahl].
+/// Nachricht einer [`Auswahl`].
 #[derive(Debug, Clone)]
 pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     /// Steuerung einer Weiche anpassen.
@@ -78,7 +87,7 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
     Schließen,
 }
 
-/// Widget zur Auswahl der Anschlüsse einer [Weiche](crate::steuerung::weiche::Weiche).
+/// Widget zur Auswahl der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
 #[derive(Debug)]
 pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>(
     MapMitZustand<
@@ -96,7 +105,7 @@ where
     AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
     RichtungInformation: 't + Clone + Default,
-    R: 't + Renderer + iced_core::text::Renderer<Font = Font>,
+    R: 't + Renderer + text_core::Renderer<Font = Font>,
     <R as Renderer>::Theme: button::StyleSheet
         + card::StyleSheet
         + container::StyleSheet
@@ -109,7 +118,7 @@ where
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
-    /// Erstelle eine neue [Auswahl].
+    /// Erstelle eine neue [`Auswahl`].
     pub fn neu(
         weichen_art: &'t str,
         weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
@@ -150,6 +159,7 @@ where
         Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
+    /// Erzeuge die Widget-Hierarchie.
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand<AnschlüsseSerialisiert>,
@@ -173,7 +183,7 @@ where
                 Element::from(anschluss_auswahl).map(move |anschluss_serialisiert| {
                     InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
                 })
-            }))
+            }));
         }
         column = column.push(
             Row::new()

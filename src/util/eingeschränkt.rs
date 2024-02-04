@@ -11,10 +11,17 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy)]
 pub struct InvaliderWert<T>(pub T);
 
+/// Definiere einen neuen [`u8`] newtype, der auf `0` und `$max` (inklusive) beschränkt ist.
+///
+/// Implementiere zusätzlich `MAX`, `MIN`, [`Display`], [`Add`], [`Sub`],
+/// sowie [`From`]/[`TryFrom`] für die Konvertierung in/von einem [`u8`],
+/// sowie [`From`] für [`u16`], [`u32`], [`u64`], [`usize`].
+///
+/// Die Implementierungen für [`Add`] und [`Sub`] sind saturating.
 macro_rules! definiere_u8_typ {
     ($ident: ident, $max: expr, $docstring: tt) => {
         #[doc = $docstring]
-        /// [Add]-Implementierung verwendet [saturating_add](u8::saturating_add).
+        /// [Add]-Implementierung verwendet [`saturating_add`](u8::saturating_add).
         #[derive(
             Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
         )]
@@ -39,6 +46,12 @@ macro_rules! definiere_u8_typ {
             }
         }
 
+        impl From<$ident> for u64 {
+            fn from(value: $ident) -> Self {
+                Self::from(value.0)
+            }
+        }
+
         impl From<$ident> for usize {
             fn from(value: $ident) -> Self {
                 Self::from(value.0)
@@ -54,8 +67,8 @@ macro_rules! definiere_u8_typ {
         }
 
         impl Display for $ident {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.0.fmt(f)
+            fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+                self.0.fmt(formatter)
             }
         }
 
@@ -72,6 +85,15 @@ macro_rules! definiere_u8_typ {
             }
         }
 
+        impl Sub for $ident {
+            type Output = Self;
+
+            fn sub(self, other: Self) -> Self::Output {
+                let u8 = self.0.saturating_sub(other.0);
+                Self(u8)
+            }
+        }
+
         impl $ident {
             /// Kleinster Wert (0).
             pub const MIN: Self = $ident(0);
@@ -83,6 +105,10 @@ macro_rules! definiere_u8_typ {
             #[doc = stringify!([$ident])]
             /// zu erstellen.
             /// Schlägt bei zu großen Werten fehl.
+            ///
+            /// ## Errors
+            ///
+            /// Der Wert war zu groß.
             pub const fn neu(wert: u8) -> Result<Self, InvaliderWert<u8>> {
                 if wert > $ident::MAX.0 {
                     Err(InvaliderWert(wert))
@@ -102,6 +128,12 @@ macro_rules! definiere_u8_typ {
 definiere_u8_typ! {kleiner_8, 7, "Datentyp mit maximal 3 Bytes ohne Vorzeichen (0-7)."}
 definiere_u8_typ! {kleiner_128, 127, "Datentyp mit maximal 7 Bytes ohne Vorzeichen (0-127)."}
 
+/// Definiere einen neuen [`f64`] newtype, der auf `$min` und `$max` (inklusive) beschränkt ist.
+///
+/// Implementiere zusätzlich `MAX`, `MIN`, [`Display`], [`Add`], [`Sub`],
+/// sowie [`From`]/[`TryFrom`] für die Konvertierung in/von einem [`f64`].
+///
+/// Die Implementierungen für [`Add`] und [`Sub`] sind saturating.
 macro_rules! definiere_f64_typ {
     ($ident: ident, $min: expr, $max: expr, $($docstring: tt),+) => {
         $(#[doc = $docstring])+
@@ -133,7 +165,7 @@ macro_rules! definiere_f64_typ {
             type Error = InvaliderWert<f64>;
 
             fn try_from(wert: f64) -> Result<Self, Self::Error> {
-                if wert >= Self::MIN.0 && wert <= Self::MAX.0 {
+                if (Self::MIN.0 ..= Self::MAX.0).contains(&wert) {
                     Ok(Self(wert))
                 } else {
                     Err(InvaliderWert(wert))
@@ -142,8 +174,8 @@ macro_rules! definiere_f64_typ {
         }
 
         impl Display for $ident {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.0.fmt(f)
+            fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+                self.0.fmt(formatter)
             }
         }
 
@@ -152,7 +184,7 @@ macro_rules! definiere_f64_typ {
 
             fn add(self, other: Self) -> Self::Output {
                 let unbeschränkt = self.0 + other.0;
-                if unbeschränkt >= Self::MIN.0 && unbeschränkt <= Self::MAX.0 {
+                if (Self::MIN.0 ..= Self::MAX.0).contains(&unbeschränkt) {
                     Self(unbeschränkt)
                 } else if unbeschränkt > Self::MAX.0 {
                     Self::MAX
@@ -180,7 +212,7 @@ macro_rules! definiere_f64_typ {
 
             fn sub(self, other: Self) -> Self::Output {
                 let unbeschränkt = self.0 - other.0;
-                if unbeschränkt >= Self::MIN.0 && unbeschränkt <= Self::MAX.0 {
+                if (Self::MIN.0 ..= Self::MAX.0).contains(&unbeschränkt) {
                     Self(unbeschränkt)
                 } else if unbeschränkt > Self::MAX.0 {
                     Self::MAX

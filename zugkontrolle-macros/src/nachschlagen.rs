@@ -1,4 +1,4 @@
-//! Derive of zugkontrolle::lookup::Lookup from an enum by creating an associated Elements struct
+//! Derive of `zugkontrolle::lookup::Lookup` from an enum by creating an associated Elements struct
 
 use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
@@ -6,20 +6,26 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{punctuated::Punctuated, token::Comma, ItemEnum, Path};
 
-pub(crate) fn impl_nachschlagen(args: Punctuated<Path, Comma>, item: ItemEnum) -> TokenStream {
+/// [`crate::nachschlagen`]
+pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
     let ItemEnum { vis, variants, ident, .. } = &item;
-    let dummy: Punctuated<Path, Comma> = syn::punctuated::Punctuated::new();
+    let dummy: Punctuated<Path, Comma> = Punctuated::new();
     let (element, struct_name, derives) = if args.len() < 2 {
         errors.push(if args.is_empty() {
-            "Lookup Element and Collection missing!".to_string()
+            String::from("Lookup Element and Collection missing!")
         } else {
-            "Collection missing!".to_string()
+            String::from("Collection missing!")
         });
+        // Skip, damit die Iterator-Typen übereinstimmen.
+        #[allow(clippy::iter_skip_zero)]
         (None, None, dummy.iter().skip(0))
     } else {
+        // sichergestellt durch `arg.len() < 2` check
+        #[allow(clippy::indexing_slicing)]
         let fst = &args[0];
+        #[allow(clippy::indexing_slicing)]
         let snd = &args[1];
         let derives = args.iter().skip(2);
         (Some(fst), Some(snd), derives)
@@ -33,7 +39,8 @@ pub(crate) fn impl_nachschlagen(args: Punctuated<Path, Comma>, item: ItemEnum) -
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
 
-        let enum_variants: Vec<syn::Ident> = variants.iter().map(|v| v.ident.clone()).collect();
+        let enum_variants: Vec<syn::Ident> =
+            variants.iter().map(|variant| variant.ident.clone()).collect();
 
         let struct_fields: Vec<syn::Ident> = enum_variants
             .iter()
@@ -82,7 +89,7 @@ pub(crate) fn impl_nachschlagen(args: Punctuated<Path, Comma>, item: ItemEnum) -
             }
         });
     } else {
-        errors.push("`zugkontrolle` missing in `Cargo.toml`".to_string())
+        errors.push(String::from("`zugkontrolle` missing in `Cargo.toml`"));
     }
 
     if !errors.is_empty() {

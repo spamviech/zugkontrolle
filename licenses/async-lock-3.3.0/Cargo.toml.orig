@@ -1,0 +1,33 @@
+[package]
+name = "async-lock"
+# When publishing a new version:
+# - Update CHANGELOG.md
+# - Create "v3.x.y" git tag
+version = "3.3.0"
+authors = ["Stjepan Glavina <stjepang@gmail.com>"]
+edition = "2021"
+rust-version = "1.60"
+description = "Async synchronization primitives"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/smol-rs/async-lock"
+keywords = ["lock", "mutex", "rwlock", "semaphore", "barrier"]
+categories = ["asynchronous", "concurrency"]
+exclude = ["/.*"]
+
+[dependencies]
+event-listener = { version = "4.0.0", default-features = false }
+event-listener-strategy = { version = "0.4.0", default-features = false }
+pin-project-lite = "0.2.11"
+
+[features]
+default = ["std"]
+std = ["event-listener/std", "event-listener-strategy/std"]
+
+[dev-dependencies]
+async-channel = "2.0.0"
+fastrand = "2.0.0"
+futures-lite = "2.0.0"
+waker-fn = "1.1.0"
+
+[target.'cfg(target_family = "wasm")'.dev-dependencies]
+wasm-bindgen-test = "0.3"

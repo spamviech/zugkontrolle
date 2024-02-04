@@ -27,7 +27,7 @@ use crate::{
     util::sender_trait::erstelle_sender_trait_existential,
 };
 
-/// Name eines [Kontaktes](Kontakt).
+/// Name eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
@@ -43,26 +43,32 @@ erstelle_sender_trait_existential! {
 trait LetztesLevel: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send {}
 impl<T: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send> LetztesLevel for T {}
 
-/// Ein `Kontakt` erlaubt warten auf ein bestimmtes [Trigger]-Ereignis.
+// TODO Würde API verändert, ersetzte durch "Getter".
+#[allow(clippy::partial_pub_fields)]
+/// Ein `Kontakt` erlaubt warten auf ein bestimmtes [`Trigger`]-Ereignis.
 #[derive(Debug, Clone)]
 pub struct Kontakt {
     /// Der Name des Kontaktes.
     pub name: Name,
     /// Wann wird der Kontakt ausgelöst.
     pub trigger: Trigger,
-    /// Die letzte bekannte [Level] eines [Kontaktes](Kontakt).
+    /// Die letzte bekannte [Level] eines [`Kontaktes`](Kontakt).
     letztes_level: Arc<Mutex<dyn LetztesLevel>>,
     /// Der Anschluss des Kontaktes.
     anschluss: Arc<Mutex<Either<InputAnschluss, InputSerialisiert>>>,
-    /// Wer interessiert sich für das [Trigger]-Event.
+    /// Wer interessiert sich für das [`Trigger`]-Event.
     senders: Arc<Mutex<Vec<SomeLevelSender>>>,
 }
 
+/// Entferne den Anschluss aus dem Either und ersetzte ihn durch seine serialisierbare Repräsentation.
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
     let serialisiert = serialisiere_anschluss(either);
+    // std::mem::replace soll offensichtlich sein.
+    #[allow(clippy::absolute_paths)]
     std::mem::replace(either, Either::Right(serialisiert))
 }
 
+/// Erhalte eine serialisierbare Repräsentation des Anschlusses.
 fn serialisiere_anschluss<T: Serialisiere<S>, S: Clone>(either: &Either<T, S>) -> S {
     match either {
         Either::Left(anschluss) => anschluss.serialisiere(),
@@ -70,12 +76,13 @@ fn serialisiere_anschluss<T: Serialisiere<S>, S: Clone>(either: &Either<T, S>) -
     }
 }
 
+/// Setzte den Interrupt-Pin eines Anschlusse zurück.
 fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) {
     if let Err(fehler) = anschluss.lösche_async_interrupt() {
         error!(
-            "Fehler beim zurücksetzten des interrupts bei Kontakt {}: {:?}",
-            kontakt_name.0, fehler
-        )
+            "Fehler beim zurücksetzten des interrupts bei Kontakt {}: {fehler:?}",
+            kontakt_name.0
+        );
     }
 }
 
@@ -83,13 +90,17 @@ impl Drop for Kontakt {
     fn drop(&mut self) {
         let mut kontakt_anschluss = self.anschluss.lock();
         if let Either::Left(anschluss) = &mut *kontakt_anschluss {
-            interrupt_zurücksetzen(anschluss, &self.name)
+            interrupt_zurücksetzen(anschluss, &self.name);
         }
     }
 }
 
 impl Kontakt {
     /// Erzeuge einen neuen Kontakt.
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim setzen des async Interrupt callbacks.
     pub fn neu(
         name: Name,
         mut anschluss: InputAnschluss,
@@ -101,9 +112,9 @@ impl Kontakt {
         let letztes_level = Arc::new(Mutex::new(letztes_level));
 
         let name_clone = name.clone();
-        let senders_clone = senders.clone();
+        let senders_clone = Arc::clone(&senders);
         let trigger_copy = trigger;
-        let letztes_level_clone = letztes_level.clone();
+        let letztes_level_clone = Arc::clone(&letztes_level);
         let aktualisieren_sender = Mutex::new(aktualisieren_sender);
         let set_async_interrupt_result =
             anschluss.setze_async_interrupt(Trigger::Both, move |level| {
@@ -124,15 +135,20 @@ impl Kontakt {
                     );
                 }
                 if callback_aufrufen {
-                    let senders = &mut *senders_clone.lock();
-                    // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level
-                    let mut next = senders.len().checked_sub(1);
-                    while let Some(i) = next {
-                        match senders[i].send(level) {
-                            Ok(()) => next = i.checked_sub(1),
+                    let aktuelle_senders = &mut *senders_clone.lock();
+                    // Iteriere über alle registrierten Kanäle und schicke über sie das neue Level.
+                    let mut next = aktuelle_senders.len().checked_sub(1);
+                    while let Some(index) = next {
+                        // 0 <= index < senders.len()
+                        // range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.
+                        #[allow(clippy::indexing_slicing)]
+                        match aktuelle_senders[index].send(level) {
+                            Ok(()) => next = index.checked_sub(1),
                             Err(SendError(_level)) => {
-                                // channel was disconnected, so no need to send to it anymore
-                                let _ = senders.swap_remove(i);
+                                // channel was disconnected, so no need to send to it anymore.
+                                // swap_remove ist kein Problem, da in zukünftigen Schleifendurchläufen
+                                // nur Sender mit kleinerem Index betrachtet werden.
+                                let _ = aktuelle_senders.swap_remove(index);
                             },
                         }
                     }
@@ -161,18 +177,22 @@ impl Kontakt {
     }
 
     /// Registriere einen neuen Channel, der auf das Trigger-Event reagiert.
-    /// Das übergebene Funktion wird mit dem neuen [Level] aufgerufen,
-    /// das Ergebnis wird mit dem [Sender] geschickt.
-    pub fn registriere_trigger_sender<T, F>(&mut self, sender: Sender<T>, f: F)
+    /// Das übergebene Funktion wird mit dem neuen [`Level`] aufgerufen,
+    /// das Ergebnis wird mit dem [`Sender`] geschickt.
+    pub fn registriere_trigger_sender<T, F>(&mut self, sender: Sender<T>, erzeuge_nachricht: F)
     where
         T: 'static + Send,
         F: 'static + Fn(Level) -> T + Clone + Send,
     {
         let senders = &mut *self.senders.lock();
-        senders.push(SomeLevelSender::from((sender, f)));
+        senders.push(SomeLevelSender::from((sender, erzeuge_nachricht)));
     }
 
     /// Blockiere den aktuellen Thread bis das aktuelle Trigger-Event ausgelöst wird.
+    ///
+    /// ## Errors
+    ///
+    /// Alle zugehörigen [`Sender`] wurden gedroppt.
     pub fn warte_auf_trigger(&mut self) -> Result<Level, RecvError> {
         let receiver = self.registriere_trigger_channel();
         receiver.recv()
@@ -185,7 +205,9 @@ impl MitName for Option<Kontakt> {
     }
 }
 
-/// Serialisierbare Variante eines [Kontaktes](Kontakt).
+// Folge der Konvention TypName->TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
+/// Serialisierbare Variante eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
     /// Der Name des Kontaktes.
@@ -197,7 +219,8 @@ pub struct KontaktSerialisiert {
 }
 
 impl KontaktSerialisiert {
-    /// Erstelle einen neuen [KontaktSerialisiert].
+    /// Erstelle einen neuen [`KontaktSerialisiert`].
+    #[must_use]
     pub fn neu(name: Name, anschluss: InputSerialisiert, trigger: Trigger) -> Self {
         KontaktSerialisiert { name, anschluss, trigger }
     }
@@ -235,7 +258,9 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
-        use Ergebnis::*;
+        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        // anschlüsse ist die selbe Struktur nach ausführen von `reserviere`.
+        #[allow(clippy::shadow_unrelated)]
         let (mut anschluss, fehler, mut anschlüsse) =
             match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
@@ -277,9 +302,11 @@ impl MitName for Option<KontaktSerialisiert> {
     }
 }
 
-/// Trait für Typen mit einem [Kontakt].
+// Wird nicht qualifiziert verwendet.
+#[allow(clippy::module_name_repetitions)]
+/// Trait für Typen mit einem [`Kontakt`].
 pub trait MitKontakt {
-    /// Erhalte das aktuelle [Level] und den gewählten [Trigger].
+    /// Erhalte das aktuelle [Level] und den gewählten [`Trigger`].
     fn aktuelles_level_und_trigger(&self) -> Option<(Option<Level>, Trigger)>;
 }
 

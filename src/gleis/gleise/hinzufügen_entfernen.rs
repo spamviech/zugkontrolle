@@ -22,7 +22,14 @@ use crate::{
 };
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// Füge ein neues Gleis an der [Position] mit dem gewählten [Streckenabschnitt](streckenabschnitt::Streckenabschnitt) hinzu.
+    /// Füge ein neues Gleis an der [Position] mit dem gewählten
+    /// [`Streckenabschnitt`](streckenabschnitt::Streckenabschnitt) hinzu.
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`DefinitionId`](crate::gleis::gleise::id::DefinitionId) gehörende
+    /// Definition gefunden, oder es war keine [`GleisId`](crate::gleis::gleise::id::GleisId)
+    /// verfügbar.
     pub(crate) fn hinzufügen(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
@@ -46,7 +53,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let punkt = self.letzte_maus_position - halte_position;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
         let winkel = -self.pivot.winkel;
         let gleis_id = self.hinzufügen(
             definition_steuerung.clone(),
@@ -96,7 +107,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(gleis_id)
     }
 
-    /// Entferne das [Gleis] assoziiert mit der [GleisId].
+    /// Entferne das [Gleis] assoziiert mit der [`GleisId`].
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub(in crate::gleis::gleise) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -105,6 +120,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Bewege das gehaltene Gleis an die übergebene Position.
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub(in crate::gleis::gleise) fn gehalten_bewegen(
         &mut self,
         klick_quelle: &KlickQuelle,
@@ -114,6 +133,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
                 gehalten.get_mut(klick_quelle)
             {
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
                 let punkt = canvas_pos - halte_position;
                 let id = gleis_steuerung.id();
                 self.zustand.bewegen(id, Position { punkt, winkel: *winkel }, true)?;
@@ -124,11 +145,15 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Ok(())
     }
 
-    /// Setzte (oder entferne) den [Streckenabschnitt](streckenabschnitt::Streckenabschnitt)
-    /// für das [Gleis] assoziiert mit der [GleisId].
+    /// Setzte (oder entferne) den [`Streckenabschnitt`](streckenabschnitt::Streckenabschnitt)
+    /// für das [Gleis] assoziiert mit der [`GleisId`].
     ///
-    /// Rückgabewert ist der [Name](streckenabschnitt::Name) des bisherigen
-    /// [Streckenabschnittes](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
+    /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
+    /// [`Streckenabschnittes`](streckenabschnitt::Streckenabschnitt) (falls einer gesetzt war).
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur `gleis_id` gehörendes Gleis gefunden.
     pub fn setze_streckenabschnitt(
         &mut self,
         gleis_id: impl Into<AnyId>,
@@ -138,6 +163,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Passe die Anschlüsse für ein Gleis an.
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub fn anschlüsse_anpassen(
         &mut self,
         lager: &mut Lager,
@@ -154,6 +183,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Sind für ein Gleis Anschlüsse definiert?
+    ///
+    /// ## Errors
+    ///
+    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
         self.zustand.hat_steuerung(gleis)
     }

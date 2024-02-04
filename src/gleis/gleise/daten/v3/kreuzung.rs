@@ -1,4 +1,4 @@
-//! Serialisierbare Darstellung einer [Kreuzung] in Version 3.
+//! Serialisierbare Darstellung einer [`Kreuzung`] in Version 3.
 
 use std::fmt::Debug;
 
@@ -15,9 +15,12 @@ use crate::{
     typen::skalar::Skalar,
 };
 
+/// Serialisierbare Darstellung der Steuerung einer [`Kreuzung`].
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 
+// Folge Konvention TypName -> TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
 /// Definition einer Kreuzung.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KreuzungSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
@@ -33,6 +36,8 @@ pub struct KreuzungSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     pub steuerung: Anschlüsse,
 }
 
+// Folge Konvention TypName -> TypNameUnit
+#[allow(clippy::module_name_repetitions)]
 /// Eine Variante ohne Anschlüsse.
 pub type KreuzungUnit = KreuzungSerialisiert<()>;
 

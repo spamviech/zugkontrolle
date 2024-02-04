@@ -1,10 +1,10 @@
-//! Serialisierbare Darstellung der Orientierung einer [Weiche], in welche Richtung geht die Kurve. in Version 3.
+//! Serialisierbare Darstellung der Orientierung einer [`Weiche`], in welche Richtung geht die Kurve. in Version 3.
 
 use serde::{Deserialize, Serialize};
 
 use crate::gleis::weiche::orientierung as v4;
 
-/// Die Orientierung einer [Weiche], in welche Richtung geht die Kurve.
+/// Die Orientierung einer [`Weiche`], in welche Richtung geht die Kurve.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Orientierung {
     /// Die Kurve geht nach links.

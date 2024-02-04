@@ -1,5 +1,9 @@
 //! Trait für fehler-freies Nachschlagen von Elementen.
 
+// TODO Behandeln erfordert Anpassung des public API.
+#![allow(clippy::pub_use)]
+// TODO Behandeln erfordert Anpassung des public API.
+#[allow(clippy::module_name_repetitions)]
 pub use zugkontrolle_macros::impl_nachschlagen;
 
 /// Trait für fehler-freies Nachschlagen von Elementen.
@@ -11,9 +15,10 @@ pub trait Nachschlagen<Name, Element> {
     /// Führe eine Aktion für jedes `Element` aus.
     fn für_alle<F: FnMut(Name, &Element)>(&self, action: F);
     /// Führe eine Funktion für jedes `Element` und ersetze es mit dem Ergebnis.
+    #[must_use]
     fn zuordnen<F: Fn(&Element) -> Element>(&self, function: F) -> Self;
     /// Erhalte einen Vec über Referenzen aller `Element`e.
-    fn referenzen<'t>(&'t self) -> Vec<(Name, &'t Element)>;
-    /// Erhalte einen [Vec] über mutable Referenzen aller `Element`e.
-    fn referenzen_mut<'t>(&'t mut self) -> Vec<(Name, &'t mut Element)>;
+    fn referenzen(&self) -> Vec<(Name, &Element)>;
+    /// Erhalte einen [`Vec`] über mutable Referenzen aller `Element`e.
+    fn referenzen_mut(&mut self) -> Vec<(Name, &mut Element)>;
 }

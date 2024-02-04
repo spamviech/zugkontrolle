@@ -1,4 +1,4 @@
-//! [Application] für die Gleis-Anzeige.
+//! [`Application`] für die Gleis-Anzeige.
 
 use std::{
     fmt::{Debug, Display},
@@ -9,7 +9,10 @@ use std::{
 };
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{application::Application, Command, Element, Renderer, Settings, Subscription};
+use iced::{
+    application::Application, executor, font, window, Command, Element, Renderer, Settings,
+    Subscription,
+};
 use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
@@ -17,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     anschluss::{
         de_serialisieren::{Reserviere, Serialisiere},
-        Lager,
+        InitFehler, Lager,
     },
     application::{
         auswahl::AuswahlZustand,
@@ -68,7 +71,9 @@ pub mod weiche;
 /// Anzeige einer Meldung.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MessageBox {
+    /// Titel der MessageBox.
     titel: String,
+    /// Nachricht der MessageBox.
     nachricht: String,
 }
 
@@ -80,25 +85,40 @@ pub struct MessageBox {
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[zugkontrolle_debug(S: Debug)]
 pub struct Zugkontrolle<L: Leiter, S> {
+    /// Alle Gleise, Streckenabschnitte, und Geschwindigkeiten.
     gleise: Gleise<L, Nachricht<L, S>>,
+    /// Noch verfügbare Anschlüsse.
     lager: Lager,
+    /// Der Stil für verwendete [`Scrollable-Widgets`](iced::widget::Scrollable)
     scrollable_style: style::sammlung::Sammlung,
+    /// Aktivierte [`I2C-Busse`](crate::anschluss::pcf8574::I2cBus).
     i2c_settings: I2cSettings,
+    /// Der aktuell aktivierte Streckenabschnitt.
     streckenabschnitt_aktuell: Option<(StreckenabschnittName, Farbe)>,
+    /// Führt das anklicken eines Gleises zum setzen des [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt)?
     streckenabschnitt_aktuell_festlegen: bool,
+    /// Zustand für Anzeigen des Widgets für die Positions-Steuerung des [`Gleise`]-canvas.
     bewegen: Bewegen,
+    /// Zustand für Anzeigen des Widgets für die Rotation-Steuerung des [`Gleise`]-canvas.
     drehen: Drehen,
+    /// Der initiale Pfad des SpeichernLaden-Widgets.
     initialer_pfad: String,
+    /// Zeigt der Speichern-Knopf aktuell an, dass er gedrückt wurde.
     speichern_gefärbt: Option<(bool, Instant)>,
+    /// Wie wird der [`Gleise`]-Canvas aktuell bewegt.
     bewegung: Option<Bewegung>,
+    /// Der aktuelle Zustand des [`Auswahl-Widgets`](AuswahlZustand).
     auswahl_zustand: Overlay<AuswahlZustand<S>>,
+    /// Der aktuelle Zustand des [`Mitteilungs-Widgets`](MessageBox).
     message_box: Overlay<MessageBox>,
+    /// Sender für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
     sender: Sender<Nachricht<L, S>>,
+    /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
     empfänger: Empfänger<Nachricht<L, S>>,
     // TODO Plan
 }
 
-/// Bei der [Ausführung](ausführen) potentiell auftretende Fehler.
+/// Bei der [`Ausführung`](ausführen) potentiell auftretende Fehler.
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
     /// Ein Fehler beim anzeigen des GUIs.
@@ -106,23 +126,29 @@ pub enum Fehler {
     /// Ein Fehler beim starten des Loggers.
     FlexiLogger(FlexiLoggerError),
     /// Ein Fehler beim Initialisieren der Pins und I2C-Busse.
-    Anschluss(crate::anschluss::InitFehler),
+    Anschluss(InitFehler),
 }
 
+/// Flags für den [`Application`]-Trait.
 type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
-#[inline(always)]
+///
+/// ## Errors
+///
+/// Fehler beim Initialisieren der Anwendung.
 pub fn ausführen_aus_env() -> Result<(), Fehler> {
     let args = Argumente::parse_aus_env();
     ausführen(args)
 }
 
 /// Parse die übergebenen Kommandozeilen-Argumente und führe die Anwendung aus.
+///
+/// ## Errors
+///
+/// Fehler beim Initialisieren der Anwendung.
 pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
-    let Argumente { i2c_settings, zugtyp, verbose, log_datei, .. } = argumente;
-    let lager = crate::anschluss::Lager::neu(i2c_settings)?;
-
+    /// Initialisiere die Logger-Instanz.
     fn start_logger(verbose: bool, log_datei: bool) -> Result<LoggerHandle, FlexiLoggerError> {
         let log_level = if verbose { LevelFilter::Debug } else { LevelFilter::Warn };
         let mut log_spec_builder = LogSpecBuilder::new();
@@ -138,23 +164,29 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
         };
         logger.start()
     }
-    let logger_handle = start_logger(verbose, log_datei)?;
 
+    /// Erstelle die Settings-Struktur für [`Zugkontrolle::run`].
     fn erstelle_settings<L: Leiter>(
         argumente: Argumente,
         lager: Lager,
         zugtyp: &'static Zugtyp<L>,
     ) -> Settings<Flags<L>> {
         Settings {
-            window: iced::window::Settings {
+            window: window::Settings {
                 size: (800, 480),
                 icon: icon(),
-                ..iced::window::Settings::default()
+                ..window::Settings::default()
             },
             default_font: fonts::REGULAR,
             ..Settings::with_flags((argumente, lager, zugtyp, BENÖTIGTE_FONT_BYTES))
         }
     }
+
+    let Argumente { i2c_settings, zugtyp, verbose, log_datei, .. } = argumente;
+    let lager = Lager::neu(i2c_settings)?;
+
+    let logger_handle = start_logger(verbose, log_datei)?;
+
     match zugtyp {
         ZugtypArgument::Märklin => {
             Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::märklin()))
@@ -192,7 +224,7 @@ where
     S: From<<L as BekannterZugtyp>::V2>,
     for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
-    type Executor = iced::executor::Default;
+    type Executor = executor::Default;
     type Flags = Flags<L>;
     type Message = Nachricht<L, S>;
     type Theme = Thema;
@@ -203,7 +235,7 @@ where
         let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
         let lade_schriftarten = schriftarten.iter().map(|&schriftart| {
-            iced::font::load(schriftart).map(|ergebnis| match ergebnis {
+            font::load(schriftart).map(|ergebnis| match ergebnis {
                 Ok(()) => Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true },
                 Err(fehler) => Nachricht::AsyncFehler {
                     titel: String::from("Schriftart laden"),
@@ -219,9 +251,9 @@ where
         } else {
             lade_zustand = Command::none();
             initialer_pfad = {
-                let mut pfad = zugtyp2.name.clone();
-                pfad.push_str(".zug");
-                pfad
+                let mut standard_pfad = zugtyp2.name.clone();
+                standard_pfad.push_str(".zug");
+                standard_pfad
             };
         };
 
@@ -265,17 +297,17 @@ where
 
         match message {
             Nachricht::Gleis { definition_steuerung, klick_quelle, klick_höhe } => {
-                self.gleis_hinzufügen(definition_steuerung, klick_quelle, klick_höhe)
+                self.gleis_hinzufügen(definition_steuerung, klick_quelle, klick_höhe);
             },
             Nachricht::Modus(modus) => self.gleise.moduswechsel(modus),
             Nachricht::Bewegen(bewegen::Nachricht::StarteBewegung(bewegung)) => {
-                command = self.bewegung_starten(bewegung)
+                command = self.bewegung_starten(bewegung);
             },
             Nachricht::Bewegen(bewegen::Nachricht::BeendeBewegung) => self.bewegung_beenden(),
             Nachricht::Bewegen(bewegen::Nachricht::Zurücksetzen) => self.bewegung_zurücksetzen(),
             Nachricht::BewegungAusführen => {
                 if let Some(cmd) = self.bewegung_ausführen() {
-                    command = cmd
+                    command = cmd;
                 }
             },
             Nachricht::Position(position) => self.gleise.setze_pivot(position),
@@ -294,19 +326,19 @@ where
                 anschluss_definition,
             ),
             Nachricht::LöscheStreckenabschnitt(streckenabschnitt_name) => {
-                self.streckenabschnitt_löschen(&streckenabschnitt_name)
+                self.streckenabschnitt_löschen(&streckenabschnitt_name);
             },
             Nachricht::SetzeStreckenabschnitt(any_id) => {
-                self.gleis_setzte_streckenabschnitt(any_id)
+                self.gleis_setzte_streckenabschnitt(any_id);
             },
             Nachricht::StreckenabschnittFestlegen(festlegen) => {
-                self.streckenabschnitt_festlegen(festlegen)
+                self.streckenabschnitt_festlegen(festlegen);
             },
             Nachricht::Speichern(pfad) => {
                 command = self.speichern(pfad);
             },
             Nachricht::EntferneSpeichernFarbe(nachricht_zeit) => {
-                self.entferne_speichern_farbe(nachricht_zeit)
+                self.entferne_speichern_farbe(nachricht_zeit);
             },
             Nachricht::Laden(pfad) => self.laden(pfad),
             Nachricht::AktionGeschwindigkeit(aktion) => self.async_aktion_ausführen(
@@ -314,20 +346,20 @@ where
                 Some(Nachricht::AsyncAktualisieren { gleise_neuzeichnen: false }),
             ),
             Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit_save) => {
-                self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save)
+                self.geschwindigkeit_hinzufügen(name, geschwindigkeit_save);
             },
             Nachricht::LöscheGeschwindigkeit(name) => self.geschwindigkeit_entfernen(&name),
             Nachricht::AnschlüsseAnpassen(anschlüsse_anpassen) => {
-                self.anschlüsse_anpassen(anschlüsse_anpassen)
+                self.anschlüsse_anpassen(anschlüsse_anpassen);
             },
             Nachricht::StreckenabschnittUmschalten(aktion) => self.aktion_ausführen(aktion),
             Nachricht::WeicheSchalten(aktion) => self.async_aktion_ausführen(aktion, None),
             Nachricht::GleiseZustandAktualisieren(nachricht) => {
-                self.gleise_zustand_aktualisieren(nachricht)
+                self.gleise_zustand_aktualisieren(nachricht);
             },
             Nachricht::AsyncAktualisieren { gleise_neuzeichnen } => {
                 if gleise_neuzeichnen {
-                    self.gleise_neuzeichnen()
+                    self.gleise_neuzeichnen();
                 }
             },
             Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),

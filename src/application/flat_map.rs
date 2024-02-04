@@ -1,4 +1,4 @@
-//! Wie [Map](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
+//! Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 
 use iced_core::{
     clipboard::Clipboard,
@@ -17,15 +17,17 @@ use iced_core::{
 
 use crate::application::map_mit_zustand::MapOperation;
 
-///  Wie [Map](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
+///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]
 pub struct FlatMap<'a, A, B, I: IntoIterator<Item = B>, Renderer> {
+    /// Das ursprüngliche Widget.
     widget: Box<dyn Widget<A, Renderer> + 'a>,
+    /// Die Funktion zur Transformation der ursprünglichen Nachrichten.
     mapper: Box<dyn Fn(A) -> I + 'a>,
 }
 
 impl<'a, A, B, I: IntoIterator<Item = B>, Renderer> FlatMap<'a, A, B, I, Renderer> {
-    /// Erzeuge ein neues [FlatMap]-widget.
+    /// Erzeuge ein neues [`FlatMap`]-widget.
     pub fn neu(
         widget: Box<dyn Widget<A, Renderer> + 'a>,
         mapper: impl 'a + Fn(A) -> I,
@@ -54,7 +56,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        self.widget.diff(tree)
+        self.widget.diff(tree);
     }
 
     fn width(&self) -> Length {
@@ -117,7 +119,7 @@ where
         }
 
         for message in local_messages.drain(..).flat_map(&self.mapper) {
-            shell.publish(message)
+            shell.publish(message);
         }
 
         status
@@ -133,7 +135,7 @@ where
         cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.widget.draw(tree, renderer, theme, style, layout, cursor_position, viewport)
+        self.widget.draw(tree, renderer, theme, style, layout, cursor_position, viewport);
     }
 
     fn mouse_interaction(
@@ -165,12 +167,16 @@ where
     }
 }
 
+/// Overlay für ein [`FlatMap`]-Widget.
 struct OverlayFlatMap<'a, A, B, I: IntoIterator<Item = B>, Renderer> {
+    /// Das Overlay.
     content: overlay::Element<'a, A, Renderer>,
+    /// Die Funktion zur Transformation der ursprünglichen Nachrichten.
     mapper: &'a dyn Fn(A) -> I,
 }
 
 impl<'a, A, B, I: IntoIterator<Item = B>, Renderer> OverlayFlatMap<'a, A, B, I, Renderer> {
+    /// Erzeuge ein neues [`OverlayFlatMap`].
     fn neu(
         content: overlay::Element<'a, A, Renderer>,
         mapper: &'a dyn Fn(A) -> I,
@@ -185,7 +191,10 @@ where
     Renderer: self::Renderer,
 {
     fn layout(&self, renderer: &Renderer, bounds: Size, position: Point) -> layout::Node {
-        self.content.layout(renderer, bounds, position - self.content.position())
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let translation = position - self.content.position();
+        self.content.layout(renderer, bounds, translation)
     }
 
     fn operate(
@@ -231,7 +240,7 @@ where
         }
 
         for message in local_messages.drain(..).flat_map(self.mapper) {
-            shell.publish(message)
+            shell.publish(message);
         }
 
         event_status
@@ -255,7 +264,7 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        self.content.draw(renderer, theme, style, layout, cursor_position)
+        self.content.draw(renderer, theme, style, layout, cursor_position);
     }
 
     fn is_over(&self, layout: Layout<'_>, renderer: &Renderer, cursor_position: Point) -> bool {

@@ -1,4 +1,4 @@
-//! [Zustand](AuswahlZustand) und [anzeige](AuswahlZustand::view) des Auswahl-Fensters.
+//! [Zustand](AuswahlZustand) und [`anzeige`](AuswahlZustand::view) des Auswahl-Fensters.
 
 use std::fmt::Debug;
 
@@ -36,46 +36,49 @@ use crate::{
 
 use super::kontakt;
 
-/// Die Id eines Gleises mit einem [Kontakt](crate::steuerung::kontakt::Kontakt).
+/// Die Id eines Gleises mit einem [`Kontakt`](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
 pub enum KontaktId {
-    /// Die Id einer [Geraden](Gerade).
+    /// Die Id einer [`Geraden`](Gerade).
     Gerade(GleisId<Gerade>),
-    /// Die Id einer [Kurve].
+    /// Die Id einer [`Kurve`].
     Kurve(GleisId<Kurve>),
 }
 
-/// Die Id einer Weiche mit [gleis::weiche::gerade::Richtung].
+/// Die Id einer Weiche mit [`gleis::weiche::gerade::Richtung`].
 #[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
 pub enum WeichenId {
-    /// Die Id einer [Weiche].
+    /// Die Id einer [`Weiche`].
     Gerade(GleisId<Weiche>),
-    /// Die Id einer [SKurvenWeiche].
+    /// Die Id einer [`SKurvenWeiche`].
     SKurve(GleisId<SKurvenWeiche>),
-    /// Die Id einer [Kreuzung].
+    /// Die Id einer [`Kreuzung`].
     Kreuzung(GleisId<Kreuzung>),
 }
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
+/// Serialisierte Steuerung für eine [`Weiche`], [`SKurvenWeiche`] oder [`Kreuzung`].
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
-
+/// Serialisierte Steuerung für eine [`DreiwegeWeiche`].
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::dreiwege::RichtungInformation,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
-
+/// Serialisierte Steuerung für eine [`KurvenWeiche`].
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
+// Beheben benötigt Änderung des public API.
+#[allow(clippy::module_name_repetitions)]
 /// Zustand des Auswahl-Fensters.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuswahlZustand<S> {
-    /// Hinzufügen/Verändern eines [Streckenabschnittes](steuerung::streckenabschnitt::Streckenabschnitt).
+    /// Hinzufügen/Verändern eines [`Streckenabschnittes`](steuerung::streckenabschnitt::Streckenabschnitt).
     Streckenabschnitt(
         Option<(
             steuerung::streckenabschnitt::Name,
@@ -83,18 +86,18 @@ pub enum AuswahlZustand<S> {
             Option<steuerung::geschwindigkeit::Name>,
         )>,
     ),
-    /// Hinzufügen/Verändern einer [Geschwindigkeit](steuerung::geschwindigkeit::Geschwindigkeit).
+    /// Hinzufügen/Verändern einer [`Geschwindigkeit`](steuerung::geschwindigkeit::Geschwindigkeit).
     Geschwindigkeit(Option<(steuerung::geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>)>),
-    /// Hinzufügen/Verändern der Anschlüsse einer [Geraden](gleis::gerade::Gerade),
-    /// oder [Kurve](gleis::kurve::Kurve).
+    /// Hinzufügen/Verändern der Anschlüsse einer [`Geraden`](gleis::gerade::Gerade),
+    /// oder [`Kurve`](gleis::kurve::Kurve).
     Kontakt(KontaktId, Option<KontaktSerialisiert>, bool),
-    /// Hinzufügen/Verändern der Anschlüsse einer [Weiche](gleis::weiche::gerade::Weiche),
-    /// [Kreuzung](gleis::kreuzung::Kreuzung),
-    /// oder [SKurvenWeiche](gleis::weiche::s_kurve::SKurvenWeiche).
+    /// Hinzufügen/Verändern der Anschlüsse einer [`Weiche`](gleis::weiche::gerade::Weiche),
+    /// [`Kreuzung`](gleis::kreuzung::Kreuzung),
+    /// oder [`SKurvenWeiche`](gleis::weiche::s_kurve::SKurvenWeiche).
     Weiche(WeichenId, Option<WeicheSerialisiert>, bool),
-    /// Hinzufügen/Verändern der Anschlüsse einer [DreiwegeWeiche].
+    /// Hinzufügen/Verändern der Anschlüsse einer [`DreiwegeWeiche`].
     DreiwegeWeiche(GleisId<DreiwegeWeiche>, Option<DreiwegeWeicheSerialisiert>, bool),
-    /// Hinzufügen/Verändern der Anschlüsse einer [KurvenWeiche].
+    /// Hinzufügen/Verändern der Anschlüsse einer [`KurvenWeiche`].
     KurvenWeiche(GleisId<KurvenWeiche>, Option<KurvenWeicheSerialisiert>, bool),
     /// Anzeige der verwendeten Open-Source Lizenzen.
     ZeigeLizenzen,
@@ -102,7 +105,9 @@ pub enum AuswahlZustand<S> {
 
 impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
     fn from((wert, hat_steuerung): (AnyIdSteuerungSerialisiert, bool)) -> Self {
-        use AnyIdSteuerungSerialisiert::*;
+        use AnyIdSteuerungSerialisiert::{
+            DreiwegeWeiche, Gerade, Kreuzung, Kurve, KurvenWeiche, SKurvenWeiche, Weiche,
+        };
         match wert {
             Gerade(id, steuerung) => {
                 AuswahlZustand::Kontakt(KontaktId::from(id), steuerung, hat_steuerung)
@@ -129,19 +134,19 @@ impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
     }
 }
 
-/// AuswahlNachricht für die Steuerung einer [Weiche], [Kreuzung] und [SKurvenWeiche].
+/// `AuswahlNachricht` für die Steuerung einer [Weiche], [Kreuzung] und [`SKurvenWeiche`].
 pub(in crate::application) type WeicheNachricht = weiche::Nachricht<
     gleis::weiche::gerade::Richtung,
     gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
-/// AuswahlNachricht für die Steuerung einer [DreiwegeWeiche].
+/// `AuswahlNachricht` für die Steuerung einer [`DreiwegeWeiche`].
 pub(in crate::application) type DreiwegeWeicheNachricht = weiche::Nachricht<
     gleis::weiche::dreiwege::RichtungInformation,
     gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
-/// AuswahlNachricht für die Steuerung einer [KurvenWeiche].
+/// `AuswahlNachricht` für die Steuerung einer [`KurvenWeiche`].
 pub(in crate::application) type KurvenWeicheNachricht = weiche::Nachricht<
     gleis::weiche::kurve::Richtung,
     gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
@@ -175,7 +180,7 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(|nachricht| modal::Nachricht::from(nachricht))
+                .map(modal::Nachricht::from)
             },
             AuswahlZustand::Geschwindigkeit(startwert) => {
                 let geschwindigkeiten =
@@ -188,7 +193,7 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(|nachricht| modal::Nachricht::from(nachricht))
+                .map(modal::Nachricht::from)
             },
             AuswahlZustand::Kontakt(kontakt_id, kontakt, hat_steuerung) => {
                 let gleis_art = match &kontakt_id {
@@ -246,7 +251,7 @@ impl<S> AuswahlZustand<S> {
             },
             AuswahlZustand::ZeigeLizenzen => {
                 Element::from(Lizenzen::neu_mit_verwendeten_lizenzen(scrollable_style))
-                    .map(|nachricht| modal::Nachricht::from(nachricht))
+                    .map(modal::Nachricht::from)
             },
         }
     }

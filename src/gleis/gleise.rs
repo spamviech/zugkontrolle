@@ -1,7 +1,9 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem
-//! [Canvas](iced::widget::canvas::Canvas).
+//! [`Canvas`](iced::widget::canvas::Canvas).
 
-use std::{collections::HashMap, convert::identity, fmt::Debug, sync::mpsc::Sender, time::Instant};
+use std::{
+    collections::HashMap, convert::identity, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant,
+};
 
 use iced::{
     mouse::{self, Cursor},
@@ -50,12 +52,14 @@ pub mod steuerung;
 pub mod update;
 
 #[zugkontrolle_macros::erstelle_enum(pub, Modus)]
-/// Aktueller Modus von [Gleise].
+/// Aktueller Modus von [`Gleise`].
 #[derive(Debug)]
 enum ModusDaten {
     /// Im Bauen-Modus können Gleise hinzugefügt, bewegt, angepasst und bewegt werden.
     Bauen {
+        /// Alle aktuell gehaltenen Gleise.
         gehalten: HashMap<KlickQuelle, Gehalten>,
+        /// Der letzte verarbeitete Klick. Wird zum Erkennen von Doppel-Klicks verwendet.
         letzter_klick: Option<(KlickQuelle, Instant)>,
     },
     /// Im Fahren-Modus werden die mit den Gleisen assoziierten Aktionen durchgeführt.
@@ -63,6 +67,8 @@ enum ModusDaten {
 }
 
 impl ModusDaten {
+    /// Erzeuge neue [`ModusDaten`] für den gewünschten [`Modus`].
+    #[must_use]
     fn neu(modus: Modus) -> Self {
         match modus {
             Modus::Bauen => ModusDaten::Bauen { gehalten: HashMap::new(), letzter_klick: None },
@@ -72,6 +78,7 @@ impl ModusDaten {
 }
 
 impl Modus {
+    /// Erstelle einen neuen [`Radio`]-Button für den [`Modus`].
     pub(crate) fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus, Renderer<Thema>> {
         Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
@@ -84,18 +91,29 @@ impl Modus {
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 pub struct Gleise<L: Leiter, AktualisierenNachricht> {
+    /// Der [`Cache`] für die Canvas-Anzeige aller Gleise.
     canvas: Cache,
+    /// Der Pivot-Punkt wird links oben auf dem Canvas angezeigt.
     pivot: Position,
+    /// Wie groß werden die Gleise angezeigt.
     skalieren: Skalar,
+    /// Alle Gleise, Streckenabschnitte, Geschwindigkeiten, Pläne, sowie der verwendete Zugtyp.
     zustand: Zustand<L>,
+    /// Die letzte bekannte Position des Mauszeigers.
     letzte_maus_position: Vektor,
+    /// Die letzte bekannte Größe des Canvas.
     letzte_canvas_größe: Vektor,
+    /// Der aktuelle Modus und zugehörige Zustandsdaten.
     modus: ModusDaten,
+    /// Sender zum schicken einer `AktualisierenNachricht`.
+    /// Zwinge `iced` dazu, die `draw`-Methode erneut aufzurufen,
+    /// z.B. nach asynchronen Zustandsänderungen.
     sender: Sender<AktualisierenNachricht>,
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// Erstelle ein neues, leeres [Gleise]-struct.
+    /// Erstelle ein neues, leeres [`Gleise`]-struct.
+    #[must_use]
     pub fn neu(
         zugtyp2: Zugtyp<L>,
         modus: Modus,
@@ -133,7 +151,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.modus = ModusDaten::neu(modus);
     }
 
-    /// Gibt es ein zur [KlickQuelle] gehörendes gehaltenes Gleis.
+    /// Gibt es ein zur [`KlickQuelle`] gehörendes gehaltenes Gleis.
     pub fn hat_gehaltenes_gleis(&self, klick_quelle: KlickQuelle) -> bool {
         match &self.modus {
             ModusDaten::Bauen { gehalten, .. } => gehalten.contains_key(&klick_quelle),
@@ -154,7 +172,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Bewege aktuellen Pivot-Punkt um `bewegung`.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
-        self.pivot.punkt += bewegung;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.pivot.punkt += bewegung;
+        }
         self.canvas.leeren();
     }
 
@@ -166,7 +188,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Drehe die aktuelle Darstellung um `winkel`.
     pub fn drehen(&mut self, winkel: Winkel) {
-        self.pivot.winkel += winkel;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.pivot.winkel += winkel;
+        }
         self.canvas.leeren();
     }
 
@@ -183,7 +209,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Multipliziere die aktuelle Darstellung mit `skalieren`.
     pub fn skalieren(&mut self, skalieren: Skalar) {
-        self.skalieren *= skalieren;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            self.skalieren *= skalieren;
+        }
         self.canvas.leeren();
     }
 
@@ -199,28 +229,40 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
+    ///
+    /// ## Errors
+    ///
+    /// Kein Streckenabschnitt mit `name` gefunden.
     pub fn streckenabschnitt<'s>(
         &'s self,
-        streckenabschnitt: &streckenabschnitt::Name,
+        name: &streckenabschnitt::Name,
     ) -> Result<&'s Streckenabschnitt, StreckenabschnittEntferntFehler> {
         self.zustand
-            .streckenabschnitt(streckenabschnitt)
+            .streckenabschnitt(name)
             .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
+    ///
+    /// ## Errors
+    ///
+    /// Kein Streckenabschnitt mit `name` gefunden.
     pub fn streckenabschnitt_mut<'s>(
         &'s mut self,
-        streckenabschnitt: &streckenabschnitt::Name,
+        name: &streckenabschnitt::Name,
     ) -> Result<&'s mut Streckenabschnitt, StreckenabschnittEntferntFehler> {
         self.zustand
-            .streckenabschnitt_mut(streckenabschnitt)
+            .streckenabschnitt_mut(name)
             .map(|(streckenabschnitt, _steuerung)| streckenabschnitt)
     }
 
     /// Entferne einen Streckenabschnitt.
     /// Falls er vorhanden war wird er zurückgegeben.
     /// Schlägt fehl, wenn noch Gleise den Streckenabschnitt zugeordnet waren.
+    ///
+    /// ## Errors
+    ///
+    /// Kein Streckenabschnitt mit `name` gefunden.
     pub fn streckenabschnitt_entfernen(
         &mut self,
         name: &streckenabschnitt::Name,
@@ -233,7 +275,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Alle aktuell bekannten Streckenabschnitte.
     pub(crate) fn aus_allen_streckenabschnitten<T, C>(
         &self,
-        f: impl for<'s> Fn(&'s streckenabschnitt::Name, &'s Streckenabschnitt) -> T,
+        funktion: impl for<'s> Fn(&'s streckenabschnitt::Name, &'s Streckenabschnitt) -> T,
     ) -> C
     where
         C: FromIterator<T>,
@@ -241,7 +283,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.zustand
             .streckenabschnitte()
             .iter()
-            .map(|(name, (streckenabschnitt, _geschwindigkeit))| f(name, streckenabschnitt))
+            .map(|(name, (streckenabschnitt, _geschwindigkeit))| funktion(name, streckenabschnitt))
             .collect()
     }
 
@@ -257,6 +299,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Erhalte eine Referenz auf einen Streckenabschnitt (falls vorhanden).
+    ///
+    /// ## Errors
+    ///
+    /// Keine Geschwindigkeit mit `name` gefunden.
     pub fn geschwindigkeit<'s>(
         &'s self,
         name: &geschwindigkeit::Name,
@@ -265,6 +311,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Erhalte eine veränderliche Referenz auf einen Streckenabschnitt (falls vorhanden).
+    ///
+    /// ## Errors
+    ///
+    /// Keine Geschwindigkeit mit `name` gefunden.
     pub fn geschwindigkeit_mut<'s>(
         &'s mut self,
         name: &geschwindigkeit::Name,
@@ -275,6 +325,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Entferne eine Geschwindigkeit.
     /// Falls sie vorhanden war wird sie zurückgegeben.
     /// Schlägt fehl, wenn noch assoziierten Streckenabschnitte vorhanden waren.
+    ///
+    /// ## Errors
+    ///
+    /// Keine Geschwindigkeit mit `name` gefunden.
     pub fn geschwindigkeit_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
@@ -285,18 +339,18 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub(crate) fn mit_allen_geschwindigkeiten(
         &self,
-        mut f: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>),
+        mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>),
     ) {
         self.zustand
             .geschwindigkeiten()
             .iter()
-            .for_each(|(name, geschwindigkeit)| f(name, geschwindigkeit))
+            .for_each(|(name, geschwindigkeit)| funktion(name, geschwindigkeit));
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub(crate) fn aus_allen_geschwindigkeiten<T, C>(
         &self,
-        mut f: impl for<'s> FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
+        mut funktion: impl for<'s> FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
     ) -> C
     where
         C: FromIterator<T>,
@@ -304,12 +358,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.zustand
             .geschwindigkeiten()
             .iter()
-            .map(|(name, geschwindigkeit)| f(name, geschwindigkeit))
+            .map(|(name, geschwindigkeit)| funktion(name, geschwindigkeit))
             .collect()
     }
 
+    // FIXME 2-suffix entfernen
     /// Verwendeter Zugtyp.
-    pub fn zugtyp2<'t>(&'t self) -> &'t Zugtyp<L> {
+    pub fn zugtyp2(&self) -> &Zugtyp<L> {
         self.zustand.zugtyp()
     }
 
@@ -322,6 +377,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     /// Schlägt fehl, wenn der Streckenabschnitt nicht gefunden wurde.
+    ///
+    /// ## Errors
+    ///
+    /// Kein Streckenabschnitt mit `name` gefunden.
     pub fn streckenabschnitt_assoziiere_geschwindigkeit(
         &mut self,
         name: &streckenabschnitt::Name,
@@ -329,7 +388,7 @@ impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht
     ) -> Result<Option<geschwindigkeit::Name>, StreckenabschnittEntferntFehler> {
         let (_streckenabschnitt, bisherige_geschwindigkeit) =
             self.zustand.streckenabschnitt_mut(name)?;
-        std::mem::swap(bisherige_geschwindigkeit, &mut geschwindigkeit);
+        mem::swap(bisherige_geschwindigkeit, &mut geschwindigkeit);
         Ok(geschwindigkeit)
     }
 }
@@ -375,19 +434,19 @@ where
             {
                 mouse::Interaction::Pointer
             },
-            _ => mouse::Interaction::default(),
+            ModusDaten::Bauen { .. } | ModusDaten::Fahren => mouse::Interaction::default(),
         }
     }
 }
 
-/// Fehler, die bei Interaktion mit den [Gleisen](Gleise) auftreten können.
+/// Fehler, die bei Interaktion mit den [`Gleisen`](Gleise) auftreten können.
 #[derive(Debug)]
 pub enum Fehler {
     /// Ein IO-Fehler.
-    IO(std::io::Error),
+    IO(io::Error),
     /// Fehler beim Serialisieren (speichern) der Gleise.
     BincodeSerialisieren(bincode::Error),
-    /// Ein Fehler bei Interaktion mit einem [Anschluss](anschluss::Anschluss).
+    /// Ein Fehler bei Interaktion mit einem [`Anschluss`](anschluss::Anschluss).
     Anschluss(anschluss::Fehler),
 }
 
@@ -397,8 +456,8 @@ impl From<ZugtypDeserialisierenFehler> for Fehler {
     }
 }
 
-impl From<std::io::Error> for Fehler {
-    fn from(error: std::io::Error) -> Self {
+impl From<io::Error> for Fehler {
+    fn from(error: io::Error) -> Self {
         Fehler::IO(error)
     }
 }

@@ -1,4 +1,4 @@
-//! [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
+//! [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
 
 use std::collections::HashSet;
 
@@ -25,6 +25,8 @@ use crate::{
     },
 };
 
+/// Führe die notwendigen [`Transformationen`](Transformation) aus,
+/// damit folgende Aktionen relativ zur `position` ausgeführt werden.
 pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     // bewege Kontext zur Position
     frame.transformation(&Transformation::Translation(position.punkt));
@@ -33,7 +35,9 @@ pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// [draw](iced::widget::canvas::Program::draw)-Methode für [Gleise].
+    // TODO Behandeln erfordert Anpassen des public API
+    #[allow(clippy::same_name_method)]
+    /// [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
     pub fn draw(
         &self,
         _state: &<Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
@@ -56,7 +60,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             renderer,
             bounds.size(),
             &self.pivot,
-            &self.skalieren,
+            self.skalieren,
             |frame| {
                 // Zeichne Gleise
                 let gehalten_ids: HashSet<AnyId>;
@@ -91,7 +95,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     ist_gehalten,
                     thema.strich(),
                     self.skalieren,
-                )
+                );
             },
         )]
     }

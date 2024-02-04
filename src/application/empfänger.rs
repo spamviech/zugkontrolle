@@ -1,4 +1,4 @@
-//! Auf channel-Nachricht wartende [Subscription](iced::Subscription).
+//! Auf channel-Nachricht wartende [`Subscription`](iced::Subscription).
 
 use std::{
     any::TypeId,
@@ -19,16 +19,18 @@ use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
 use log::debug;
 use parking_lot::Mutex;
 
-/// Warte auf eine Nachricht, kann als Ergebnis von [subscription](iced::Application::subscription)
-/// über [from_recipe](iced::Subscription::from_recipe) verwendet werden.
+/// Warte auf eine Nachricht, kann als Ergebnis von [`subscription`](iced::Application::subscription)
+/// über [`from_recipe`](iced::Subscription::from_recipe) verwendet werden.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct Empfänger<Nachricht, Id = ()> {
+    /// Eine Id für den Empfänger, um unterschiedliche [`Hash`]-Werte zu erhalten.
     id: Id,
+    /// Der [`Receiver`] für den [channel](std::sync::mpsc::channel).
     receiver: Arc<Mutex<Receiver<Nachricht>>>,
 }
 
 impl<Nachricht, Id> Empfänger<Nachricht, Id> {
-    /// Erstelle einen neuen [Empfänger].
+    /// Erstelle einen neuen [`Empfänger`].
     pub fn neu(receiver: Receiver<Nachricht>, id: Id) -> Self {
         Empfänger { id, receiver: Arc::new(Mutex::new(receiver)) }
     }

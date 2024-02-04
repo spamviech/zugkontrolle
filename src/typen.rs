@@ -33,8 +33,9 @@ pub enum Transparenz {
 }
 
 impl Transparenz {
-    /// [Reduzierte](Transparenz::Reduziert), wenn das Argument [true] ist,
-    /// ansonsten [Volle](Transparenz::Voll) Transparenz.
+    /// [Reduzierte](Transparenz::Reduziert), wenn das Argument [`true`] ist,
+    /// ansonsten [`Volle`](Transparenz::Voll) Transparenz.
+    #[must_use]
     pub fn true_reduziert(input: bool) -> Transparenz {
         if input {
             Transparenz::Reduziert
@@ -44,17 +45,18 @@ impl Transparenz {
     }
 
     /// Kombiniere zwei Transparenz-Werte.
+    #[must_use]
     pub fn kombiniere(self, other: Transparenz) -> Transparenz {
-        use Transparenz::*;
+        use Transparenz::{Minimal, Reduziert, Voll};
         match (self, other) {
-            (Minimal, _) | (_, Minimal) => Minimal,
-            (Reduziert, Reduziert) => Minimal,
+            (Minimal, _) | (_, Minimal) | (Reduziert, Reduziert) => Minimal,
             (Voll, Reduziert) | (Reduziert, Voll) => Reduziert,
             (Voll, Voll) => Voll,
         }
     }
 
     /// Erhalte den assoziierten Wert für den Alpha-Kanal.
+    #[must_use]
     pub fn alpha(self) -> f32 {
         match self {
             Transparenz::Minimal => 0.3,
@@ -64,15 +66,17 @@ impl Transparenz {
     }
 }
 
-/// Trait für Typen, die auf einem [Frame](crate::typen::canvas::Frame) gezeichnet werden können.
+/// Trait für Typen, die auf einem [`Frame`](crate::typen::canvas::Frame) gezeichnet werden können.
 ///
-/// Die Darstellungs-Reihenfolge ist [fülle](Zeichnen::fülle), [zeichne](Zeichnen::zeichne),
-/// [beschreibung_und_name](Zeichnen::beschreibung_und_name).
+/// Die Darstellungs-Reihenfolge ist [fülle](Zeichnen::fülle), [`zeichne`](Zeichnen::zeichne),
+/// [`beschreibung_und_name`](Zeichnen::beschreibung_und_name).
 pub trait Zeichnen<T> {
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self, t: &T, spurweite: Spurweite) -> Rechteck;
 
-    /// Einschließendes Rechteck, wenn sich das Gleis an der [Position] befindet.
+    // t: T
+    #[allow(clippy::min_ident_chars)]
+    /// Einschließendes Rechteck, wenn sich das Gleis an der [`Position`] befindet.
     fn rechteck_an_position(&self, t: &T, spurweite: Spurweite, position: &Position) -> Rechteck {
         self.rechteck(t, spurweite)
             .respektiere_rotation_chain(&position.winkel)
@@ -84,20 +88,20 @@ pub trait Zeichnen<T> {
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     ///
-    /// Alle Pfade werden mit [fill::Rule::EvenOdd](iced::widget::canvas::fill::Rule::EvenOdd) gefüllt.
+    /// Alle Pfade werden mit [`fill::Rule::EvenOdd`](iced::widget::canvas::fill::Rule::EvenOdd) gefüllt.
     ///
     /// Wenn ein Pfad ohne Farbe zurückgegeben wird, wird die Farbe des
-    /// [Streckenabschnitts](crate::steuerung::streckenabschnitt::Streckenabschnitt) verwendet.
+    /// [`Streckenabschnitts`](crate::steuerung::streckenabschnitt::Streckenabschnitt) verwendet.
     fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)>;
 
-    /// [Position] und Text für Beschreibung und Name (falls verfügbar).
+    /// [`Position`] und Text für Beschreibung und Name (falls verfügbar).
     fn beschreibung_und_name<'s, 't>(
         &'s self,
         t: &'t T,
         spurweite: Spurweite,
     ) -> (Position, Option<&'s str>, Option<&'t str>);
 
-    /// Zeigt der [Vektor] auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
+    /// Zeigt der [`Vektor`] auf das Gleis, die angegebene Klick-`ungenauigkeit` berücksichtigend?
     fn innerhalb(
         &self,
         t: &T,
@@ -106,12 +110,12 @@ pub trait Zeichnen<T> {
         ungenauigkeit: Skalar,
     ) -> bool;
 
-    /// Identifier for [Self::Verbindungen].
+    /// Identifier for [`Self::Verbindungen`](Zeichnen::Verbindungen).
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type VerbindungName;
 
-    /// Speicher-Typ für [Verbindung].
-    /// Muss [verbindung::Nachschlagen<Self::VerbindungName>] implementieren.
+    /// Speicher-Typ für [`Verbindung`].
+    /// Muss [`verbindung::Nachschlagen<Self::VerbindungName>`] implementieren.
     type Verbindungen: verbindung::Nachschlagen<Self::VerbindungName>;
 
     /// Verbindungen (Anschluss-Möglichkeiten für andere Gleise).
@@ -120,7 +124,9 @@ pub trait Zeichnen<T> {
     /// Es wird erwartet, dass sich die Verbindungen innerhalb von `rechteck` befinden.
     fn verbindungen(&self, t: &T, spurweite: Spurweite) -> Self::Verbindungen;
 
-    /// Absolute Position der Verbindungen, wenn sich das Gleis an der [Position] befindet.
+    // t: T
+    #[allow(clippy::min_ident_chars)]
+    /// Absolute Position der Verbindungen, wenn sich das Gleis an der [`Position`] befindet.
     fn verbindungen_an_position(
         &self,
         t: &T,
@@ -128,9 +134,11 @@ pub trait Zeichnen<T> {
         position: Position,
     ) -> Self::Verbindungen {
         self.verbindungen(t, spurweite).zuordnen(
-            |&Verbindung { position: verbindung_position, richtung }| Verbindung {
-                position: position.transformation(verbindung_position),
-                richtung: position.winkel + richtung,
+            |&Verbindung { position: verbindung_position, richtung }| {
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
+                let richtung = position.winkel + richtung;
+                Verbindung { position: position.transformation(verbindung_position), richtung }
             },
         )
     }

@@ -1,4 +1,4 @@
-//! Traits zum serialisieren und reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
+//! Traits zum serialisieren und reservieren der benötigten [`Anschlüsse`](crate::anschluss::Anschluss).
 
 use either::Either;
 use log::error;
@@ -6,7 +6,7 @@ use nonempty::NonEmpty;
 
 use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
 
-/// Alle [Anschlüsse](anschluss::Anschluss).
+/// Alle [`Anschlüsse`](anschluss::Anschluss).
 #[derive(Debug, Default)]
 pub struct Anschlüsse {
     /// Pwm-Pins.
@@ -18,7 +18,8 @@ pub struct Anschlüsse {
 }
 
 impl Anschlüsse {
-    /// Erzeuge eine leere [Anschlüsse]-Struktur.
+    /// Erzeuge eine leere [`Anschlüsse`]-Struktur.
+    #[must_use]
     pub const fn neu() -> Anschlüsse {
         Anschlüsse {
             pwm_pins: Vec::new(),
@@ -27,7 +28,7 @@ impl Anschlüsse {
         }
     }
 
-    /// Füge weitere Anschlüsse zu den jeweiligen [Vec] hinzu.
+    /// Füge weitere Anschlüsse zu den jeweiligen [`Vec`] hinzu.
     pub fn anhängen(&mut self, andere: Anschlüsse) {
         let Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse } = andere;
         self.pwm_pins.extend(pwm_pins);
@@ -42,22 +43,22 @@ impl Anschlüsse {
 /// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
-/// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
-/// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
+/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
+/// dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
 /// ```
 /// let clone = s.clone();
 /// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
 ///     assert_eq!(anschluss.serialisiere(), clone)
 /// }
 /// ```
-/// - Sofern kein Klon von `r` existiert ist [reserviere](Reserviere::reserviere) das inverse zu
-/// [serialisiere](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+/// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
+/// [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
 /// ```
 /// let s = r.serialisiere();
 /// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
 ///     && anschluss == r
 /// ```
-#[allow(single_use_lifetimes)]
+
 pub trait Serialisiere<S>: Sized {
     /// Erstelle eine serialisierbare Repräsentation.
     fn serialisiere(&self) -> S;
@@ -66,7 +67,7 @@ pub trait Serialisiere<S>: Sized {
     fn anschlüsse(self) -> Anschlüsse;
 }
 
-/// Ergebnis von [reserviere](Reserviere::reserviere).
+/// Ergebnis von [`reserviere`](Reserviere::reserviere).
 #[derive(Debug)]
 pub enum Ergebnis<R> {
     /// Keine Probleme beim Reservieren.
@@ -96,34 +97,36 @@ pub enum Ergebnis<R> {
 
 impl<R> Ergebnis<R> {
     /// Konvertiere den `anschluss` mit der übergebenen Funktion.
-    pub fn konvertiere<T>(self, f: impl FnOnce(R) -> T) -> Ergebnis<T> {
-        use Ergebnis::*;
+    pub fn konvertiere<T>(self, formatter: impl FnOnce(R) -> T) -> Ergebnis<T> {
+        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
         match self {
-            Wert { anschluss, anschlüsse } => Wert { anschluss: f(anschluss), anschlüsse },
+            Wert { anschluss, anschlüsse } => {
+                Wert { anschluss: formatter(anschluss), anschlüsse }
+            },
             FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
-                FehlerMitErsatzwert { anschluss: f(anschluss), fehler, anschlüsse }
+                FehlerMitErsatzwert { anschluss: formatter(anschluss), fehler, anschlüsse }
             },
             Fehler { fehler, anschlüsse } => Fehler { fehler, anschlüsse },
         }
     }
 }
 
-/// Erlaube reservieren der benötigten [Anschlüsse](crate::anschluss::Anschluss).
+/// Erlaube reservieren der benötigten [`Anschlüsse`](crate::anschluss::Anschluss).
 ///
 /// Wenn `R: Serialisiere<S>, S: Reserviere<R>`, dann müssen folgende Gesetze gelten
 /// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
-/// - Wenn [reserviere](Reserviere::reserviere) erfolgreich war,
-/// dann ist [serialisiere](Serialisiere::serialisiere) das inverse davon.
+/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
+/// dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
 /// ```
 /// let clone = s.clone();
 /// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
 ///     assert_eq!(anschluss.serialisiere(), clone)
 /// }
 /// ```
-/// - Sofern kein Klon von `r` existiert ist [reserviere](Reserviere::reserviere) das inverse zu
-/// [serialisiere](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+/// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
+/// [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
 /// ```
 /// let s = r.serialisiere();
 /// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
@@ -137,7 +140,7 @@ pub trait Reserviere<R> {
     /// Extra veränderliche-Referenz-Argument zum reservieren der Anschlüsse.
     type MutRefArg;
 
-    /// Reserviere die benötigten [Anschlüsse](crate::anschluss::Anschluss),
+    /// Reserviere die benötigten [`Anschlüsse`](crate::anschluss::Anschluss),
     /// potentiell unter Verwendung bereits reservierter Anschlüsse,
     /// um den gewünschten Typ zu erzeugen.
     fn reserviere(
@@ -152,8 +155,7 @@ pub trait Reserviere<R> {
 
 impl<T> Ergebnis<T> {
     /// Reserviere weitere Anschlüsse, ausgehend von dem positiven Ergebnis eines vorherigen
-    /// [reserviere](Reserviere::reserviere)-Aufrufs.
-    #[inline(always)]
+    /// [`reserviere`](Reserviere::reserviere)-Aufrufs.
     pub fn reserviere_ebenfalls<S: Reserviere<R>, R>(
         self,
         lager: &mut anschluss::Lager,
@@ -168,15 +170,19 @@ impl<T> Ergebnis<T> {
             move_arg,
             ref_arg,
             mut_ref_arg,
+            // t: T, r:R; mehr Information ist nicht vorhanden und auch nicht notwendig
+            #[allow(clippy::min_ident_chars)]
             |t, r| (t, r),
             |_| None,
         )
     }
 
+    // Argumente werden alle benötigt und können nicht sinnvoll zusammengefasst werden.
+    #[allow(clippy::too_many_arguments)]
     /// Reserviere weitere Anschlüsse, ausgehend von dem Ergebnis eines vorherigen
-    /// [reserviere](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
+    /// [`reserviere`](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
     /// übergebenen Funktion.
-    /// Wenn mindestens ein Wert nicht vorhanden ist ([Ergebnis::Fehler]) wird stattdessen
+    /// Wenn mindestens ein Wert nicht vorhanden ist ([`Ergebnis::Fehler`]) wird stattdessen
     /// mit `fehlerbehandlung` versucht ein Ersatzergebnis zu erzeugen.
     pub fn reserviere_ebenfalls_mit<S: Reserviere<R>, R, U>(
         self,
@@ -188,7 +194,9 @@ impl<T> Ergebnis<T> {
         kombiniere: impl FnOnce(T, R) -> U,
         fehlerbehandlung: impl FnOnce(Either<Option<T>, R>) -> Option<U>,
     ) -> Ergebnis<U> {
-        use Ergebnis::*;
+        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        // t: T
+        #[allow(clippy::min_ident_chars)]
         let (t, fehler_t, anschlüsse) = match self {
             Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
             FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
@@ -196,15 +204,23 @@ impl<T> Ergebnis<T> {
             },
             Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
         };
+        // r: R
+        #[allow(clippy::min_ident_chars)]
         let (r, fehler_r, anschlüsse) =
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
+                // false positive, anschlüsse transformiert durch den Funktionsaufruf
+                #[allow(clippy::shadow_unrelated)]
                 Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
+                #[allow(clippy::shadow_unrelated)]
                 FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
                     (Some(anschluss), Some(fehler), anschlüsse)
                 },
+                #[allow(clippy::shadow_unrelated)]
                 Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
             };
-        let kombiniert = match (t, r) {
+        // t:T, r: R
+        #[allow(clippy::min_ident_chars)]
+        let anschluss_kombiniert = match (t, r) {
             (Some(t), Some(r)) => Some(kombiniere(t, r)),
             (None, Some(r)) => fehlerbehandlung(Either::Right(r)),
             (t, None) => fehlerbehandlung(Either::Left(t)),
@@ -217,7 +233,7 @@ impl<T> Ergebnis<T> {
         } else {
             fehler_r
         };
-        match (kombiniert, fehler_kombiniert) {
+        match (anschluss_kombiniert, fehler_kombiniert) {
             (None, None) => unreachable!("Wert und Fehler können nicht gleichzeitig None sein!"),
             (None, Some(fehler)) => Fehler { fehler, anschlüsse },
             (Some(anschluss), None) => Wert { anschluss, anschlüsse },
@@ -228,7 +244,6 @@ impl<T> Ergebnis<T> {
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<Option<S>> for Option<R>
 where
     S: Reserviere<R>,
@@ -239,15 +254,14 @@ where
     }
 
     fn anschlüsse(self) -> Anschlüsse {
-        if let Some(r) = self {
-            r.anschlüsse()
+        if let Some(reserviert) = self {
+            reserviert.anschlüsse()
         } else {
             Anschlüsse::default()
         }
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<S, R> Reserviere<Option<R>> for Option<S>
 where
     S: Reserviere<R>,
@@ -264,13 +278,17 @@ where
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Option<R>> {
-        use Ergebnis::*;
-        if let Some(s) = self {
-            match s.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
+        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        if let Some(serialisiert) = self {
+            match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
+                // false positive, anschlüsse transformiert durch den Funktionsaufruf
+                #[allow(clippy::shadow_unrelated)]
                 Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
+                #[allow(clippy::shadow_unrelated)]
                 FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
                     FehlerMitErsatzwert { anschluss: Some(anschluss), fehler, anschlüsse }
                 },
+                #[allow(clippy::shadow_unrelated)]
                 Fehler { fehler, anschlüsse } => {
                     FehlerMitErsatzwert { anschluss: None, fehler, anschlüsse }
                 },
@@ -281,7 +299,6 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<Vec<S>> for Vec<R>
 where
     R: Serialisiere<S>,
@@ -292,14 +309,13 @@ where
 
     fn anschlüsse(self) -> Anschlüsse {
         let mut anschlüsse = Anschlüsse::default();
-        for r in self {
-            anschlüsse.anhängen(r.anschlüsse());
+        for reserviert in self {
+            anschlüsse.anhängen(reserviert.anschlüsse());
         }
         anschlüsse
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<S, R> Reserviere<Vec<R>> for Vec<S>
 where
     S: Reserviere<R>,
@@ -327,8 +343,8 @@ where
                     move_arg.clone(),
                     ref_arg,
                     mut_ref_arg,
-                    |mut vec, r| {
-                        vec.push(r);
+                    |mut vec, reserviert| {
+                        vec.push(reserviert);
                         vec
                     },
                     |either| match either {
@@ -344,7 +360,6 @@ where
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<S, R> Serialisiere<NonEmpty<S>> for NonEmpty<R>
 where
     R: Serialisiere<S>,
@@ -357,14 +372,13 @@ where
 
     fn anschlüsse(self) -> Anschlüsse {
         let mut anschlüsse = Anschlüsse::default();
-        for r in self {
-            anschlüsse.anhängen(r.anschlüsse());
+        for reserviert in self {
+            anschlüsse.anhängen(reserviert.anschlüsse());
         }
         anschlüsse
     }
 }
 
-#[allow(single_use_lifetimes)]
 impl<S, R> Reserviere<NonEmpty<R>> for NonEmpty<S>
 where
     S: Reserviere<R>,
@@ -382,8 +396,8 @@ where
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<NonEmpty<R>> {
-        let head = self.head.reserviere(lager, anschlüsse, move_arg.clone(), ref_arg, mut_ref_arg);
-        head.reserviere_ebenfalls_mit(
+        let first = self.head.reserviere(lager, anschlüsse, move_arg.clone(), ref_arg, mut_ref_arg);
+        first.reserviere_ebenfalls_mit(
             lager,
             self.tail,
             move_arg,
@@ -392,13 +406,14 @@ where
             |head, tail| NonEmpty { head, tail },
             |either| match either {
                 Either::Left(None) => None,
-                Either::Left(Some(head)) => Some(NonEmpty::singleton(head)),
+                Either::Left(Some(element)) => Some(NonEmpty::singleton(element)),
                 Either::Right(tail) => NonEmpty::from_vec(tail),
             },
         )
     }
 }
 
+/// Erzeuge den Argument-Typ für reservieren eines tuples.
 macro_rules! tuple_arg_type {
     ($arg: ident: $type: ident - $serialisiert: ident $(,)?) => {
         <$serialisiert as Reserviere<$type>>::$arg
@@ -408,8 +423,10 @@ macro_rules! tuple_arg_type {
     };
 }
 
+/// Implementiere [`Serialisiere`] und [`Reserviere`] für ein Tupel.
 macro_rules! impl_serialisiere_tuple {
     ($($name: ident : $type: ident - $serialisiert: ident),+) => {
+        #[allow(clippy::min_ident_chars)]
         impl<A0, S0, $($type, $serialisiert),+> Serialisiere<(S0, $($serialisiert),+)> for (A0, $($type),+)
         where
             A0: Serialisiere<S0>,
@@ -438,6 +455,7 @@ macro_rules! impl_serialisiere_tuple {
             }
         }
 
+        #[allow(clippy::min_ident_chars)]
         impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
         where
             A0: Serialisiere<S0>,

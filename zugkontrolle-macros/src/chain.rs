@@ -1,22 +1,23 @@
 //! Implement a method chain variant for a function working on a mutable (self) reference.
 
-use std::convert::identity;
-
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReturnType, Signature};
 
-pub(crate) fn make_chain(args: TokenStream, ast: syn::ItemFn) -> TokenStream {
+/// [`crate::make_chain`]
+#[allow(clippy::single_call_fn)]
+pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !args.is_empty() {
-        errors.push(format!("no arguments supported, but {:?} was given.", args));
+        errors.push(format!("no arguments supported, but {args:?} was given."));
     }
 
-    let syn::ItemFn {
+    let ItemFn {
         attrs,
         vis,
         sig:
-            syn::Signature {
+            Signature {
                 constness,
                 asyncness,
                 unsafety,
@@ -31,55 +32,51 @@ pub(crate) fn make_chain(args: TokenStream, ast: syn::ItemFn) -> TokenStream {
         ..
     } = &ast;
     let docstrings: Vec<_> = attrs.iter().filter(|attr| attr.path().is_ident("doc")).collect();
-    if let syn::ReturnType::Type(_arrow, ty) = output {
-        errors.push(format!("only default return type supported, but {:?} was given.", ty));
+    if let ReturnType::Type(_arrow, ty) = output {
+        errors.push(format!("only default return type supported, but {ty:?} was given."));
     }
     if let Some(abi) = abi {
-        errors.push(format!("no abi supported, but {:?} was given.", abi));
+        errors.push(format!("no abi supported, but {abi:?} was given."));
     }
     if variadic.is_some() {
-        errors.push("no variadic supported.".to_string());
+        errors.push(String::from("no variadic supported."));
     }
     let mut inputs_iter = inputs.iter();
-    if let Some(syn::FnArg::Receiver(syn::Receiver { reference, mutability, .. })) =
-        inputs_iter.next()
-    {
+    if let Some(FnArg::Receiver(Receiver { reference, mutability, .. })) = inputs_iter.next() {
         if reference.is_none() || mutability.is_none() {
-            errors.push("first argument must be &mut self.".to_string());
+            errors.push(String::from("first argument must be &mut self."));
         }
     } else {
-        errors.push("first argument must be &mut self.".to_string());
+        errors.push(String::from("first argument must be &mut self."));
     }
     // collect to vec, to strictly evaluate errors
     let other_input_names: Vec<_> = inputs_iter
         .clone()
-        .map(|fn_arg| {
-            if let syn::FnArg::Typed(syn::PatType { pat, .. }) = fn_arg {
-                if let syn::Pat::Ident(id) = pat.as_ref() {
+        .filter_map(|fn_arg| {
+            if let FnArg::Typed(PatType { pat, .. }) = fn_arg {
+                if let Pat::Ident(id) = pat.as_ref() {
                     Some(id)
                 } else {
-                    errors.push(format!(
-                        "only literal arguments supported, but {:?} was given.",
-                        pat
-                    ));
+                    errors
+                        .push(format!("only literal arguments supported, but {pat:?} was given.",));
                     None
                 }
             } else {
                 errors
-                    .push(format!("only literal arguments supported, but {:?} was given.", fn_arg));
+                    .push(format!("only literal arguments supported, but {fn_arg:?} was given.",));
                 None
             }
         })
-        .filter_map(identity)
         .collect();
 
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         let error_message = errors.join("\n");
         return quote! {
             compile_error!(#error_message);
             #ast
         };
     }
+
     let chain_ident = format_ident!("{}_chain", ident);
     quote! {
         #ast

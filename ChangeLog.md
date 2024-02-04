@@ -2,6 +2,17 @@
 
 ## Unreleased changes
 
+## 4.0.2
+
+- Drehen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf den Knopf zeigt, oder er gezogen wird.
+- Bewegen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf aktive Elemente zeigt.
+- Verwende async_io für die async-Funktion `Nachricht::nach_sleep`.
+- Korrigiere Zeichen-Reihenfolge der `Gleise::draw`-Methode.
+  Es werden z.B. wieder beide Seiten von überlappenden Verbindungen angezeigt.
+- Färbe den Hintergrund von überlappenden Verbindungen mit Gehalten-Beteiligung erneut ein.
+
+## 4.0.1
+
 - Gleise-Canvas hört auf Touch-Eingaben. Es können mehrere Gleise gleichzeitig bewegt werden.
 - Modal-Widget unterstützt passthrough_events, die immer vom Underlay verarbeitet werden,
   selbst wenn das Overlay aktuell angezeigt wird.

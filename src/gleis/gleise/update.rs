@@ -1,4 +1,4 @@
-//! [update](iced::widget::canvas::Program::update)-Methode für [Gleise].
+//! [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`].
 
 use std::{
     sync::mpsc::Sender,
@@ -12,7 +12,7 @@ use iced::{
     widget::canvas::{event, Event, Program},
     Point, Rectangle, Renderer,
 };
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use nonempty::{nonempty, NonEmpty};
 
 use crate::{
@@ -20,7 +20,10 @@ use crate::{
     gleis::{
         gleise::{
             self,
-            daten::{BewegenFehler, EntfernenFehler, Zustand},
+            daten::{
+                AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition,
+                Zustand,
+            },
             id::AnyIdSteuerung,
             nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
             steuerung::Steuerung,
@@ -41,17 +44,22 @@ fn berechne_canvas_position(
     bounds: &Rectangle,
     cursor: &Cursor,
     pivot: &Position,
-    skalieren: &Skalar,
+    skalieren: Skalar,
 ) -> Option<Vektor> {
     // `position_in` gibt nur in-bounds einen `Some`-Wert zurück.
     // `position` hat diese Einschränkung nicht,
     // dafür muss die Position explizit abgezogen werden.
     cursor.position().map(|pos| {
         let relative_position = Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) };
-        pivot.punkt + (relative_position / skalieren).rotiert(-pivot.winkel)
+        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
+        #[allow(clippy::arithmetic_side_effects)]
+        {
+            pivot.punkt + (relative_position / skalieren).rotiert(-pivot.winkel)
+        }
     })
 }
 
+/// Maximale Zeit, innerhalb der ein zweiter Klick als Doppelklick gewertet wird.
 const DOUBLE_CLICK_TIME: Duration = Duration::from_millis(200);
 
 /// Aktion für ein im Modus "Bauen" angeklicktes Gleis.
@@ -67,11 +75,11 @@ fn aktion_bauen(
     let diff = letzter_klick
         .as_ref()
         .and_then(|(letzte_quelle, letzte_zeit)| {
-            let selbe_klick_art = match (letzte_quelle, quelle) {
-                (KlickQuelle::Maus, KlickQuelle::Maus) => true,
-                (KlickQuelle::Touch(_), KlickQuelle::Touch(_)) => true,
-                _ => false,
-            };
+            let selbe_klick_art = matches!(
+                (letzte_quelle, quelle),
+                (KlickQuelle::Maus, KlickQuelle::Maus)
+                    | (KlickQuelle::Touch(_), KlickQuelle::Touch(_))
+            );
             if selbe_klick_art {
                 now.checked_duration_since(*letzte_zeit)
             } else {
@@ -99,8 +107,12 @@ fn aktion_fahren<AktualisierenNachricht>(
 where
     AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
 {
-    use AnyIdSteuerung::*;
+    use AnyIdSteuerung::{
+        DreiwegeWeiche, Gerade, Kreuzung, Kurve, KurvenWeiche, SKurvenWeiche, Weiche,
+    };
     match gleis_steuerung {
+        // streckenabschnitt related über `map`
+        #[allow(clippy::shadow_unrelated)]
         Gerade(_, _) | Kurve(_, _) => streckenabschnitt.map(|streckenabschnitt| {
             let fließend = !streckenabschnitt.fließend();
             Nachricht::StreckenabschnittUmschalten(AktionStreckenabschnitt::Strom {
@@ -111,8 +123,10 @@ where
                 fließend,
             })
         }),
+        // steuerung related über `map`
+        #[allow(clippy::shadow_unrelated)]
         Weiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
-            use weiche::gerade::Richtung::*;
+            use weiche::gerade::Richtung::{Gerade, Kurve};
             let richtung = match steuerung.richtung() {
                 Gerade => Kurve,
                 Kurve => Gerade,
@@ -122,8 +136,10 @@ where
                 richtung,
             }))
         }),
+        // steuerung related über `map`
+        #[allow(clippy::shadow_unrelated)]
         KurvenWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
-            use weiche::kurve::Richtung::*;
+            use weiche::kurve::Richtung::{Außen, Innen};
             let richtung = match steuerung.richtung() {
                 Innen => Außen,
                 Außen => Innen,
@@ -133,8 +149,13 @@ where
                 richtung,
             }))
         }),
+        // steuerung related über `map`
+        #[allow(clippy::shadow_unrelated)]
         DreiwegeWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
-            use weiche::dreiwege::{Richtung::*, RichtungInformation};
+            use weiche::dreiwege::{
+                Richtung::{Gerade, Links, Rechts},
+                RichtungInformation,
+            };
             let richtung = match steuerung.richtung() {
                 RichtungInformation { aktuelle_richtung: Gerade, letzte_richtung: Links } => Rechts,
                 RichtungInformation { aktuelle_richtung: Gerade, letzte_richtung: Rechts } => Links,
@@ -152,8 +173,10 @@ where
                 richtung,
             }))
         }),
+        // steuerung related über `map`
+        #[allow(clippy::shadow_unrelated)]
         SKurvenWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
-            use weiche::gerade::Richtung::*;
+            use weiche::gerade::Richtung::{Gerade, Kurve};
             let richtung = match steuerung.richtung() {
                 Gerade => Kurve,
                 Kurve => Gerade,
@@ -163,8 +186,10 @@ where
                 richtung,
             }))
         }),
+        // steuerung related über `map`
+        #[allow(clippy::shadow_unrelated)]
         Kreuzung(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
-            use weiche::gerade::Richtung::*;
+            use weiche::gerade::Richtung::{Gerade, Kurve};
             let richtung = match steuerung.richtung() {
                 Gerade => Kurve,
                 Kurve => Gerade,
@@ -177,13 +202,14 @@ where
     }
 }
 
+/// Führe die Aktion für das Gleis an der Position des `cursor_oder_finger` aus.
 fn aktion_gleis_an_position<L, AktualisierenNachricht>(
     bounds: Rectangle,
     cursor_or_finger: Either<Cursor, (Finger, Point)>,
     modus: &ModusDaten,
     zustand: &Zustand<L>,
     pivot: &Position,
-    skalieren: &Skalar,
+    skalieren: Skalar,
     sender: &Sender<AktualisierenNachricht>,
 ) -> (event::Status, Vec<Nachricht>)
 where
@@ -205,15 +231,19 @@ where
                 ModusDaten::Bauen { gehalten: _, letzter_klick } => {
                     let now = Instant::now();
                     nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(
-                        aktueller_klick.clone(),
+                        aktueller_klick,
                         now,
                     )));
-                    if let Some((gleis_steuerung, halte_position, winkel, _streckenabschnitt)) =
-                        gleis_an_position
+                    if let Some(GleisAnPosition {
+                        id_steuerung,
+                        position: halte_position,
+                        winkel,
+                        streckenabschnitt: _,
+                    }) = gleis_an_position
                     {
                         aktion_bauen(
                             &mut nachrichten,
-                            gleis_steuerung,
+                            id_steuerung,
                             aktueller_klick,
                             now,
                             letzter_klick,
@@ -224,20 +254,30 @@ where
                     }
                 },
                 ModusDaten::Fahren => {
-                    if let Some((id_steuerung, _halte_position, _winkel, streckenabschnitt)) =
-                        gleis_an_position
+                    if let Some(GleisAnPosition {
+                        id_steuerung,
+                        position: _,
+                        winkel: _,
+                        streckenabschnitt,
+                    }) = gleis_an_position
                     {
                         let nachricht = aktion_fahren(
                             id_steuerung,
+                            // streckenabschnitt related über `map`
+                            #[allow(clippy::shadow_unrelated)]
                             streckenabschnitt.map(
-                                |(_name, streckenabschnitt, _geschwindigkeit)| streckenabschnitt,
+                                |AssoziierterStreckenabschnitt {
+                                     name: _,
+                                     streckenabschnitt,
+                                     geschwindigkeit: _,
+                                 }| streckenabschnitt,
                             ),
                             sender.clone(),
                         );
 
                         if let Some(nachricht) = nachricht {
                             nachrichten.push(nachricht);
-                            status = event::Status::Captured
+                            status = event::Status::Captured;
                         }
                     }
                 },
@@ -248,6 +288,7 @@ where
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+    /// Behandle ein [`mouse::Event::ButtonPressed`]-, oder [`touch::Event::FingerPressed`]-Event.
     fn maus_oder_touch_pressed(
         &self,
         cursor_oder_finger: Either<Cursor, (Finger, Point)>,
@@ -264,13 +305,15 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             modus,
             zustand,
             pivot,
-            skalieren,
-            &sender,
+            *skalieren,
+            sender,
         );
         *event_status = status;
         messages.extend(nachrichten);
     }
 
+    /// Behandle ein [`mouse::Event::ButtonReleased`]-,
+    /// oder [`touch::Event::FingerLifted`]/[`touch::Event::FingerLost`]-Event.
     fn maus_oder_touch_released(
         &self,
         cursor_oder_finger: Either<Cursor, (Finger, Point)>,
@@ -305,6 +348,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         }
     }
 
+    /// Behandle ein [`mouse::Event::CursorMoved`]-, oder [`touch::Event::FingerMoved`]-Event.
     fn maus_oder_touch_moved(
         &self,
         cursor_oder_finger: Either<Point, (Finger, Point)>,
@@ -320,7 +364,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             &bounds,
             &Cursor::Available(position),
             &self.pivot,
-            &self.skalieren,
+            self.skalieren,
         ) {
             messages
                 .push(Nachricht::from(ZustandAktualisierenEnum::LetzteMausPosition(canvas_pos)));
@@ -331,11 +375,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     )));
                 }
             }
-            *event_status = event::Status::Captured
+            *event_status = event::Status::Captured;
         }
     }
 
-    /// [update](iced::widget::canvas::Program::update)-Methode für [Gleise]
+    // TODO Behandeln erfordert Anpassen des public API.
+    #[allow(clippy::same_name_method)]
+    /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`]
     pub fn update(
         &self,
         _state: &mut <Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
@@ -353,8 +399,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 y: Skalar(bounds.height),
             }))];
         match &event {
-            Event::Mouse(_) | Event::Touch(_) => debug!("{event:?}"),
-            _ => {},
+            Event::Mouse(_) | Event::Touch(_) => trace!("{event:?}"),
+            Event::Keyboard(_) => {},
         }
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => self
@@ -399,7 +445,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 &mut event_status,
                 &mut messages,
             ),
-            _otherwise => {},
+            Event::Mouse(_) | Event::Keyboard(_) => {},
         };
         if event_status == event::Status::Captured {
             self.canvas.leeren();
@@ -408,7 +454,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 }
 
-/// Fehler, die bei [zustand_aktualisieren](Gleise::zustand_aktualisieren) auftreten können.
+/// Fehler, die bei [`zustand_aktualisieren`](Gleise::zustand_aktualisieren) auftreten können.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
 pub enum AktualisierenFehler {
     /// Fehler beim Bewegen eines Gleises.
@@ -418,8 +464,12 @@ pub enum AktualisierenFehler {
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    /// Folge-Method für [update](Gleise::update), in der die notwendigen
+    /// Folge-Method für [`update`](Gleise::update), in der die notwendigen
     /// Zustands-Änderungen durchgeführt werden.
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim aktualisieren des Zustandes, z.B. bewegen eines gehaltenen Gleises.
     pub fn zustand_aktualisieren(
         &mut self,
         nachricht: ZustandAktualisieren,
@@ -464,7 +514,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 Ok(())
             },
             ZustandAktualisierenEnum::GehaltenBewegen(quelle, canvas_pos) => {
-                let _ = self.gehalten_bewegen(&quelle, canvas_pos)?;
+                self.gehalten_bewegen(&quelle, canvas_pos)?;
                 Ok(())
             },
             ZustandAktualisierenEnum::GleisEntfernen(gleis_id) => {

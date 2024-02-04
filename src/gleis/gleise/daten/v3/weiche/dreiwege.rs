@@ -1,18 +1,19 @@
-//! Serialisierbare Darstellung einer [DreiwegeWeiche] in Version 3.
+//! Serialisierbare Darstellung einer [`DreiwegeWeiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    anschluss::OutputSerialisiert,
     gleis::{gleise::daten::v3::weiche::steuerung, weiche::dreiwege as v4},
     typen::{skalar::Skalar, winkel::Winkel},
 };
 
-/// Die aktuelle und letzte [Richtung] einer [DreiwegeWeiche].
+/// Die aktuelle und letzte [Richtung] einer [`DreiwegeWeiche`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungInformation {
-    /// Die aktuelle [Richtung] der [DreiwegeWeiche].
+    /// Die aktuelle [Richtung] der [`DreiwegeWeiche`].
     pub aktuelle_richtung: Richtung,
-    /// Die [Richtung] vor der aktuellen [Richtung].
+    /// Die [Richtung] vor der aktuellen [`Richtung`].
     pub letzte_richtung: Richtung,
 }
 
@@ -26,12 +27,15 @@ impl From<RichtungInformation> for v4::RichtungInformation {
     }
 }
 
+/// Serialisierbare Darstellung der Steuerung einer [`DreiwegeWeiche`].
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
+// Folge Konvention TypName -> TypNameSerialisiert
+#[allow(clippy::module_name_repetitions)]
 /// Definition einer Dreiwege-Weiche.
 ///
-/// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+/// Bei extremen Winkeln (`<0°`, `>180°`) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DreiwegeWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Gerade.
@@ -46,6 +50,8 @@ pub struct DreiwegeWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisie
     pub steuerung: Anschlüsse,
 }
 
+// Folge Konvention TypName -> TypNameUnit
+#[allow(clippy::module_name_repetitions)]
 /// Eine Variante ohne Anschlüsse.
 pub type DreiwegeWeicheUnit = DreiwegeWeicheSerialisiert<()>;
 
@@ -87,11 +93,11 @@ impl From<Richtung> for v4::Richtung {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
     #[doc = "[Richtung::Gerade]"]
-    pub gerade: crate::anschluss::OutputSerialisiert,
+    pub gerade: OutputSerialisiert,
     #[doc = "[Richtung::Links]"]
-    pub links: crate::anschluss::OutputSerialisiert,
+    pub links: OutputSerialisiert,
     #[doc = "[Richtung::Rechts]"]
-    pub rechts: crate::anschluss::OutputSerialisiert,
+    pub rechts: OutputSerialisiert,
 }
 
 impl From<RichtungAnschlüsseSerialisiert> for v4::RichtungAnschlüsseSerialisiert {

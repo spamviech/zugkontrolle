@@ -1,21 +1,22 @@
-//! Serialisierbare Darstellung eines [Weiche] in Version 3.
+//! Serialisierbare Darstellung eines [`Weiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    anschluss::OutputSerialisiert,
     gleis::{
         gleise::daten::v3::weiche::{orientierung::Orientierung, steuerung},
         weiche::gerade as v4,
     },
     typen::{skalar::Skalar, winkel::Winkel},
 };
-
+/// Serialisierbare Darstellung der Steuerung einer [`Weiche`].
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 
 /// Definition einer Weiche.
 ///
-/// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+/// Bei extremen Winkeln (`<0°`, `>180°`) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     /// Die Länge der Geraden.
@@ -82,13 +83,13 @@ impl From<Richtung> for v4::Richtung {
     }
 }
 
-/// Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder.
+/// Eine Struktur mit von [`Richtung`]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    /// [Richtung::Gerade]
-    pub gerade: crate::anschluss::OutputSerialisiert,
-    /// [Richtung::Kurve]
-    pub kurve: crate::anschluss::OutputSerialisiert,
+    /// [`Richtung::Gerade`]
+    pub gerade: OutputSerialisiert,
+    /// [`Richtung::Kurve`]
+    pub kurve: OutputSerialisiert,
 }
 
 impl From<RichtungAnschlüsseSerialisiert> for v4::RichtungAnschlüsseSerialisiert {

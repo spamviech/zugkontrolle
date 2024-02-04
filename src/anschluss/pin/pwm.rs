@@ -1,4 +1,4 @@
-//! Gpio [Pins](Pin) für Pwm konfiguriert.
+//! Gpio [`Pins`](Pin) für Pwm konfiguriert.
 
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
@@ -14,10 +14,13 @@ use crate::{
     util::eingeschränkt::{NichtNegativ, NullBisEins},
 };
 
+/// Hard- oder Software-erzeugtes Pwm-Signal. Erlaubt exklusive Steuerung der zugehörigen Pins.
 #[allow(variant_size_differences)]
 #[derive(Debug)]
 pub(in crate::anschluss::pin) enum Pwm {
+    /// Hardware-Pwm.
     Hardware(pwm::Pwm, gpio::Pin),
+    /// Software-Pwm.
     Software(gpio::OutputPin),
 }
 
@@ -36,9 +39,9 @@ impl Eq for Pwm {}
 /// Einstellung eines Pwm-Pulses.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Konfiguration {
-    /// Die [Zeit]-Einstellungen eines Pwm-Pulses.
+    /// Die [`Zeit`]-Einstellungen eines Pwm-Pulses.
     pub zeit: Zeit,
-    /// Die [Polarität] eines Pwm-Pulses.
+    /// Die [`Polarität`] eines Pwm-Pulses.
     pub polarität: Polarität,
 }
 
@@ -47,21 +50,24 @@ pub struct Konfiguration {
 pub struct Zeit {
     /// Frequenz des Pwm-Pulses in Herz.
     pub frequenz: NichtNegativ,
-    /// [Fließend](crate::anschluss::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
+    /// [`Fließend`](crate::anschluss::polarität::Fließend::Fließend)-Anteil einer Periodendauer.
     pub betriebszyklus: NullBisEins,
 }
 
 /// Ein Gpio Pin konfiguriert für Pwm.
 #[derive(Debug, PartialEq)]
 pub struct Pin {
+    /// Der Pin.
     pub(in crate::anschluss::pin) pin: Pwm,
+    /// Das aktuell anliegende Pwm-Signal
     pub(in crate::anschluss::pin) konfiguration: Option<Konfiguration>,
 }
 
 impl Pin {
-    /// Erhalte die GPIO [Pin] Nummer.
+    /// Erhalte die GPIO [`Pin`] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
+    #[must_use]
     pub fn pin(&self) -> u8 {
         match &self.pin {
             Pwm::Hardware(_pwm, pin) => pin.pin(),
@@ -70,6 +76,7 @@ impl Pin {
     }
 
     /// Wird Hardware-Pwm verwendet?
+    #[must_use]
     pub fn hardware_pwm(&self) -> bool {
         match self.pin {
             Pwm::Hardware(_, _) => true,
@@ -78,6 +85,10 @@ impl Pin {
     }
 
     /// Ist der Pwm-Puls aktiv?
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim auslesen des aktuellen Hardware-Pwm Signals.
     pub fn ist_aktiv(&self) -> Result<&Option<Konfiguration>, Fehler> {
         match &self.pin {
             Pwm::Hardware(pwm_channel, _pin) => {
@@ -91,6 +102,10 @@ impl Pin {
     }
 
     /// Aktiviere den Pwm-Puls.
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim einstellen des Pwm-Signals.
     pub fn aktiviere_mit_konfiguration(
         &mut self,
         konfiguration: Konfiguration,
@@ -120,7 +135,11 @@ impl Pin {
                 // konfiguration.zeit wird hier kopiert, ein verändern ist demnach kein Problem
                 let Zeit { frequenz, mut betriebszyklus } = konfiguration.zeit;
                 if konfiguration.polarität == Polarität::Invertiert {
-                    betriebszyklus = NullBisEins::MAX - betriebszyklus;
+                    // NullBisEins hat eine saturating Add-Implementierung
+                    #[allow(clippy::arithmetic_side_effects)]
+                    {
+                        betriebszyklus = NullBisEins::MAX - betriebszyklus;
+                    }
                 }
                 pwm_pin
                     .set_pwm_frequency(frequenz.into(), betriebszyklus.into())
@@ -131,33 +150,38 @@ impl Pin {
         Ok(())
     }
 
-    /// Deaktiviere den Pwm-Puls
+    /// Deaktiviere den Pwm-Puls.
+    ///
+    /// ## Errors
+    ///
+    /// Fehler beim deaktivieren des Pwm-Signals.
     pub fn deaktiviere(&mut self) -> Result<(), Fehler> {
         let pin = self.pin();
-        Ok(match &mut self.pin {
+        match &mut self.pin {
             Pwm::Hardware(pwm_channel, _pin) => {
                 pwm_channel.disable().map_err(|fehler| Fehler::Pwm { pin, fehler })?;
             },
             Pwm::Software(pwm_pin) => {
                 pwm_pin.clear_pwm().map_err(|fehler| Fehler::Gpio { pin, fehler })?;
             },
-        })
+        }
+        Ok(())
     }
 }
 
 /// Fehler bei Interaktion mit einem Pwm-Puls.
 #[derive(Debug)]
 pub enum Fehler {
-    /// Fehler eines GPIO-[Pin]s.
+    /// Fehler eines GPIO-[`Pin`]s.
     Gpio {
-        /// Der betroffene [Pin].
+        /// Der betroffene [`Pin`].
         pin: u8,
         /// Der aufgetretene Fehler.
         fehler: gpio::Error,
     },
     /// Fehler beim erzeugen des Pwm-Pulses.
     Pwm {
-        /// Der betroffene [Pin].
+        /// Der betroffene [`Pin`].
         pin: u8,
         /// Der aufgetretene Fehler.
         fehler: pwm::Error,
@@ -198,10 +222,10 @@ impl Reserviere<Pin> for Serialisiert {
     ) -> Ergebnis<Pin> {
         let (mut gesucht, andere): (Vec<_>, Vec<_>) =
             pwm_pins.into_iter().partition(|pin| pin.serialisiere() == self);
-        let anschluss = gesucht.pop();
+        let vorhandener_anschluss = gesucht.pop();
         gesucht.extend(andere);
         let anschlüsse = Anschlüsse { pwm_pins: gesucht, output_anschlüsse, input_anschlüsse };
-        if let Some(anschluss) = anschluss {
+        if let Some(anschluss) = vorhandener_anschluss {
             Ergebnis::Wert { anschluss, anschlüsse }
         } else {
             match lager.pin.reserviere_pin(self.0).map(EinPin::als_pwm) {
