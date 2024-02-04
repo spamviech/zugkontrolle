@@ -52,6 +52,7 @@ byteorder
 calloop
 camino
 chacha
+chibisov
 Chibisov
 Chiovoloni
 chrono
@@ -255,6 +256,7 @@ Nieuwenhuis
 noto
 Noto
 ntapi
+Nunley
 Nushell
 nwin
 objc
@@ -309,6 +311,7 @@ Rijs
 riscv
 Rizzi
 Roozbeh
+Rothfels
 Roundy
 rppal
 rstar
@@ -412,6 +415,7 @@ winreg
 Winreg
 wsapoll
 xcursor
+xkeysym
 xorg
 yazi
 Yevhenii
