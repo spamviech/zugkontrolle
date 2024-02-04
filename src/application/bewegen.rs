@@ -4,7 +4,7 @@ use iced::{
     mouse::{self, Cursor},
     touch,
     widget::canvas::{event, Event, Geometry, Program, Stroke, Style},
-    Point, Rectangle, Renderer,
+    Point, Rectangle, Renderer, Size,
 };
 
 use crate::{
@@ -86,20 +86,50 @@ impl Bewegen {
     }
 }
 
-impl Program<Nachricht, Renderer<Thema>> for Bewegen {
-    type State = Option<KlickQuelle>;
+/// Wichtige Punkte und Größen für die Darstellung und Interaktion mit dem Widget.
+struct WichtigeWerte {
+    #[allow(clippy::missing_docs_in_private_items)]
+    links: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    rechts: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    oben: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    unten: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    zentrum: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_links_oben: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_links_unten: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_rechts_oben: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_rechts_unten: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_oben_links: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_oben_rechts: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_unten_links: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    ende_unten_rechts: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    links_oben: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    links_unten: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    rechts_oben: Vektor,
+    #[allow(clippy::missing_docs_in_private_items)]
+    rechts_unten: Vektor,
+    /// Der Radius für den Zurücksetzen-Kreis.
+    radius: Skalar,
+}
 
-    // FIXME for now
-    #[allow(clippy::too_many_lines)]
-    fn draw(
-        &self,
-        _state: &Self::State,
-        renderer: &Renderer<Thema>,
-        thema: &Thema,
-        bounds: Rectangle,
-        _cursor: Cursor,
-    ) -> Vec<Geometry> {
-        let size = bounds.size();
+impl WichtigeWerte {
+    /// Erzeuge alle [`WichtigenPunkte`] innerhalb der gegebenen Bounds.
+    #[must_use]
+    fn aus_size(size: Size) -> Self {
         let width = Skalar(size.width);
         let height = Skalar(size.height);
         let half_width = width.halbiert();
@@ -153,29 +183,6 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
         #[allow(clippy::arithmetic_side_effects)]
         let ende_unten_rechts = unten + diagonal_hoch;
 
-        // erzeuge Pfad
-        let mut erbauer = pfad::Erbauer::neu();
-        // links
-        erbauer.move_to(links);
-        erbauer.line_to(ende_links_oben);
-        erbauer.move_to(links);
-        erbauer.line_to(ende_links_unten);
-        // rechts
-        erbauer.move_to(rechts);
-        erbauer.line_to(ende_rechts_oben);
-        erbauer.move_to(rechts);
-        erbauer.line_to(ende_rechts_unten);
-        // oben
-        erbauer.move_to(oben);
-        erbauer.line_to(ende_oben_links);
-        erbauer.move_to(oben);
-        erbauer.line_to(ende_oben_rechts);
-        // unten
-        erbauer.move_to(unten);
-        erbauer.line_to(ende_unten_links);
-        erbauer.move_to(unten);
-        erbauer.line_to(ende_unten_rechts);
-
         // Diagonale Start-Werte
         let abstand_diagonale = Skalar(
             ((bein_länge.0.powf(2.)) - ((0.5 - (1. / 3.)) * diagonale_länge.0).powf(2.)).sqrt(),
@@ -213,6 +220,92 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
             + Skalar(0.5) * rechts_nach_unten
             + abstand_diagonale * rechts_nach_unten.rotiert(-winkel::FRAC_PI_2).einheitsvektor();
 
+        // Zurücksetzen
+        // Inkreis-Radius r = 2A/u
+        // https://de.wikipedia.org/wiki/Inkreis
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
+
+        WichtigeWerte {
+            links,
+            rechts,
+            oben,
+            unten,
+            zentrum,
+            ende_links_oben,
+            ende_links_unten,
+            ende_rechts_oben,
+            ende_rechts_unten,
+            ende_oben_links,
+            ende_oben_rechts,
+            ende_unten_links,
+            ende_unten_rechts,
+            links_oben,
+            links_unten,
+            rechts_oben,
+            rechts_unten,
+            radius,
+        }
+    }
+}
+
+impl Program<Nachricht, Renderer<Thema>> for Bewegen {
+    type State = Option<KlickQuelle>;
+
+    fn draw(
+        &self,
+        _state: &Self::State,
+        renderer: &Renderer<Thema>,
+        thema: &Thema,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
+        let size = bounds.size();
+        let WichtigeWerte {
+            links,
+            rechts,
+            oben,
+            unten,
+            zentrum,
+            ende_links_oben,
+            ende_links_unten,
+            ende_rechts_oben,
+            ende_rechts_unten,
+            ende_oben_links,
+            ende_oben_rechts,
+            ende_unten_links,
+            ende_unten_rechts,
+            links_oben,
+            links_unten,
+            rechts_oben,
+            rechts_unten,
+            radius,
+        } = WichtigeWerte::aus_size(size);
+
+        // erzeuge Pfad
+        let mut erbauer = pfad::Erbauer::neu();
+        // links
+        erbauer.move_to(links);
+        erbauer.line_to(ende_links_oben);
+        erbauer.move_to(links);
+        erbauer.line_to(ende_links_unten);
+        // rechts
+        erbauer.move_to(rechts);
+        erbauer.line_to(ende_rechts_oben);
+        erbauer.move_to(rechts);
+        erbauer.line_to(ende_rechts_unten);
+        // oben
+        erbauer.move_to(oben);
+        erbauer.line_to(ende_oben_links);
+        erbauer.move_to(oben);
+        erbauer.line_to(ende_oben_rechts);
+        // unten
+        erbauer.move_to(unten);
+        erbauer.line_to(ende_unten_links);
+        erbauer.move_to(unten);
+        erbauer.line_to(ende_unten_rechts);
+
         // links-oben
         erbauer.move_to(links_oben);
         erbauer.line_to(ende_links_oben);
@@ -235,11 +328,6 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
         erbauer.line_to(ende_unten_rechts);
 
         // zurücksetzen
-        // Inkreis-Radius r = 2A/u
-        // https://de.wikipedia.org/wiki/Inkreis
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
 
         let pfad = erbauer.baue();
