@@ -59,6 +59,7 @@ impl PwmStore {
 #[cfg(feature = "raspi")]
 #[doc(inline)]
 pub use ::rppal::pwm::Pwm;
+#[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s PWM peripherals.
 #[derive(Debug)]
 pub struct Pwm {
