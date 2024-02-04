@@ -218,7 +218,6 @@ fn lizenz_dateien(
         ("wgpu-core", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("wgpu-hal", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("wgpu-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("wayland-backend", ("LICENSE-GITHUB..txt", HashMap::new())),
         ("range-alloc", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("nu-ansi-term", ("LICENCE", HashMap::new())),
         ("hexf-parse", ("../CC0.txt", HashMap::new())),
@@ -251,6 +250,7 @@ fn finde_unterschiede<'t, 'f>(
                 format!("{pfad}.txt"),
                 format!("{pfad}.md"),
                 format!("{pfad}-GITHUB"),
+                format!("{pfad}-GITHUB.txt"),
             ]
         })
         .collect_vec();

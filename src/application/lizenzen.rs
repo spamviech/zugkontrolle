@@ -281,32 +281,28 @@ fn source_lizenz() -> Cow<'static, str> {
 
 /// Bootstrap Icon Schriftart
 fn bootstrap_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2019-2023", "The Bootstrap Authors")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2019-2023", "The Bootstrap Authors")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Lato Schriftart
 fn lato_lizenz() -> Cow<'static, str> {
-    {
-        let copyright = OflCopyright {
-            copyright_c: true,
-            jahr: "2010-2014",
-            voller_name: "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
-            font_name: "\"Lato\"",
-            punkt_nach_font_name: false,
-            extra_notice: "",
-        };
-        ofl_1_1(Some(copyright), false, false, true, true)
-    }
+    let copyright = OflCopyright {
+        copyright_c: true,
+        jahr: "2010-2014",
+        voller_name: "by tyPoland Lukasz Dziedzic (team@latofonts.com)",
+        font_name: "\"Lato\"",
+        punkt_nach_font_name: false,
+        extra_notice: "",
+    };
+    ofl_1_1(Some(copyright), false, false, true, true)
 }
 
 /// MIT-Lizenz für "The Rust Project Developers" mit dem entsprechenden `jahr`.
@@ -504,17 +500,27 @@ fn iced_lizenz() -> Cow<'static, str> {
     )
 }
 
-/// MIT-Lizenz, die ich zuerst beim kommandozeilen_argumente-crate gesehen habe.
-fn kommandozeilen_argumente_lizenz() -> Cow<'static, str> {
+/// MIT-Lizenz mit Autor "spamviech".
+fn spamviech_lizenz(jahr: &str) -> Cow<'static, str> {
     mit(
         MITPräfix("MIT License", 2),
-        vec![MITCopyright::neu(true, "2022", "spamviech")],
+        vec![MITCopyright::neu(true, jahr, "spamviech")],
         None,
         MITZeilenumbruch::Standard,
         MITEinrückung::keine(),
         false,
         MITEnde::standard(),
     )
+}
+
+/// MIT-Lizenz, die ich zuerst beim kommandozeilen_argumente-crate gesehen habe.
+fn kommandozeilen_argumente_lizenz() -> Cow<'static, str> {
+    spamviech_lizenz("2022")
+}
+
+/// MIT-Lizenz, die ich zuerst beim associated_list-crate gesehen habe.
+fn associated_list_lizenz() -> Cow<'static, str> {
+    spamviech_lizenz("2024")
 }
 
 /// MIT-Lizenz, die ich zuerst beim lyon-crate gesehen habe.
@@ -710,6 +716,19 @@ fn wayland_lizenz() -> Cow<'static, str> {
     )
 }
 
+/// MIT-Lizenz, die ich zuerst beim wayland-scanner-crate gesehen habe.
+fn wayland_scanner_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", "Elinor Berger")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
 /// MIT-Lizenz, die ich zuerst beim winapi-crate gesehen habe.
 fn winapi_lizenz() -> Cow<'static, str> {
     mit(
@@ -886,403 +905,351 @@ fn gimli_developers_lizenz(großes_g: bool, jahr: &'static str) -> Cow<'static, 
 
 /// Apache-Lizenz des `android_glue`-crates.
 fn android_glue_lizenz() -> Cow<'static, str> {
-    {
-        apache_2_0(
-            false,
-            ApacheCopyright::braces(),
-            ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
-            true,
-            1,
-        )
-    }
+    apache_2_0(
+        false,
+        ApacheCopyright::braces(),
+        ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+        true,
+        1,
+    )
 }
 
 /// MIT-Lizenz des `ansi_term`-crates.
 fn ansi_term_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2014", "Benjamin Sago")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2014", "Benjamin Sago")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `atomic-polyfill`-crates.
 fn atomic_polyfill_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2020", "Dario Nieuwenhuis")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2020", "Dario Nieuwenhuis")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `atty`-crates.
 fn atty_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015-2019", "Doug Tangren")],
-            None,
-            MITZeilenumbruch::Redox,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015-2019", "Doug Tangren")],
+        None,
+        MITZeilenumbruch::Redox,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `autocfg`-crates.
 fn autocfg_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2018", "Josh Stone")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2018", "Josh Stone")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `bincode`-crates.
 fn bincode_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2014", "Ty Overby")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2014", "Ty Overby")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `bitfield`-crates.
 fn bitfield_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017", "Loïc Damien")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017", "Loïc Damien")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `bit_field`-crates.
 fn bit_field_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2016", "Philipp Oppermann")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2016", "Philipp Oppermann")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `bumpalo`-crates.
 fn bumpalo_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2019", "Nick Fitzgerald")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2019", "Nick Fitzgerald")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `calloop`-crates.
 fn calloop_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2018", "Victor Berger")],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2018", "Victor Berger")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `cfg_aliases`-crates.
 fn cfg_aliases_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2020", "Katharos Technology")],
-            None,
-            MITZeilenumbruch::Keine,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2020", "Katharos Technology")],
+        None,
+        MITZeilenumbruch::Keine,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `clipboard_x11`-crates.
 fn clipboard_x11_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(
-                true,
-                "2019",
-                "quininer@live.com, Héctor Ramón, window_clipboard_x11 contributors",
-            )],
-            None,
-            MITZeilenumbruch::Keine,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(
+            true,
+            "2019",
+            "quininer@live.com, Héctor Ramón, window_clipboard_x11 contributors",
+        )],
+        None,
+        MITZeilenumbruch::Keine,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `core-video-sys`-crates.
 fn core_video_sys_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2018", "寧靜")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2018", "寧靜")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `cortex-m`-crates.
 fn cortex_m_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2016", "Jorge Aparicio")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2016", "Jorge Aparicio")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `difference`-crates.
 fn difference_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2015", "Johann Hofmann")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::zwei_neue_zeilen(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2015", "Johann Hofmann")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::zwei_neue_zeilen(),
+    )
 }
 
 /// MIT-Lizenz des `downcast-rs`-crates.
 fn downcast_rs_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2020", "Ashish Myles and contributors")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2020", "Ashish Myles and contributors")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `either`-crates.
 fn either_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", None)],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", None)],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `embed-resource`-crates.
 fn embed_resource_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2017", "nabijaczleweli")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2017", "nabijaczleweli")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `flexi_logger`-crates.
 fn flexi_logger_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2018", "The AUTHORS")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2018", "The AUTHORS")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `float_next_after`-crates.
 fn float_next_after_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2020", "Scripta Qumranica Electronica")],
-            MITInfix("Created by Bronson Brown-deVost", 2),
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2020", "Scripta Qumranica Electronica")],
+        MITInfix("Created by Bronson Brown-deVost", 2),
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `fnv`-crates.
 fn fnv_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017", "Contributors")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017", "Contributors")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Apache-Lizenz des `gethostname`-crates.
 fn gethostname_lizenz() -> Cow<'static, str> {
-    {
-        apache_2_0(
-            false,
-            ApacheCopyright::standard(),
-            ApacheEinrückung {
-                titel: "                              ",
-                version: "                        ",
-                url: "                     ",
-                header: "",
-                text: "   ",
-                sub_text: "       ",
-                finale_url: "\\\\\\\\t",
-            },
-            true,
-            1,
-        )
-    }
+    apache_2_0(
+        false,
+        ApacheCopyright::standard(),
+        ApacheEinrückung {
+            titel: "                              ",
+            version: "                        ",
+            url: "                     ",
+            header: "",
+            text: "   ",
+            sub_text: "       ",
+            finale_url: "\t",
+        },
+        true,
+        1,
+    )
 }
 
 /// MIT-Lizenz des `getrandom`-crates.
 fn getrandom_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![
-                MITCopyright::neu(false, "2018", "Developers of the Rand project"),
-                MITCopyright::neu(true, "2014", "The Rust Project Developers"),
-            ],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![
+            MITCopyright::neu(true, "2018-2024", "The rust-random Project Developers"),
+            MITCopyright::neu(true, "2014", "The Rust Project Developers"),
+        ],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `glow`-crates.
 fn glow_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            Vec::new(),
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        Vec::new(),
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `iced_aw`-crates.
 fn iced_aw_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2020", "Kaiden42")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2020", "Kaiden42")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `ident_case`-crates.
 fn ident_case_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            Vec::new(),
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        Vec::new(),
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT- und Apache-Lizenz des `chrono`-crates.
@@ -1327,850 +1294,740 @@ Nota Bene: This is same as the Rust Project's own license.
 
 /// BSD3-Lizenz des `instant`-crates.
 fn instant_lizenz() -> Cow<'static, str> {
-    {
-        bsd_3(
-            vec![BSD3Copyright::neu("2019", true, "Sébastien Crozet", true)],
-            BSD3Zeilenumbruch::Instant,
-            BSD3Darstellung {
-                punkte: |i| Cow::Owned(format!("{i}.")),
-                einrückung_punkte: "",
-                einrückung_text: "   ",
-                author: "author",
-                copyright_holder: "HOLDER",
-            },
-        )
-    }
+    bsd_3(
+        vec![BSD3Copyright::neu("2019", true, "Sébastien Crozet", true)],
+        BSD3Zeilenumbruch::Instant,
+        BSD3Darstellung {
+            punkte: |i| Cow::Owned(format!("{i}.")),
+            einrückung_punkte: "",
+            einrückung_text: "   ",
+            author: "author",
+            copyright_holder: "HOLDER",
+        },
+    )
 }
 
 /// MIT-Lizenz des `itertools`-crates.
 fn itertools_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", None)],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", None)],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `jni-sys`-crates.
 fn jni_sys_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", "The rust-jni-sys Developers")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", "The rust-jni-sys Developers")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `malloc_buf`-crates.
 fn malloc_buf_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2020", "Steven Sheldon")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2020", "Steven Sheldon")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `memoffset`-crates.
 fn memoffset_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017", "Gilad Naaman")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017", "Gilad Naaman")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `nom`-crates.
 fn nom_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2014-2019", "Geoffroy Couprie")],
-            None,
-            MITZeilenumbruch::Redox,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2014-2019", "Geoffroy Couprie")],
+        None,
+        MITZeilenumbruch::Redox,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `mio`-crates.
 fn mio_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2014", "Carl Lerche and other MIO contributors")],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2014", "Carl Lerche and other MIO contributors")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `num_cpus`-crates.
 fn num_cpus_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", None)],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::zwei_neue_zeilen(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", None)],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::zwei_neue_zeilen(),
+    )
 }
 
 /// MIT-Lizenz des `num_threads`-crates.
 fn num_threads_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2021", "Jacob Pratt")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2021", "Jacob Pratt")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `objc`-crates.
 fn objc_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, None, "Steven Sheldon")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, None, "Steven Sheldon")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `ordered-float`-crates.
 fn ordered_float_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", "Jonathan Reem")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", "Jonathan Reem")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Apache-Lizenz des `owned_ttf_parser`-crates.
 fn owned_ttf_parser_lizenz() -> Cow<'static, str> {
-    {
-        apache_2_0_eingerückt(
-            false,
-            ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
-            false,
-            0,
-        )
-    }
+    apache_2_0_eingerückt(
+        false,
+        ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
+        false,
+        0,
+    )
 }
 
 /// MIT-Lizenz des `percent-encoding`-crates.
 fn percent_encoding_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2013-2022", "The rust-url developers")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2013-2022", "The rust-url developers")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `pin-utils`-crates.
 fn pin_utils_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2018", "The pin-utils authors")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2018", "The pin-utils authors")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `ppv-lite86`-crates.
 fn ppv_lite86_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2019", "The CryptoCorrosion Contributors")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2019", "The CryptoCorrosion Contributors")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `redox_syscall`-crates.
 fn redox_syscall_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017", "Redox OS Developers")],
-            MITInfix("MIT License", 2),
-            MITZeilenumbruch::Redox,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017", "Redox OS Developers")],
+        MITInfix("MIT License", 2),
+        MITZeilenumbruch::Redox,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `riscv-target`-crates.
 fn riscv_target_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2020", "Ilya Epifanov")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2020", "Ilya Epifanov")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `rppal`-crates.
 fn rppal_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017-2023", "Rene van der Meer")],
-            None,
-            MITZeilenumbruch::RPPal,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017-2024", "Rene van der Meer")],
+        None,
+        MITZeilenumbruch::RPPal,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `rstar`-crates.
 fn rstar_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2018", "The rstar project developers")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2018", "The rstar project developers")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Apache-Lizenz des `ryu`-crates.
 fn ryu_lizenz() -> Cow<'static, str> {
-    {
-        apache_2_0(
-            false,
-            ApacheCopyright::standard(),
-            ApacheEinrückung {
-                titel: "                              ",
-                version: "                        ",
-                url: "                     ",
-                header: "",
-                text: "   ",
-                sub_text: "       ",
-                finale_url: "       ",
-            },
-            false,
-            0,
-        )
-    }
+    apache_2_0(
+        false,
+        ApacheCopyright::standard(),
+        ApacheEinrückung {
+            titel: "                              ",
+            version: "                        ",
+            url: "                     ",
+            header: "",
+            text: "   ",
+            sub_text: "       ",
+            finale_url: "       ",
+        },
+        false,
+        0,
+    )
 }
 
 /// MIT-Lizenz des `scopeguard`-crates.
 fn scopeguard_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(
-                true,
-                "2016-2019",
-                r#"Ulrik Sverdrup "bluss" and scopeguard developers"#,
-            )],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(
+            true,
+            "2016-2019",
+            r#"Ulrik Sverdrup "bluss" and scopeguard developers"#,
+        )],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `semver-parser`-crates.
 fn semver_parser_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2016", "Steve Klabnik")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2016", "Steve Klabnik")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `shared_library`-crates.
 fn shared_library_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017", "Pierre Krieger")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017", "Pierre Krieger")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `slab`-crates.
 fn slab_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2019", "Carl Lerche")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2019", "Carl Lerche")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `smallvec`-crates.
 fn smallvec_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2018", "The Servo Project Developers")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2018", "The Servo Project Developers")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `smithay-clipboard`-crates.
 fn smithay_clipboard_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2018", "Lucas Timmins & Victor Berger")],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2018", "Lucas Timmins & Victor Berger")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `spin`-crates.
 fn spin_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2014", "Mathijs van de Nes")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2014", "Mathijs van de Nes")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `stable_deref_trait`-crates.
 fn stable_deref_trait_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017", "Robert Grosse")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017", "Robert Grosse")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `static_assertions`-crates.
 fn static_assertions_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2017", "Nikolai Vazquez")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2017", "Nikolai Vazquez")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `strsim`-crates.
 fn strsim_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![
-                MITCopyright::neu(true, "2015", "Danny Guo"),
-                MITCopyright::neu(true, "2016", "Titus Wormer <tituswormer@gmail.com>"),
-                MITCopyright::neu(true, "2018", "Akash Kurdekar"),
-            ],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![
+            MITCopyright::neu(true, "2015", "Danny Guo"),
+            MITCopyright::neu(true, "2016", "Titus Wormer <tituswormer@gmail.com>"),
+            MITCopyright::neu(true, "2018", "Akash Kurdekar"),
+        ],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `take_mut`-crates.
 fn take_mut_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2016", "Sgeo")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::zwei_neue_zeilen(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2016", "Sgeo")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::zwei_neue_zeilen(),
+    )
 }
 
 /// MIT-Lizenz des `tinyvec_macros`-crates.
 fn tinyvec_macros_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2020", "Soveu")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2020", "Soveu")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `twox-hash`-crates.
 fn twox_hash_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2015", "Jake Goulding")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2015", "Jake Goulding")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `unicase`-crates.
 fn unicase_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2014-2017", "Sean McArthur")],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::zwei_neue_zeilen(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2014-2017", "Sean McArthur")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::zwei_neue_zeilen(),
+    )
 }
 
 /// MIT-Lizenz des `version_check`-crates.
 fn version_check_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 1),
-            vec![MITCopyright::neu(true, "2017-2018", "Sergio Benitez")],
-            None,
-            MITZeilenumbruch::Iced,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 1),
+        vec![MITCopyright::neu(true, "2017-2018", "Sergio Benitez")],
+        None,
+        MITZeilenumbruch::Iced,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `void`-crates.
 fn void_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", "The rust-void Developers")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", "The rust-void Developers")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `wasm-timer`-crates.
 fn wasm_timer_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![
-                MITCopyright::neu(false, "2019", "Pierre Krieger"),
-                MITCopyright::neu(true, "2019", "Tokio Contributors"),
-            ],
-            None,
-            MITZeilenumbruch::WasmTimer,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![
+            MITCopyright::neu(false, "2019", "Pierre Krieger"),
+            MITCopyright::neu(true, "2019", "Tokio Contributors"),
+        ],
+        None,
+        MITZeilenumbruch::WasmTimer,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `window_clipboard`-crates.
 fn window_clipboard_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(false, "2019", "Héctor Ramón, window_clipboard contributors")],
-            None,
-            MITZeilenumbruch::Iced,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(false, "2019", "Héctor Ramón, window_clipboard contributors")],
+        None,
+        MITZeilenumbruch::Iced,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Apache-Lizenz des `winit`-crates.
 fn winit_lizenz() -> Cow<'static, str> {
-    {
-        apache_2_0(
-            false,
-            ApacheCopyright::braces(),
-            ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
-            true,
-            0,
-        )
-    }
+    apache_2_0(
+        false,
+        ApacheCopyright::braces(),
+        ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+        true,
+        0,
+    )
 }
 
 /// MIT-Lizenz des `winreg`-crates.
 fn winreg_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", "Igor Shaula")],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", "Igor Shaula")],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `xcursor`-crates.
 fn xcursor_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2020", "Samuele Esposito")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2020", "Samuele Esposito")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `xml-rs`-crates.
 fn xml_rs_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright::neu(true, "2014", "Vladimir Matveev")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright::neu(true, "2014", "Vladimir Matveev")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `crc32fast`-crates.
 fn crc32fast_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2018", "Sam Rijs, Alex Crichton and contributors")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2018", "Sam Rijs, Alex Crichton and contributors")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Apache-Lizenz des `crossfont`-crates.
 fn crossfont_lizenz() -> Cow<'static, str> {
-    {
-        apache_2_0(
-            false,
-            ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "The Alacritty Project" },
-            ApacheEinrückung {
-                titel: "                              ",
-                version: "                        ",
-                url: "                     ",
-                header: "",
-                text: "   ",
-                sub_text: "       ",
-                finale_url: "   ",
-            },
-            true,
-            1,
-        )
-    }
+    apache_2_0(
+        false,
+        ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "The Alacritty Project" },
+        ApacheEinrückung {
+            titel: "                              ",
+            version: "                        ",
+            url: "                     ",
+            header: "",
+            text: "   ",
+            sub_text: "       ",
+            finale_url: "   ",
+        },
+        true,
+        1,
+    )
 }
 
 /// MIT-Lizenz des `foreign-types-macros`-crates.
 fn foreign_types_macros_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2017", "The foreign-types Developers")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2017", "The foreign-types Developers")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `hashbrown`-crates.
 fn hashbrown_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2016", "Amanieu d'Antras")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2016", "Amanieu d'Antras")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `iana-time-zone`-crates.
 fn iana_time_zone_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2020", "Andrew D. Straw")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2020", "Andrew D. Straw")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `indexmap`-crates.
 fn indexmap_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2016--2017", None)],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2016--2017", None)],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `miniz_oxide`-crates.
 fn miniz_oxide_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2017", "Frommi")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2017", "Frommi")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `nu-ansi-term`-crates.
 fn nu_ansi_term_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![
-                MITCopyright::neu(true, "2014", "Benjamin Sago"),
-                MITCopyright::neu(true, "2021-2022", "The Nushell Project Developers"),
-            ],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![
+            MITCopyright::neu(true, "2014", "Benjamin Sago"),
+            MITCopyright::neu(true, "2021-2022", "The Nushell Project Developers"),
+        ],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `overload`-crates.
 fn overload_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2019", "Daniel Augusto Rizzi Salvadori")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2019", "Daniel Augusto Rizzi Salvadori")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `png`-crates.
 fn png_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2015", "nwin")],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2015", "nwin")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `safe_arch`-crates.
 fn safe_arch_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2023", r#"Daniel "Lokathor" Gee."#)],
-            None,
-            MITZeilenumbruch::Keine,
-            MITEinrückung::keine(),
-            true,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2023", r#"Daniel "Lokathor" Gee."#)],
+        None,
+        MITZeilenumbruch::Keine,
+        MITEinrückung::keine(),
+        true,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `sctk-adwaita`-crates.
 fn sctk_adwaita_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "2022", "Bartłomiej Maryńczak")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2022", "Bartłomiej Maryńczak")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `simd-adler32`-crates.
 fn simd_adler32_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, "[2021]", "[Marvin Countryman]")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "[2021]", "[Marvin Countryman]")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT- or Apache-Lizenz des `siphasher`-crates.
@@ -2189,548 +2046,524 @@ option.
 
 /// MIT-Lizenz des `windows-targets`-crates.
 fn windows_targets_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright::neu(true, None, "Microsoft Corporation.")],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::leerzeichen_4(),
-            false,
-            MITEnde { punkt: false, neue_zeile: 1 },
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, None, "Microsoft Corporation.")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::leerzeichen_4(),
+        false,
+        MITEnde { punkt: false, neue_zeile: 1 },
+    )
 }
 
 /// MIT-Lizenz des `equivalent`-crates.
 fn equivalent_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright::neu(true, "2016--2023", None)],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2016--2023", None)],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `fdeflate`-crates.
 fn fdeflate_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            Vec::new(),
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        Vec::new(),
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `zerocopy`-crates.
 fn zerocopy_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: false,
-                jahr: Some("2023"),
-                voller_name: Some("The Fuchsia Authors"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::zwei_neue_zeilen(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: false,
+            jahr: Some("2023"),
+            voller_name: Some("The Fuchsia Authors"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::zwei_neue_zeilen(),
+    )
 }
 
 /// MIT-Lizenz des `zeno`-crates.
 fn zeno_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2020"),
-                voller_name: Some("Chad Brokaw"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("Chad Brokaw"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `yazi`-crates.
 fn yazi_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2020"),
-                voller_name: Some("Chad Brokaw"),
-            }],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("Chad Brokaw"),
+        }],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `wayland-backend`-crates.
 fn wayland_backend_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2015"),
-                voller_name: Some("Elinor Berger"),
-            }],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2015"),
+            voller_name: Some("Elinor Berger"),
+        }],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `unicode-script`-crates.
 fn unicode_script_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2019"),
-                voller_name: Some("Manish Goregaokar"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2019"),
+            voller_name: Some("Manish Goregaokar"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `sys-locale`-crates.
 fn sys_locale_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2021"),
-                voller_name: Some("1Password"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2021"),
+            voller_name: Some("1Password"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `swash`-crates.
 fn swash_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2020"),
-                voller_name: Some("Chad Brokaw"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("Chad Brokaw"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `svg_fmt`-crates.
 fn svg_fmt_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2019"),
-                voller_name: Some("Nicolas Silva"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2019"),
+            voller_name: Some("Nicolas Silva"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `softbuffer`-crates.
 fn softbuffer_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: false,
-                jahr: Some("2022"),
-                voller_name: Some("Kirill Chibisov"),
-            }],
-            None,
-            MITZeilenumbruch::Softbuffer,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::zwei_neue_zeilen(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: false,
+            jahr: Some("2022"),
+            voller_name: Some("Kirill Chibisov"),
+        }],
+        None,
+        MITZeilenumbruch::Softbuffer,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::zwei_neue_zeilen(),
+    )
+}
+
+/// MIT-Lizenz des `wayland-csd-frame`-crates.
+fn wayland_csd_frame_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2023"),
+            voller_name: Some("Kirill Chibisov"),
+        }],
+        None,
+        MITZeilenumbruch::NonEmpty,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
+/// MIT-Lizenz des `calloop-wayland-source`-crates.
+fn calloop_wayland_source_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2023"),
+            voller_name: Some("Kirill Chibisov"),
+        }],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `rustybuzz`-crates.
 fn rustybuzz_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![
-                MITCopyright {
-                    c_in_klammern: true,
-                    jahr: None,
-                    voller_name: Some("HarfBuzz developers"),
-                },
-                MITCopyright {
-                    c_in_klammern: true,
-                    jahr: Some("2020"),
-                    voller_name: Some("Evgeniy Reizner"),
-                },
-            ],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![
+            MITCopyright {
+                c_in_klammern: true,
+                jahr: None,
+                voller_name: Some("HarfBuzz developers"),
+            },
+            MITCopyright {
+                c_in_klammern: true,
+                jahr: Some("2020"),
+                voller_name: Some("Evgeniy Reizner"),
+            },
+        ],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `renderdoc-sys`-crates.
 fn renderdoc_sys_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2022"),
-                voller_name: Some("Eyal Kalderon"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2022"),
+            voller_name: Some("Eyal Kalderon"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `rangemap`-crates.
 fn rangemap_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: false,
-                jahr: Some("2019"),
-                voller_name: Some("Jeffrey Parsons"),
-            }],
-            None,
-            MITZeilenumbruch::Keine,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: false,
+            jahr: Some("2019"),
+            voller_name: Some("Jeffrey Parsons"),
+        }],
+        None,
+        MITZeilenumbruch::Keine,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `quick-xml`-crates.
 fn quick_xml_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2016"),
-                voller_name: Some("Johann Tuffe"),
-            }],
-            None,
-            MITZeilenumbruch::QuickXml,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2016"),
+            voller_name: Some("Johann Tuffe"),
+        }],
+        None,
+        MITZeilenumbruch::QuickXml,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des profiling-lizenz.
 fn profiling_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2020"),
-                voller_name: Some("Philip Degarmo and other contributors"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("Philip Degarmo and other contributors"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `naga`-crates.
 fn naga_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("[yyyy]"),
-                voller_name: Some("[name of copyright owner]"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("[yyyy]"),
+            voller_name: Some("[name of copyright owner]"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `lru`-crates.
 fn lru_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2016"),
-                voller_name: Some("Jerome Froelich"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2016"),
+            voller_name: Some("Jerome Froelich"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `kurbo`-crates.
 fn kurbo_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2018"),
-                voller_name: Some("Raph Levien"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2018"),
+            voller_name: Some("Raph Levien"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `hassle-rs`-crates.
 fn hassle_rs_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2018"),
-                voller_name: Some("Jasper Bekkers"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2018"),
+            voller_name: Some("Jasper Bekkers"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `guillotiere`-crates.
 fn guillotiere_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("MIT License", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2019"),
-                voller_name: Some("Nicolas Silva"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2019"),
+            voller_name: Some("Nicolas Silva"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `gpu-allocator`-crates.
 fn gpu_allocator_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2021"),
-                voller_name: Some("Traverse Research B.V."),
-            }],
-            None,
-            MITZeilenumbruch::Keine,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2021"),
+            voller_name: Some("Traverse Research B.V."),
+        }],
+        None,
+        MITZeilenumbruch::Keine,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `fontdb`-crates.
 fn fontdb_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2020"),
-                voller_name: Some("Yevhenii Reizner"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("Yevhenii Reizner"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `fast-srgb8`-crates.
 fn fast_srgb8_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2021"),
-                voller_name: Some("Thom Chiovoloni"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::ohne_neue_zeile(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2021"),
+            voller_name: Some("Thom Chiovoloni"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::ohne_neue_zeile(),
+    )
 }
 
 /// MIT-Lizenz des `etagere`-crates.
 fn etagere_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2020"),
-                voller_name: Some("Nicolas Silva"),
-            }],
-            None,
-            MITZeilenumbruch::Iced,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("Nicolas Silva"),
+        }],
+        None,
+        MITZeilenumbruch::Iced,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `errno`-crates.
 fn errno_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2014"),
-                voller_name: Some("Chris Wong"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2014"),
+            voller_name: Some("Chris Wong"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `cosmic-text`-crates.
 fn cosmic_text_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2022"),
-                voller_name: Some("System76"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2022"),
+            voller_name: Some("System76"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `com-rs`-crates.
 fn com_rs_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2016"),
-                voller_name: Some("Lee Jeffery"),
-            }],
-            None,
-            MITZeilenumbruch::Winreg,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2016"),
+            voller_name: Some("Lee Jeffery"),
+        }],
+        None,
+        MITZeilenumbruch::Winreg,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Apache-Lizenz des `codespan-reporting`-crates.
@@ -2740,59 +2573,49 @@ fn codespan_reporting_lizenz() -> Cow<'static, str> {
 
 /// MIT-Lizenz des `ash`-crates.
 fn ash_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2016"),
-                voller_name: Some("ASH"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright { c_in_klammern: true, jahr: Some("2016"), voller_name: Some("ASH") }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `aliasable`-crates.
 fn aliasable_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            MITPräfix("The MIT License (MIT)", 2),
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2020"),
-                voller_name: Some("James Dyson <avitex@wfxlabs.com>"),
-            }],
-            None,
-            MITZeilenumbruch::Standard,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        MITPräfix("The MIT License (MIT)", 2),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2020"),
+            voller_name: Some("James Dyson <avitex@wfxlabs.com>"),
+        }],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// MIT-Lizenz des `ahash`-crates.
 fn ahash_lizenz() -> Cow<'static, str> {
-    {
-        mit(
-            None,
-            vec![MITCopyright {
-                c_in_klammern: true,
-                jahr: Some("2018"),
-                voller_name: Some("Tom Kaitchuck"),
-            }],
-            None,
-            MITZeilenumbruch::X11,
-            MITEinrückung::keine(),
-            false,
-            MITEnde::standard(),
-        )
-    }
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2018"),
+            voller_name: Some("Tom Kaitchuck"),
+        }],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 /// Apache-Lizenz des `unicode-linebreak`-crates.
@@ -2800,9 +2623,75 @@ fn unicode_linebreak_lizenz() -> Cow<'static, str> {
     apache_2_0_eingerückt(false, ApacheCopyright::standard(), true, 1)
 }
 
+/// Apache-Lizenz des `unicode-general-category`-crates.
+fn unicode_general_category_lizenz() -> Cow<'static, str> {
+    apache_2_0_eingerückt(false, ApacheCopyright::braces(), true, 1)
+}
+
 /// BSD-Lizenz des `arrayref`-crates.
 fn arrayref_lizenz() -> Cow<'static, str> {
     bsd_2("2015", "David Roundy <roundyd@physics.oregonstate.edu>")
+}
+
+/// MIT-Lizenz des `libloading`-crates.
+fn libloading_lizenz() -> Cow<'static, str> {
+    isc(true, "2015", "Simonas Kazlauskas", ISCZeilenumbruch::Libloading)
+}
+
+/// MIT-Lizenz des `xkeysym`-crates.
+fn xkeysym_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some("2022-2023"),
+            voller_name: Some("John Nunley"),
+        }],
+        None,
+        MITZeilenumbruch::NonEmpty,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
+/// MIT-Lizenz des `tracing`-crates.
+fn tracing_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2019", "Tokio Contributors")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
+/// MIT-Lizenz des `read-fonts`-crates.
+fn read_fonts_lizenz() -> Cow<'static, str> {
+    mit(
+        None,
+        vec![MITCopyright::neu(true, "2019", "Colin Rothfels")],
+        None,
+        MITZeilenumbruch::X11,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
+/// MIT-Lizenz des `enum-iterator`-crates.
+fn enum_iterator_lizenz() -> Cow<'static, str> {
+    mit(
+        MITPräfix("MIT License", 2),
+        vec![MITCopyright::neu(true, "2023", "Stephane Raux")],
+        None,
+        MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
 }
 
 // Mindestens eine Zeile pro dependency notwendig!
@@ -2946,10 +2835,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("kommandozeilen_argumente_derive", Lizenz::neu(kommandozeilen_argumente_lizenz)),
         ("lazy_static", Lizenz::neu(mit_rust_project_developers_lizenz_2010)),
         ("libc", Lizenz::neu(|| mit_rust_project_developers_lizenz("2014-2020"))),
-        (
-            "libloading",
-            Lizenz::neu(|| isc(true, "2015", "Simonas Kazlauskas", ISCZeilenumbruch::Libloading)),
-        ),
+        ("libloading", Lizenz::neu(libloading_lizenz)),
         ("libm", Lizenz::neu(|| mit_lizenz_aparicio("2018"))),
         ("linked-hash-map", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
         ("lock_api", Lizenz::neu(mit_rust_project_developers_lizenz_2016)),
@@ -3069,13 +2955,57 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("wasm-bindgen-macro-support", Lizenz::neu(crichton_2014_lizenz)),
         ("wasm-bindgen-shared", Lizenz::neu(crichton_2014_lizenz)),
         ("wasm-timer", Lizenz::neu(wasm_timer_lizenz)),
-        ("wayland-client", Lizenz::neu(wayland_lizenz)),
+        (
+            "wayland-client",
+            Lizenz {
+                lizenz: wayland_scanner_lizenz,
+                version_spezifisch: {
+                    // for some reason, there is a compile-error when used directly
+                    let array: [(_, fn() -> _); 2] =
+                        [("0.29.5", wayland_lizenz), ("0.30.2", wayland_lizenz)];
+                    HashMap::from(array)
+                },
+            },
+        ),
         ("wayland-commons", Lizenz::neu(wayland_lizenz)),
-        ("wayland-cursor", Lizenz::neu(wayland_lizenz)),
+        (
+            "wayland-cursor",
+            Lizenz {
+                lizenz: wayland_scanner_lizenz,
+                version_spezifisch: {
+                    // for some reason, there is a compile-error when used directly
+                    let array: [(_, fn() -> _); 1] = [("0.29.5", wayland_lizenz)];
+                    HashMap::from(array)
+                },
+            },
+        ),
         ("wayland-egl", Lizenz::neu(wayland_lizenz)),
-        ("wayland-protocols", Lizenz::neu(wayland_lizenz)),
-        ("wayland-scanner", Lizenz::neu(wayland_lizenz)),
+        (
+            "wayland-protocols",
+            Lizenz {
+                lizenz: wayland_scanner_lizenz,
+                version_spezifisch: {
+                    // for some reason, there is a compile-error when used directly
+                    let array: [(_, fn() -> _); 1] = [("0.29.5", wayland_lizenz)];
+                    HashMap::from(array)
+                },
+            },
+        ),
+        ("wayland-protocols-wlr", Lizenz::neu(wayland_scanner_lizenz)),
+        (
+            "wayland-scanner",
+            Lizenz {
+                lizenz: wayland_scanner_lizenz,
+                version_spezifisch: {
+                    // for some reason, there is a compile-error when used directly
+                    let array: [(_, fn() -> _); 2] =
+                        [("0.29.5", wayland_lizenz), ("0.30.1", wayland_lizenz)];
+                    HashMap::from(array)
+                },
+            },
+        ),
         ("wayland-sys", Lizenz::neu(wayland_lizenz)),
+        ("wayland-csd-frame", Lizenz::neu(wayland_csd_frame_lizenz)),
         ("web-sys", Lizenz::neu(crichton_2014_lizenz)),
         ("winapi", Lizenz::neu(winapi_lizenz)),
         ("winapi-i686-pc-windows-gnu", Lizenz::neu(winapi_lizenz)),
@@ -3137,7 +3067,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("siphasher", Lizenz::neu(siphasher_lizenz)),
         ("tiny-skia", Lizenz::neu(tiny_skia_lizenz)),
         ("tiny-skia-path", Lizenz::neu(tiny_skia_lizenz)),
-        ("toml_datetime", Lizenz::neu(crichton_2014_lizenz)),
+        ("toml_datetime", Lizenz::neu(toml_lizenz)),
         ("toml", Lizenz::neu(toml_lizenz)),
         ("toml_edit", Lizenz::neu(toml_lizenz)),
         ("vec_map", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
@@ -3158,7 +3088,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("unicode-width", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
         ("unicode-script", Lizenz::neu(unicode_script_lizenz)),
         ("unicode-linebreak", Lizenz::neu(unicode_linebreak_lizenz)),
-        ("unicode-general-category", Lizenz::neu(unicode_linebreak_lizenz)),
+        ("unicode-general-category", Lizenz::neu(unicode_general_category_lizenz)),
         ("unicode-ccc", Lizenz::neu(unicode_ccc_bidi_mirroring_lizenz)),
         ("unicode-bidi-mirroring", Lizenz::neu(unicode_ccc_bidi_mirroring_lizenz)),
         ("unicode-bidi", Lizenz::neu(mit_rust_project_developers_lizenz_2015)),
@@ -3214,6 +3144,24 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("aliasable", Lizenz::neu(aliasable_lizenz)),
         ("ahash", Lizenz::neu(ahash_lizenz)),
         ("addr2line", Lizenz::neu(|| gimli_developers_lizenz(false, "2016-2018"))),
+        ("xkeysym", Lizenz::neu(xkeysym_lizenz)),
+        ("associated_list", Lizenz::neu(associated_list_lizenz)),
+        ("tracing-core", Lizenz::neu(tracing_lizenz)),
+        ("tracing", Lizenz::neu(tracing_lizenz)),
+        ("read-fonts", Lizenz::neu(read_fonts_lizenz)),
+        ("font-types", Lizenz::neu(read_fonts_lizenz)),
+        ("polling", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("parking", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("futures-lite", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("event-listener-strategy", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("event-listener", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("enum-iterator-derive", Lizenz::neu(enum_iterator_lizenz)),
+        ("enum-iterator", Lizenz::neu(enum_iterator_lizenz)),
+        ("cursor-icon", Lizenz::neu(wayland_csd_frame_lizenz)),
+        ("concurrent-queue", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("calloop-wayland-source", Lizenz::neu(calloop_wayland_source_lizenz)),
+        ("async-lock", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("async-io", Lizenz::neu(mit_ohne_copyright_x11)),
     ])
 }
 
