@@ -210,7 +210,7 @@ itertools = "0.12.0"
 log = "0.4.14"
 once_cell = "1.17.1"
 parking_lot = "0.12.0"
-rstar = "0.11.0"
+rstar = "0.12.0"
 take_mut = "0.2.2"
 unicase = "2.6.0"
 num-traits = "0.2.14"
@@ -256,7 +256,7 @@ features = ["card", "tab_bar", "tabs", "number_input"]
 
 # can't be used on non-raspi systems
 [dependencies.rppal]
-version = "0.16.1"
+version = "0.17.1"
 optional = true
 
 #[dependencies.libcamera]
