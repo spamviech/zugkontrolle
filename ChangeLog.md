@@ -2,6 +2,8 @@
 
 ## Unreleased changes
 
+- Knöpfe zeigen wieder an, wenn sich der Mauszeiger über ihnen befindet.
+
 ## 4.0.2
 
 - Drehen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf den Knopf zeigt, oder er gezogen wird.

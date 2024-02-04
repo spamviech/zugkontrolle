@@ -242,6 +242,7 @@ where
         }
         let in_bounds = cursor.is_over(bounds);
         if state.in_bounds != in_bounds {
+            state.in_bounds = in_bounds;
             state.canvas.leeren();
         }
         match event {
@@ -265,6 +266,7 @@ where
     }
 }
 
+// TODO in eigenes Modul verschieben
 /// Der Auslöser eines Klicks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KlickQuelle {
