@@ -89,6 +89,8 @@ impl Bewegen {
 impl Program<Nachricht, Renderer<Thema>> for Bewegen {
     type State = Option<KlickQuelle>;
 
+    // FIXME for now
+    #[allow(clippy::too_many_lines)]
     fn draw(
         &self,
         _state: &Self::State,
@@ -111,58 +113,135 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
         // relative Bewegung
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
-        let diagonal_runter = Skalar(0.3) * Vektor { x: half_width, y: half_height };
-        let mut diagonal_hoch = diagonal_runter;
+        let diagonale_länge = (links - oben).länge();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
-        {
-            diagonal_hoch.y = -diagonal_hoch.y;
-        }
+        let bein_länge = diagonale_länge / Skalar(3.);
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let diagonal_runter =
+            bein_länge * Vektor { x: half_width, y: half_height }.einheitsvektor();
+        let diagonal_hoch = Vektor {
+            x: diagonal_runter.x,
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            y: -diagonal_runter.y,
+        };
+        // Zielpunkte
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_links_oben = links + diagonal_hoch;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_links_unten = links + diagonal_runter;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_rechts_oben = rechts - diagonal_runter;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_rechts_unten = rechts - diagonal_hoch;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_oben_links = oben - diagonal_hoch;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_oben_rechts = oben + diagonal_runter;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_unten_links = unten - diagonal_runter;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let ende_unten_rechts = unten + diagonal_hoch;
+
+        // erzeuge Pfad
+        let mut erbauer = pfad::Erbauer::neu();
+        // links
+        erbauer.move_to(links);
+        erbauer.line_to(ende_links_oben);
+        erbauer.move_to(links);
+        erbauer.line_to(ende_links_unten);
+        // rechts
+        erbauer.move_to(rechts);
+        erbauer.line_to(ende_rechts_oben);
+        erbauer.move_to(rechts);
+        erbauer.line_to(ende_rechts_unten);
+        // oben
+        erbauer.move_to(oben);
+        erbauer.line_to(ende_oben_links);
+        erbauer.move_to(oben);
+        erbauer.line_to(ende_oben_rechts);
+        // unten
+        erbauer.move_to(unten);
+        erbauer.line_to(ende_unten_links);
+        erbauer.move_to(unten);
+        erbauer.line_to(ende_unten_rechts);
+
+        // Diagonale Start-Werte
+        let abstand_diagonale = Skalar(
+            ((bein_länge.0.powf(2.)) - ((0.5 - (1. / 3.)) * diagonale_länge.0).powf(2.)).sqrt(),
+        );
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let links_nach_oben = oben - links;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let links_oben = links
+            + Skalar(0.5) * links_nach_oben
+            + abstand_diagonale * links_nach_oben.rotiert(-winkel::FRAC_PI_2).einheitsvektor();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let links_nach_unten = unten - links;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let links_unten = links
+            + Skalar(0.5) * links_nach_unten
+            + abstand_diagonale * links_nach_unten.rotiert(winkel::FRAC_PI_2).einheitsvektor();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let rechts_nach_oben = oben - rechts;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let rechts_oben = rechts
+            + Skalar(0.5) * rechts_nach_oben
+            + abstand_diagonale * rechts_nach_oben.rotiert(winkel::FRAC_PI_2).einheitsvektor();
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let rechts_nach_unten = unten - rechts;
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let rechts_unten = rechts
+            + Skalar(0.5) * rechts_nach_unten
+            + abstand_diagonale * rechts_nach_unten.rotiert(-winkel::FRAC_PI_2).einheitsvektor();
+
+        // links-oben
+        erbauer.move_to(links_oben);
+        erbauer.line_to(ende_links_oben);
+        erbauer.move_to(links_oben);
+        erbauer.line_to(ende_oben_links);
+        // links-unten
+        erbauer.move_to(links_unten);
+        erbauer.line_to(ende_links_unten);
+        erbauer.move_to(links_unten);
+        erbauer.line_to(ende_unten_links);
+        // rechts-oben
+        erbauer.move_to(rechts_oben);
+        erbauer.line_to(ende_rechts_oben);
+        erbauer.move_to(rechts_oben);
+        erbauer.line_to(ende_oben_rechts);
+        // rechts-unten
+        erbauer.move_to(rechts_unten);
+        erbauer.line_to(ende_rechts_unten);
+        erbauer.move_to(rechts_unten);
+        erbauer.line_to(ende_unten_rechts);
+
+        // zurücksetzen
         // Inkreis-Radius r = 2A/u
         // https://de.wikipedia.org/wiki/Inkreis
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
-        // erzeuge Pfad
-        let mut erbauer = pfad::Erbauer::neu();
-        // links
-        erbauer.move_to(links);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(links + diagonal_hoch);
-        erbauer.move_to(links);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(links + diagonal_runter);
-        // rechts
-        erbauer.move_to(rechts);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(rechts - diagonal_hoch);
-        erbauer.move_to(rechts);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(rechts - diagonal_runter);
-        // oben
-        erbauer.move_to(oben);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(oben - diagonal_hoch);
-        erbauer.move_to(oben);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(oben + diagonal_runter);
-        // unten
-        erbauer.move_to(unten);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(unten + diagonal_hoch);
-        erbauer.move_to(unten);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        erbauer.line_to(unten - diagonal_runter);
-        // zurücksetzen
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
+
         let pfad = erbauer.baue();
         vec![self.0.zeichnen(renderer, size, |frame| {
             frame.stroke(
