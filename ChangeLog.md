@@ -3,6 +3,7 @@
 ## Unreleased changes
 
 - Knöpfe zeigen wieder an, wenn sich der Mauszeiger über ihnen befindet.
+- Bewegen- und Drehen-Widgets reagieren auf Touch-Events.
 
 ## 4.0.2
 

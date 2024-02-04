@@ -2,17 +2,19 @@
 
 use iced::{
     mouse::{self, Cursor},
+    touch,
     widget::canvas::{
         event,
         fill::{self, Fill},
         stroke::{self, Stroke},
         Event, Geometry, Program,
     },
-    Rectangle, Renderer,
+    Point, Rectangle, Renderer,
 };
 
 use crate::{
     application::style::thema::Thema,
+    gleis::knopf::KlickQuelle,
     typen::{
         canvas::{
             pfad::{self, Bogen},
@@ -43,12 +45,12 @@ pub struct Zustand {
     /// Der aktuelle Dreh-Winkel.
     winkel: Winkel,
     /// Wird der Winkel aktuell angepasst?
-    grabbed: bool,
+    grabbed: Option<KlickQuelle>,
 }
 
 impl Default for Zustand {
     fn default() -> Self {
-        Self { winkel: winkel::ZERO, grabbed: false }
+        Self { winkel: winkel::ZERO, grabbed: None }
     }
 }
 
@@ -103,7 +105,7 @@ impl Program<Winkel, Renderer<Thema>> for Drehen {
                 })
                 .baue();
             let hintergrund = thema.hintergrund(
-                state.grabbed,
+                state.grabbed.is_some(),
                 cursor.position_in(bounds).map_or(false, |position| {
                     // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
                     #[allow(clippy::arithmetic_side_effects)]
@@ -126,76 +128,112 @@ impl Program<Winkel, Renderer<Thema>> for Drehen {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Winkel>) {
+        /// Reagiere auf einen Maus- oder Touch-Klick.
+        fn pressed(
+            state: &mut Zustand,
+            bounds: Rectangle,
+            position: Point,
+            klick_quelle: KlickQuelle,
+        ) -> event::Status {
+            let relative_position = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
+            let size = bounds.size();
+            let min_width_height = Skalar(size.width.min(size.height));
+            let half_min_width_height = min_width_height.halbiert();
+            let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let kreis_radius = Skalar(0.8) * half_min_width_height;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let knopf_zentrum =
+                kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let knopf_radius = half_min_width_height - kreis_radius;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            if (relative_position - knopf_zentrum).länge() < knopf_radius {
+                state.grabbed = Some(klick_quelle);
+                event::Status::Captured
+            } else {
+                event::Status::Ignored
+            }
+        }
+        /// Reagiere auf einen Maus- oder Touch-Bewegung.
+        fn moved(
+            state: &mut Zustand,
+            cache: &Cache,
+            bounds: Rectangle,
+            position: Point,
+            klick_quelle: KlickQuelle,
+        ) -> Option<Winkel> {
+            if state.grabbed == Some(klick_quelle) {
+                cache.leeren();
+                let relative_position =
+                    Vektor { x: Skalar(position.x - bounds.x), y: Skalar(position.y - bounds.y) };
+                let size = bounds.size();
+                let min_width_height = Skalar(size.width.min(size.height));
+                let half_min_width_height = min_width_height.halbiert();
+                let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
+                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                #[allow(clippy::arithmetic_side_effects)]
+                let position_von_zentrum = relative_position - kreis_zentrum;
+                let acos =
+                    Winkel::acos(position_von_zentrum.einheitsvektor().skalarprodukt(&Vektor::EX));
+                state.winkel = if position_von_zentrum.y > Skalar(0.) {
+                    acos
+                } else {
+                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+                    #[allow(clippy::arithmetic_side_effects)]
+                    {
+                        -acos
+                    }
+                };
+                Some(state.winkel)
+            } else if (klick_quelle == KlickQuelle::Maus)
+                && Cursor::Available(position).is_over(bounds)
+            {
+                cache.leeren();
+                None
+            } else {
+                // Ignoriere Move-Events ohne grab außerhalb des Zeichenbereichs.
+                // Es gibt nur einen Unterschied, ob der Knopf aktuell grabbed ist,
+                // der Mauszeiger über dem Knopf ist, oder nicht.
+                None
+            }
+        }
         let mut status = event::Status::Ignored;
         let mut winkel = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(bounds) {
-                    let relative_position = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
-                    let size = bounds.size();
-                    let min_width_height = Skalar(size.width.min(size.height));
-                    let half_min_width_height = min_width_height.halbiert();
-                    let kreis_zentrum =
-                        Vektor { x: half_min_width_height, y: half_min_width_height };
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let kreis_radius = Skalar(0.8) * half_min_width_height;
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let knopf_zentrum =
-                        kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let knopf_radius = half_min_width_height - kreis_radius;
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    if (relative_position - knopf_zentrum).länge() < knopf_radius {
-                        state.grabbed = true;
-                    }
+                    status = pressed(state, bounds, position, KlickQuelle::Maus);
                 }
             },
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if state.grabbed => {
+            Event::Touch(touch::Event::FingerPressed { id, position }) => {
+                status = pressed(state, bounds, position, KlickQuelle::Touch(id));
+            },
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+                if state.grabbed == Some(KlickQuelle::Maus) =>
+            {
                 self.0.leeren();
-                state.grabbed = false;
+                state.grabbed = None;
+                status = event::Status::Captured;
+            },
+            Event::Touch(
+                touch::Event::FingerLifted { id, position: _ }
+                | touch::Event::FingerLost { id, position: _ },
+            ) if state.grabbed == Some(KlickQuelle::Touch(id)) => {
+                self.0.leeren();
+                state.grabbed = None;
                 status = event::Status::Captured;
             },
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                if state.grabbed {
-                    self.0.leeren();
-                    let relative_position = Vektor {
-                        x: Skalar(position.x - bounds.x),
-                        y: Skalar(position.y - bounds.y),
-                    };
-                    let size = bounds.size();
-                    let min_width_height = Skalar(size.width.min(size.height));
-                    let half_min_width_height = min_width_height.halbiert();
-                    let kreis_zentrum =
-                        Vektor { x: half_min_width_height, y: half_min_width_height };
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let position_von_zentrum = relative_position - kreis_zentrum;
-                    let acos = Winkel::acos(
-                        position_von_zentrum.einheitsvektor().skalarprodukt(&Vektor::EX),
-                    );
-                    state.winkel = if position_von_zentrum.y > Skalar(0.) {
-                        acos
-                    } else {
-                        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                        #[allow(clippy::arithmetic_side_effects)]
-                        {
-                            -acos
-                        }
-                    };
-                    winkel = Some(state.winkel);
-                } else if cursor.is_over(bounds) {
-                    self.0.leeren();
-                } else {
-                    // Ignoriere Move-Events außerhalb des Zeichenbereichs.
-                    // Es gibt nur einen Unterschied, ob der Knopf aktuell grabbed ist,
-                    // der Mauszeiger über dem Knopf ist, oder nicht.
-                }
+                winkel = moved(state, &self.0, bounds, position, KlickQuelle::Maus);
             },
-            // TODO Touch-Events berücksichtigen
+            Event::Touch(touch::Event::FingerMoved { id, position }) => {
+                winkel = moved(state, &self.0, bounds, position, KlickQuelle::Touch(id));
+            },
             Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {},
         }
         (status, winkel)
@@ -207,7 +245,7 @@ impl Program<Winkel, Renderer<Thema>> for Drehen {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
-        if state.grabbed {
+        if state.grabbed.is_some() {
             mouse::Interaction::Grabbing
         } else {
             let size = bounds.size();

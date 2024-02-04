@@ -2,12 +2,14 @@
 
 use iced::{
     mouse::{self, Cursor},
+    touch,
     widget::canvas::{event, Event, Geometry, Program, Stroke, Style},
-    Rectangle, Renderer,
+    Point, Rectangle, Renderer,
 };
 
 use crate::{
     application::style::thema::Thema,
+    gleis::knopf::KlickQuelle,
     typen::{
         canvas::{
             pfad::{self, Bogen},
@@ -85,7 +87,7 @@ impl Bewegen {
 }
 
 impl Program<Nachricht, Renderer<Thema>> for Bewegen {
-    type State = bool;
+    type State = Option<KlickQuelle>;
 
     fn draw(
         &self,
@@ -177,90 +179,118 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Nachricht>) {
+        /// Reagiere auf einen Maus- oder Touch-Klick.
+        fn pressed(
+            state: &mut Option<KlickQuelle>,
+            bounds: Rectangle,
+            position: Point,
+            klick_quelle: KlickQuelle,
+        ) -> Option<Nachricht> {
+            if state.is_some() {
+                return None;
+            }
+            let size = bounds.size();
+            let width = Skalar(size.width);
+            let height = Skalar(size.height);
+            let half_width = width.halbiert();
+            let half_height = height.halbiert();
+            // Startpunkte
+            let links = Vektor { x: Skalar(0.), y: half_height };
+            let rechts = Vektor { x: width, y: half_height };
+            let oben = Vektor { x: half_width, y: Skalar(0.) };
+            let unten = Vektor { x: half_width, y: height };
+            let zentrum = Vektor { x: half_width, y: half_height };
+            // relative Bewegung
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let diagonal_runter = Skalar(0.3) * Vektor { x: half_width, y: half_height };
+            // Grenzen
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let links_grenze = links.x + diagonal_runter.x;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let rechts_grenze = rechts.x - diagonal_runter.x;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let oben_grenze = oben.y + diagonal_runter.y;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let unten_grenze = unten.y - diagonal_runter.y;
+            // Inkreis-Radius r = 2A/u
+            // https://de.wikipedia.org/wiki/Inkreis
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            let klick_radius =
+                (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
+            if position.x < links_grenze.0 {
+                *state = Some(klick_quelle);
+                let bewegung = if position.y < oben_grenze.0 {
+                    Bewegung::ObenLinks
+                } else if position.y > unten_grenze.0 {
+                    Bewegung::UntenLinks
+                } else {
+                    Bewegung::Links
+                };
+                Some(Nachricht::StarteBewegung(bewegung))
+            } else if position.x >= rechts_grenze.0 {
+                *state = Some(klick_quelle);
+                let bewegung = if position.y < oben_grenze.0 {
+                    Bewegung::ObenRechts
+                } else if position.y >= unten_grenze.0 {
+                    Bewegung::UntenRechts
+                } else {
+                    Bewegung::Rechts
+                };
+                Some(Nachricht::StarteBewegung(bewegung))
+            } else if position.y < oben_grenze.0 {
+                *state = Some(klick_quelle);
+                Some(Nachricht::StarteBewegung(Bewegung::Oben))
+            } else if position.y >= unten_grenze.0 {
+                *state = Some(klick_quelle);
+                Some(Nachricht::StarteBewegung(Bewegung::Unten))
+            } else if klick_radius < radius {
+                Some(Nachricht::Zurücksetzen)
+            } else {
+                // Kein aktives Element angeklickt.
+                None
+            }
+        }
         let mut nachricht = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(bounds) {
-                    let size = bounds.size();
-                    let width = Skalar(size.width);
-                    let height = Skalar(size.height);
-                    let half_width = width.halbiert();
-                    let half_height = height.halbiert();
-                    // Startpunkte
-                    let links = Vektor { x: Skalar(0.), y: half_height };
-                    let rechts = Vektor { x: width, y: half_height };
-                    let oben = Vektor { x: half_width, y: Skalar(0.) };
-                    let unten = Vektor { x: half_width, y: height };
-                    let zentrum = Vektor { x: half_width, y: half_height };
-                    // relative Bewegung
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let diagonal_runter = Skalar(0.3) * Vektor { x: half_width, y: half_height };
-                    // Grenzen
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let links_grenze = links.x + diagonal_runter.x;
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let rechts_grenze = rechts.x - diagonal_runter.x;
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let oben_grenze = oben.y + diagonal_runter.y;
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let unten_grenze = unten.y - diagonal_runter.y;
-                    // Inkreis-Radius r = 2A/u
-                    // https://de.wikipedia.org/wiki/Inkreis
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
-                    let klick_radius =
-                        (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
-                    if position.x < links_grenze.0 {
-                        *state = true;
-                        let bewegung = if position.y < oben_grenze.0 {
-                            Bewegung::ObenLinks
-                        } else if position.y > unten_grenze.0 {
-                            Bewegung::UntenLinks
-                        } else {
-                            Bewegung::Links
-                        };
-                        nachricht = Some(Nachricht::StarteBewegung(bewegung));
-                    } else if position.x >= rechts_grenze.0 {
-                        *state = true;
-                        let bewegung = if position.y < oben_grenze.0 {
-                            Bewegung::ObenRechts
-                        } else if position.y >= unten_grenze.0 {
-                            Bewegung::UntenRechts
-                        } else {
-                            Bewegung::Rechts
-                        };
-                        nachricht = Some(Nachricht::StarteBewegung(bewegung));
-                    } else if position.y < oben_grenze.0 {
-                        *state = true;
-                        nachricht = Some(Nachricht::StarteBewegung(Bewegung::Oben));
-                    } else if position.y >= unten_grenze.0 {
-                        *state = true;
-                        nachricht = Some(Nachricht::StarteBewegung(Bewegung::Unten));
-                    } else if klick_radius < radius {
-                        nachricht = Some(Nachricht::Zurücksetzen);
-                    } else {
-                        // Kein aktives Element angeklickt.
-                    }
+                    nachricht = pressed(state, bounds, position, KlickQuelle::Maus);
                 }
             },
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) if *state => {
-                // beende nur gestartete Bewegungen
-                *state = false;
+            Event::Touch(touch::Event::FingerPressed { id, position }) => {
+                nachricht = pressed(state, bounds, position, KlickQuelle::Touch(id));
+            },
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+                if *state == Some(KlickQuelle::Maus) =>
+            {
+                // Beende nur mit der Maus gestartete Bewegungen
+                *state = None;
                 nachricht = Some(Nachricht::BeendeBewegung);
             },
-            // TODO touch-Events berücksichtigen
+            Event::Touch(
+                touch::Event::FingerLifted { id, position: _ }
+                | touch::Event::FingerLost { id, position: _ },
+            ) if *state == Some(KlickQuelle::Touch(id)) => {
+                // Beende nur mit dem selben Finger gestartete Bewegungen
+                *state = None;
+                nachricht = Some(Nachricht::BeendeBewegung);
+            },
             Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {},
         }
 
-        (event::Status::Ignored, nachricht)
+        let status =
+            if nachricht.is_some() { event::Status::Captured } else { event::Status::Ignored };
+
+        (status, nachricht)
     }
 
     fn mouse_interaction(
