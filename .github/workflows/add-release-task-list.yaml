@@ -7,7 +7,7 @@ permissions:
   pull-requests: write
 jobs:
   add-comment:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     steps:
       - uses: mshick/add-pr-comment@v2
         with:
