@@ -251,7 +251,6 @@ impl WichtigeWerte {
     }
 }
 
-// FIXME scheint nicht zu stimmen, evtl. wegen umgekehrter y-Richtung?
 // Gibt es bessere Namen für die Ecken eines Dreiecks?
 #[allow(clippy::min_ident_chars)]
 /// Liegt der `punkt` innerhalb des Dreiecks `a`-`b`-`c`.
@@ -309,8 +308,8 @@ fn punkt_innerhalb_dreieck(punkt: Vektor, a: Vektor, b: Vektor, c: Vektor) -> bo
     else {
         unreachable!("Iterator hat 3 Elemente!")
     };
-    let Vektor { x: x1, y: y1 } = größtes_kleiner.unwrap_or(kleinstes);
-    let Vektor { x: x2, y: y2 } = kleinstes_größer.unwrap_or(größtes);
+    let Vektor { x: x1, y: y1 } = größtes_kleiner.unwrap_or(größtes);
+    let Vektor { x: x2, y: y2 } = kleinstes_größer.unwrap_or(kleinstes);
     let Vektor { x: xp, y: yp } = punkt;
     let Vektor { x: xs, y: ys } = schwerpunkt;
     // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
