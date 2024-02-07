@@ -424,46 +424,30 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
         // erzeuge Pfad
         let mut erbauer = pfad::Erbauer::neu();
         // links
-        erbauer.move_to(links);
+        erbauer.move_to(ende_links_unten);
+        erbauer.line_to(links);
         erbauer.line_to(ende_links_oben);
-        erbauer.move_to(links);
-        erbauer.line_to(ende_links_unten);
-        // rechts
-        erbauer.move_to(rechts);
-        erbauer.line_to(ende_rechts_oben);
-        erbauer.move_to(rechts);
-        erbauer.line_to(ende_rechts_unten);
-        // oben
-        erbauer.move_to(oben);
-        erbauer.line_to(ende_oben_links);
-        erbauer.move_to(oben);
-        erbauer.line_to(ende_oben_rechts);
-        // unten
-        erbauer.move_to(unten);
-        erbauer.line_to(ende_unten_links);
-        erbauer.move_to(unten);
-        erbauer.line_to(ende_unten_rechts);
-
         // links-oben
-        erbauer.move_to(links_oben);
-        erbauer.line_to(ende_links_oben);
-        erbauer.move_to(links_oben);
+        erbauer.line_to(links_oben);
         erbauer.line_to(ende_oben_links);
-        // links-unten
-        erbauer.move_to(links_unten);
-        erbauer.line_to(ende_links_unten);
-        erbauer.move_to(links_unten);
-        erbauer.line_to(ende_unten_links);
-        // rechts-oben
-        erbauer.move_to(rechts_oben);
-        erbauer.line_to(ende_rechts_oben);
-        erbauer.move_to(rechts_oben);
+        // oben
+        erbauer.line_to(oben);
         erbauer.line_to(ende_oben_rechts);
-        // rechts-unten
-        erbauer.move_to(rechts_unten);
+        // rechts-oben
+        erbauer.line_to(rechts_oben);
+        erbauer.line_to(ende_rechts_oben);
+        // rechts
+        erbauer.line_to(rechts);
         erbauer.line_to(ende_rechts_unten);
-        erbauer.move_to(rechts_unten);
+        // rechts-unten
+        erbauer.line_to(rechts_unten);
         erbauer.line_to(ende_unten_rechts);
+        // unten
+        erbauer.line_to(unten);
+        erbauer.line_to(ende_unten_links);
+        // links-unten
+        erbauer.line_to(links_unten);
+        erbauer.close();
 
         // zurücksetzen
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
