@@ -1,0 +1,24 @@
+name: "Add Release Task list comment to PRs targeting main."
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+    branches: [main]
+permissions:
+  pull-requests: write
+jobs:
+  add-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            Please complete the following tasks before merging this PR:
+            - [ ] update dependencies (`cargo update` + check `cargo outdated`)
+            - [ ] update `licenses` folder
+              - clean current licenses
+              - run `fetch_licenses.py`
+              - commit result
+              - check test output if licenses are up to date
+            - [ ] update `Changelog.md`, so all included changes appear under the <version> section
