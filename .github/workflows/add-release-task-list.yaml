@@ -1,7 +1,9 @@
 name: "Add Release Task list comment to PRs targeting main."
 on:
   pull_request_target:
-    types: [opened]
+    types:
+      - opened
+      - reopened
     branches: [main]
 permissions:
   pull-requests: write
@@ -11,7 +13,7 @@ jobs:
     steps:
       - uses: mshick/add-pr-comment@v2
         with:
-          - message: |
+          message: |
             Please complete the following tasks before merging this PR:
             - [ ] update dependencies (`cargo update` + check `cargo outdated`)
             - [ ] update `licenses` folder
