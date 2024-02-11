@@ -16,14 +16,13 @@ use itertools::Itertools;
 use log::error;
 use nonempty::NonEmpty;
 
-use crate::{
-    application::lizenzen::{
-        cargo_lock_lizenzen,
-        texte::{mit_ohne_copyright, MITZeilenumbruch},
-        verwendete_lizenzen_impl,
-    },
-    init_test_logging,
-    util::unicase_ord::UniCaseOrd,
+use zugkontrolle_test_util::init_test_logging;
+use zugkontrolle_util::unicase_ord::UniCaseOrd;
+
+use crate::application::lizenzen::{
+    cargo_lock_lizenzen,
+    texte::{mit_ohne_copyright, MITZeilenumbruch},
+    verwendete_lizenzen_impl,
 };
 
 struct OptionD<'t, T>(&'t str, Option<T>);

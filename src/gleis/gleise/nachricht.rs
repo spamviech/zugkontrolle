@@ -2,13 +2,14 @@
 
 use std::time::Instant;
 
+use zugkontrolle_typen::{vektor::Vektor, winkel::Winkel};
+
 use crate::{
     gleis::{
         gleise::id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
         knopf::KlickQuelle,
     },
     steuerung::plan::{AktionStreckenabschnitt, AnyAktionSchalten},
-    typen::{vektor::Vektor, winkel::Winkel},
 };
 
 /// Ein aktuell gehaltenes Gleis.

@@ -13,12 +13,16 @@ use once_cell::sync::Lazy;
 use rstar::primitives::{GeomWithData, Rectangle};
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_anschluss::{
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    pcf8574,
+    pin::{self, input},
+    Lager,
+};
+use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
+use zugkontrolle_typen::{mm::Spurweite, Zeichnen};
+
 use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        pin::input,
-    },
     gleis::{
         gerade::Gerade,
         gleise::{
@@ -32,10 +36,7 @@ use crate::{
                 },
                 GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
             },
-            id::{
-                self, eindeutig::KeineIdVerfügbar, AnyDefinitionId, AnyGleisDefinitionId,
-                DefinitionId, GleisId,
-            },
+            id::{AnyDefinitionId, AnyGleisDefinitionId, DefinitionId},
             steuerung::{MitSteuerung, SomeAktualisierenSender},
             Fehler, Gleise,
         },
@@ -49,7 +50,6 @@ use crate::{
         geschwindigkeit::{BekannterLeiter, Leiter},
         plan::{self, SteuerungMaps, UnbekannteAnschlüsse},
     },
-    typen::{mm::Spurweite, Zeichnen},
     zugtyp::{DefinitionMap, Zugtyp},
 };
 
@@ -67,7 +67,7 @@ pub enum LadenFehler<S> {
     /// Ein IO-Fehler.
     IO(io::Error),
     /// Fehler beim reservieren eines [`Anschlusses`](anschluss::Anschluss).
-    Anschluss(anschluss::Fehler),
+    Anschluss(zugkontrolle_anschluss::Fehler),
     /// Fehler beim Deserialisieren (laden) gespeicherter Daten.
     BincodeDeserialisieren {
         /// Fehler beim Deserialisieren nach aktuellem Speicherformat.
@@ -92,14 +92,14 @@ impl<S> From<input::Fehler> for LadenFehler<S> {
     }
 }
 
-impl<S> From<anschluss::pcf8574::Fehler> for LadenFehler<S> {
-    fn from(fehler: anschluss::pcf8574::Fehler) -> Self {
+impl<S> From<pcf8574::Fehler> for LadenFehler<S> {
+    fn from(fehler: pcf8574::Fehler) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
 }
 
-impl<S> From<anschluss::pin::ReservierenFehler> for LadenFehler<S> {
-    fn from(fehler: anschluss::pin::ReservierenFehler) -> Self {
+impl<S> From<pin::ReservierenFehler> for LadenFehler<S> {
+    fn from(fehler: pin::ReservierenFehler) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
 }
@@ -155,15 +155,15 @@ impl GleiseDaten {
 /// Reserviere die Anschlüsse für alle Gleise.
 #[must_use]
 fn reserviere_anschlüsse<T, S, Ss, L>(
-    lager: &mut anschluss::Lager,
-    serialisiert: impl IntoIterator<Item = (id::Repräsentation, GleisSerialisiert<T>)>,
+    lager: &mut Lager,
+    serialisiert: impl IntoIterator<Item = (zugkontrolle_id::Repräsentation, GleisSerialisiert<T>)>,
     spurweite: Spurweite,
     definitionen: &DefinitionMap<T>,
     anschlüsse: Anschlüsse,
     bekannte_steuerungen: &mut HashMap<Ss, S>,
     laden_fehler: &mut Vec<LadenFehler<L>>,
-    bekannte_ids: &mut HashMap<id::Repräsentation, GleisId<T>>,
-    bekannte_definition_ids: &HashMap<id::Repräsentation, DefinitionId<T>>,
+    bekannte_ids: &mut HashMap<zugkontrolle_id::Repräsentation, GleisId<T>>,
+    bekannte_definition_ids: &HashMap<zugkontrolle_id::Repräsentation, DefinitionId<T>>,
     arg: &<Ss as Reserviere<S>>::MoveArg,
 ) -> (GleisMap<T>, Vec<RSternEintrag>, Anschlüsse)
 where
@@ -209,9 +209,11 @@ where
                 },
             };
             let Some(definition) = definitionen.get(&gleis.definition) else {
-                laden_fehler.push(LadenFehler::from(anschluss::Fehler::UnbekannteDefinition {
-                    id: gleis.definition.into(),
-                }));
+                laden_fehler.push(LadenFehler::from(
+                    zugkontrolle_anschluss::Fehler::UnbekannteDefinition {
+                        id: gleis.definition.into(),
+                    },
+                ));
                 return (gleise, rstern_elemente, anschlüsse);
             };
             // Bekannte Steuerung sichern
@@ -316,7 +318,7 @@ impl GleiseDatenSerialisiert {
     fn reserviere<L, S, Nachricht>(
         self,
         zugtyp: &Zugtyp<L>,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         bekannte_ids: &mut IdMaps,
         bekannte_steuerungen: &mut SteuerungMaps<L, S>,
@@ -644,7 +646,7 @@ where
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         sender: &Sender<Nachricht>,
     ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), ZugtypDeserialisierenFehler> {
@@ -762,7 +764,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// - Fehler beim [`Reservieren`](Reserviere::reserviere) der benötigen Anschlüsse.
     pub fn laden<S>(
         &mut self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         pfad: impl AsRef<Path>,
     ) -> Result<(), NonEmpty<LadenFehler<S>>>
     where

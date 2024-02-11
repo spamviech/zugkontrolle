@@ -11,11 +11,13 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_anschluss::{
+    de_serialisieren::Serialisiere, polarität::Fließend, OutputAnschluss, OutputSerialisiert,
+};
+use zugkontrolle_typen::nachschlagen::Nachschlagen;
+use zugkontrolle_util::eingeschränkt::NichtNegativ;
+
 use crate::{
-    anschluss::{
-        self, de_serialisieren::Serialisiere, polarität::Fließend, OutputAnschluss,
-        OutputSerialisiert,
-    },
     gleis::{
         gleise::{self, steuerung::Steuerung},
         weiche,
@@ -26,7 +28,6 @@ use crate::{
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
     },
-    util::{eingeschränkt::NichtNegativ, nachschlagen::Nachschlagen},
     zugtyp::Zugtyp,
 };
 
@@ -400,9 +401,9 @@ pub enum AktionFehler {
     /// Fehler beim Ausführen einer [`AktionGeschwindigkeit`].
     Geschwindigkeit(geschwindigkeit::Fehler),
     /// Fehler beim Ausführen einer [`AktionStreckenabschnitt`].
-    Streckenabschnitt(anschluss::Fehler),
+    Streckenabschnitt(zugkontrolle_anschluss::Fehler),
     /// Fehler beim Ausführen einer [`AktionSchalten`].
-    Schalten(anschluss::Fehler),
+    Schalten(zugkontrolle_anschluss::Fehler),
     /// Fehler beim Ausführen einer [`AktionWarten`].
     Warten(RecvError),
     /// Fehler beim Ausführen eines [`Plans`](Plan).
@@ -769,13 +770,13 @@ pub type AktionStreckenabschnittSerialisiert =
 impl_ausführen_simple! {
     AktionStreckenabschnitt,
     ausführen_aux,
-    anschluss::Fehler,
+    zugkontrolle_anschluss::Fehler,
     "einer Streckenabschnitt-Aktion"
 }
 
 impl AktionStreckenabschnitt {
     /// Schalte den Strom für einen [`Streckenabschnitt`] an oder aus.
-    fn ausführen_aux(&mut self) -> Result<(), anschluss::Fehler> {
+    fn ausführen_aux(&mut self) -> Result<(), zugkontrolle_anschluss::Fehler> {
         let AktionStreckenabschnitt::Strom { streckenabschnitt, fließend } = self;
         streckenabschnitt.as_mut().strom(*fließend)
     }
@@ -842,7 +843,7 @@ pub enum AnyAktionSchalten<
 }
 
 impl<L: Leiter> Ausführen<L> for AnyAktionSchalten {
-    type Fehler = anschluss::Fehler;
+    type Fehler = zugkontrolle_anschluss::Fehler;
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         match self {
@@ -955,7 +956,7 @@ where
     Richtung: 'static + Debug + Clone + Send,
     Anschlüsse: 'static + Debug + Nachschlagen<Richtung, OutputAnschluss> + Send,
 {
-    type Fehler = anschluss::Fehler;
+    type Fehler = zugkontrolle_anschluss::Fehler;
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
         let AktionSchalten { weiche, richtung } = self;

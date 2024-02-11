@@ -8,15 +8,12 @@ use std::{
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        polarität::Fließend,
-        Fehler, OutputAnschluss, OutputSerialisiert,
-    },
-    typen::farbe::Farbe,
+use zugkontrolle_anschluss::{
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    polarität::Fließend,
+    Fehler, Lager, OutputAnschluss, OutputSerialisiert,
 };
+use zugkontrolle_typen::farbe::Farbe;
 
 /// Name eines [`Streckenabschnittes`](Streckenabschnitt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -143,7 +140,7 @@ impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,

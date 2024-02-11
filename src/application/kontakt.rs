@@ -21,14 +21,15 @@ use iced_widget::{
     Column, Row,
 };
 
+use zugkontrolle_anschluss::{pcf8574::Lager, trigger::Trigger, InputSerialisiert};
+use zugkontrolle_argumente::I2cSettings;
+
 use crate::{
-    anschluss::{pcf8574::Lager, trigger::Trigger, InputSerialisiert},
     application::{
         anschluss::{self, make_radios},
         map_mit_zustand::MapMitZustand,
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
-    argumente::I2cSettings,
     steuerung::kontakt::{KontaktSerialisiert, Name},
 };
 

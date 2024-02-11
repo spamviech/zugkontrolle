@@ -2,13 +2,12 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    anschluss::OutputSerialisiert,
-    gleis::{
-        gleise::daten::v3::weiche::{orientierung::Orientierung, steuerung},
-        weiche::kurve as v4,
-    },
-    typen::{skalar::Skalar, winkel::Winkel},
+use zugkontrolle_anschluss::OutputSerialisiert;
+use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
+
+use crate::gleis::{
+    gleise::daten::v3::weiche::{orientierung::Orientierung, steuerung},
+    weiche::kurve as v4,
 };
 
 /// Serialisierbare Darstellung der Steuerung einer [`KurvenWeiche`].

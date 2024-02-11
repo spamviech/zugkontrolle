@@ -24,16 +24,17 @@ use iced_widget::{
     Column, Row,
 };
 
+use zugkontrolle_anschluss::OutputSerialisiert;
+use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_typen::nachschlagen::Nachschlagen;
+
 use crate::{
-    anschluss::OutputSerialisiert,
     application::{
         anschluss,
         map_mit_zustand::MapMitZustand,
         style::{sammlung::Sammlung, tab_bar::TabBar},
     },
-    argumente::I2cSettings,
     steuerung::weiche::{Name, WeicheSerialisiert},
-    util::nachschlagen::Nachschlagen,
 };
 
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).

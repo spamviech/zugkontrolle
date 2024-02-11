@@ -2,6 +2,9 @@
 
 use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
+use zugkontrolle_typen::mm::Spurweite;
+use zugkontrolle_util::eingeschränkt::NichtNegativ;
+
 use crate::{
     gleis::{
         gerade::Gerade,
@@ -13,8 +16,6 @@ use crate::{
         },
     },
     steuerung::geschwindigkeit::Leiter,
-    typen::mm::Spurweite,
-    util::eingeschränkt::NichtNegativ,
 };
 
 pub mod lego;

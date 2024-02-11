@@ -4,8 +4,11 @@ use std::{convert::identity, fmt::Debug, time::Instant};
 
 use iced::Command;
 
+use zugkontrolle_anschluss::OutputSerialisiert;
+use zugkontrolle_id::GleisId;
+use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel};
+
 use crate::{
-    anschluss::OutputSerialisiert,
     application::{
         auswahl::{
             AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht,
@@ -19,7 +22,7 @@ use crate::{
             self,
             id::{
                 mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId,
-                AnyIdSteuerungSerialisiert, GleisId,
+                AnyIdSteuerungSerialisiert,
             },
             nachricht::Nachricht as GleiseNachricht,
             Modus,
@@ -39,7 +42,6 @@ use crate::{
         plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
         streckenabschnitt::Name as StreckenabschnittName,
     },
-    typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel},
 };
 
 /// Ein beliebiges Gleis ohne Anschlüsse.

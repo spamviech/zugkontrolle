@@ -16,20 +16,18 @@ use nonempty::NonEmpty;
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        pin::pwm,
-        polarität::{Fließend, Polarität},
-        OutputAnschluss, OutputSerialisiert,
-    },
-    steuerung::plan::async_ausführen,
-    util::{
-        eingeschränkt::{NichtNegativ, NullBisEins},
-        void::Void,
-    },
+use zugkontrolle_anschluss::{
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    pin::pwm,
+    polarität::{Fließend, Polarität},
+    Lager, OutputAnschluss, OutputSerialisiert,
 };
+use zugkontrolle_util::{
+    eingeschränkt::{NichtNegativ, NullBisEins},
+    void::Void,
+};
+
+use crate::steuerung::plan::async_ausführen;
 
 /// Name einer [`Geschwindigkeit`].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -390,7 +388,7 @@ where
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -592,7 +590,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -1248,7 +1246,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -1343,7 +1341,7 @@ impl Display for Fahrtrichtung {
 #[allow(variant_size_differences)]
 pub enum Fehler {
     /// Fehler bei Interaktion mit einem [`Anschluss`](OutputAnschluss).
-    Anschluss(anschluss::Fehler),
+    Anschluss(zugkontrolle_anschluss::Fehler),
     /// Fehler bei Interaktion mit einem [`Pwm-Pin`](pwm::Pin).
     Pwm(pwm::Fehler),
     /// Zu wenige Anschlüsse für die gewünschte Geschwindigkeit.

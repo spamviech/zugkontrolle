@@ -4,8 +4,11 @@ use std::fmt::Debug;
 
 use iced::{Element, Renderer};
 
+use zugkontrolle_anschluss::{de_serialisieren::Serialisiere, pcf8574::Lager};
+use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_id::GleisId;
+
 use crate::{
-    anschluss::{de_serialisieren::Serialisiere, pcf8574::Lager},
     application::{
         geschwindigkeit::{self, LeiterAnzeige},
         lizenzen,
@@ -14,14 +17,10 @@ use crate::{
         style::{sammlung::Sammlung, thema::Thema},
         weiche,
     },
-    argumente::I2cSettings,
     gleis::{
         self,
         gerade::Gerade,
-        gleise::{
-            id::{AnyIdSteuerungSerialisiert, GleisId},
-            Gleise,
-        },
+        gleise::{id::AnyIdSteuerungSerialisiert, Gleise},
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{

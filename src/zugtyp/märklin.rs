@@ -4,6 +4,12 @@ use std::{marker::PhantomData, time::Duration};
 
 use once_cell::sync::Lazy;
 
+use zugkontrolle_typen::{
+    mm::{Länge, Radius, Spurweite},
+    winkel::WinkelGradmaß,
+};
+use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
+
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
@@ -19,11 +25,6 @@ use crate::{
         },
     },
     steuerung::geschwindigkeit::Mittelleiter,
-    typen::{
-        mm::{Länge, Radius, Spurweite},
-        winkel::WinkelGradmaß,
-    },
-    util::eingeschränkt::{NichtNegativ, NullBisEins},
     zugtyp::Zugtyp,
 };
 

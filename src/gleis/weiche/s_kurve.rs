@@ -4,31 +4,32 @@
 #![allow(clippy::pub_use)]
 
 use serde::{Deserialize, Serialize};
+
 use zugkontrolle_macros::alias_serialisiert_unit;
+use zugkontrolle_typen::{
+    canvas::{
+        pfad::{self, Bogen, Pfad, Transformation},
+        Position,
+    },
+    farbe::Farbe,
+    mm::{Länge, Radius, Spurweite},
+    rechteck::Rechteck,
+    skalar::Skalar,
+    vektor::Vektor,
+    verbindung::Verbindung,
+    winkel::{self, Trigonometrie, Winkel},
+    MitName, Transparenz, Zeichnen,
+};
 
 use crate::{
     gleis::{
         gerade, kurve,
-        verbindung::Verbindung,
         weiche::{
             gerade::{VerbindungName, Verbindungen},
             orientierung::Orientierung,
         },
     },
     steuerung::{self, weiche::MitRichtung},
-    typen::{
-        canvas::{
-            pfad::{self, Bogen, Pfad, Transformation},
-            Position,
-        },
-        farbe::Farbe,
-        mm::{Länge, Radius, Spurweite},
-        rechteck::Rechteck,
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self, Trigonometrie, Winkel},
-        MitName, Transparenz, Zeichnen,
-    },
 };
 
 pub use crate::gleis::weiche::gerade::{

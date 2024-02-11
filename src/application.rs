@@ -17,11 +17,14 @@ use kommandozeilen_argumente::crate_version;
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_anschluss::{
+    de_serialisieren::{Reserviere, Serialisiere},
+    InitFehler, Lager,
+};
+use zugkontrolle_argumente::{Argumente, I2cSettings, ZugtypArgument};
+use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
+
 use crate::{
-    anschluss::{
-        de_serialisieren::{Reserviere, Serialisiere},
-        InitFehler, Lager,
-    },
     application::{
         auswahl::AuswahlZustand,
         bewegen::{Bewegen, Bewegung},
@@ -34,13 +37,11 @@ use crate::{
         nachricht::Nachricht,
         style::thema::Thema,
     },
-    argumente::{Argumente, I2cSettings, ZugtypArgument},
     gleis::gleise::{daten::v2::BekannterZugtyp, Gleise},
     steuerung::{
         geschwindigkeit::{BekannterLeiter, Leiter},
         streckenabschnitt::Name as StreckenabschnittName,
     },
-    typen::{canvas::Position, farbe::Farbe, vektor::Vektor},
     zugtyp::Zugtyp,
 };
 
@@ -261,7 +262,7 @@ where
 
         let gleise = Gleise::neu(
             zugtyp2.clone(),
-            modus,
+            modus.into(),
             Position { punkt: Vektor { x, y }, winkel },
             zoom,
             sender.clone(),

@@ -15,6 +15,8 @@ use iced::{
 use log::{debug, error, info, trace, warn};
 use nonempty::{nonempty, NonEmpty};
 
+use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel};
+
 use crate::{
     application::style::thema::Thema,
     gleis::{
@@ -36,7 +38,6 @@ use crate::{
         plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::Streckenabschnitt,
     },
-    typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel},
 };
 
 /// Position des Cursors auf einem canvas mit `bounds`.

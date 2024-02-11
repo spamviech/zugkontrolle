@@ -21,16 +21,15 @@ use iced_widget::{
 use nonempty::NonEmpty;
 use once_cell::sync::Lazy;
 
-use crate::{
-    application::{
-        lizenzen::texte::OflCopyright,
-        map_mit_zustand::MapMitZustand,
-        style::{
-            self,
-            linie::{Linie, TRENNLINIE},
-        },
+use zugkontrolle_util::unicase_ord::UniCaseOrd;
+
+use crate::application::{
+    lizenzen::texte::OflCopyright,
+    map_mit_zustand::MapMitZustand,
+    style::{
+        self,
+        linie::{Linie, TRENNLINIE},
     },
-    util::unicase_ord::UniCaseOrd,
 };
 
 pub mod texte;

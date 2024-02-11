@@ -21,27 +21,42 @@ use rstar::{
     RTree, RTreeObject, SelectionFunction, AABB,
 };
 
-use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        polarität::Fließend,
-        Lager,
+use zugkontrolle_anschluss::{
+    self,
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    polarität::Fließend,
+    Lager,
+};
+use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
+use zugkontrolle_typen::{
+    canvas::{
+        pfad::{self, Transformation},
+        Frame, Position,
     },
+    farbe::Farbe,
+    mm::Spurweite,
+    rechteck::Rechteck,
+    skalar::Skalar,
+    vektor::Vektor,
+    verbindung::{self, Verbindung},
+    winkel::{self, Trigonometrie, Winkel},
+    Transparenz, Zeichnen,
+};
+
+use crate::{
     application::fonts::standard_text,
     gleis::{
         gerade::Gerade,
         gleise::{
             id::{
-                eindeutig::KeineIdVerfügbar, erzeuge_any_enum, mit_any_id, AnyDefinitionId,
-                AnyDefinitionIdSteuerung, AnyGleisDefinitionId, AnyId, AnyIdSteuerung,
-                AnyIdSteuerungSerialisiert, DefinitionId, GleisId,
+                erzeuge_any_enum, mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung,
+                AnyGleisDefinitionId, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert,
+                DefinitionId,
             },
             steuerung::{MitSteuerung, SomeAktualisierenSender},
         },
         kreuzung::Kreuzung,
         kurve::Kurve,
-        verbindung::{self, Verbindung},
         weiche::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
@@ -51,26 +66,10 @@ use crate::{
         plan::{self, Plan},
         streckenabschnitt::{self, Streckenabschnitt},
     },
-    typen::{
-        canvas::{
-            pfad::{self, Transformation},
-            Frame, Position,
-        },
-        farbe::Farbe,
-        mm::Spurweite,
-        rechteck::Rechteck,
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self, Trigonometrie, Winkel},
-        Transparenz, Zeichnen,
-    },
-    util::nachschlagen::Nachschlagen,
     zugtyp::Zugtyp,
 };
 
 use self::v4::GleisSerialisiert;
-
-use super::id;
 
 pub mod de_serialisieren;
 pub mod v2;
@@ -129,7 +128,7 @@ where
 {
     type MoveArg =
         <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg;
-    type RefArg = HashMap<id::Repräsentation, DefinitionId<T>>;
+    type RefArg = HashMap<zugkontrolle_id::Repräsentation, DefinitionId<T>>;
     type MutRefArg = <<T as MitSteuerung>::Serialisiert as Reserviere<
         <T as MitSteuerung>::Steuerung,
     >>::MutRefArg;
@@ -150,11 +149,13 @@ where
         } = self;
         let Some(id) = bekannte_definition_ids.get(&definition) else {
             return Ergebnis::Fehler {
-                fehler: nonempty![anschluss::Fehler::UnbekannteGespeicherteDefinition {
-                    id: definition,
-                    type_id: TypeId::of::<T>(),
-                    type_name: type_name::<T>()
-                }],
+                fehler: nonempty![
+                    zugkontrolle_anschluss::Fehler::UnbekannteGespeicherteDefinition {
+                        id: definition,
+                        type_id: TypeId::of::<T>(),
+                        type_name: type_name::<T>()
+                    }
+                ],
                 anschlüsse,
             };
         };
@@ -935,10 +936,10 @@ pub enum SteuerungAktualisierenFehler {
     /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [`Anschlüsse`](anschluss::Anschluss).
     Deserialisieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
-        fehler: NonEmpty<anschluss::Fehler>,
+        fehler: NonEmpty<zugkontrolle_anschluss::Fehler>,
         /// Ein Fehler beim Wiederherstellen der ursprünglichen Anschlüsse,
         /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
-        wiederherstellen_fehler: Option<(NonEmpty<anschluss::Fehler>, String)>,
+        wiederherstellen_fehler: Option<(NonEmpty<zugkontrolle_anschluss::Fehler>, String)>,
     },
 }
 

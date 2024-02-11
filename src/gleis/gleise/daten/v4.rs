@@ -4,10 +4,13 @@ use std::{collections::HashMap, fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_typen::{canvas::Position, mm::Spurweite};
+use zugkontrolle_util::eingeschränkt::NichtNegativ;
+
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::{id, steuerung::MitSteuerung},
+        gleise::steuerung::MitSteuerung,
         kreuzung::{Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -22,8 +25,6 @@ use crate::{
         plan::{self, PlanSerialisiert},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
-    typen::{canvas::Position, mm::Spurweite},
-    util::eingeschränkt::NichtNegativ,
 };
 
 /// Streckenabschnitte und ihre Namen.
@@ -60,7 +61,7 @@ pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
 }
 
 /// Eine Map aller Gleise eines Typs, ansprechbar über ihrer Id.
-type GleisMapSerialisiert<T> = HashMap<id::Repräsentation, GleisSerialisiert<T>>;
+type GleisMapSerialisiert<T> = HashMap<zugkontrolle_id::Repräsentation, GleisSerialisiert<T>>;
 
 /// Definition und Position eines Gleises.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
@@ -72,7 +73,7 @@ type GleisMapSerialisiert<T> = HashMap<id::Repräsentation, GleisSerialisiert<T>
 ))]
 pub struct GleisSerialisiert<T: MitSteuerung> {
     /// Die [`Zeichnen`]-Definition des Gleises.
-    pub definition: id::Repräsentation,
+    pub definition: zugkontrolle_id::Repräsentation,
     /// Die [`Anschlüsse`](anschluss::Anschluss) des Gleises.
     pub steuerung: <T as MitSteuerung>::Serialisiert,
     /// Die Position des Gleises auf dem [`Canvas`](iced::widget::canvas::Canvas).
@@ -101,7 +102,7 @@ pub(crate) struct GleiseDatenSerialisiert {
 }
 
 impl GleiseDatenSerialisiert {
-    /// Verschmelze zwei [`GleiseDatenSerialisert`], so dass `self` alle Gleise enthält.
+    /// Verschmelze zwei [`GleiseDatenSerialisiert`], so dass `self` alle Gleise enthält.
     pub(crate) fn verschmelze(&mut self, andere: GleiseDatenSerialisiert) {
         /// Rufe [`Extend::extend`] auf den [`GleisMapSerialisiert`] auf.
         macro_rules! extend {

@@ -14,18 +14,16 @@ use nonempty::NonEmpty;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        level::Level,
-        trigger::Trigger,
-        Fehler, InputAnschluss, InputSerialisiert,
-    },
-    gleis::gleise::steuerung::{Aktualisieren, SomeAktualisierenSender, Steuerung},
-    typen::MitName,
-    util::sender_trait::erstelle_sender_trait_existential,
+use zugkontrolle_anschluss::{
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    level::Level,
+    trigger::Trigger,
+    Fehler, InputAnschluss, InputSerialisiert, Lager,
 };
+use zugkontrolle_typen::MitName;
+use zugkontrolle_util::erstelle_sender_trait_existential;
+
+use crate::gleis::gleise::steuerung::{Aktualisieren, SomeAktualisierenSender, Steuerung};
 
 /// Name eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -199,9 +197,9 @@ impl Kontakt {
     }
 }
 
-impl MitName for Option<Kontakt> {
+impl MitName for Kontakt {
     fn name(&self) -> Option<&str> {
-        self.as_ref().map(|kontakt| kontakt.name.0.as_str())
+        Some(self.name.0.as_str())
     }
 }
 
@@ -252,7 +250,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         aktualisieren_sender: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -296,9 +294,9 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
     }
 }
 
-impl MitName for Option<KontaktSerialisiert> {
+impl MitName for KontaktSerialisiert {
     fn name(&self) -> Option<&str> {
-        self.as_ref().map(|kontakt| kontakt.name.0.as_str())
+        Some(self.name.0.as_str())
     }
 }
 

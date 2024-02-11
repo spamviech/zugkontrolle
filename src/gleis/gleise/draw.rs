@@ -9,8 +9,13 @@ use iced::{
 };
 use nonempty::NonEmpty;
 
+use zugkontrolle_anschluss::polarität::Fließend;
+use zugkontrolle_typen::{
+    canvas::{pfad::Transformation, Frame, Position},
+    Transparenz,
+};
+
 use crate::{
-    anschluss::polarität::Fließend,
     application::style::thema::Thema,
     gleis::gleise::{
         self,
@@ -19,10 +24,6 @@ use crate::{
         Gleise, ModusDaten,
     },
     steuerung::geschwindigkeit::Leiter,
-    typen::{
-        canvas::{pfad::Transformation, Frame, Position},
-        Transparenz,
-    },
 };
 
 /// Führe die notwendigen [`Transformationen`](Transformation) aus,

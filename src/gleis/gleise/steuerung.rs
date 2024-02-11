@@ -3,13 +3,14 @@
 
 use log::error;
 
+use zugkontrolle_util::erstelle_sender_trait_existential;
+
 use crate::{
     gleis,
     steuerung::{
         self,
         kontakt::{Kontakt, KontaktSerialisiert},
     },
-    util::sender_trait::erstelle_sender_trait_existential,
 };
 
 /// Es gab eine Änderung, die Anzeige muss aktualisiert werden.

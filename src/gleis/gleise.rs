@@ -15,8 +15,16 @@ use iced::{
 };
 use nonempty::NonEmpty;
 
+use zugkontrolle_argumente::ModusArgument;
+use zugkontrolle_typen::{
+    canvas::{Cache, Position},
+    mm::Spurweite,
+    skalar::Skalar,
+    vektor::Vektor,
+    winkel::Winkel,
+};
+
 use crate::{
-    anschluss,
     application::style::thema::Thema,
     gleis::{
         gleise::{
@@ -31,13 +39,6 @@ use crate::{
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
         streckenabschnitt::{self, Streckenabschnitt},
-    },
-    typen::{
-        canvas::{Cache, Position},
-        mm::Spurweite,
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::Winkel,
     },
     zugtyp::Zugtyp,
 };
@@ -81,6 +82,15 @@ impl Modus {
     /// Erstelle einen neuen [`Radio`]-Button für den [`Modus`].
     pub(crate) fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus, Renderer<Thema>> {
         Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
+    }
+}
+
+impl From<ModusArgument> for Modus {
+    fn from(value: ModusArgument) -> Self {
+        match value {
+            ModusArgument::Bauen => Modus::Bauen,
+            ModusArgument::Fahren => Modus::Fahren,
+        }
     }
 }
 
@@ -447,7 +457,7 @@ pub enum Fehler {
     /// Fehler beim Serialisieren (speichern) der Gleise.
     BincodeSerialisieren(bincode::Error),
     /// Ein Fehler bei Interaktion mit einem [`Anschluss`](anschluss::Anschluss).
-    Anschluss(anschluss::Fehler),
+    Anschluss(zugkontrolle_anschluss::Fehler),
 }
 
 impl From<ZugtypDeserialisierenFehler> for Fehler {
@@ -462,8 +472,8 @@ impl From<io::Error> for Fehler {
     }
 }
 
-impl From<anschluss::Fehler> for Fehler {
-    fn from(error: anschluss::Fehler) -> Self {
+impl From<zugkontrolle_anschluss::Fehler> for Fehler {
+    fn from(error: zugkontrolle_anschluss::Fehler) -> Self {
         Fehler::Anschluss(error)
     }
 }

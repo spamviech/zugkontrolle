@@ -8,19 +8,17 @@ use iced::{
 };
 use itertools::{Itertools, MinMaxResult};
 
-use crate::{
-    application::style::thema::Thema,
-    gleis::knopf::KlickQuelle,
-    typen::{
-        canvas::{
-            pfad::{self, Bogen},
-            Cache,
-        },
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self},
+use zugkontrolle_typen::{
+    canvas::{
+        pfad::{self, Bogen},
+        Cache,
     },
+    skalar::Skalar,
+    vektor::Vektor,
+    winkel::{self},
 };
+
+use crate::{application::style::thema::Thema, gleis::knopf::KlickQuelle};
 
 /// Mögliche Bewegungen.
 #[derive(Debug, Clone, Copy)]

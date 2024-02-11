@@ -33,8 +33,8 @@ pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum)
 
     let mut struct_definition = None;
     let mut impl_lookup = None;
-    if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
-        let base_ident: syn::Ident = match zugkontrolle {
+    if let Ok(zugkontrolle_typen) = crate_name("zugkontrolle-typen") {
+        let base_ident: syn::Ident = match zugkontrolle_typen {
             FoundCrate::Itself => format_ident!("{}", "crate"),
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
@@ -59,7 +59,7 @@ pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum)
             }
         });
         impl_lookup = Some(quote! {
-            impl #base_ident::util::nachschlagen::Nachschlagen<#ident, #element> for #struct_name {
+            impl #base_ident::nachschlagen::Nachschlagen<#ident, #element> for #struct_name {
                 fn erhalte(&self, key: &#ident) -> &#element {
                     match key {
                         #(#ident::#enum_variants => &self.#struct_fields),*

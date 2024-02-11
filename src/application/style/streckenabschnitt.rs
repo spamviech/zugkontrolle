@@ -1,9 +1,8 @@
 //! Style-Strukturen zur Anzeige und Auswahl eines Streckenabschnittes.
 
-use crate::{
-    application::style::{button::Button, container::Container},
-    typen::farbe::Farbe,
-};
+use zugkontrolle_typen::farbe::Farbe;
+
+use crate::application::style::{button::Button, container::Container};
 
 /// Farbe des aktuellen Streckenabschnittes.
 #[must_use]

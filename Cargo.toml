@@ -212,11 +212,8 @@ zugkontrolle-id.workspace = true
 associated_list.workspace = true
 async-io.workspace = true
 bincode.workspace = true
-difference.workspace = true
 dyn-clonable.workspace = true
 either.workspace = true
-embed-resource.workspace = true
-enum-iterator.workspace = true
 flexi_logger.workspace = true
 iced.workspace = true
 iced_core.workspace = true
@@ -227,13 +224,11 @@ itertools.workspace = true
 kommandozeilen_argumente.workspace = true
 log.workspace = true
 nonempty.workspace = true
-num-traits.workspace = true
 once_cell.workspace = true
 parking_lot.workspace = true
 rstar.workspace = true
 serde.workspace = true
 take_mut.workspace = true
-unicase.workspace = true
 
 # can't be used on non-raspi systems
 [dependencies.rppal]

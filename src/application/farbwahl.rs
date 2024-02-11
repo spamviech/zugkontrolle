@@ -12,7 +12,7 @@ use iced_core::{
     Background, BorderRadius, Clipboard, Color, Element, Length, Rectangle, Shell, Size, Widget,
 };
 
-use crate::typen::{
+use zugkontrolle_typen::{
     farbe::Farbe,
     skalar::Skalar,
     vektor::Vektor,

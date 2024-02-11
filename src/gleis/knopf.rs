@@ -16,20 +16,22 @@ use iced::{
 };
 use log::debug;
 
+use zugkontrolle_id::GleisId;
+use zugkontrolle_typen::{
+    canvas::{
+        pfad::{Pfad, Transformation},
+        Cache,
+    },
+    mm::Spurweite,
+    rechteck::Rechteck,
+    skalar::Skalar,
+    vektor::Vektor,
+    Zeichnen,
+};
+
 use crate::{
     application::{fonts::standard_text, style::thema::Thema},
-    gleis::gleise::{draw::bewege_an_position, id::GleisId},
-    typen::{
-        canvas::{
-            pfad::{Pfad, Transformation},
-            Cache,
-        },
-        mm::Spurweite,
-        rechteck::Rechteck,
-        skalar::Skalar,
-        vektor::Vektor,
-        Zeichnen,
-    },
+    gleis::gleise::draw::bewege_an_position,
 };
 
 /// Die Breite von Kontur-Linien des Gleises.

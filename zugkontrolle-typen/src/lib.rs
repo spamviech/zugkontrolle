@@ -155,3 +155,9 @@ impl MitName for () {
         None
     }
 }
+
+impl<T: MitName> MitName for Option<T> {
+    fn name(&self) -> Option<&str> {
+        self.as_ref().and_then(MitName::name)
+    }
+}

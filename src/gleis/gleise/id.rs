@@ -3,20 +3,18 @@
 // Erlaubt id::Repräsentation
 #![allow(clippy::pub_use)]
 
-use std::{
-    cmp::Ordering,
-    hash::{Hash, Hasher},
-    sync::Arc,
-};
+use std::hash::Hash;
 
-use crate::{
-    anschluss::de_serialisieren::Serialisiere,
-    gleis::gleise::{
-        id::eindeutig::{Id, KeineIdVerfügbar},
-        steuerung::MitSteuerung,
-    },
-    typen::Zeichnen,
-};
+use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
+use zugkontrolle_id::GleisId;
+use zugkontrolle_typen::Zeichnen;
+
+use crate::gleis::gleise::steuerung::MitSteuerung;
+
+// soll direkt importiert werden
+#[allow(clippy::module_name_repetitions)]
+/// Id für die Definition eines Gleises.
+pub type DefinitionId<T> = GleisId<<T as MitSteuerung>::SelfUnit>;
 
 /// Helper-Macro für [`erzeuge_any_enum`]: ersetzte `[]` durch `$ty`.
 macro_rules! ersetzte_eckige_klammern {

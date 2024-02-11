@@ -2,8 +2,10 @@
 
 use log::{error, info};
 
+use zugkontrolle_anschluss::Lager;
+use zugkontrolle_typen::{canvas::Position, vektor::Vektor};
+
 use crate::{
-    anschluss::Lager,
     gleis::{
         gleise::{
             self,
@@ -18,7 +20,6 @@ use crate::{
         knopf::KlickQuelle,
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt},
-    typen::{canvas::Position, vektor::Vektor},
 };
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {

@@ -4,15 +4,14 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    gleis::{
-        gleise::daten::v3::weiche::{
-            gerade::{Richtung, RichtungAnschlüsseSerialisiert},
-            steuerung,
-        },
-        kreuzung as v4,
+use zugkontrolle_typen::skalar::Skalar;
+
+use crate::gleis::{
+    gleise::daten::v3::weiche::{
+        gerade::{Richtung, RichtungAnschlüsseSerialisiert},
+        steuerung,
     },
-    typen::skalar::Skalar,
+    kreuzung as v4,
 };
 
 /// Serialisierbare Darstellung der Steuerung einer [`Kreuzung`].

@@ -12,19 +12,17 @@ use iced::{
     Point, Rectangle, Renderer,
 };
 
-use crate::{
-    application::style::thema::Thema,
-    gleis::knopf::KlickQuelle,
-    typen::{
-        canvas::{
-            pfad::{self, Bogen},
-            Cache,
-        },
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self, Trigonometrie, Winkel},
+use zugkontrolle_typen::{
+    canvas::{
+        pfad::{self, Bogen},
+        Cache,
     },
+    skalar::Skalar,
+    vektor::Vektor,
+    winkel::{self, Trigonometrie, Winkel},
 };
+
+use crate::{application::style::thema::Thema, gleis::knopf::KlickQuelle};
 
 /// Ein Widget zum Einstellen des Anzeigewinkels, dargestellt über einen
 /// [`Canvas`](iced::widget::canvas::Canvas).

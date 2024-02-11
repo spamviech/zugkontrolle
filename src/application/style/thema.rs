@@ -8,7 +8,7 @@ use iced::{
 use iced_aw::{card, number_input};
 use iced_widget::vertical_slider;
 
-use crate::typen::farbe::Farbe;
+use zugkontrolle_typen::farbe::Farbe;
 
 /// Unterstützte Graphik-Themen, sehr nah am built-in [`iced::Theme`].
 #[derive(Debug, Clone, Copy, Default)]

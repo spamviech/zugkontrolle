@@ -6,25 +6,26 @@
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_macros::alias_serialisiert_unit;
+
+use zugkontrolle_macros::{alias_serialisiert_unit, impl_nachschlagen};
+use zugkontrolle_typen::{
+    canvas::{
+        pfad::{self, Pfad, Transformation},
+        Position,
+    },
+    farbe::Farbe,
+    mm::{Länge, Radius, Spurweite},
+    rechteck::Rechteck,
+    skalar::Skalar,
+    vektor::Vektor,
+    verbindung::Verbindung,
+    winkel::{self, Trigonometrie, Winkel},
+    MitName, Transparenz, Zeichnen,
+};
 
 use crate::{
-    gleis::{gerade, kurve, verbindung::Verbindung},
+    gleis::{gerade, kurve},
     steuerung::{self, weiche::MitRichtung},
-    typen::{
-        canvas::{
-            pfad::{self, Pfad, Transformation},
-            Position,
-        },
-        farbe::Farbe,
-        mm::{Länge, Radius, Spurweite},
-        rechteck::Rechteck,
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self, Trigonometrie, Winkel},
-        MitName, Transparenz, Zeichnen,
-    },
-    util::nachschlagen::impl_nachschlagen,
 };
 
 pub use crate::gleis::weiche::gerade::{

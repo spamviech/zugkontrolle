@@ -14,21 +14,20 @@ use iced_widget::{
 };
 use log::error;
 
-use crate::{
-    anschluss::{
-        level::Level,
-        pcf8574::{self, Beschreibung, I2cBus, Lager, Variante},
-        pin::pwm,
-        polarität::Polarität,
-        InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
-    },
-    application::{
-        bootstrap::{Bootstrap, Icon},
-        map_mit_zustand::MapMitZustand,
-        style::{sammlung::Sammlung, tab_bar::TabBar},
-    },
-    argumente::I2cSettings,
-    util::eingeschränkt::{kleiner_8, InvaliderWert},
+use zugkontrolle_anschluss::{
+    level::Level,
+    pcf8574::{self, Beschreibung, I2cBus, Lager, Variante},
+    pin::pwm,
+    polarität::Polarität,
+    InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
+};
+use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_util::eingeschränkt::{kleiner_8, InvaliderWert};
+
+use crate::application::{
+    bootstrap::{Bootstrap, Icon},
+    map_mit_zustand::MapMitZustand,
+    style::{sammlung::Sammlung, tab_bar::TabBar},
 };
 
 /// Welche Tab-Seite wird angezeigt.

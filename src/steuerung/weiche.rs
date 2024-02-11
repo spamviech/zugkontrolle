@@ -13,26 +13,25 @@ use log::debug;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_anschluss::{
+    de_serialisieren::{self, Anschlüsse, Reserviere, Serialisiere},
+    polarität::Fließend,
+    Fehler, Lager, OutputAnschluss,
+};
+use zugkontrolle_typen::{nachschlagen::Nachschlagen, MitName};
+
 use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{self, Anschlüsse, Reserviere, Serialisiere},
-        polarität::Fließend,
-        Fehler, OutputAnschluss,
-    },
     gleis::gleise::steuerung::{SomeAktualisierenSender, Steuerung},
     steuerung::plan::async_ausführen,
-    typen::MitName,
-    util::nachschlagen::Nachschlagen,
 };
 
 /// Name einer [`Weiche`].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Name(pub String);
 
-impl<R, A> MitName for Option<Weiche<R, A>> {
+impl<R, A> MitName for Weiche<R, A> {
     fn name(&self) -> Option<&str> {
-        self.as_ref().map(|weiche| weiche.name.0.as_str())
+        Some(self.name.0.as_str())
     }
 }
 
@@ -296,7 +295,7 @@ where
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         bekannte_anschlüsse: Anschlüsse,
         sender: SomeAktualisierenSender,
         ref_arg: &Self::RefArg,

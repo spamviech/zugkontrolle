@@ -25,8 +25,14 @@ use iced_widget::{
     Column, Row,
 };
 
+use zugkontrolle_anschluss::{
+    de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert,
+};
+use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_typen::farbe::Farbe;
+use zugkontrolle_util::unicase_ord::UniCaseOrd;
+
 use crate::{
-    anschluss::{de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert},
     application::{
         anschluss,
         bootstrap::{Bootstrap, Icon},
@@ -34,14 +40,11 @@ use crate::{
         map_mit_zustand::MapMitZustand,
         modal, style,
     },
-    argumente::I2cSettings,
     gleis::gleise::Gleise,
     steuerung::{
         geschwindigkeit::{self, Leiter},
         streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},
     },
-    typen::farbe::Farbe,
-    util::unicase_ord::UniCaseOrd,
 };
 
 /// Eine Nachricht des [`Anzeige`]-Widgets.

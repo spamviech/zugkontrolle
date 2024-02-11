@@ -13,12 +13,14 @@ use iced::{Command, Renderer};
 use log::error;
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_anschluss::{
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    polarität::Fließend,
+    OutputSerialisiert,
+};
+use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor};
+
 use crate::{
-    anschluss::{
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        polarität::Fließend,
-        OutputSerialisiert,
-    },
     application::{
         auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
         style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
@@ -36,7 +38,6 @@ use crate::{
         plan::{Ausführen, Einstellungen},
         streckenabschnitt::{self, Streckenabschnitt},
     },
-    typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor},
 };
 
 impl<L, S> Nachricht<L, S>

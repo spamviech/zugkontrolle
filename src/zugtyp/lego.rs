@@ -4,6 +4,12 @@ use std::{f32::consts::PI, marker::PhantomData, time::Duration};
 
 use once_cell::sync::Lazy;
 
+use zugkontrolle_typen::{
+    mm::{Länge, Radius, Spurweite},
+    winkel::Winkel,
+};
+use zugkontrolle_util::eingeschränkt::NichtNegativ;
+
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
@@ -19,11 +25,6 @@ use crate::{
         },
     },
     steuerung::geschwindigkeit::Zweileiter,
-    typen::{
-        mm::{Länge, Radius, Spurweite},
-        winkel::Winkel,
-    },
-    util::eingeschränkt::NichtNegativ,
     zugtyp::Zugtyp,
 };
 

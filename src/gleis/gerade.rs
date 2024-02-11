@@ -3,27 +3,26 @@
 use std::{fmt::Debug, hash::Hash};
 
 use serde::{Deserialize, Serialize};
-use zugkontrolle_macros::alias_serialisiert_unit;
 
-use crate::{
-    anschluss::{level::Level, trigger::Trigger},
-    gleis::verbindung::Verbindung,
-    steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt},
-    typen::{
-        canvas::{
-            pfad::{self, Bogen, Pfad, Transformation},
-            Position,
-        },
-        farbe::{self, Farbe},
-        mm::{Länge, Spurweite},
-        rechteck::Rechteck,
-        skalar::Skalar,
-        vektor::Vektor,
-        winkel::{self, Winkel},
-        MitName, Transparenz, Zeichnen,
+use zugkontrolle_anschluss::{level::Level, trigger::Trigger};
+use zugkontrolle_macros::alias_serialisiert_unit;
+use zugkontrolle_typen::{
+    canvas::{
+        pfad::{self, Bogen, Pfad, Transformation},
+        Position,
     },
-    util::nachschlagen::impl_nachschlagen,
+    farbe::{self, Farbe},
+    mm::{Länge, Spurweite},
+    nachschlagen::impl_nachschlagen,
+    rechteck::Rechteck,
+    skalar::Skalar,
+    vektor::Vektor,
+    verbindung::Verbindung,
+    winkel::{self, Winkel},
+    MitName, Transparenz, Zeichnen,
 };
+
+use crate::steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt};
 
 /// Definition einer Gerade.
 #[alias_serialisiert_unit(KontaktSerialisiert)]

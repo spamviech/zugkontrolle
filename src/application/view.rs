@@ -13,8 +13,10 @@ use iced::{
 use itertools::Itertools;
 use log::debug;
 
+use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
+use zugkontrolle_typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen};
+
 use crate::{
-    anschluss::de_serialisieren::Serialisiere,
     application::{
         auswahl::AuswahlZustand,
         bewegen::Bewegen,
@@ -42,7 +44,6 @@ use crate::{
         },
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
-    typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen},
     zugtyp::DefinitionMap,
 };
 
