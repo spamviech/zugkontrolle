@@ -9,12 +9,13 @@ use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
+// FIXME
+// use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, AnyDefinitionId};
 use zugkontrolle_util::eingeschränkt::kleiner_8;
 
-use zugkontrolle_gleis::gleise::{
-    daten::de_serialisieren::ZugtypDeserialisierenFehler,
-    id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId},
-};
+// FIXME
+// use zugkontrolle_gleis::gleise::daten::de_serialisieren::ZugtypDeserialisierenFehler;
 
 use crate::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
@@ -675,22 +676,24 @@ pub enum Fehler {
     Pcf8574(pcf8574::Fehler),
     /// Ein Fehler beim Reservieren eines [`Anschluss`]es.
     Reservieren(ReservierenFehler),
-    /// Fehler beim Deserialisieren des Zugtyps.
-    ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
+    // FIXME
+    // /// Fehler beim Deserialisieren des Zugtyps.
+    // ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
     /// Ein Gleis wurde mit unbekannter [`DefinitionId`] gespeichert.
     UnbekannteGespeicherteDefinition {
         /// Die gespeicherte Id.
-        id: id::Repräsentation,
+        id: zugkontrolle_id::Repräsentation,
         /// Die Typ-Id, zu der die Id gehört.
         type_id: TypeId,
         /// Der Typ, zu der die Id gehört.
         type_name: &'static str,
     },
-    /// Ein Gleis mit unbekannter [`DefinitionId`].
-    UnbekannteDefinition {
-        /// Die Id ohne zugehörigen Eintrag im [`Zugtyp`].
-        id: AnyDefinitionId,
-    },
+    // FIXME
+    // /// Ein Gleis mit unbekannter [`DefinitionId`].
+    // UnbekannteDefinition {
+    //     /// Die Id ohne zugehörigen Eintrag im [`Zugtyp`].
+    //     id: AnyDefinitionId,
+    // },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.

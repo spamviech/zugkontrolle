@@ -18,20 +18,19 @@ use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_util::{
+    eingeschränkt::{kleiner_128, kleiner_8},
+    enumerate_checked::EnumerateCheckedExt,
+};
+
 use crate::{
-    anschluss::{
-        pin::{self, input, Pin},
-        {level::Level, trigger::Trigger},
-    },
-    argumente::I2cSettings,
+    pin::{self, input, Pin},
     rppal::{
         gpio,
         i2c::{self, I2c},
     },
-    util::{
-        eingeschränkt::{kleiner_128, kleiner_8},
-        enumerate_checked::EnumerateCheckedExt,
-    },
+    {level::Level, trigger::Trigger},
 };
 
 /// Zugriff auf I2C-Kommunikation, inklusive der dafür notwendigen Pins.
@@ -89,16 +88,16 @@ impl I2cMitPins {
     }
 }
 
-impl I2cSettings {
+impl I2cBus {
     /// Ist der [`I2cBus`] aktiviert?
-    pub(crate) fn aktiviert(self, i2c_bus: I2cBus) -> bool {
-        match i2c_bus {
-            I2cBus::I2c0_1 => self.i2c0_1,
+    pub(crate) fn aktiviert(self, i2c_settings: I2cSettings) -> bool {
+        match self {
+            I2cBus::I2c0_1 => i2c_settings.i2c0_1,
             // I2cBus::I2c2 => self.i2c2,
-            I2cBus::I2c3 => self.i2c3,
-            I2cBus::I2c4 => self.i2c4,
-            I2cBus::I2c5 => self.i2c5,
-            I2cBus::I2c6 => self.i2c6,
+            I2cBus::I2c3 => i2c_settings.i2c3,
+            I2cBus::I2c4 => i2c_settings.i2c4,
+            I2cBus::I2c5 => i2c_settings.i2c5,
+            I2cBus::I2c6 => i2c_settings.i2c6,
         }
     }
 }
@@ -141,13 +140,13 @@ impl Lager {
     ///
     /// ## Errors
     ///
-    /// TODO
+    /// Es konnten nicht Zugriff auf alle aktivierten I2C-Busse erhalten werden.
     pub fn neu(lager: &mut pin::Lager, settings: I2cSettings) -> Result<Lager, InitFehler> {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
             let mut map = arc.write();
             for i2c_bus in alle_i2c_bus() {
-                if !settings.aktiviert(i2c_bus) {
+                if !i2c_bus.aktiviert(settings) {
                     continue;
                 }
                 let i2c = Arc::new(Mutex::new(I2cMitPins::neu(lager, i2c_bus)?));

@@ -1,6 +1,6 @@
 //! Gpio [`Pins`](Pin) konfiguriert für Output.
 
-use crate::{anschluss::level::Level, rppal::gpio};
+use crate::{level::Level, rppal::gpio};
 
 /// Ein Gpio Pin konfiguriert für Output.
 #[derive(Debug, PartialEq)]

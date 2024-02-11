@@ -1,13 +1,12 @@
 //! Unit tests für das anschluss-Modul.
 
+use zugkontrolle_test_util::init_test_logging;
+use zugkontrolle_util::eingeschränkt::kleiner_8;
+
 use crate::{
-    anschluss::{
-        level::Level,
-        pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
-        pin,
-    },
-    init_test_logging,
-    util::eingeschränkt::kleiner_8,
+    level::Level,
+    pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
+    pin,
 };
 
 #[test]

@@ -1,9 +1,6 @@
 //! Gpio [`Pins`](Pin) konfiguriert für Input.
 
-use crate::{
-    anschluss::{level::Level, trigger::Trigger},
-    rppal::gpio,
-};
+use crate::{level::Level, rppal::gpio, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
 #[derive(Debug, PartialEq)]

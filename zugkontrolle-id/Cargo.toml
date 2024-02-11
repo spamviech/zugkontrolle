@@ -1,5 +1,5 @@
 [package]
-name = "zugkontrolle-anschluss"
+name = "zugkontrolle-id"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
@@ -11,8 +11,6 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
 default = []
-# Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
-raspi = ["rppal"]
 
 [lints]
 workspace = true
@@ -20,22 +18,8 @@ workspace = true
 # dependencies
 [dependencies]
 zugkontrolle-macros.workspace = true
-zugkontrolle-util.workspace = true
-zugkontrolle-argumente.workspace = true
-zugkontrolle-id.workspace = true
-either.workspace = true
-itertools.workspace = true
 log.workspace = true
-nonempty.workspace = true
-num-traits.workspace = true
 parking_lot.workspace = true
-take_mut.workspace = true
-serde.workspace = true
-
-# can't be used on non-raspi systems
-[dependencies.rppal]
-workspace = true
-optional = true
 
 [dev-dependencies]
 zugkontrolle-test-util.workspace = true

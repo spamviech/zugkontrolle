@@ -5,7 +5,7 @@ use std::ops::Not;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{anschluss::level::Level, rppal};
+use crate::{level::Level, rppal};
 
 /// Bei welchem [`Level`] fließt der Strom an einem Anschluss.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

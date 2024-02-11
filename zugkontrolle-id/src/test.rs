@@ -2,10 +2,9 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use crate::{
-    gleis::gleise::id::GleisId,
-    test_util::{expect_eq, expect_gt, expect_ne, init_test_logging, Expectation},
-};
+use zugkontrolle_test_util::{expect_eq, expect_gt, expect_ne, init_test_logging, Expectation};
+
+use crate::GleisId;
 
 #[test]
 fn eindeutig() -> Result<(), Expectation> {

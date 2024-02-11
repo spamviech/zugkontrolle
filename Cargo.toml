@@ -208,6 +208,7 @@ zugkontrolle-util.workspace = true
 zugkontrolle-anschluss.workspace = true
 zugkontrolle-argumente.workspace = true
 zugkontrolle-typen.workspace = true
+zugkontrolle-id.workspace = true
 associated_list.workspace = true
 async-io.workspace = true
 bincode.workspace = true
@@ -247,6 +248,7 @@ optional = true
 embed-resource.workspace = true
 
 [dev-dependencies]
+zugkontrolle-test-util.workspace = true
 difference.workspace = true
 enum-iterator.workspace = true
 
@@ -269,6 +271,14 @@ version = "0.1.0"
 
 [workspace.dependencies.zugkontrolle-typen]
 path = "zugkontrolle-typen"
+version = "0.1.0"
+
+[workspace.dependencies.zugkontrolle-id]
+path = "zugkontrolle-id"
+version = "0.1.0"
+
+[workspace.dependencies.zugkontrolle-test-util]
+path = "zugkontrolle-test-util"
 version = "0.1.0"
 
 [workspace.dependencies]

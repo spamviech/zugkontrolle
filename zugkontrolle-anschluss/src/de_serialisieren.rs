@@ -4,7 +4,7 @@ use either::Either;
 use log::error;
 use nonempty::NonEmpty;
 
-use crate::anschluss::{self, pwm, InputAnschluss, OutputAnschluss};
+use crate::{pwm, Fehler, InputAnschluss, Lager, OutputAnschluss};
 
 /// Alle [`Anschlüsse`](anschluss::Anschluss).
 #[derive(Debug, Default)]
@@ -82,14 +82,14 @@ pub enum Ergebnis<R> {
         /// Der Ersatzwert
         anschluss: R,
         /// Beim reservieren aufgetretene Fehler.
-        fehler: NonEmpty<anschluss::Fehler>,
+        fehler: NonEmpty<Fehler>,
         /// Nicht verwendete anschlüsse.
         anschlüsse: Anschlüsse,
     },
     /// Es sind Probleme aufgetreten. Es ist nicht möglich einen Ersatzwert zu erzeugen.
     Fehler {
         /// Beim reservieren aufgetretene Fehler.
-        fehler: NonEmpty<anschluss::Fehler>,
+        fehler: NonEmpty<Fehler>,
         /// Nicht verwendete anschlüsse.
         anschlüsse: Anschlüsse,
     },
@@ -145,7 +145,7 @@ pub trait Reserviere<R> {
     /// um den gewünschten Typ zu erzeugen.
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -158,7 +158,7 @@ impl<T> Ergebnis<T> {
     /// [`reserviere`](Reserviere::reserviere)-Aufrufs.
     pub fn reserviere_ebenfalls<S: Reserviere<R>, R>(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         serialisiert: S,
         move_arg: <S as Reserviere<R>>::MoveArg,
         ref_arg: &<S as Reserviere<R>>::RefArg,
@@ -186,7 +186,7 @@ impl<T> Ergebnis<T> {
     /// mit `fehlerbehandlung` versucht ein Ersatzergebnis zu erzeugen.
     pub fn reserviere_ebenfalls_mit<S: Reserviere<R>, R, U>(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         serialisiert: S,
         move_arg: <S as Reserviere<R>>::MoveArg,
         ref_arg: &<S as Reserviere<R>>::RefArg,
@@ -272,7 +272,7 @@ where
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -327,7 +327,7 @@ where
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -390,7 +390,7 @@ where
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         anschlüsse: Anschlüsse,
         move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
@@ -473,7 +473,7 @@ macro_rules! impl_serialisiere_tuple {
             type MutRefArg = tuple_arg_type!(MutRefArg: A0 - S0, $($type - $serialisiert),+);
             fn reserviere(
                 self,
-                lager: &mut anschluss::Lager,
+                lager: &mut Lager,
                 anschlüsse: Anschlüsse,
                 move_arg: Self::MoveArg,
                 ref_arg: &Self::RefArg,

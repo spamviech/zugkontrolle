@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{anschluss::level::Level, rppal};
+use crate::{level::Level, rppal};
 
 /// [`Trigger`] für auslösen eines Interrupt-Events.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

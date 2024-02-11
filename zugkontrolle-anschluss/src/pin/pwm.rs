@@ -3,21 +3,20 @@
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
+
 use crate::{
-    anschluss::{
-        self,
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        pin::Pin as EinPin,
-        polarität::Polarität,
-    },
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    pin::Pin as EinPin,
+    polarität::Polarität,
     rppal::{gpio, pwm},
-    util::eingeschränkt::{NichtNegativ, NullBisEins},
+    Lager,
 };
 
 /// Hard- oder Software-erzeugtes Pwm-Signal. Erlaubt exklusive Steuerung der zugehörigen Pins.
 #[allow(variant_size_differences)]
 #[derive(Debug)]
-pub(in crate::anschluss::pin) enum Pwm {
+pub(in crate::pin) enum Pwm {
     /// Hardware-Pwm.
     Hardware(pwm::Pwm, gpio::Pin),
     /// Software-Pwm.
@@ -58,9 +57,9 @@ pub struct Zeit {
 #[derive(Debug, PartialEq)]
 pub struct Pin {
     /// Der Pin.
-    pub(in crate::anschluss::pin) pin: Pwm,
+    pub(in crate::pin) pin: Pwm,
     /// Das aktuell anliegende Pwm-Signal
-    pub(in crate::anschluss::pin) konfiguration: Option<Konfiguration>,
+    pub(in crate::pin) konfiguration: Option<Konfiguration>,
 }
 
 impl Pin {
@@ -214,7 +213,7 @@ impl Reserviere<Pin> for Serialisiert {
 
     fn reserviere(
         self,
-        lager: &mut anschluss::Lager,
+        lager: &mut Lager,
         Anschlüsse { pwm_pins, output_anschlüsse, input_anschlüsse }: Anschlüsse,
         _move_arg: Self::MoveArg,
         _ref_arg: &Self::RefArg,

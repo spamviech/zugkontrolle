@@ -153,7 +153,7 @@ mod test {
 
     use std::collections::HashSet;
 
-    use crate::test_util::{expect_eq, expect_true, init_test_logging, Expectation};
+    use zugkontrolle_test_util::{expect_eq, expect_true, init_test_logging, Expectation};
 
     #[test]
     fn eindeutig() -> Result<(), Expectation> {

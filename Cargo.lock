@@ -3861,7 +3861,9 @@ dependencies = [
  "unicase",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
+ "zugkontrolle-id",
  "zugkontrolle-macros",
+ "zugkontrolle-test-util",
  "zugkontrolle-typen",
  "zugkontrolle-util",
 ]
@@ -3870,11 +3872,19 @@ dependencies = [
 name = "zugkontrolle-anschluss"
 version = "0.1.0"
 dependencies = [
+ "either",
+ "itertools 0.12.1",
+ "log",
  "nonempty 0.9.0",
+ "num-traits",
+ "parking_lot 0.12.1",
  "rppal",
  "serde",
+ "take_mut",
  "zugkontrolle-argumente",
+ "zugkontrolle-id",
  "zugkontrolle-macros",
+ "zugkontrolle-test-util",
  "zugkontrolle-util",
 ]
 
@@ -3887,6 +3897,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "zugkontrolle-id"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "parking_lot 0.12.1",
+ "zugkontrolle-macros",
+ "zugkontrolle-test-util",
+]
+
+[[package]]
 name = "zugkontrolle-macros"
 version = "5.0.0"
 dependencies = [
@@ -3896,6 +3916,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.48",
+]
+
+[[package]]
+name = "zugkontrolle-test-util"
+version = "0.1.0"
+dependencies = [
+ "flexi_logger",
+ "log",
+ "parking_lot 0.12.1",
+ "zugkontrolle-macros",
 ]
 
 [[package]]

@@ -1,10 +1,8 @@
 //! Gpio [`Pin`] in verschiedenen Konfigurationen.
 
-use crate::{
-    anschluss::{level::Level, pwm::Pwm},
-    rppal,
-    util::eingeschränkt::{NichtNegativ, NullBisEins},
-};
+use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
+
+use crate::{level::Level, pwm::Pwm, rppal};
 
 pub mod input;
 pub mod output;

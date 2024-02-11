@@ -1,0 +1,23 @@
+[package]
+name = "zugkontrolle-test-util"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = []
+
+[lints]
+workspace = true
+
+# dependencies
+[dependencies]
+zugkontrolle-macros.workspace = true
+flexi_logger.workspace = true
+log.workspace = true
+parking_lot.workspace = true
