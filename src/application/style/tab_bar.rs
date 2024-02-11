@@ -39,6 +39,10 @@ impl StyleSheet for Thema {
                 let grey_value = if is_active { 0.8 } else { 0.9 };
                 Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
             },
+            Thema::Dunkel => {
+                let grey_value = if is_active { 0.2 } else { 0.1 };
+                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
+            },
         }
     }
 
@@ -46,6 +50,10 @@ impl StyleSheet for Thema {
         match self {
             Thema::Hell => {
                 let grey_value = 0.7;
+                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
+            },
+            Thema::Dunkel => {
+                let grey_value = 0.3;
                 Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
             },
         }

@@ -26,7 +26,7 @@ impl StyleSheet for Thema {
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
         match self {
-            Thema::Hell => {
+            Thema::Hell | Thema::Dunkel => {
                 let Linie { farbe: color, breite: width, radius } = *style;
                 Appearance {
                     color,

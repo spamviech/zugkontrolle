@@ -373,6 +373,11 @@ where
         Zugkontrolle::view(self)
     }
 
+    fn theme(&self) -> Self::Theme {
+        // TODO Auswahl-Knopf + Kommandozeilen-Argument zum einstellen
+        Thema::Dunkel
+    }
+
     fn subscription(&self) -> Subscription<Self::Message> {
         Subscription::from_recipe(self.empfänger.clone())
     }

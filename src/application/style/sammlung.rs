@@ -58,18 +58,20 @@ impl StyleSheet for Thema {
     fn active(&self, style: &Self::Style) -> Scrollbar {
         match self {
             Thema::Hell => style.scrollbar(0.7),
+            Thema::Dunkel => style.scrollbar(0.3),
         }
     }
 
     fn hovered(&self, style: &Self::Style, _is_mouse_over_scrollbar: bool) -> Scrollbar {
         match self {
             Thema::Hell => style.scrollbar(0.6),
+            Thema::Dunkel => style.scrollbar(0.4),
         }
     }
 
     fn dragging(&self, style: &Self::Style) -> Scrollbar {
         match self {
-            Thema::Hell => style.scrollbar(0.5),
+            Thema::Hell | Thema::Dunkel => style.scrollbar(0.5),
         }
     }
 }

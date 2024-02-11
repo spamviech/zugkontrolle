@@ -80,18 +80,29 @@ impl container::StyleSheet for Thema {
             (Thema::Hell, Container::Standard) => {
                 container::StyleSheet::appearance(&Theme::Light, &theme::Container::default())
             },
-            (Thema::Hell, Container::Hintergrund { farbe }) => container::Appearance {
-                background: Some(Background::Color(*farbe)),
-                ..container::Appearance::default()
+            (Thema::Dunkel, Container::Standard) => {
+                container::StyleSheet::appearance(&Theme::Dark, &theme::Container::default())
             },
-            (Thema::Hell, Container::Rand { farbe, breite, radius }) => container::Appearance {
-                border_color: *farbe,
-                border_width: *breite,
-                border_radius: *radius,
-                ..container::Appearance::default()
+            (Thema::Hell | Thema::Dunkel, Container::Hintergrund { farbe }) => {
+                container::Appearance {
+                    background: Some(Background::Color(*farbe)),
+                    ..container::Appearance::default()
+                }
+            },
+            (Thema::Hell | Thema::Dunkel, Container::Rand { farbe, breite, radius }) => {
+                container::Appearance {
+                    border_color: *farbe,
+                    border_width: *breite,
+                    border_radius: *radius,
+                    ..container::Appearance::default()
+                }
             },
             (Thema::Hell, Container::Pcf8574Beschreibung) => container::Appearance {
                 text_color: Some(Color::BLACK),
+                ..container::Appearance::default()
+            },
+            (Thema::Dunkel, Container::Pcf8574Beschreibung) => container::Appearance {
+                text_color: Some(Color::WHITE),
                 ..container::Appearance::default()
             },
         }

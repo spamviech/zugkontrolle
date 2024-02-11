@@ -73,7 +73,10 @@ impl button::StyleSheet for Thema {
             (Thema::Hell, Button::Standard) => {
                 button::StyleSheet::active(&Theme::Light, &theme::Button::default())
             },
-            (Thema::Hell, Button::Hintergrund { farbe }) => button::Appearance {
+            (Thema::Dunkel, Button::Standard) => {
+                button::StyleSheet::active(&Theme::Dark, &theme::Button::default())
+            },
+            (Thema::Hell | Thema::Dunkel, Button::Hintergrund { farbe }) => button::Appearance {
                 background: Some(Background::Color(*farbe)),
                 ..button::Appearance::default()
             },
@@ -83,18 +86,21 @@ impl button::StyleSheet for Thema {
     fn hovered(&self, _style: &Self::Style) -> button::Appearance {
         match self {
             Thema::Hell => button::StyleSheet::hovered(&Theme::Light, &theme::Button::default()),
+            Thema::Dunkel => button::StyleSheet::hovered(&Theme::Dark, &theme::Button::default()),
         }
     }
 
     fn pressed(&self, _style: &Self::Style) -> button::Appearance {
         match self {
             Thema::Hell => button::StyleSheet::pressed(&Theme::Light, &theme::Button::default()),
+            Thema::Dunkel => button::StyleSheet::pressed(&Theme::Dark, &theme::Button::default()),
         }
     }
 
     fn disabled(&self, _style: &Self::Style) -> button::Appearance {
         match self {
             Thema::Hell => button::StyleSheet::disabled(&Theme::Light, &theme::Button::default()),
+            Thema::Dunkel => button::StyleSheet::disabled(&Theme::Dark, &theme::Button::default()),
         }
     }
 }
