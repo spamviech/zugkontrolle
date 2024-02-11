@@ -56,6 +56,21 @@ impl Skalar {
             *other
         }
     }
+
+    /// Returns a number that represents the sign of self.
+    ///
+    /// - `1.0` if the number is positive or `INFINITY`
+    /// - `0.0` if the number is `+0.0` or `-0.0`
+    /// - `-1.0` if the number is negative or `NEG_INFINITY`
+    /// - `NaN` if the number is `NaN`
+    #[must_use]
+    pub fn signum(&self) -> Self {
+        if *self == Skalar(0.) {
+            Skalar(0.)
+        } else {
+            Skalar(self.0.signum())
+        }
+    }
 }
 
 // Ein Körper ist eine (additive) abelsche Gruppe

@@ -26,6 +26,15 @@ license_roots = {
     "UNLICENSE",
     "COPYING",
     "NOTICE",
+    "license",
+    "licence",
+    "license-mit",
+    "license-apache-2.0_with_llvm-exception",
+    "license-apache",
+    "license-zlib"
+    "unlicense",
+    "copying",
+    "notice",
 }
 license_exts = {"", ".md", ".txt"}
 license_files = {root + ext for root in license_roots for ext in license_exts}

@@ -2,6 +2,12 @@
 
 ## Unreleased changes
 
+# 4.0.3
+
+- Knöpfe zeigen wieder an, wenn sich der Mauszeiger über ihnen befindet.
+- Bewegen- und Drehen-Widgets reagieren auf Touch-Events.
+- Zeichne diagonale Richtungen für das Bewegen-Widget.
+
 ## 4.0.2
 
 - Drehen-Widget passt den Mauszeiger an, wenn der Mauszeiger auf den Knopf zeigt, oder er gezogen wird.

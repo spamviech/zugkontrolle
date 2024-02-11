@@ -77,7 +77,8 @@ pub(in crate::application) enum NachrichtClone<L: Leiter> {
     },
     /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
-    /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) im [`Fahren`](Modus::Fahren)-Modus.
+    /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit)
+    /// im [`Fahren`](Modus::Fahren)-Modus.
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
 }
 
