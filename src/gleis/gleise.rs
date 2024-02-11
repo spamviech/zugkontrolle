@@ -28,10 +28,7 @@ use crate::{
     application::style::thema::Thema,
     gleis::{
         gleise::{
-            daten::{
-                de_serialisieren::ZugtypDeserialisierenFehler, GeschwindigkeitEntferntFehler,
-                StreckenabschnittEntferntFehler, Zustand,
-            },
+            daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
             nachricht::{Gehalten, Nachricht},
         },
         knopf::KlickQuelle,
@@ -458,12 +455,6 @@ pub enum Fehler {
     BincodeSerialisieren(bincode::Error),
     /// Ein Fehler bei Interaktion mit einem [`Anschluss`](anschluss::Anschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),
-}
-
-impl From<ZugtypDeserialisierenFehler> for Fehler {
-    fn from(fehler: ZugtypDeserialisierenFehler) -> Self {
-        Fehler::Anschluss(fehler.into())
-    }
 }
 
 impl From<io::Error> for Fehler {

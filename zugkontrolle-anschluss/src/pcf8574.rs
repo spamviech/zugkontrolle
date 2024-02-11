@@ -90,7 +90,8 @@ impl I2cMitPins {
 
 impl I2cBus {
     /// Ist der [`I2cBus`] aktiviert?
-    pub(crate) fn aktiviert(self, i2c_settings: I2cSettings) -> bool {
+    #[must_use]
+    pub fn aktiviert(self, i2c_settings: I2cSettings) -> bool {
         match self {
             I2cBus::I2c0_1 => i2c_settings.i2c0_1,
             // I2cBus::I2c2 => self.i2c2,

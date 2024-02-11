@@ -676,9 +676,6 @@ pub enum Fehler {
     Pcf8574(pcf8574::Fehler),
     /// Ein Fehler beim Reservieren eines [`Anschluss`]es.
     Reservieren(ReservierenFehler),
-    // FIXME
-    // /// Fehler beim Deserialisieren des Zugtyps.
-    // ZugtypDeserialisierenFehler(ZugtypDeserialisierenFehler),
     /// Ein Gleis wurde mit unbekannter [`DefinitionId`] gespeichert.
     UnbekannteGespeicherteDefinition {
         /// Die gespeicherte Id.
@@ -688,12 +685,6 @@ pub enum Fehler {
         /// Der Typ, zu der die Id gehört.
         type_name: &'static str,
     },
-    // FIXME
-    // /// Ein Gleis mit unbekannter [`DefinitionId`].
-    // UnbekannteDefinition {
-    //     /// Die Id ohne zugehörigen Eintrag im [`Zugtyp`].
-    //     id: AnyDefinitionId,
-    // },
     /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
     UnbekannterZugtyp {
         /// Der gespeicherte Zugtyp.

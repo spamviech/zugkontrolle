@@ -68,6 +68,8 @@ pub enum LadenFehler<S> {
     IO(io::Error),
     /// Fehler beim reservieren eines [`Anschlusses`](anschluss::Anschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),
+    /// Der Leiter stimmt nicht mit dem Namen überein.
+    ZugtypDeserialisieren(ZugtypDeserialisierenFehler),
     /// Fehler beim Deserialisieren (laden) gespeicherter Daten.
     BincodeDeserialisieren {
         /// Fehler beim Deserialisieren nach aktuellem Speicherformat.
@@ -83,6 +85,11 @@ pub enum LadenFehler<S> {
         plan: plan::Name,
         /// Die unbekannten Anschlüsse.
         anschlüsse: UnbekannteAnschlüsse<S>,
+    },
+    /// Ein Gleis mit unbekannter [`DefinitionId`].
+    UnbekannteDefinition {
+        /// Die Id ohne zugehörigen Eintrag im [`Zugtyp`].
+        id: AnyDefinitionId,
     },
 }
 
@@ -103,13 +110,6 @@ impl<S> From<pin::ReservierenFehler> for LadenFehler<S> {
         LadenFehler::Anschluss(fehler.into())
     }
 }
-
-impl<S> From<ZugtypDeserialisierenFehler> for LadenFehler<S> {
-    fn from(fehler: ZugtypDeserialisierenFehler) -> Self {
-        LadenFehler::Anschluss(fehler.into())
-    }
-}
-
 impl<S> From<KeineIdVerfügbar> for LadenFehler<S> {
     fn from(fehler: KeineIdVerfügbar) -> Self {
         LadenFehler::Anschluss(fehler.into())
@@ -209,11 +209,8 @@ where
                 },
             };
             let Some(definition) = definitionen.get(&gleis.definition) else {
-                laden_fehler.push(LadenFehler::from(
-                    zugkontrolle_anschluss::Fehler::UnbekannteDefinition {
-                        id: gleis.definition.into(),
-                    },
-                ));
+                laden_fehler
+                    .push(LadenFehler::UnbekannteDefinition { id: gleis.definition.into() });
                 return (gleise, rstern_elemente, anschlüsse);
             };
             // Bekannte Steuerung sichern

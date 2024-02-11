@@ -127,7 +127,7 @@ impl Cache {
 
     /// Führe die `draw_fn` under Transformationen aus, so dass alles von `pivot` gesehen
     /// und mit `skalieren` vergrößert/verkleinert angezeigt wird.
-    pub(crate) fn zeichnen_skaliert_von_pivot<Theme>(
+    pub fn zeichnen_skaliert_von_pivot<Theme>(
         &self,
         renderer: &Renderer<Theme>,
         bounds: Size<f32>,

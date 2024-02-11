@@ -35,6 +35,7 @@ use zugkontrolle_typen::{
     },
     farbe::Farbe,
     mm::Spurweite,
+    nachschlagen::Nachschlagen,
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,

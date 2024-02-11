@@ -512,7 +512,7 @@ where
                                 ("6", I2cBus::I2c6),
                             ]
                             .into_iter()
-                            .filter(|(_label, kandidat)| settings.aktiviert(*kandidat)),
+                            .filter(|(_label, kandidat)| kandidat.aktiviert(settings)),
                             InterneNachricht::I2cBus,
                         ))
                         .push(Space::with_width(Length::Fixed(scrollable_style.breite()))),
