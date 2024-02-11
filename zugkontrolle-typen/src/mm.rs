@@ -4,7 +4,7 @@ use std::ops::Div;
 
 use serde::{Deserialize, Serialize};
 
-use crate::typen::skalar::Skalar;
+use crate::skalar::Skalar;
 
 /// Erstelle `neu` und `als_skalar`-Methoden.
 macro_rules! erstelle_neu_und_als_skalar {

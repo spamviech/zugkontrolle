@@ -9,16 +9,14 @@ use iced::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    typen::{
-        canvas::pfad::{Pfad, Transformation},
-        mm::Spurweite,
-        skalar::Skalar,
-        vektor::Vektor,
-        verbindung::{self, Verbindung},
-        winkel::{self, Trigonometrie, Winkel},
-        Zeichnen,
-    },
-    util::nachschlagen::Nachschlagen,
+    canvas::pfad::{Pfad, Transformation},
+    mm::Spurweite,
+    nachschlagen::Nachschlagen,
+    skalar::Skalar,
+    vektor::Vektor,
+    verbindung::{self, Verbindung},
+    winkel::{self, Trigonometrie, Winkel},
+    Zeichnen,
 };
 
 pub mod pfad;
@@ -200,8 +198,9 @@ impl Position {
         richtung.rotiert(self.winkel)
     }
 
-    /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen
-    pub(crate) fn anliegend_position<T, Z>(
+    /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen.
+    #[must_use]
+    pub fn anliegend_position<T, Z>(
         definition: &T,
         z: &Z,
         spurweite: Spurweite,

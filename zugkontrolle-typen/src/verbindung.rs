@@ -1,9 +1,6 @@
 //! Verbindung zwischen zwei Gleisen.
 
-use crate::{
-    typen::{vektor::Vektor, winkel::Winkel},
-    util::nachschlagen,
-};
+use crate::{nachschlagen, vektor::Vektor, winkel::Winkel};
 
 /// Ein `Verbindung` repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]

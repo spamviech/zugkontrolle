@@ -1,5 +1,6 @@
 //! Erstelle einen Trait für das senden einer beliebigen Nachricht, sowie den dazugehörigen (klonbaren) Existential-Typ.
 
+#[macro_export]
 /// Erstelle einen Trait für das senden einer beliebigen Nachricht, sowie den dazugehörigen (klonbaren) Existential-Typ.
 macro_rules! erstelle_sender_trait_existential {
     ($(($vis: vis),)? $trait: ident, $trait_doc: literal, $existential: ident, $existential_doc: literal, $msg: ty $(,)?) => {
@@ -75,4 +76,3 @@ macro_rules! erstelle_sender_trait_existential {
         }
     };
 }
-pub(crate) use erstelle_sender_trait_existential;

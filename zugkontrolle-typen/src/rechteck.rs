@@ -2,7 +2,7 @@
 
 use rstar::primitives::Rectangle;
 
-use crate::typen::{vektor::Vektor, winkel::Winkel};
+use crate::{vektor::Vektor, winkel::Winkel};
 
 /// Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
 #[allow(missing_copy_implementations)]

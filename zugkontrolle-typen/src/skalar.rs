@@ -2,6 +2,7 @@
 
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use kommandozeilen_argumente::{Beschreibung, ParseArgument, Vergleich};
 use serde::{Deserialize, Serialize};
 
 /// Skalar-Werte für Größen auf dem Canvas.
@@ -280,5 +281,30 @@ where
             self /= rhs;
         }
         self
+    }
+}
+
+impl ParseArgument for Skalar {
+    fn argumente<'t>(
+        beschreibung: Beschreibung<'t, Self>,
+        invertiere_präfix: impl Into<Vergleich<'t>>,
+        invertiere_infix: impl Into<Vergleich<'t>>,
+        wert_infix: impl Into<Vergleich<'t>>,
+        meta_var: &'t str,
+    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
+        kommandozeilen_argumente::Argumente::konvertiere(
+            Skalar,
+            f32::argumente(
+                beschreibung.konvertiere(|winkel| winkel.0),
+                invertiere_präfix,
+                invertiere_infix,
+                wert_infix,
+                meta_var,
+            ),
+        )
+    }
+
+    fn standard() -> Option<Self> {
+        None
     }
 }

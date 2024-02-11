@@ -10,7 +10,7 @@ use iced::{
     Point,
 };
 
-use crate::typen::{
+use crate::{
     skalar::Skalar,
     vektor::Vektor,
     winkel::{self, Winkel},

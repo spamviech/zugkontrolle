@@ -5,9 +5,10 @@ use std::convert::From;
 use std::f32::consts;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use kommandozeilen_argumente::{Beschreibung, ParseArgument, Vergleich};
 use serde::{Deserialize, Serialize};
 
-use crate::typen::skalar::Skalar;
+use crate::skalar::Skalar;
 
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
@@ -335,6 +336,31 @@ impl Trigonometrie for Winkel {
 
     fn atan(input: Skalar) -> Self {
         Winkel(input.0.atan())
+    }
+}
+
+impl ParseArgument for Winkel {
+    fn argumente<'t>(
+        beschreibung: Beschreibung<'t, Self>,
+        invertiere_präfix: impl Into<Vergleich<'t>>,
+        invertiere_infix: impl Into<Vergleich<'t>>,
+        wert_infix: impl Into<Vergleich<'t>>,
+        meta_var: &'t str,
+    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
+        kommandozeilen_argumente::Argumente::konvertiere(
+            Winkel,
+            f32::argumente(
+                beschreibung.konvertiere(|winkel| winkel.0),
+                invertiere_präfix,
+                invertiere_infix,
+                wert_infix,
+                meta_var,
+            ),
+        )
+    }
+
+    fn standard() -> Option<Self> {
+        Some(Winkel(0.))
     }
 }
 

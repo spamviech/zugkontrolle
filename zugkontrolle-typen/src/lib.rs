@@ -1,24 +1,24 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
 use crate::{
-    gleis::verbindung::{self, Verbindung},
-    typen::{
-        canvas::{pfad::Pfad, Position},
-        farbe::Farbe,
-        mm::Spurweite,
-        rechteck::Rechteck,
-        skalar::Skalar,
-        vektor::Vektor,
-    },
-    util::nachschlagen::Nachschlagen,
+    canvas::{pfad::Pfad, Position},
+    farbe::Farbe,
+    mm::Spurweite,
+    nachschlagen::Nachschlagen,
+    rechteck::Rechteck,
+    skalar::Skalar,
+    vektor::Vektor,
+    verbindung::Verbindung,
 };
 
 pub mod canvas;
 pub mod farbe;
 pub mod mm;
+pub mod nachschlagen;
 pub mod rechteck;
 pub mod skalar;
 pub mod vektor;
+pub mod verbindung;
 pub mod winkel;
 
 /// Wird ein Pfad mit voller oder reduzierter Transparenz gefüllt.

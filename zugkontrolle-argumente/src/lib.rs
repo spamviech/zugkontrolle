@@ -9,12 +9,9 @@ use std::{
     num::NonZeroI32,
 };
 
-use kommandozeilen_argumente::{Beschreibung, EnumArgument, Parse, ParseArgument, Vergleich};
+use kommandozeilen_argumente::{EnumArgument, Parse};
 
-use crate::{
-    gleis::gleise::Modus,
-    typen::{skalar::Skalar, winkel::Winkel},
-};
+use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
 #[derive(Debug, Clone, Parse)]
 /// Steuerung einer Modelleisenbahn über einen Raspberry Pi.
@@ -29,8 +26,8 @@ pub struct Argumente {
     pub pfad: Option<String>,
 
     /// Modus bei Programmstart.
-    #[kommandozeilen_argumente(standard: Modus::Bauen, kurz, meta_var: MODUS)]
-    pub modus: Modus,
+    #[kommandozeilen_argumente(standard: ModusArgument::Bauen, kurz, meta_var: MODUS)]
+    pub modus: ModusArgument,
 
     /// Zoom bei Programmstart.
     #[kommandozeilen_argumente(standard: Skalar(1.), meta_var: ZOOM)]
@@ -80,56 +77,6 @@ pub struct I2cSettings {
     pub i2c6: bool,
 }
 
-impl ParseArgument for Winkel {
-    fn argumente<'t>(
-        beschreibung: Beschreibung<'t, Self>,
-        invertiere_präfix: impl Into<Vergleich<'t>>,
-        invertiere_infix: impl Into<Vergleich<'t>>,
-        wert_infix: impl Into<Vergleich<'t>>,
-        meta_var: &'t str,
-    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
-        kommandozeilen_argumente::Argumente::konvertiere(
-            Winkel,
-            f32::argumente(
-                beschreibung.konvertiere(|winkel| winkel.0),
-                invertiere_präfix,
-                invertiere_infix,
-                wert_infix,
-                meta_var,
-            ),
-        )
-    }
-
-    fn standard() -> Option<Self> {
-        Some(Winkel(0.))
-    }
-}
-
-impl ParseArgument for Skalar {
-    fn argumente<'t>(
-        beschreibung: Beschreibung<'t, Self>,
-        invertiere_präfix: impl Into<Vergleich<'t>>,
-        invertiere_infix: impl Into<Vergleich<'t>>,
-        wert_infix: impl Into<Vergleich<'t>>,
-        meta_var: &'t str,
-    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
-        kommandozeilen_argumente::Argumente::konvertiere(
-            Skalar,
-            f32::argumente(
-                beschreibung.konvertiere(|winkel| winkel.0),
-                invertiere_präfix,
-                invertiere_infix,
-                wert_infix,
-                meta_var,
-            ),
-        )
-    }
-
-    fn standard() -> Option<Self> {
-        None
-    }
-}
-
 impl Argumente {
     // TODO Behandeln benötigt Anpassung des public API.
     #[allow(clippy::same_name_method)]
@@ -155,7 +102,6 @@ impl Argumente {
     }
 }
 
-// TODO erlaube Laden/Deserialisieren aus einer Datei.
 /// [`Zugtyp`](crate::zugtyp::Zugtyp) für die aktuelle Session.
 #[derive(Debug, Clone, Copy, EnumArgument)]
 #[kommandozeilen_argumente(case: insensitive)]
@@ -167,6 +113,22 @@ pub enum ZugtypArgument {
 }
 
 impl Display for ZugtypArgument {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self, formatter)
+    }
+}
+
+/// Initialer Modus beim Start.
+#[derive(Debug, Clone, Copy, EnumArgument)]
+#[kommandozeilen_argumente(case: insensitive)]
+pub enum ModusArgument {
+    /// Beginne im Bauen-Modus.
+    Bauen,
+    /// Beginne im Fahren-Modus.
+    Fahren,
+}
+
+impl Display for ModusArgument {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(self, formatter)
     }

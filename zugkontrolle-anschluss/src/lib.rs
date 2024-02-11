@@ -8,29 +8,29 @@ use std::{
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_util::eingeschränkt::kleiner_8;
+
+use zugkontrolle_gleis::gleise::{
+    daten::de_serialisieren::ZugtypDeserialisierenFehler,
+    id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId},
+};
+
 use crate::{
-    anschluss::{
-        de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
-        level::Level,
-        pin::{input, output, pwm, Pin},
-        polarität::{Fließend, Polarität},
-        trigger::Trigger,
-    },
-    argumente::I2cSettings,
-    gleis::gleise::{
-        daten::de_serialisieren::ZugtypDeserialisierenFehler,
-        id::{self, eindeutig::KeineIdVerfügbar, AnyDefinitionId},
-    },
-    rppal,
-    util::eingeschränkt::kleiner_8,
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    level::Level,
+    pin::{input, output, pwm, Pin},
+    polarität::{Fließend, Polarität},
+    trigger::Trigger,
 };
 
 pub mod de_serialisieren;
 pub mod level;
 pub mod pcf8574;
 pub mod pin;
-#[path = "anschluss/polarität.rs"]
+#[path = "polarität.rs"]
 pub mod polarität;
+pub mod rppal;
 pub mod trigger;
 
 /// Verwalten nicht verwendeter [Pin]s und [`Pcf8574-Ports`](pcf8574::Port).

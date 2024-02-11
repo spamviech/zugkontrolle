@@ -3859,12 +3859,36 @@ dependencies = [
  "serde",
  "take_mut",
  "unicase",
+ "zugkontrolle-anschluss",
+ "zugkontrolle-argumente",
  "zugkontrolle-macros",
+ "zugkontrolle-typen",
+ "zugkontrolle-util",
+]
+
+[[package]]
+name = "zugkontrolle-anschluss"
+version = "0.1.0"
+dependencies = [
+ "nonempty 0.9.0",
+ "rppal",
+ "serde",
+ "zugkontrolle-argumente",
+ "zugkontrolle-macros",
+ "zugkontrolle-util",
+]
+
+[[package]]
+name = "zugkontrolle-argumente"
+version = "0.1.0"
+dependencies = [
+ "kommandozeilen_argumente",
+ "zugkontrolle-typen",
 ]
 
 [[package]]
 name = "zugkontrolle-macros"
-version = "4.0.2"
+version = "5.0.0"
 dependencies = [
  "cargo_metadata",
  "heck",
@@ -3872,4 +3896,25 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.48",
+]
+
+[[package]]
+name = "zugkontrolle-typen"
+version = "0.1.0"
+dependencies = [
+ "iced",
+ "kommandozeilen_argumente",
+ "rstar",
+ "serde",
+ "take_mut",
+ "zugkontrolle-macros",
+]
+
+[[package]]
+name = "zugkontrolle-util"
+version = "0.1.0"
+dependencies = [
+ "num-traits",
+ "serde",
+ "unicase",
 ]

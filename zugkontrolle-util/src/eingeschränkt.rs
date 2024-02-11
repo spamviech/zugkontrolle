@@ -150,7 +150,8 @@ macro_rules! definiere_f64_typ {
             /// Erstelle einen neuen
             #[doc = stringify!([$ident])]
             /// -Wert, ohne die Grenzen zu überprüfen.
-            pub(crate) const fn neu_unchecked(wert: f64) -> Self {
+            #[must_use]
+            pub const fn neu_unchecked(wert: f64) -> Self {
                 Self(wert)
             }
         }
