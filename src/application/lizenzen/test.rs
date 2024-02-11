@@ -207,12 +207,12 @@ fn lizenz_dateien(
     [
         ("SourceSerif4-Regular", ("../../fonts/source-serif/LICENSE.md", HashMap::new())),
         ("Bootstrap Icons", ("../../fonts/bootstrap-icons/LICENSE", HashMap::new())),
-        ("windows_aarch64_msvc", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
-        ("windows_i686_aarch64", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
-        ("windows_i686_gnu", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
-        ("windows_i686_msvc", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
-        ("windows_x86_64_gnu", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
-        ("windows_x86_64_msvc", ("../windows-0.44.0/LICENSE-MIT", HashMap::new())),
+        ("windows_aarch64_msvc", ("../windows-0.44.0/license-mit", HashMap::new())),
+        ("windows_i686_aarch64", ("../windows-0.44.0/license-mit", HashMap::new())),
+        ("windows_i686_gnu", ("../windows-0.44.0/license-mit", HashMap::new())),
+        ("windows_i686_msvc", ("../windows-0.44.0/license-mit", HashMap::new())),
+        ("windows_x86_64_gnu", ("../windows-0.44.0/license-mit", HashMap::new())),
+        ("windows_x86_64_msvc", ("../windows-0.44.0/license-mit", HashMap::new())),
         ("widestring", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("wgpu", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("wgpu-core", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
@@ -242,18 +242,27 @@ fn finde_unterschiede<'t, 'f>(
     Either<(Changeset, Vec<(MITZeilenumbruch, Changeset)>), (String, io::Error)>,
 > {
     let lizenz_dateien = lizenz_dateien();
-    let standard_lizenz_pfade = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "COPYING"]
-        .into_iter()
-        .flat_map(|pfad| {
-            [
-                String::from(pfad),
-                format!("{pfad}.txt"),
-                format!("{pfad}.md"),
-                format!("{pfad}-GITHUB"),
-                format!("{pfad}-GITHUB.txt"),
-            ]
-        })
-        .collect_vec();
+    let standard_lizenz_pfade = [
+        "LICENSE",
+        "LICENSE-MIT",
+        "LICENSE-APACHE",
+        "COPYING",
+        "license",
+        "license-mit",
+        "license-apache",
+        "copying",
+    ]
+    .into_iter()
+    .flat_map(|pfad| {
+        [
+            String::from(pfad),
+            format!("{pfad}.txt"),
+            format!("{pfad}.md"),
+            format!("{pfad}-GITHUB"),
+            format!("{pfad}-GITHUB.txt"),
+        ]
+    })
+    .collect_vec();
     let fallback_standard_pfad = String::from("UnbekannterStandardLizenzPfad");
 
     let mut unterschiede = BTreeMap::new();
