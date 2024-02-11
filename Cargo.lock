@@ -3831,7 +3831,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle"
-version = "4.0.3"
+version = "5.0.0"
 dependencies = [
  "associated_list",
  "async-io",
