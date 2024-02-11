@@ -172,7 +172,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,
-    ) -> Result<(), SteuerungAktualisierenFehler>
+    ) -> Result<(), Box<SteuerungAktualisierenFehler>>
     where
         AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
     {

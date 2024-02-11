@@ -309,23 +309,25 @@ where
         let mut fehlermeldung = None;
         match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen.clone()) {
             Ok(()) => {},
-            Err(Deserialisieren { fehler, wiederherstellen_fehler }) => {
-                let titel = "Anschlüsse anpassen!".to_owned();
-                let mut nachricht = format!("{fehler:?}");
-                if let Some((w_fehler, anschlüsse)) = wiederherstellen_fehler {
-                    write!(
-                        nachricht,
-                        "\nFehler beim wiederherstellen der Anschlüsse: {w_fehler:?}\n{anschlüsse}"
-                    )
-                    .expect("write! auf einem String fehlgeschlagen!");
-                }
-                fehlermeldung = Some((titel, nachricht));
-            },
-            Err(GleisNichtGefunden(id)) => {
-                fehlermeldung = Some((
-                    "Gleis entfernt!".to_owned(),
-                    format!("Anschlüsse anpassen für ein entferntes Gleis: {id:?}"),
-                ));
+            Err(aktualisieren_fehler) => match *aktualisieren_fehler {
+                Deserialisieren { fehler, wiederherstellen_fehler } => {
+                    let titel = "Anschlüsse anpassen!".to_owned();
+                    let mut nachricht = format!("{fehler:?}");
+                    if let Some((w_fehler, anschlüsse)) = wiederherstellen_fehler {
+                        write!(
+                            nachricht,
+                            "\nFehler beim wiederherstellen der Anschlüsse: {w_fehler:?}\n{anschlüsse}"
+                        )
+                        .expect("write! auf einem String fehlgeschlagen!");
+                    }
+                    fehlermeldung = Some((titel, nachricht));
+                },
+                GleisNichtGefunden(id) => {
+                    fehlermeldung = Some((
+                        "Gleis entfernt!".to_owned(),
+                        format!("Anschlüsse anpassen für ein entferntes Gleis: {id:?}"),
+                    ));
+                },
             },
         }
         if let Some((titel, nachricht)) = fehlermeldung {

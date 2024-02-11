@@ -685,13 +685,6 @@ pub enum Fehler {
         /// Der Typ, zu der die Id gehört.
         type_name: &'static str,
     },
-    /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
-    UnbekannterZugtyp {
-        /// Der gespeicherte Zugtyp.
-        zugtyp: String,
-        /// Der Name des aktuellen Leiters.
-        leiter: &'static str,
-    },
     /// Alle [`Ids`](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
     /// Es ist aktuell keine eindeutige [`Id`](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
     KeineIdVerfügbar(KeineIdVerfügbar),

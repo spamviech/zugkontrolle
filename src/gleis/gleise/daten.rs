@@ -22,10 +22,9 @@ use rstar::{
 };
 
 use zugkontrolle_anschluss::{
-    self,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     polarität::Fließend,
-    Lager,
+    Fehler, Lager,
 };
 use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
 use zugkontrolle_typen::{
@@ -150,13 +149,11 @@ where
         } = self;
         let Some(id) = bekannte_definition_ids.get(&definition) else {
             return Ergebnis::Fehler {
-                fehler: nonempty![
-                    zugkontrolle_anschluss::Fehler::UnbekannteGespeicherteDefinition {
-                        id: definition,
-                        type_id: TypeId::of::<T>(),
-                        type_name: type_name::<T>()
-                    }
-                ],
+                fehler: nonempty![Fehler::UnbekannteGespeicherteDefinition {
+                    id: definition,
+                    type_id: TypeId::of::<T>(),
+                    type_name: type_name::<T>()
+                }],
                 anschlüsse,
             };
         };
@@ -408,7 +405,7 @@ impl<L: Leiter> Zustand<L> {
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,
         sender: SomeAktualisierenSender,
-    ) -> Result<(), SteuerungAktualisierenFehler> {
+    ) -> Result<(), Box<SteuerungAktualisierenFehler>> {
         self.gleise.steuerung_aktualisieren(lager, gleis_steuerung, sender)
     }
 
@@ -937,10 +934,10 @@ pub enum SteuerungAktualisierenFehler {
     /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [`Anschlüsse`](anschluss::Anschluss).
     Deserialisieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
-        fehler: NonEmpty<zugkontrolle_anschluss::Fehler>,
+        fehler: NonEmpty<Fehler>,
         /// Ein Fehler beim Wiederherstellen der ursprünglichen Anschlüsse,
         /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
-        wiederherstellen_fehler: Option<(NonEmpty<zugkontrolle_anschluss::Fehler>, String)>,
+        wiederherstellen_fehler: Option<(NonEmpty<Fehler>, String)>,
     },
 }
 
@@ -955,7 +952,7 @@ impl GleiseDaten {
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,
         sender: SomeAktualisierenSender,
-    ) -> Result<(), SteuerungAktualisierenFehler> {
+    ) -> Result<(), Box<SteuerungAktualisierenFehler>> {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! steuerung_aktualisieren_aux {
             ($gleise: expr, $gleis_id: expr, $anschlüsse_serialisiert: expr) => {{
@@ -1007,10 +1004,10 @@ impl GleiseDaten {
                         },
                     }
                 }
-                Err(SteuerungAktualisierenFehler::Deserialisieren {
+                Err(Box::new(SteuerungAktualisierenFehler::Deserialisieren {
                     fehler,
                     wiederherstellen_fehler,
-                })
+                }))
             }};
         }
         mit_any_id!(

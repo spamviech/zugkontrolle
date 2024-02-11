@@ -91,6 +91,13 @@ pub enum LadenFehler<S> {
         /// Die Id ohne zugehörigen Eintrag im [`Zugtyp`].
         id: AnyDefinitionId,
     },
+    /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
+    UnbekannterZugtyp {
+        /// Der gespeicherte Zugtyp.
+        zugtyp: String,
+        /// Der Name des aktuellen Leiters.
+        leiter: &'static str,
+    },
 }
 
 impl<S> From<input::Fehler> for LadenFehler<S> {
@@ -802,7 +809,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                         {
                             Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
                                 Ok(v3_from_v2) => Ok(v3_from_v2.v4(&mut id_fehler)),
-                                Err(fehler) => Err(LadenFehler::from(fehler)),
+                                Err(fehler) => Err(fehler),
                             },
                             Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
                         }

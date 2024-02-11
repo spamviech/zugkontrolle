@@ -5,18 +5,21 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use zugkontrolle_anschluss::{
-    self,
     level::Level,
     pcf8574::{self, I2cBus},
     pin::pwm,
     polarität::Polarität,
     trigger::Trigger,
+    InputSerialisiert as V4_InputSerialisiert, OutputSerialisiert as V4_OutputSerialisiert,
 };
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel};
 use zugkontrolle_util::{eingeschränkt::kleiner_8, void::Void};
 
 use crate::{
-    gleis::gleise::daten::v3::{self, kreuzung, weiche::orientierung::Orientierung},
+    gleis::gleise::daten::{
+        de_serialisieren::LadenFehler,
+        v3::{self, kreuzung, weiche::orientierung::Orientierung},
+    },
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
         kontakt, plan, streckenabschnitt, weiche,
@@ -69,10 +72,10 @@ impl From<OutputSerialisiert> for zugkontrolle_anschluss::OutputSerialisiert {
     fn from(input: OutputSerialisiert) -> Self {
         match input {
             OutputSerialisiert::Pin { pin, polarität } => {
-                zugkontrolle_anschluss::OutputSerialisiert::Pin { pin, polarität }
+                V4_OutputSerialisiert::Pin { pin, polarität }
             },
             OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
-                zugkontrolle_anschluss::OutputSerialisiert::Pcf8574Port {
+                V4_OutputSerialisiert::Pcf8574Port {
                     beschreibung: beschreibung.into(),
                     port,
                     polarität,
@@ -105,11 +108,9 @@ enum InputSerialisiert {
 impl From<InputSerialisiert> for zugkontrolle_anschluss::InputSerialisiert {
     fn from(input: InputSerialisiert) -> Self {
         match input {
-            InputSerialisiert::Pin { pin } => {
-                zugkontrolle_anschluss::InputSerialisiert::Pin { pin }
-            },
+            InputSerialisiert::Pin { pin } => V4_InputSerialisiert::Pin { pin },
             InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt } => {
-                zugkontrolle_anschluss::InputSerialisiert::Pcf8574Port {
+                V4_InputSerialisiert::Pcf8574Port {
                     beschreibung: beschreibung.into(),
                     port,
                     interrupt,
@@ -717,14 +718,11 @@ pub(crate) struct GleiseVecs<LeiterV2> {
 impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
     TryFrom<GleiseVecs<<L as BekannterZugtyp>::V2>> for v3::ZustandSerialisiert<L, S>
 {
-    type Error = zugkontrolle_anschluss::Fehler;
+    type Error = LadenFehler<S>;
 
     fn try_from(v2: GleiseVecs<<L as BekannterZugtyp>::V2>) -> Result<Self, Self::Error> {
         let Some(zugtyp) = L::bekannter_zugtyp(&v2.name) else {
-            return Err(zugkontrolle_anschluss::Fehler::UnbekannterZugtyp {
-                zugtyp: v2.name,
-                leiter: L::NAME,
-            });
+            return Err(LadenFehler::UnbekannterZugtyp { zugtyp: v2.name, leiter: L::NAME });
         };
 
         let mut ohne_streckenabschnitt = v3::GleiseDatenSerialisiert::neu();
