@@ -274,6 +274,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     pub fn setze_thema(&mut self, thema: Thema) {
         self.thema = thema;
         self.gleise_neuzeichnen();
+        self.bewegen.erzwinge_neuzeichnen();
+        self.drehen.erzwinge_neuzeichnen();
+        // TODO neuzeichnen von Seitenleiste (Knopf)
     }
 }
 

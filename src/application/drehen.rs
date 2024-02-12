@@ -35,6 +35,11 @@ impl Drehen {
     pub fn neu() -> Self {
         Drehen(Cache::neu())
     }
+
+    /// Erzwinge ein neuzeichnen des Canvas.
+    pub fn erzwinge_neuzeichnen(&mut self) {
+        self.0.leeren();
+    }
 }
 
 /// Zustand für ein [`Drehen`]-Widget.

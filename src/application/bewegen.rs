@@ -83,6 +83,11 @@ impl Bewegen {
     pub fn neu() -> Self {
         Bewegen(Cache::neu())
     }
+
+    /// Erzwinge ein neuzeichnen des Canvas.
+    pub fn erzwinge_neuzeichnen(&mut self) {
+        self.0.leeren();
+    }
 }
 
 /// Wichtige Punkte und Größen für die Darstellung und Interaktion mit dem Widget.
