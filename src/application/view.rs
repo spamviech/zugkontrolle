@@ -2,6 +2,7 @@
 
 use std::fmt::Debug;
 
+use enum_iterator::all;
 use iced::{
     mouse, touch,
     widget::{
@@ -10,6 +11,7 @@ use iced::{
     },
     Alignment, Element, Event, Length, Renderer,
 };
+use iced_widget::PickList;
 use itertools::Itertools;
 use log::debug;
 
@@ -89,13 +91,14 @@ where
             bewegen,
             drehen,
             lager,
+            thema,
+            initialer_pfad,
             speichern_gefärbt,
             bewegung: _,
             auswahl_zustand,
             message_box,
             sender: _,
             empfänger: _,
-            initialer_pfad,
         } = self;
         let aktueller_modus = gleise.modus();
         let aktueller_zoom = gleise.skalierfaktor();
@@ -107,6 +110,7 @@ where
             bewegen,
             drehen,
             aktueller_zoom,
+            *thema,
             initialer_pfad,
             speichern_gefärbt.map(|(gefärbt, _färbe_zeit)| gefärbt),
         );
@@ -200,6 +204,7 @@ fn top_row<'t, L, S>(
     bewegen: &'t Bewegen,
     drehen: &'t Drehen,
     aktueller_zoom: Skalar,
+    aktuelles_thema: Thema,
     initialer_pfad: &'t str,
     speichern_gefärbt: Option<bool>,
 ) -> Row<'t, AuswahlNachricht<L, S>, Renderer<Thema>>
@@ -250,6 +255,17 @@ where
     }
 
     row.push(Space::new(Length::Fill, Length::Shrink))
+        .push(
+            Element::from(
+                PickList::new(
+                    all::<Thema>().collect_vec(),
+                    Some(aktuelles_thema),
+                    Nachricht::Thema,
+                )
+                .placeholder("Thema"),
+            )
+            .map(modal::Nachricht::Underlay),
+        )
         .push(
             Element::from(speichern_laden)
                 .map(|message| match message {
@@ -315,7 +331,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 });
             }
             let mut max_breite = None;
-            /// Wrapper um [`knöpfe_hinzufügen`] für mehere [`DefinitionMap`] mit unterschiedlichen Elementen.
+            /// Wrapper um [`knöpfe_hinzufügen`] für mehrere [`DefinitionMap`] mit unterschiedlichen Elementen.
             macro_rules! knöpfe_hinzufügen {
                 ($($map: expr => $type: ty),* $(,)?) => {
                     max_breite_berechnen!($($map),*);

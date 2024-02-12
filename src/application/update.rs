@@ -269,6 +269,12 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     pub fn gleise_neuzeichnen(&mut self) {
         self.gleise.erzwinge_neuzeichnen();
     }
+
+    /// Setze das aktuelle Anzeige-[`Thema`].
+    pub fn setze_thema(&mut self, thema: Thema) {
+        self.thema = thema;
+        self.gleise_neuzeichnen();
+    }
 }
 
 impl<'t, L, S> Zugkontrolle<L, S>

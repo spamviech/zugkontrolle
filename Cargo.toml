@@ -214,6 +214,7 @@ async-io.workspace = true
 bincode.workspace = true
 dyn-clonable.workspace = true
 either.workspace = true
+enum-iterator.workspace = true
 flexi_logger.workspace = true
 iced.workspace = true
 iced_core.workspace = true
@@ -245,7 +246,6 @@ embed-resource.workspace = true
 [dev-dependencies]
 zugkontrolle-test-util.workspace = true
 difference.workspace = true
-enum-iterator.workspace = true
 
 # workspace dependencies
 [workspace.dependencies.zugkontrolle-macros]

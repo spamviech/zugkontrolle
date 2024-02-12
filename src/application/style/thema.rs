@@ -1,8 +1,12 @@
 //! Unterstützte Graphik-Themen.
 
+use std::fmt::{self, Debug, Display};
+
+use enum_iterator::Sequence;
 use iced::{
     application::{Appearance, StyleSheet},
-    widget::{checkbox, radio, slider, text, text_input},
+    overlay::menu,
+    widget::{checkbox, pick_list, radio, slider, text, text_input},
     Theme,
 };
 use iced_aw::{card, number_input};
@@ -11,13 +15,19 @@ use iced_widget::vertical_slider;
 use zugkontrolle_typen::farbe::Farbe;
 
 /// Unterstützte Graphik-Themen, sehr nah am built-in [`iced::Theme`].
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Sequence)]
 pub enum Thema {
     /// Die helle Variante.
     #[default]
     Hell,
     /// Die dunkle Variante.
     Dunkel,
+}
+
+impl Display for Thema {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Thema as Debug>::fmt(self, formatter)
+    }
 }
 
 impl Thema {
@@ -220,6 +230,35 @@ impl number_input::StyleSheet for Thema {
         match self {
             Thema::Hell => number_input::StyleSheet::disabled(&Theme::Light, style),
             Thema::Dunkel => number_input::StyleSheet::disabled(&Theme::Dark, style),
+        }
+    }
+}
+
+impl pick_list::StyleSheet for Thema {
+    type Style = <Theme as pick_list::StyleSheet>::Style;
+
+    fn active(&self, style: &Self::Style) -> pick_list::Appearance {
+        match self {
+            Thema::Hell => pick_list::StyleSheet::active(&Theme::Light, style),
+            Thema::Dunkel => pick_list::StyleSheet::active(&Theme::Dark, style),
+        }
+    }
+
+    fn hovered(&self, style: &Self::Style) -> pick_list::Appearance {
+        match self {
+            Thema::Hell => pick_list::StyleSheet::hovered(&Theme::Light, style),
+            Thema::Dunkel => pick_list::StyleSheet::hovered(&Theme::Dark, style),
+        }
+    }
+}
+
+impl menu::StyleSheet for Thema {
+    type Style = <Theme as menu::StyleSheet>::Style;
+
+    fn appearance(&self, style: &Self::Style) -> menu::Appearance {
+        match self {
+            Thema::Hell => menu::StyleSheet::appearance(&Theme::Light, style),
+            Thema::Dunkel => menu::StyleSheet::appearance(&Theme::Dark, style),
         }
     }
 }

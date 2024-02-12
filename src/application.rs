@@ -102,6 +102,8 @@ pub struct Zugkontrolle<L: Leiter, S> {
     bewegen: Bewegen,
     /// Zustand für Anzeigen des Widgets für die Rotation-Steuerung des [`Gleise`]-canvas.
     drehen: Drehen,
+    /// Das aktuelle Anzeige-[`Thema`].
+    thema: Thema,
     /// Der initiale Pfad des SpeichernLaden-Widgets.
     initialer_pfad: String,
     /// Zeigt der Speichern-Knopf aktuell an, dass er gedrückt wurde.
@@ -277,6 +279,7 @@ where
             streckenabschnitt_aktuell_festlegen: false,
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),
+            thema: Thema::default(),
             initialer_pfad,
             speichern_gefärbt: None,
             bewegung: None,
@@ -358,6 +361,7 @@ where
             Nachricht::GleiseZustandAktualisieren(nachricht) => {
                 self.gleise_zustand_aktualisieren(nachricht);
             },
+            Nachricht::Thema(thema) => self.setze_thema(thema),
             Nachricht::AsyncAktualisieren { gleise_neuzeichnen } => {
                 if gleise_neuzeichnen {
                     self.gleise_neuzeichnen();
@@ -374,8 +378,7 @@ where
     }
 
     fn theme(&self) -> Self::Theme {
-        // TODO Auswahl-Knopf + Kommandozeilen-Argument zum einstellen
-        Thema::Dunkel
+        self.thema
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {

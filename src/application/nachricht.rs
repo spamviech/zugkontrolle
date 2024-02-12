@@ -14,7 +14,9 @@ use crate::{
             AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht,
             WeicheNachricht, WeichenId,
         },
-        bewegen, geschwindigkeit, kontakt, lizenzen, modal, streckenabschnitt, weiche,
+        bewegen, geschwindigkeit, kontakt, lizenzen, modal, streckenabschnitt,
+        style::Thema,
+        weiche,
     },
     gleis::{
         gerade::GeradeUnit,
@@ -196,6 +198,8 @@ pub enum Nachricht<L: Leiter, S> {
     /// und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen werden soll
     /// ([`State`](iced::widget::canvas::Program::State) dadurch nicht möglich).
     GleiseZustandAktualisieren(gleise::nachricht::ZustandAktualisieren),
+    /// Ändere das aktuelle Anzeige-[`Thema`].
+    Thema(Thema),
     /// Dummy-Nachricht, damit die [`view`](Application::view)-Methode erneut aufgerufen wird.
     ///
     /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
