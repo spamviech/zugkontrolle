@@ -1,6 +1,9 @@
 //! Newtypes für [`iced::widget::canvas::Frame`] und [`iced::widget::canvas::Cache`].
 
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    fmt::{self, Debug, Formatter},
+    sync::atomic::{AtomicU8, Ordering},
+};
 
 use iced::{
     widget::canvas::{self, fill::Fill, stroke::Stroke, Geometry, Text},
@@ -110,32 +113,49 @@ impl<'t> Frame<'t> {
 /// Ein Cache wird die [`Geometry`] nicht neu berechnen, sofern
 /// sich seine Dimensionen nicht verändert haben oder er explizit [`geleert`](Cache::leeren) wurde.
 #[derive(Debug, Default)]
-pub struct Cache(canvas::Cache);
+pub struct Cache {
+    /// Der Cache mit der gespeicherten Geometrie.
+    cache: canvas::Cache,
+    /// Die [`u8`]-Repräsentation des Themas beim letzten
+    /// [`zeichnen_skaliert_von_pivot`](Cache::zeichnen_skaliert_von_pivot)-Aufruf.
+    thema: AtomicU8,
+}
 
 impl Cache {
     /// Erstelle einen neuen [`Cache`].
     #[must_use]
     pub fn neu() -> Self {
-        Cache(canvas::Cache::new())
+        // Initialer Wert ist nicht relevant.
+        let thema = AtomicU8::new(0);
+        Cache { cache: canvas::Cache::new(), thema }
     }
 
     /// Leere den [`Cache`], so dass er neu gezeichnet wird.
 
     pub fn leeren(&self) {
-        self.0.clear();
+        self.cache.clear();
     }
 
     /// Führe die `draw_fn` under Transformationen aus, so dass alles von `pivot` gesehen
     /// und mit `skalieren` vergrößert/verkleinert angezeigt wird.
-    pub fn zeichnen_skaliert_von_pivot<Theme>(
+    pub fn zeichnen_skaliert_von_pivot<Thema>(
         &self,
-        renderer: &Renderer<Theme>,
+        renderer: &Renderer<Thema>,
+        thema: &Thema,
         bounds: Size<f32>,
         pivot: &Position,
         skalieren: Skalar,
         draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> Geometry {
-        self.0.draw(renderer, bounds, |frame| {
+    ) -> Geometry
+    where
+        Thema: Clone + Into<u8> + PartialEq,
+        u8: TryInto<Thema>,
+    {
+        let bisher = self.thema.swap(thema.clone().into(), Ordering::Relaxed).try_into().ok();
+        if bisher.as_ref() != Some(thema) {
+            self.cache.clear();
+        }
+        self.cache.draw(renderer, bounds, |frame| {
             let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|transformierter_frame| {
                 // pivot transformationen
@@ -155,14 +175,20 @@ impl Cache {
     }
 
     /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [`Cache`].
-    pub fn zeichnen<Theme>(
+    pub fn zeichnen<Thema>(
         &self,
-        renderer: &Renderer<Theme>,
+        renderer: &Renderer<Thema>,
+        thema: &Thema,
         bounds: Size<f32>,
         draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> Geometry {
+    ) -> Geometry
+    where
+        Thema: Clone + Into<u8> + PartialEq,
+        u8: TryInto<Thema>,
+    {
         self.zeichnen_skaliert_von_pivot(
             renderer,
+            thema,
             bounds,
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             Skalar::multiplikativ_neutral(),

@@ -31,6 +31,7 @@ autocfg
 Bartłomiej
 bedingung
 begrenzung
+bein
 Bekkers
 Benitez
 beschränkung
@@ -235,6 +236,7 @@ memoffset
 methode
 methoden
 miniz
+minmax
 mitte
 moduswechsel
 Monoid
@@ -266,6 +268,7 @@ Okushi
 Oppermann
 Ordian
 ordner
+ordnung
 orientierung
 osmesa
 Osspial
@@ -278,6 +281,7 @@ pläne
 podman
 polarität
 Pournader
+powf
 präfix
 proto
 pullup
@@ -343,6 +347,7 @@ serialisierbare
 Serialisierbare
 serialisierbaren
 Sgeo
+signum
 simd
 siphasher
 skalarprodukt

@@ -69,7 +69,7 @@ impl Program<Winkel, Renderer<Thema>> for Drehen {
         cursor: Cursor,
     ) -> Vec<Geometry> {
         let size = bounds.size();
-        vec![self.0.zeichnen(renderer, size, |frame| {
+        vec![self.0.zeichnen(renderer, thema, size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };

@@ -125,7 +125,7 @@ where
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
-        vec![state.canvas.zeichnen(renderer, bounds.size(), |frame| {
+        vec![state.canvas.zeichnen(renderer, thema, bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
             frame.fill(

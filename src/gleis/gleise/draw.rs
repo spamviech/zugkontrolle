@@ -59,6 +59,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         // keine Priorität, in den meisten Fällen dürften alle Gleise angezeigt werden
         vec![canvas.zeichnen_skaliert_von_pivot(
             renderer,
+            thema,
             bounds.size(),
             &self.pivot,
             self.skalieren,

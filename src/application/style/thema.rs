@@ -11,18 +11,20 @@ use iced::{
 };
 use iced_aw::{card, number_input};
 use iced_widget::vertical_slider;
+use int_enum::IntEnum;
 
 use zugkontrolle_argumente::ThemaArgument;
 use zugkontrolle_typen::farbe::Farbe;
 
 /// Unterstützte Graphik-Themen, sehr nah am built-in [`iced::Theme`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Sequence)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, IntEnum, Sequence)]
+#[repr(u8)]
 pub enum Thema {
     /// Die helle Variante.
     #[default]
-    Hell,
+    Hell = 0,
     /// Die dunkle Variante.
-    Dunkel,
+    Dunkel = 1,
 }
 
 impl Display for Thema {

@@ -456,7 +456,7 @@ impl Program<Nachricht, Renderer<Thema>> for Bewegen {
         erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
 
         let pfad = erbauer.baue();
-        vec![self.0.zeichnen(renderer, size, |frame| {
+        vec![self.0.zeichnen(renderer, thema, size, |frame| {
             frame.stroke(
                 &pfad,
                 Stroke { style: Style::Solid(thema.strich().into()), ..Stroke::default() },
