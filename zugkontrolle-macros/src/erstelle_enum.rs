@@ -66,7 +66,7 @@ pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
         },
     };
     let derives = quote!(
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, ::kommandozeilen_argumente::EnumArgument)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, ::kommandozeilen_argumente::EnumArgument, ::enum_iterator::Sequence)]
         #[kommandozeilen_argumente(case: insensitive)]
     );
 

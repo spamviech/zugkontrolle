@@ -1,16 +1,11 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem
 //! [`Canvas`](iced::widget::canvas::Canvas).
 
-use std::{
-    collections::HashMap, convert::identity, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant,
-};
+use std::{collections::HashMap, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant};
 
 use iced::{
     mouse::{self, Cursor},
-    widget::{
-        canvas::{event, Event, Geometry, Program},
-        Radio,
-    },
+    widget::canvas::{event, Event, Geometry, Program},
     Rectangle, Renderer,
 };
 use nonempty::NonEmpty;
@@ -72,13 +67,6 @@ impl ModusDaten {
             Modus::Bauen => ModusDaten::Bauen { gehalten: HashMap::new(), letzter_klick: None },
             Modus::Fahren => ModusDaten::Fahren,
         }
-    }
-}
-
-impl Modus {
-    /// Erstelle einen neuen [`Radio`]-Button für den [`Modus`].
-    pub(crate) fn erstelle_radio(self, aktueller_modus: Self) -> Radio<Modus, Renderer<Thema>> {
-        Radio::new(self, self, Some(aktueller_modus), identity).spacing(0)
     }
 }
 

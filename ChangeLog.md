@@ -4,8 +4,9 @@
 
 - Aufteilen in mehrere crates.
 - Dunkles Thema.
+- Verwende PickList für Modus-Auswahl.
 
-# 4.0.3
+## 4.0.3
 
 - Knöpfe zeigen wieder an, wenn sich der Mauszeiger über ihnen befindet.
 - Bewegen- und Drehen-Widgets reagieren auf Touch-Events.

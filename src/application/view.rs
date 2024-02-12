@@ -1,6 +1,6 @@
 //! Methoden für die [view](iced::Application::view)-Methode des [`iced::Application`]-Traits.
 
-use std::fmt::Debug;
+use std::{convert::identity, fmt::Debug};
 
 use enum_iterator::all;
 use iced::{
@@ -213,9 +213,11 @@ where
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static + Clone + PartialEq,
 {
-    let modus_radios = Column::new()
-        .push(Modus::Bauen.erstelle_radio(aktueller_modus))
-        .push(Modus::Fahren.erstelle_radio(aktueller_modus));
+    let modus_radios = Column::new().push(PickList::new(
+        all::<Modus>().collect_vec(),
+        Some(aktueller_modus),
+        identity,
+    ));
     let bewegen = Canvas::new(bewegen)
         .width(Length::Fixed(BEWEGEN_HÖHE))
         .height(Length::Fixed(BEWEGEN_BREITE));
@@ -237,7 +239,6 @@ where
         .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen).map(modal::Nachricht::Underlay))
         .push(drehen.mit_teil_nachricht(Nachricht::Winkel).map(modal::Nachricht::Underlay))
         .push(Element::from(skalieren_slider).map(Nachricht::from).map(modal::Nachricht::Underlay));
-
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
         let geschwindigkeit = Element::new(
@@ -256,14 +257,11 @@ where
 
     row.push(Space::new(Length::Fill, Length::Shrink))
         .push(
-            Element::from(
-                PickList::new(
-                    all::<Thema>().collect_vec(),
-                    Some(aktuelles_thema),
-                    Nachricht::Thema,
-                )
-                .placeholder("Thema"),
-            )
+            Element::from(PickList::new(
+                all::<Thema>().collect_vec(),
+                Some(aktuelles_thema),
+                Nachricht::Thema,
+            ))
             .map(modal::Nachricht::Underlay),
         )
         .push(
