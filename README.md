@@ -135,6 +135,9 @@ Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` 
 - `-m MODUS` | `--modus MODUS`
     Bestimme den Modus bei Programmstart.
     Aktuell sind `Bauen` und `Fahren` unterstützt.
+- `-t THEMA` | `--thema THEMA`
+    Bestimme das Anzeige-Thema bei Programmstart.
+    Aktuell sind `Hell` und `Dunkel` unterstützt.
 - `-z ZOOM` | `--zoom ZOOM`
     Bestimme den Zoom bei Programmstart.
 - `-x X` | `--x X`
@@ -194,7 +197,7 @@ sudo apt install xserver-xorg raspberrypi-ui-mods lightdm
 ```
 
 Außerdem müssen die `mesa-vulkan-drivers` entfernt werden.
-Ansonsten kommt es zu einem seg-fault mit der Nachricht "lavapipe is not a confomant vulkan implementation".
+Ansonsten kommt es zu einem seg-fault mit der Nachricht "lavapipe is not a conformant vulkan implementation".
 
 ```sh
 sudo apt remove mesa-vulkan-drivers

@@ -29,6 +29,10 @@ pub struct Argumente {
     #[kommandozeilen_argumente(standard: ModusArgument::Bauen, kurz, meta_var: MODUS)]
     pub modus: ModusArgument,
 
+    /// Thema bei Programmstart.
+    #[kommandozeilen_argumente(standard: ThemaArgument::Hell, kurz, meta_var: THEMA)]
+    pub thema: ThemaArgument,
+
     /// Zoom bei Programmstart.
     #[kommandozeilen_argumente(standard: Skalar(1.), meta_var: ZOOM)]
     pub zoom: Skalar,
@@ -129,6 +133,22 @@ pub enum ModusArgument {
 }
 
 impl Display for ModusArgument {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self, formatter)
+    }
+}
+
+/// Initialer Thema beim Start.
+#[derive(Debug, Clone, Copy, EnumArgument)]
+#[kommandozeilen_argumente(case: insensitive)]
+pub enum ThemaArgument {
+    /// Beginne im hellen Thema.
+    Hell,
+    /// Beginne im dunklen Thema.
+    Dunkel,
+}
+
+impl Display for ThemaArgument {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(self, formatter)
     }

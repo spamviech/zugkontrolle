@@ -12,6 +12,7 @@ use iced::{
 use iced_aw::{card, number_input};
 use iced_widget::vertical_slider;
 
+use zugkontrolle_argumente::ThemaArgument;
 use zugkontrolle_typen::farbe::Farbe;
 
 /// Unterstützte Graphik-Themen, sehr nah am built-in [`iced::Theme`].
@@ -27,6 +28,15 @@ pub enum Thema {
 impl Display for Thema {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         <Thema as Debug>::fmt(self, formatter)
+    }
+}
+
+impl From<ThemaArgument> for Thema {
+    fn from(value: ThemaArgument) -> Self {
+        match value {
+            ThemaArgument::Hell => Thema::Hell,
+            ThemaArgument::Dunkel => Thema::Dunkel,
+        }
     }
 }
 

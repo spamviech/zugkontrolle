@@ -233,9 +233,9 @@ where
     type Theme = Thema;
 
     fn new(
-        (argumente, lager, zugtyp2, schriftarten): Self::Flags,
+        (argumente, lager, zugtyp, schriftarten): Self::Flags,
     ) -> (Self, Command<Self::Message>) {
-        let Argumente { pfad, modus, zoom, x, y, winkel, i2c_settings, .. } = argumente;
+        let Argumente { pfad, modus, thema, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
         let lade_schriftarten = schriftarten.iter().map(|&schriftart| {
             font::load(schriftart).map(|ergebnis| match ergebnis {
@@ -254,7 +254,7 @@ where
         } else {
             lade_zustand = Command::none();
             initialer_pfad = {
-                let mut standard_pfad = zugtyp2.name.clone();
+                let mut standard_pfad = zugtyp.name.clone();
                 standard_pfad.push_str(".zug");
                 standard_pfad
             };
@@ -263,7 +263,7 @@ where
         let (sender, receiver) = channel();
 
         let gleise = Gleise::neu(
-            zugtyp2.clone(),
+            zugtyp.clone(),
             modus.into(),
             Position { punkt: Vektor { x, y }, winkel },
             zoom,
@@ -279,7 +279,7 @@ where
             streckenabschnitt_aktuell_festlegen: false,
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),
-            thema: Thema::default(),
+            thema: thema.into(),
             initialer_pfad,
             speichern_gefärbt: None,
             bewegung: None,
