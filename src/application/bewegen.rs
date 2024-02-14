@@ -18,7 +18,7 @@ use zugkontrolle_typen::{
     winkel::{self},
 };
 
-use crate::{application::style::thema::Thema, gleis::knopf::KlickQuelle};
+use crate::{application::style::thema::Thema, gleise::knopf::KlickQuelle};
 
 /// Mögliche Bewegungen.
 #[derive(Debug, Clone, Copy)]

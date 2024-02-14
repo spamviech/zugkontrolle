@@ -20,16 +20,6 @@ use crate::{
     },
     gleis::{
         gerade::GeradeUnit,
-        gleise::{
-            self,
-            id::{
-                mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId,
-                AnyIdSteuerungSerialisiert,
-            },
-            nachricht::Nachricht as GleiseNachricht,
-            Modus,
-        },
-        knopf::{KlickQuelle, KnopfNachricht},
         kreuzung::KreuzungUnit,
         kurve::KurveUnit,
         weiche::{
@@ -38,6 +28,16 @@ use crate::{
             kurve::{KurvenWeiche, KurvenWeicheUnit},
             s_kurve::SKurvenWeicheUnit,
         },
+    },
+    gleise::{
+        self,
+        id::{
+            mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId,
+            AnyIdSteuerungSerialisiert,
+        },
+        knopf::{KlickQuelle, KnopfNachricht},
+        nachricht::Nachricht as GleiseNachricht,
+        Modus,
     },
     steuerung::{
         geschwindigkeit::{GeschwindigkeitSerialisiert, Leiter, Name as GeschwindigkeitName},
@@ -192,7 +192,7 @@ pub enum Nachricht<L: Leiter, S> {
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](steuerung::Weiche) wurde im [`Fahren`](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
-    /// Eine GUI-Nachricht für Änderungen des Zustandes des [`Gleise`](crate::gleis::gleise::Gleise)-Typs.
+    /// Eine GUI-Nachricht für Änderungen des Zustandes des [`Gleise`](crate::gleise::Gleise)-Typs.
     ///
     /// Notwendig, weil die [`update`](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
     /// und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen werden soll
@@ -204,7 +204,7 @@ pub enum Nachricht<L: Leiter, S> {
     ///
     /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
     AsyncAktualisieren {
-        /// Soll das Canvas der [`Gleise`](crate::gleis::gleise::Gleise)-Struktur neu gezeichnet werden.
+        /// Soll das Canvas der [`Gleise`](crate::gleise::Gleise)-Struktur neu gezeichnet werden.
         gleise_neuzeichnen: bool,
     },
     /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.

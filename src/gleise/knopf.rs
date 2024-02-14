@@ -31,7 +31,7 @@ use zugkontrolle_typen::{
 
 use crate::{
     application::{fonts::standard_text, style::thema::Thema},
-    gleis::gleise::draw::bewege_an_position,
+    gleise::draw::bewege_an_position,
 };
 
 /// Die Breite von Kontur-Linien des Gleises.
@@ -50,7 +50,7 @@ const DOUBLE_PADDING_BORDER_WIDTH: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)
 pub struct Knopf<'t, T: 'static> {
     /// Das angezeigte Gleis.
     gleis: &'t T,
-    /// Die [`DefinitionId`](crate::gleis::gleise::id::DefinitionId) für die [`KnopfNachricht`].
+    /// Die [`DefinitionId`](crate::gleise::id::DefinitionId) für die [`KnopfNachricht`].
     definition: GleisId<T>,
     /// Die Spurweite des [`Zugtyps`](crate::zugtyp::Zugtyp).
     spurweite: Spurweite,

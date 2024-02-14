@@ -9,7 +9,7 @@ use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::Zeichnen;
 
-use crate::gleis::gleise::steuerung::MitSteuerung;
+use crate::gleise::steuerung::MitSteuerung;
 
 // soll direkt importiert werden
 #[allow(clippy::module_name_repetitions)]
@@ -19,16 +19,16 @@ pub type DefinitionId<T> = GleisId<<T as MitSteuerung>::SelfUnit>;
 /// Helper-Macro für [`erzeuge_any_enum`]: ersetzte `[]` durch `$ty`.
 macro_rules! ersetzte_eckige_klammern {
     ($ty: ty, [$($acc: tt)*], [] $($tail: tt)*) => {
-        $crate::gleis::gleise::id::ersetzte_eckige_klammern! {$ty, [$($acc)* $ty], $($tail)*}
+        $crate::gleise::id::ersetzte_eckige_klammern! {$ty, [$($acc)* $ty], $($tail)*}
     };
     ($ty: ty, [$($acc: tt)*], $head: tt $($tail: tt)*) => {
-        $crate::gleis::gleise::id::ersetzte_eckige_klammern! {$ty, [$($acc)* $head], $($tail)*}
+        $crate::gleise::id::ersetzte_eckige_klammern! {$ty, [$($acc)* $head], $($tail)*}
     };
     ($ty: ty, [$($acc: tt)*], ) => {
         $($acc)*
     };
 }
-pub(in crate::gleis::gleise) use ersetzte_eckige_klammern;
+pub(in crate::gleise) use ersetzte_eckige_klammern;
 
 /// Erzeuge ein `enum` mit einer Variante für jede Gleis-Art.
 macro_rules! erzeuge_any_enum {
@@ -38,23 +38,23 @@ macro_rules! erzeuge_any_enum {
         #[allow(unused_qualifications)]
         $($vis)? enum $name$(<$($lt),*>)? {
             /// Variante für eine [`Gerade`](crate::gleis::gerade::Gerade).
-            Gerade($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::gerade::Gerade, [], $($path)*} ),+),
+            Gerade($( $crate::gleise::id::ersetzte_eckige_klammern!{crate::gleis::gerade::Gerade, [], $($path)*} ),+),
             /// Variante für eine [`Kurve`](crate::gleis::kurve::Kurve).
-            Kurve($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kurve::Kurve, [], $($path)*} ),+),
+            Kurve($( $crate::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kurve::Kurve, [], $($path)*} ),+),
             /// Variante für eine [`Weiche`](crate::gleis::weiche::gerade::Weiche).
-            Weiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::gerade::Weiche, [], $($path)*} ),+),
+            Weiche($( $crate::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::gerade::Weiche, [], $($path)*} ),+),
             /// Variante für eine [`DreiwegeWeiche`](crate::gleis::weiche::dreiwege::DreiwegeWeiche).
-            DreiwegeWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::dreiwege::DreiwegeWeiche, [], $($path)*} ),+),
+            DreiwegeWeiche($( $crate::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::dreiwege::DreiwegeWeiche, [], $($path)*} ),+),
             /// Variante für eine [`KurvenWeiche`](crate::gleis::weiche::kurve::KurvenWeiche).
-            KurvenWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::kurve::KurvenWeiche, [], $($path)*} ),+),
+            KurvenWeiche($( $crate::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::kurve::KurvenWeiche, [], $($path)*} ),+),
             /// Variante für eine [`SKurvenWeiche`](crate::gleis::weiche::s_kurve::SKurvenWeiche).
-            SKurvenWeiche($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::s_kurve::SKurvenWeiche, [], $($path)*} ),+),
+            SKurvenWeiche($( $crate::gleise::id::ersetzte_eckige_klammern!{crate::gleis::weiche::s_kurve::SKurvenWeiche, [], $($path)*} ),+),
             /// Variante für eine [`Kreuzung`](crate::gleis::kreuzung::Kreuzung).
-            Kreuzung($( $crate::gleis::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kreuzung::Kreuzung, [], $($path)*} ),+),
+            Kreuzung($( $crate::gleise::id::ersetzte_eckige_klammern!{crate::gleis::kreuzung::Kreuzung, [], $($path)*} ),+),
         }
     };
 }
-pub(in crate::gleis::gleise) use erzeuge_any_enum;
+pub(in crate::gleise) use erzeuge_any_enum;
 
 /// Helper-Macro für [`mit_any_id`]: Erzeuge die passende Referenz von `$wert`,
 /// ausgehend von einem (optionalen) `ref` oder `mut` suffix.
@@ -82,25 +82,25 @@ macro_rules! mit_any_id {
         use $id::{Gerade, Kurve, Weiche, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Kreuzung};
         match $any_id {
             Gerade( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.geraden) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleise::id::als_ref!($($mut)? $collection.geraden) , )* $($ident),+ $(, $extra_arg)*)
             }
             Kurve( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.kurven) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleise::id::als_ref!($($mut)? $collection.kurven) , )* $($ident),+ $(, $extra_arg)*)
             }
             Weiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.weichen) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleise::id::als_ref!($($mut)? $collection.weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             DreiwegeWeiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.dreiwege_weichen) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleise::id::als_ref!($($mut)? $collection.dreiwege_weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             KurvenWeiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.kurven_weichen) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleise::id::als_ref!($($mut)? $collection.kurven_weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             SKurvenWeiche( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.s_kurven_weichen) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleise::id::als_ref!($($mut)? $collection.s_kurven_weichen) , )* $($ident),+ $(, $extra_arg)*)
             }
             Kreuzung( $($ident),+ ) => {
-                $macro! ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection.kreuzungen) , )* $($ident),+ $(, $extra_arg)*)
+                $macro! ( $( $crate::gleise::id::als_ref!($($mut)? $collection.kreuzungen) , )* $($ident),+ $(, $extra_arg)*)
             }
         }
     }};
@@ -112,25 +112,25 @@ macro_rules! mit_any_id {
         use $id::{Gerade, Kurve, Weiche, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Kreuzung};
         match $any_id {
             Gerade( $($ident),+ ) => {
-                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $function ( $( $crate::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
             Kurve( $($ident),+ ) => {
-                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $function ( $( $crate::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
             Weiche( $($ident),+ ) => {
-                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $function ( $( $crate::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
             DreiwegeWeiche( $($ident),+ ) => {
-                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $function ( $( $crate::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
             KurvenWeiche( $($ident),+ ) => {
-                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $function ( $( $crate::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
             SKurvenWeiche( $($ident),+ ) => {
-                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $function ( $( $crate::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
             Kreuzung( $($ident),+ ) => {
-                $function ( $( $crate::gleis::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
+                $function ( $( $crate::gleise::id::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)
             }
         }
     }};

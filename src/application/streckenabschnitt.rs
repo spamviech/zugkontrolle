@@ -40,7 +40,7 @@ use crate::{
         map_mit_zustand::MapMitZustand,
         modal, style,
     },
-    gleis::gleise::Gleise,
+    gleise::Gleise,
     steuerung::{
         geschwindigkeit::{self, Leiter},
         streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},

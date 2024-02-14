@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
-use crate::gleis::{
+use crate::{
+    gleis::weiche::s_kurve as v4,
     gleise::daten::v3::weiche::{gerade, orientierung::Orientierung, steuerung},
-    weiche::s_kurve as v4,
 };
 
 /// Serialisierbare Darstellung der Steuerung einer [`SKurvenWeiche`].

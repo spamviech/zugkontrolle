@@ -37,7 +37,7 @@ use crate::{
         nachricht::Nachricht,
         style::thema::Thema,
     },
-    gleis::gleise::{daten::v2::BekannterZugtyp, Gleise},
+    gleise::{daten::v2::BekannterZugtyp, Gleise},
     steuerung::{
         geschwindigkeit::{BekannterLeiter, Leiter},
         streckenabschnitt::Name as StreckenabschnittName,

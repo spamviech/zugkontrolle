@@ -6,18 +6,16 @@ use zugkontrolle_anschluss::Lager;
 use zugkontrolle_typen::{canvas::Position, vektor::Vektor};
 
 use crate::{
-    gleis::{
-        gleise::{
-            self,
-            daten::{
-                AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
-                SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
-            },
-            id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
-            steuerung::SomeAktualisierenSender,
-            Gehalten, Gleise, ModusDaten,
+    gleise::{
+        self,
+        daten::{
+            AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
+            SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
         },
+        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
         knopf::KlickQuelle,
+        steuerung::SomeAktualisierenSender,
+        Gehalten, Gleise, ModusDaten,
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt},
 };
@@ -28,8 +26,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ///
     /// ## Errors
     ///
-    /// Es wurde kein zur [`DefinitionId`](crate::gleis::gleise::id::DefinitionId) gehörende
-    /// Definition gefunden, oder es war keine [`GleisId`](crate::gleis::gleise::id::GleisId)
+    /// Es wurde kein zur [`DefinitionId`](crate::gleise::id::DefinitionId) gehörende
+    /// Definition gefunden, oder es war keine [`GleisId`](crate::gleise::id::GleisId)
     /// verfügbar.
     pub(crate) fn hinzufügen(
         &mut self,
@@ -112,8 +110,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ///
     /// ## Errors
     ///
-    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
-    pub(in crate::gleis::gleise) fn entfernen(
+    /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
+    pub(in crate::gleise) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
     ) -> Result<AnyGleis, EntfernenFehler> {
@@ -124,8 +122,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ///
     /// ## Errors
     ///
-    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
-    pub(in crate::gleis::gleise) fn gehalten_bewegen(
+    /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
+    pub(in crate::gleise) fn gehalten_bewegen(
         &mut self,
         klick_quelle: &KlickQuelle,
         canvas_pos: Vektor,
@@ -167,7 +165,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ///
     /// ## Errors
     ///
-    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
+    /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub fn anschlüsse_anpassen(
         &mut self,
         lager: &mut Lager,
@@ -187,7 +185,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ///
     /// ## Errors
     ///
-    /// Es wurde kein zur [`GleisId`](crate::gleis::gleise::id::GleisId) gehörendes Gleis gefunden.
+    /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
     pub fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
         self.zustand.hat_steuerung(gleis)
     }

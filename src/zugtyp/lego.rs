@@ -13,7 +13,6 @@ use zugkontrolle_util::eingeschränkt::NichtNegativ;
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::daten::de_serialisieren::erzeuge_zugtyp_maps,
         kreuzung::{self, Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -24,6 +23,7 @@ use crate::{
             s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
+    gleise::daten::de_serialisieren::erzeuge_zugtyp_maps,
     steuerung::geschwindigkeit::Zweileiter,
     zugtyp::Zugtyp,
 };

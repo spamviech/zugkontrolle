@@ -21,7 +21,7 @@ use zugkontrolle_anschluss::{
 use zugkontrolle_typen::{nachschlagen::Nachschlagen, MitName};
 
 use crate::{
-    gleis::gleise::steuerung::{SomeAktualisierenSender, Steuerung},
+    gleise::steuerung::{SomeAktualisierenSender, Steuerung},
     steuerung::plan::async_ausführen,
 };
 

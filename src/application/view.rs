@@ -33,17 +33,17 @@ use crate::{
     },
     gleis::{
         gerade::Gerade,
-        gleise::{
-            id::{AnyDefinitionId, DefinitionId},
-            steuerung::MitSteuerung,
-            Gleise, Modus,
-        },
-        knopf::{KlickQuelle, Knopf},
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
+    },
+    gleise::{
+        id::{AnyDefinitionId, DefinitionId},
+        knopf::{KlickQuelle, Knopf},
+        steuerung::MitSteuerung,
+        Gleise, Modus,
     },
     steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
     zugtyp::DefinitionMap,

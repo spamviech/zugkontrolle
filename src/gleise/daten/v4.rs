@@ -10,7 +10,6 @@ use zugkontrolle_util::eingeschränkt::NichtNegativ;
 use crate::{
     gleis::{
         gerade::{Gerade, GeradeUnit},
-        gleise::steuerung::MitSteuerung,
         kreuzung::{Kreuzung, KreuzungUnit},
         kurve::{Kurve, KurveUnit},
         weiche::{
@@ -20,6 +19,7 @@ use crate::{
             s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
         },
     },
+    gleise::steuerung::MitSteuerung,
     steuerung::{
         geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
         plan::{self, PlanSerialisiert},
@@ -28,12 +28,12 @@ use crate::{
 };
 
 /// Streckenabschnitte und ihre Namen.
-pub(in crate::gleis::gleise::daten) type StreckenabschnittMapSerialisiert = HashMap<
+pub(in crate::gleise::daten) type StreckenabschnittMapSerialisiert = HashMap<
     streckenabschnitt::Name,
     (StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>),
 >;
 /// Geschwindigkeiten und ihre Namen.
-pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
+pub(in crate::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>;
 
 /// Die serialisierbare Darstellung des aktuellen Zustandes, wie er in Version 4 verwendet wird.
@@ -47,7 +47,7 @@ pub(in crate::gleis::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSe
     serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize, S: Serialize",
     deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
-pub(in crate::gleis::gleise) struct ZustandSerialisiert<L: Leiter, S> {
+pub(in crate::gleise) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
     pub(crate) zugtyp: ZugtypSerialisiert<L>,
     /// Die serialisierbaren Geschwindigkeiten.

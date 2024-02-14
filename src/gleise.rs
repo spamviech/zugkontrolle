@@ -21,12 +21,10 @@ use zugkontrolle_typen::{
 
 use crate::{
     application::style::thema::Thema,
-    gleis::{
-        gleise::{
-            daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
-            nachricht::{Gehalten, Nachricht},
-        },
+    gleise::{
+        daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
         knopf::KlickQuelle,
+        nachricht::{Gehalten, Nachricht},
     },
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, Leiter},
@@ -40,6 +38,7 @@ pub mod draw;
 #[path = "gleise/hinzufügen_entfernen.rs"]
 pub mod hinzufügen_entfernen;
 pub mod id;
+pub mod knopf;
 pub mod nachricht;
 pub mod steuerung;
 pub mod update;

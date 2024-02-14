@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
-use crate::gleis::{gleise::daten::v3::weiche::steuerung, weiche::dreiwege as v4};
+use crate::{gleis::weiche::dreiwege as v4, gleise::daten::v3::weiche::steuerung};
 
 /// Die aktuelle und letzte [Richtung] einer [`DreiwegeWeiche`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

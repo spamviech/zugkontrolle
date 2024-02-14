@@ -25,12 +25,10 @@ use crate::{
         auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
         style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
     },
-    gleis::{
-        gleise::{
-            self,
-            daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
-            id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
-        },
+    gleise::{
+        self,
+        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
+        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
         knopf::KlickQuelle,
     },
     steuerung::{

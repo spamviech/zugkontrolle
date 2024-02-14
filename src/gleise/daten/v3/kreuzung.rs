@@ -6,12 +6,12 @@ use serde::{Deserialize, Serialize};
 
 use zugkontrolle_typen::skalar::Skalar;
 
-use crate::gleis::{
+use crate::{
+    gleis::kreuzung as v4,
     gleise::daten::v3::weiche::{
         gerade::{Richtung, RichtungAnschlüsseSerialisiert},
         steuerung,
     },
-    kreuzung as v4,
 };
 
 /// Serialisierbare Darstellung der Steuerung einer [`Kreuzung`].

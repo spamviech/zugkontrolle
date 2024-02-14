@@ -9,7 +9,7 @@ use zugkontrolle_typen::mm::Spurweite;
 use zugkontrolle_util::{eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt};
 
 use crate::{
-    gleis::gleise::daten::{
+    gleise::daten::{
         v3::{
             gerade::GeradeUnit,
             kreuzung::KreuzungUnit,

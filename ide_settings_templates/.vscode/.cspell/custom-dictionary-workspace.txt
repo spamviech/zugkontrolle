@@ -57,6 +57,7 @@ chibisov
 Chibisov
 Chiovoloni
 chrono
+cleancss
 clippy
 clonable
 consts
@@ -108,6 +109,7 @@ exts
 Eyal
 Fackler
 faktor
+fantasticon
 farbe
 fdeflate
 fehler
@@ -122,6 +124,7 @@ frequenz
 Froelich
 Frommi
 funktion
+fusv
 gedroppt
 Gedroppte
 gematchten
@@ -151,6 +154,7 @@ Gpio
 GPIO
 gradmaß
 grey
+Grießhammer
 größe
 guillotiere
 Harf
@@ -163,6 +167,7 @@ Hedvall
 hexf
 hilfe
 höhe
+hugo
 iana
 idents
 Ilya
@@ -252,6 +257,7 @@ naga
 namen
 nanos
 NANOS
+netlify
 newtype
 Newtype
 Newtypes
@@ -265,6 +271,7 @@ nwin
 objc
 objekt
 Okushi
+opencollective
 Oppermann
 Ordian
 ordner
@@ -277,6 +284,7 @@ palettef
 pfad
 pfade
 Phantomtyp
+picocolors
 pläne
 podman
 polarität
@@ -368,8 +376,11 @@ steuerungen
 strom
 strsim
 structs
+stylelint
+stylelintcache
 sublicensable
 Sverdrup
+svgs
 syscall
 Tangren
 termcolor
@@ -383,6 +394,7 @@ toleranz
 transformation
 transformationen
 transparenz
+twbs
 twox
 typen
 Ulrik

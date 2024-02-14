@@ -22,7 +22,7 @@ use zugkontrolle_typen::{
     winkel::{self, Trigonometrie, Winkel},
 };
 
-use crate::{application::style::thema::Thema, gleis::knopf::KlickQuelle};
+use crate::{application::style::thema::Thema, gleise::knopf::KlickQuelle};
 
 /// Ein Widget zum Einstellen des Anzeigewinkels, dargestellt über einen
 /// [`Canvas`](iced::widget::canvas::Canvas).

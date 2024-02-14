@@ -1,46 +1,52 @@
-//! Serialisierbare Darstellung eines [`Weiche`] in Version 3.
+//! Serialisierbare Darstellung eines [`KurvenWeiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
-use crate::gleis::{
+use crate::{
+    gleis::weiche::kurve as v4,
     gleise::daten::v3::weiche::{orientierung::Orientierung, steuerung},
-    weiche::gerade as v4,
 };
 
-/// Serialisierbare Darstellung der Steuerung einer [`Weiche`].
+/// Serialisierbare Darstellung der Steuerung einer [`KurvenWeiche`].
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 
-/// Definition einer Weiche.
+/// Definition einer Kurven-Weiche.
 ///
 /// Bei extremen Winkeln (`<0°`, `>180°`) wird in negativen x-Werten gezeichnet!
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct WeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
-    /// Die Länge der Geraden.
+pub struct KurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
+    /// Die Länge der Geraden vor der äußeren Kurve.
     pub länge: Skalar,
-    /// Der Radius der Kurve.
+    /// Der Radius der Kurven.
     pub radius: Skalar,
-    /// Der Winkel der Kurve.
+    /// Der Winkel der Kurven.
     pub winkel: Winkel,
-    /// Die Orientierung der Weiche.
+    /// Die Orientierung der KurvenWeiche.
     pub orientierung: Orientierung,
-    /// Eine allgemeine Beschreibung der Weiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der KurvenWeiche, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der Weiche.
+    /// Die Anschlüsse zum Schalten der KurvenWeiche.
     pub steuerung: Anschlüsse,
 }
 
 /// Eine Variante ohne Anschlüsse.
-pub type WeicheUnit = WeicheSerialisiert<()>;
+pub type KurvenWeicheUnit = KurvenWeicheSerialisiert<()>;
 
-impl<A> From<WeicheSerialisiert<A>> for v4::WeicheUnit {
-    fn from(wert: WeicheSerialisiert<A>) -> Self {
-        let WeicheSerialisiert { länge, radius, winkel, orientierung, beschreibung, steuerung: _ } =
-            wert;
-        v4::WeicheUnit {
+impl<A> From<KurvenWeicheSerialisiert<A>> for v4::KurvenWeicheUnit {
+    fn from(wert: KurvenWeicheSerialisiert<A>) -> Self {
+        let KurvenWeicheSerialisiert {
+            länge,
+            radius,
+            winkel,
+            orientierung,
+            beschreibung,
+            steuerung: _,
+        } = wert;
+        v4::KurvenWeicheUnit {
             länge,
             radius,
             winkel,
@@ -51,10 +57,11 @@ impl<A> From<WeicheSerialisiert<A>> for v4::WeicheUnit {
     }
 }
 
-impl From<v4::WeicheUnit> for WeicheUnit {
-    fn from(wert: v4::WeicheUnit) -> Self {
-        let v4::WeicheUnit { länge, radius, winkel, orientierung, beschreibung, steuerung } = wert;
-        WeicheUnit {
+impl From<v4::KurvenWeicheUnit> for KurvenWeicheUnit {
+    fn from(wert: v4::KurvenWeicheUnit) -> Self {
+        let v4::KurvenWeicheUnit { länge, radius, winkel, orientierung, beschreibung, steuerung } =
+            wert;
+        KurvenWeicheUnit {
             länge,
             radius,
             winkel,
@@ -69,16 +76,16 @@ impl From<v4::WeicheUnit> for WeicheUnit {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
     #[allow(missing_docs)]
-    Gerade,
+    Innen,
     #[allow(missing_docs)]
-    Kurve,
+    Außen,
 }
 
 impl From<Richtung> for v4::Richtung {
     fn from(wert: Richtung) -> Self {
         match wert {
-            Richtung::Gerade => v4::Richtung::Gerade,
-            Richtung::Kurve => v4::Richtung::Kurve,
+            Richtung::Innen => v4::Richtung::Innen,
+            Richtung::Außen => v4::Richtung::Außen,
         }
     }
 }
@@ -86,15 +93,15 @@ impl From<Richtung> for v4::Richtung {
 /// Eine Struktur mit von [`Richtung`]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    /// [`Richtung::Gerade`]
-    pub gerade: OutputSerialisiert,
-    /// [`Richtung::Kurve`]
-    pub kurve: OutputSerialisiert,
+    /// [`Richtung::Innen`]
+    pub innen: OutputSerialisiert,
+    /// [`Richtung::Außen`]
+    pub außen: OutputSerialisiert,
 }
 
 impl From<RichtungAnschlüsseSerialisiert> for v4::RichtungAnschlüsseSerialisiert {
     fn from(wert: RichtungAnschlüsseSerialisiert) -> Self {
-        let RichtungAnschlüsseSerialisiert { gerade, kurve } = wert;
-        v4::RichtungAnschlüsseSerialisiert { gerade, kurve }
+        let RichtungAnschlüsseSerialisiert { innen, außen } = wert;
+        v4::RichtungAnschlüsseSerialisiert { innen, außen }
     }
 }

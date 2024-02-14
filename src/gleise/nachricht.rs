@@ -5,8 +5,8 @@ use std::time::Instant;
 use zugkontrolle_typen::{vektor::Vektor, winkel::Winkel};
 
 use crate::{
-    gleis::{
-        gleise::id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+    gleise::{
+        id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
         knopf::KlickQuelle,
     },
     steuerung::plan::{AktionStreckenabschnitt, AnyAktionSchalten},
@@ -14,15 +14,15 @@ use crate::{
 
 /// Ein aktuell gehaltenes Gleis.
 #[derive(Debug)]
-pub(in crate::gleis::gleise) struct Gehalten {
-    /// Das [`GleisId`](crate::gleis::gleise::id::GleisId) und Steuerung des Gleises.
-    pub(in crate::gleis::gleise) gleis_steuerung: AnyIdSteuerung,
+pub(in crate::gleise) struct Gehalten {
+    /// Das [`GleisId`](crate::gleise::id::GleisId) und Steuerung des Gleises.
+    pub(in crate::gleise) gleis_steuerung: AnyIdSteuerung,
     /// Die relative Position, wo das gleis Gehalten wird.
-    pub(in crate::gleis::gleise) halte_position: Vektor,
+    pub(in crate::gleise) halte_position: Vektor,
     /// Der aktuelle Winkel des Gleises auf dem Canvas.
-    pub(in crate::gleis::gleise) winkel: Winkel,
+    pub(in crate::gleise) winkel: Winkel,
     /// Wurde das Gleis bewegt.
-    pub(in crate::gleis::gleise) bewegt: bool,
+    pub(in crate::gleise) bewegt: bool,
 }
 
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem [`Canvas`](iced::widget::canvas::Canvas).
@@ -48,11 +48,11 @@ pub enum Nachricht {
 
 /// Eine GUI-Nachricht für Änderungen interner Attribute.
 #[derive(Debug)]
-pub struct ZustandAktualisieren(pub(in crate::gleis::gleise) ZustandAktualisierenEnum);
+pub struct ZustandAktualisieren(pub(in crate::gleise) ZustandAktualisierenEnum);
 
-/// Interne Nachricht, wie der [`Zustand`](crate::gleis::gleise::Zustand) aktualisiert werden soll.
+/// Interne Nachricht, wie der [`Zustand`](crate::gleise::Zustand) aktualisiert werden soll.
 #[derive(Debug)]
-pub(in crate::gleis::gleise) enum ZustandAktualisierenEnum {
+pub(in crate::gleise) enum ZustandAktualisierenEnum {
     /// Aktualisiere die letzte bekannte Maus-Position.
     LetzteMausPosition(Vektor),
     /// Aktualisiere die Zeit und Art des letzten Maus- oder Touch-Klicks.

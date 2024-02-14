@@ -19,19 +19,16 @@ use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winke
 
 use crate::{
     application::style::thema::Thema,
-    gleis::{
-        gleise::{
-            self,
-            daten::{
-                AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition,
-                Zustand,
-            },
-            id::AnyIdSteuerung,
-            nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
-            steuerung::Steuerung,
-            Gleise, KlickQuelle, ModusDaten,
+    gleis::weiche,
+    gleise::{
+        self,
+        daten::{
+            AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition, Zustand,
         },
-        weiche,
+        id::AnyIdSteuerung,
+        nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
+        steuerung::Steuerung,
+        Gleise, KlickQuelle, ModusDaten,
     },
     steuerung::{
         geschwindigkeit::Leiter,

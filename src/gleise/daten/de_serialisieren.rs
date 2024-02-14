@@ -25,26 +25,25 @@ use zugkontrolle_typen::{mm::Spurweite, Zeichnen};
 use crate::{
     gleis::{
         gerade::Gerade,
-        gleise::{
-            self,
-            daten::{
-                v2::{self, BekannterZugtyp},
-                v3::{self},
-                v4::{
-                    GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert,
-                    ZustandSerialisiert,
-                },
-                GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
-            },
-            id::{AnyDefinitionId, AnyGleisDefinitionId, DefinitionId},
-            steuerung::{MitSteuerung, SomeAktualisierenSender},
-            Fehler, Gleise,
-        },
         kreuzung::Kreuzung,
         kurve::Kurve,
         weiche::{
             dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
         },
+    },
+    gleise::{
+        self,
+        daten::{
+            v2::{self, BekannterZugtyp},
+            v3::{self},
+            v4::{
+                GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert, ZustandSerialisiert,
+            },
+            GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
+        },
+        id::{AnyDefinitionId, AnyGleisDefinitionId, DefinitionId},
+        steuerung::{MitSteuerung, SomeAktualisierenSender},
+        Fehler, Gleise,
     },
     steuerung::{
         geschwindigkeit::{BekannterLeiter, Leiter},
@@ -452,8 +451,8 @@ impl<L: BekannterLeiter> Zugtyp<L> {
 pub enum ZugtypDeserialisierenFehler {
     /// Der Leiter des Zugtyps stimmt nicht mit dem Kommandozeilen-Argument überein.
     FalscherLeiter(String),
-    /// Alle [`Ids`](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
-    /// Es ist aktuell keine eindeutige [`Id`](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
+    /// Alle [`Ids`](crate::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [`Id`](crate::gleise::id::eindeutig::Id) verfügbar.
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 
@@ -468,7 +467,7 @@ macro_rules! erzeuge_zugtyp_maps {
                 Ok((HashMap::new(), HashMap::new())),
                 |acc, (gespeicherte_id, definition)| -> Result<_, ZugtypDeserialisierenFehler> {
                     if let Ok((mut gleise, mut ids)) = acc {
-                        let id = crate::gleis::gleise::id::DefinitionId::<$typ>::neu()?;
+                        let id = crate::gleise::id::DefinitionId::<$typ>::neu()?;
                         // gespeicherte_id ist eindeutig, da es der Schlüssel einer HashMap war
                         let _ = ids.insert(gespeicherte_id, id.clone());
                         // id ist eindeutig, da es von GleisId::neu garantiert wird
@@ -486,11 +485,11 @@ macro_rules! erzeuge_zugtyp_maps {
         #[allow(unused_qualifications)]
         let $gleise = $gleise
             .into_iter()
-            .map(|definition| Ok((crate::gleis::gleise::id::DefinitionId::<$typ>::neu()?, definition)) )
+            .map(|definition| Ok((crate::gleise::id::DefinitionId::<$typ>::neu()?, definition)) )
             .collect::<
                 Result<
                     crate::zugtyp::DefinitionMap<$typ>,
-                    crate::gleis::gleise::daten::de_serialisieren::ZugtypDeserialisierenFehler
+                    crate::gleise::daten::de_serialisieren::ZugtypDeserialisierenFehler
                 >
             >().expect($expect_msg);
     )*};
@@ -558,7 +557,7 @@ impl<L: BekannterLeiter> ZugtypSerialisiert<L> {
 
 impl<L: Leiter> Zustand<L> {
     /// Erzeuge eine Serialisierbare Repräsentation.
-    pub(in crate::gleis::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
+    pub(in crate::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
     where
         L: Serialisiere<S> + BekannterLeiter,
         <L as Leiter>::Fahrtrichtung: Clone,

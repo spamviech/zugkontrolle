@@ -18,10 +18,8 @@ use zugkontrolle_typen::nachschlagen::Nachschlagen;
 use zugkontrolle_util::eingeschränkt::NichtNegativ;
 
 use crate::{
-    gleis::{
-        gleise::{self, steuerung::Steuerung},
-        weiche,
-    },
+    gleis::weiche,
+    gleise::{self, steuerung::Steuerung},
     steuerung::{
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},

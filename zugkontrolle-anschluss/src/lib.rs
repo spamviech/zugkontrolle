@@ -685,8 +685,8 @@ pub enum Fehler {
         /// Der Typ, zu der die Id gehört.
         type_name: &'static str,
     },
-    /// Alle [`Ids`](crate::gleis::gleise::id::eindeutig::Id) wurden bereits verwendet.
-    /// Es ist aktuell keine eindeutige [`Id`](crate::gleis::gleise::id::eindeutig::Id) verfügbar.
+    /// Alle [`Ids`](crate::gleise::id::eindeutig::Id) wurden bereits verwendet.
+    /// Es ist aktuell keine eindeutige [`Id`](crate::gleise::id::eindeutig::Id) verfügbar.
     KeineIdVerfügbar(KeineIdVerfügbar),
 }
 

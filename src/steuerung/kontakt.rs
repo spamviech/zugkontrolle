@@ -23,7 +23,7 @@ use zugkontrolle_anschluss::{
 use zugkontrolle_typen::MitName;
 use zugkontrolle_util::erstelle_sender_trait_existential;
 
-use crate::gleis::gleise::steuerung::{Aktualisieren, SomeAktualisierenSender, Steuerung};
+use crate::gleise::steuerung::{Aktualisieren, SomeAktualisierenSender, Steuerung};
 
 /// Name eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

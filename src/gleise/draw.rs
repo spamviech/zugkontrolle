@@ -17,7 +17,7 @@ use zugkontrolle_typen::{
 
 use crate::{
     application::style::thema::Thema,
-    gleis::gleise::{
+    gleise::{
         self,
         id::AnyId,
         nachricht::{Gehalten, Nachricht},
