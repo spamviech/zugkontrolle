@@ -25,12 +25,12 @@ use zugkontrolle_typen::{canvas::Position, mm::Spurweite};
 use zugkontrolle_util::eingeschränkt::NichtNegativ;
 
 /// Streckenabschnitte und ihre Namen.
-pub(in crate::gleise::daten) type StreckenabschnittMapSerialisiert = HashMap<
+pub(in crate::daten) type StreckenabschnittMapSerialisiert = HashMap<
     streckenabschnitt::Name,
     (StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>),
 >;
 /// Geschwindigkeiten und ihre Namen.
-pub(in crate::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
+pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
     HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>;
 
 /// Die serialisierbare Darstellung des aktuellen Zustandes, wie er in Version 4 verwendet wird.
@@ -44,7 +44,7 @@ pub(in crate::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisi
     serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize, S: Serialize",
     deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
-pub(in crate::gleise) struct ZustandSerialisiert<L: Leiter, S> {
+pub(crate) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
     pub(crate) zugtyp: ZugtypSerialisiert<L>,
     /// Die serialisierbaren Geschwindigkeiten.

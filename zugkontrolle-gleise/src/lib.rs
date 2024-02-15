@@ -11,12 +11,14 @@ use iced::{
 use nonempty::NonEmpty;
 
 use zugkontrolle_argumente::ModusArgument;
-use zugkontrolle_gleis::steuerung::{
-    aktualisieren::Aktualisieren,
-    geschwindigkeit::{self, Geschwindigkeit, Leiter},
-    streckenabschnitt::{self, Streckenabschnitt},
+use zugkontrolle_gleis::{
+    steuerung::{
+        aktualisieren::Aktualisieren,
+        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        streckenabschnitt::{self, Streckenabschnitt},
+    },
+    zugtyp::Zugtyp,
 };
-use zugkontrolle_gleis::zugtyp::Zugtyp;
 use zugkontrolle_typen::{
     canvas::{Cache, Position},
     mm::Spurweite,
@@ -26,17 +28,14 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    application::style::thema::Thema,
-    gleise::{
-        daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
-        knopf::KlickQuelle,
-        nachricht::{Gehalten, Nachricht},
-    },
+    daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
+    knopf::{KlickQuelle, KnopfThema},
+    nachricht::{Gehalten, Nachricht},
 };
 
 pub mod daten;
 pub mod draw;
-#[path = "gleise/hinzufügen_entfernen.rs"]
+#[path = "hinzufügen_entfernen.rs"]
 pub mod hinzufügen_entfernen;
 pub mod knopf;
 pub mod nachricht;
@@ -266,7 +265,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Alle aktuell bekannten Streckenabschnitte.
-    pub(crate) fn aus_allen_streckenabschnitten<T, C>(
+    pub fn aus_allen_streckenabschnitten<T, C>(
         &self,
         funktion: impl for<'s> Fn(&'s streckenabschnitt::Name, &'s Streckenabschnitt) -> T,
     ) -> C
@@ -330,7 +329,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
-    pub(crate) fn mit_allen_geschwindigkeiten(
+    pub fn mit_allen_geschwindigkeiten(
         &self,
         mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>),
     ) {
@@ -341,7 +340,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
-    pub(crate) fn aus_allen_geschwindigkeiten<T, C>(
+    pub fn aus_allen_geschwindigkeiten<T, C>(
         &self,
         mut funktion: impl for<'s> FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
     ) -> C
@@ -386,11 +385,13 @@ impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht
     }
 }
 
-impl<L, AktualisierenNachricht> Program<NonEmpty<Nachricht>, Renderer<Thema>>
+impl<L, AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Renderer<Thema>>
     for Gleise<L, AktualisierenNachricht>
 where
     L: Leiter,
     AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
+    Thema: Clone + Into<u8> + PartialEq + KnopfThema,
+    u8: TryInto<Thema>,
 {
     type State = ();
 
@@ -412,7 +413,7 @@ where
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<NonEmpty<Nachricht>>) {
-        Gleise::update(self, state, event, bounds, cursor)
+        Gleise::update::<Thema>(self, state, event, bounds, cursor)
     }
 
     fn mouse_interaction(

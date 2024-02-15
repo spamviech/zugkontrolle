@@ -28,14 +28,11 @@ use zugkontrolle_gleis::{
 use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel};
 
 use crate::{
-    application::style::thema::Thema,
-    gleise::{
-        daten::{
-            AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition, Zustand,
-        },
-        nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
-        Gleise, KlickQuelle, ModusDaten,
+    daten::{
+        AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition, Zustand,
     },
+    nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
+    Gleise, KlickQuelle, ModusDaten,
 };
 
 /// Position des Cursors auf einem canvas mit `bounds`.
@@ -381,7 +378,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     // TODO Behandeln erfordert Anpassen des public API.
     #[allow(clippy::same_name_method)]
     /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`]
-    pub fn update(
+    pub fn update<Thema>(
         &self,
         _state: &mut <Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
         event: Event,
@@ -390,6 +387,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) -> (event::Status, Option<NonEmpty<Nachricht>>)
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
+        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Renderer<Thema>>,
     {
         let mut event_status = event::Status::Ignored;
         let mut messages =

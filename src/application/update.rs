@@ -26,18 +26,17 @@ use zugkontrolle_gleis::{
         streckenabschnitt::{self, Streckenabschnitt},
     },
 };
+use zugkontrolle_gleise::{
+    self,
+    daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
+    knopf::KlickQuelle,
+    nachricht::ZustandAktualisieren,
+};
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor};
 
-use crate::{
-    application::{
-        auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
-        style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
-    },
-    gleise::{
-        self,
-        daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
-        knopf::KlickQuelle,
-    },
+use crate::application::{
+    auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
+    style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
 };
 
 impl<L, S> Nachricht<L, S>
@@ -478,10 +477,7 @@ where
 
 impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [`update`](Gleise::update)-Methode.
-    pub fn gleise_zustand_aktualisieren(
-        &mut self,
-        nachricht: gleise::nachricht::ZustandAktualisieren,
-    ) {
+    pub fn gleise_zustand_aktualisieren(&mut self, nachricht: ZustandAktualisieren) {
         if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
             self.zeige_message_box(
                 String::from("Interner Applikations-Fehler."),

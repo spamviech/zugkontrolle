@@ -25,25 +25,23 @@ use zugkontrolle_gleis::{
         s_kurve::SKurvenWeicheUnit,
     },
 };
+use zugkontrolle_gleise::{
+    self,
+    knopf::{KlickQuelle, KnopfNachricht},
+    nachricht::{Nachricht as GleiseNachricht, ZustandAktualisieren},
+    Modus,
+};
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel};
 
-use crate::{
-    application::{
-        auswahl::{
-            AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht,
-            WeicheNachricht, WeichenId,
-        },
-        bewegen, geschwindigkeit, kontakt, lizenzen, modal, streckenabschnitt,
-        style::Thema,
-        weiche,
+use crate::application::{
+    auswahl::{
+        AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht, WeicheNachricht,
+        WeichenId,
     },
-    gleise::{
-        self,
-        knopf::{KlickQuelle, KnopfNachricht},
-        nachricht::Nachricht as GleiseNachricht,
-        Modus,
-    },
+    bewegen, geschwindigkeit, kontakt, lizenzen, modal, streckenabschnitt,
+    style::Thema,
+    weiche,
 };
 
 /// Ein beliebiges Gleis ohne Anschlüsse.
@@ -100,19 +98,19 @@ impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
     }
 }
 
-impl<T, L> KnopfNachricht<NachrichtClone<L>> for T
+impl<T, L> KnopfNachricht<T> for NachrichtClone<L>
 where
     T: Clone + Into<AnyDefinitionId>,
     L: Leiter,
 {
-    fn nachricht(&self, klick_quelle: KlickQuelle, klick_position: Vektor) -> NachrichtClone<L> {
+    fn nachricht(id: &T, klick_quelle: KlickQuelle, klick_position: Vektor) -> NachrichtClone<L> {
         /// Hilfs-Makro für die Verwendung mit [`mit_any_id`].
         macro_rules! erhalte_nachricht {
             ($id: expr) => {
                 AnyDefinitionIdSteuerung::from(($id, None))
             };
         }
-        let any_id = self.clone().into();
+        let any_id = id.clone().into();
         NachrichtClone::Gleis {
             definition_steuerung: mit_any_id!({}, [AnyDefinitionId => id] any_id => erhalte_nachricht!()),
             klick_quelle,
@@ -197,7 +195,7 @@ pub enum Nachricht<L: Leiter, S> {
     /// Notwendig, weil die [`update`](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
     /// und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen werden soll
     /// ([`State`](iced::widget::canvas::Program::State) dadurch nicht möglich).
-    GleiseZustandAktualisieren(gleise::nachricht::ZustandAktualisieren),
+    GleiseZustandAktualisieren(ZustandAktualisieren),
     /// Ändere das aktuelle Anzeige-[`Thema`].
     Thema(Thema),
     /// Dummy-Nachricht, damit die [`view`](Application::view)-Methode erneut aufgerufen wird.

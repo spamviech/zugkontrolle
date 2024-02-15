@@ -37,7 +37,7 @@ use zugkontrolle_gleis::{
 use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
 use zugkontrolle_typen::{mm::Spurweite, Zeichnen};
 
-use crate::gleise::{
+use crate::{
     daten::{
         v2::{self, BekannterZugtyp},
         v3::{self},
@@ -552,7 +552,7 @@ impl<L: BekannterLeiter> ZugtypSerialisiert<L> {
 
 impl<L: Leiter> Zustand<L> {
     /// Erzeuge eine Serialisierbare Repräsentation.
-    pub(in crate::gleise) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
+    pub(crate) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
     where
         L: Serialisiere<S> + BekannterLeiter,
         <L as Leiter>::Fahrtrichtung: Clone,

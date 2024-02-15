@@ -19,18 +19,16 @@ use zugkontrolle_gleis::{
         dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
     },
 };
+use zugkontrolle_gleise::Gleise;
 use zugkontrolle_id::GleisId;
 
-use crate::{
-    application::{
-        geschwindigkeit::{self, LeiterAnzeige},
-        lizenzen,
-        lizenzen::Lizenzen,
-        modal, streckenabschnitt,
-        style::{sammlung::Sammlung, thema::Thema},
-        weiche,
-    },
-    gleise::Gleise,
+use crate::application::{
+    geschwindigkeit::{self, LeiterAnzeige},
+    lizenzen,
+    lizenzen::Lizenzen,
+    modal, streckenabschnitt,
+    style::{sammlung::Sammlung, thema::Thema},
+    weiche,
 };
 
 use super::kontakt;

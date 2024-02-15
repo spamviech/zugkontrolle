@@ -28,25 +28,23 @@ use zugkontrolle_gleis::{
     },
     zugtyp::DefinitionMap,
 };
+use zugkontrolle_gleise::{
+    knopf::{KlickQuelle, Knopf},
+    Gleise, Modus,
+};
 use zugkontrolle_typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen};
 
-use crate::{
-    application::{
-        auswahl::AuswahlZustand,
-        bewegen::Bewegen,
-        drehen::Drehen,
-        flat_map::FlatMap,
-        geschwindigkeit::LeiterAnzeige,
-        modal::{self, Modal},
-        nachricht::{Nachricht, NachrichtClone},
-        speichern_laden, streckenabschnitt,
-        style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
-        MessageBox, Zugkontrolle,
-    },
-    gleise::{
-        knopf::{KlickQuelle, Knopf},
-        Gleise, Modus,
-    },
+use crate::application::{
+    auswahl::AuswahlZustand,
+    bewegen::Bewegen,
+    drehen::Drehen,
+    flat_map::FlatMap,
+    geschwindigkeit::LeiterAnzeige,
+    modal::{self, Modal},
+    nachricht::{Nachricht, NachrichtClone},
+    speichern_laden, streckenabschnitt,
+    style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
+    MessageBox, Zugkontrolle,
 };
 
 /// Ein Widget, dessen Nachricht sich in einen [`Nachricht`] konvertieren lässt.

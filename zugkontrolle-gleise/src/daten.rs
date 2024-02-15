@@ -62,7 +62,7 @@ use zugkontrolle_typen::{
     Transparenz, Zeichnen,
 };
 
-use crate::application::fonts::standard_text;
+use crate::knopf::KnopfThema;
 
 use self::v4::GleisSerialisiert;
 
@@ -177,7 +177,7 @@ type GeschwindigkeitMap<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub(in crate::gleise) struct Zustand<L: Leiter> {
+pub(crate) struct Zustand<L: Leiter> {
     /// Der verwendete Zugtyp.
     zugtyp: Zugtyp<L>,
     /// Aktuell bekannte Geschwindigkeiten.
@@ -200,7 +200,7 @@ pub struct StreckenabschnittEntferntFehler(pub streckenabschnitt::Name);
 
 impl<L: Leiter> Zustand<L> {
     /// Erstelle einen neuen [`Zustand`].
-    pub(in crate::gleise) fn neu(zugtyp: Zugtyp<L>) -> Self {
+    pub(crate) fn neu(zugtyp: Zugtyp<L>) -> Self {
         Zustand {
             zugtyp,
             geschwindigkeiten: GeschwindigkeitMap::new(),
@@ -211,17 +211,17 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Erhalte den verwendeten [Zugtyp].
-    pub(in crate::gleise) fn zugtyp(&self) -> &Zugtyp<L> {
+    pub(crate) fn zugtyp(&self) -> &Zugtyp<L> {
         &self.zugtyp
     }
 
     /// Erhalte die aktuell bekannten [Geschwindigkeiten](Geschwindigkeit).
-    pub(in crate::gleise) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap<L> {
+    pub(crate) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap<L> {
         &self.geschwindigkeiten
     }
 
     /// Erhalte eine Referenz der [Geschwindigkeit] mit Name `name`.
-    pub(in crate::gleise) fn geschwindigkeit(
+    pub(crate) fn geschwindigkeit(
         &self,
         name: &geschwindigkeit::Name,
     ) -> Result<&Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
@@ -229,7 +229,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Erhalte eine veränderliche Referenz der [Geschwindigkeit] mit Name `name`.
-    pub(in crate::gleise) fn geschwindigkeit_mut(
+    pub(crate) fn geschwindigkeit_mut(
         &mut self,
         name: &geschwindigkeit::Name,
     ) -> Result<&mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
@@ -242,7 +242,7 @@ impl<L: Leiter> Zustand<L> {
     ///
     /// Wenn es bereits eine [Geschwindigkeit] mit Name `name` gibt,
     /// wird diese ersetzt und zurückgegeben.
-    pub(in crate::gleise) fn geschwindigkeit_hinzufügen(
+    pub(crate) fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
         geschwindigkeit: Geschwindigkeit<L>,
@@ -255,7 +255,7 @@ impl<L: Leiter> Zustand<L> {
     /// ## Errors
     ///
     /// Es gibt keine [Geschwindigkeit] mit Name `name`.
-    pub(in crate::gleise) fn geschwindigkeit_entfernen(
+    pub(crate) fn geschwindigkeit_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
     ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
@@ -270,13 +270,13 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Erhalte die aktuell bekannten [Streckenabschnitte](Streckenabschnitt).
-    pub(in crate::gleise) fn streckenabschnitte(&self) -> &StreckenabschnittMap {
+    pub(crate) fn streckenabschnitte(&self) -> &StreckenabschnittMap {
         &self.streckenabschnitte
     }
 
     /// Erhalte eine Referenz des [Streckenabschnittes](Streckenabschnitt)
     /// und der assoziierten [Geschwindigkeit] mit Name `name`.
-    pub(in crate::gleise) fn streckenabschnitt(
+    pub(crate) fn streckenabschnitt(
         &self,
         name: &streckenabschnitt::Name,
     ) -> Result<&(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler>
@@ -288,7 +288,7 @@ impl<L: Leiter> Zustand<L> {
 
     /// Erhalte eine veränderliche Referenz des [Streckenabschnittes](Streckenabschnitt)
     /// und der assoziierten [Geschwindigkeit] mit Name `name`.
-    pub(in crate::gleise) fn streckenabschnitt_mut(
+    pub(crate) fn streckenabschnitt_mut(
         &mut self,
         name: &streckenabschnitt::Name,
     ) -> Result<
@@ -304,7 +304,7 @@ impl<L: Leiter> Zustand<L> {
     ///
     /// Wenn es bereits einen [Streckenabschnitt] mit Name `name` gibt,
     /// wird dieser (zusammen mit seiner assoziierten [Geschwindigkeit]) zurückgegeben.
-    pub(in crate::gleise) fn streckenabschnitt_hinzufügen(
+    pub(crate) fn streckenabschnitt_hinzufügen(
         &mut self,
         name: streckenabschnitt::Name,
         streckenabschnitt: Streckenabschnitt,
@@ -318,7 +318,7 @@ impl<L: Leiter> Zustand<L> {
     /// ## Errors
     ///
     /// Es gibt keinen [Streckenabschnitt] mit Name `name`.
-    pub(in crate::gleise) fn streckenabschnitt_entfernen(
+    pub(crate) fn streckenabschnitt_entfernen(
         &mut self,
         name: &streckenabschnitt::Name,
     ) -> Result<(Streckenabschnitt, Option<geschwindigkeit::Name>), StreckenabschnittEntferntFehler>
@@ -336,13 +336,13 @@ impl<L: Leiter> Zustand<L> {
     /// Es wurde kein zur [`DefinitionId`](crate::gleise::id::DefinitionId) gehörende
     /// Definition gefunden, oder es war keine [`GleisId`](crate::gleise::id::GleisId)
     /// verfügbar.
-    pub(in crate::gleise) fn hinzufügen(
+    pub(crate) fn hinzufügen(
         &mut self,
         definition_steuerung: impl Into<AnyDefinitionIdSteuerung>,
         position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<AnyId, HinzufügenFehler2> {
+    ) -> Result<AnyId, HinzufügenFehler> {
         self.gleise.hinzufügen(
             &self.zugtyp,
             definition_steuerung.into(),
@@ -357,7 +357,7 @@ impl<L: Leiter> Zustand<L> {
     /// ## Errors
     ///
     /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
-    pub(in crate::gleise) fn bewegen(
+    pub(crate) fn bewegen(
         &mut self,
         gleis_id: impl Into<AnyId>,
         position: Position,
@@ -367,7 +367,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Entferne das [Gleis] assoziiert mit der [`GleisId`].
-    pub(in crate::gleise) fn entfernen(
+    pub(crate) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
     ) -> Result<AnyGleis, EntfernenFehler> {
@@ -382,7 +382,7 @@ impl<L: Leiter> Zustand<L> {
     /// ## Errors
     ///
     /// Es wurde kein zur `gleis_id` gehörendes Gleis gefunden.
-    pub(in crate::gleise) fn setze_streckenabschnitt(
+    pub(crate) fn setze_streckenabschnitt(
         &mut self,
         gleis_id: impl Into<AnyId>,
         streckenabschnitt: Option<streckenabschnitt::Name>,
@@ -395,7 +395,7 @@ impl<L: Leiter> Zustand<L> {
     /// ## Errors
     ///
     /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
-    pub(in crate::gleise) fn steuerung_aktualisieren(
+    pub(crate) fn steuerung_aktualisieren(
         &mut self,
         lager: &mut Lager,
         gleis_steuerung: AnyIdSteuerungSerialisiert,
@@ -409,21 +409,19 @@ impl<L: Leiter> Zustand<L> {
     /// ## Errors
     ///
     /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
-    pub(in crate::gleise) fn hat_steuerung(
-        &self,
-        gleis: AnyId,
-    ) -> Result<bool, GleisNichtGefunden> {
+    pub(crate) fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
         self.gleise.hat_steuerung(gleis)
     }
 
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(in crate::gleise) fn darstellen_aller_gleise(
+    pub(crate) fn darstellen_aller_gleise<Thema: KnopfThema>(
         &self,
         frame: &mut Frame<'_>,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
         ist_gehalten: impl Fn(AnyId) -> bool,
         farbe: Farbe,
         skalieren: Skalar,
+        thema: &Thema,
     ) {
         self.gleise.darstellen_aller_gleise(
             frame,
@@ -433,15 +431,13 @@ impl<L: Leiter> Zustand<L> {
             ist_gehalten,
             farbe,
             skalieren,
+            thema,
         );
     }
 
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt
     /// des Gleises an der gesuchten Position.
-    pub(in crate::gleise) fn gleis_an_position(
-        &self,
-        canvas_pos: Vektor,
-    ) -> Option<GleisAnPosition<'_, L>> {
+    pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_, L>> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
             self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
         // streckenabschnitt_id, geschwindigkeit_id related über `and_then`
@@ -465,29 +461,29 @@ impl<L: Leiter> Zustand<L> {
 
 /// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
 /// Informationen über das Gleis an der gesuchten Position.
-pub(in crate::gleise) struct GleisAnPosition<'t, L> {
+pub(crate) struct GleisAnPosition<'t, L> {
     /// Id, Steuerung
-    pub(in crate::gleise) id_steuerung: AnyIdSteuerung,
+    pub(crate) id_steuerung: AnyIdSteuerung,
     /// relative Klick-Position
-    pub(in crate::gleise) position: Vektor,
+    pub(crate) position: Vektor,
     /// Winkel
-    pub(in crate::gleise) winkel: Winkel,
+    pub(crate) winkel: Winkel,
     /// Streckenabschnitt
-    pub(in crate::gleise) streckenabschnitt: Option<AssoziierterStreckenabschnitt<'t, L>>,
+    pub(crate) streckenabschnitt: Option<AssoziierterStreckenabschnitt<'t, L>>,
 }
 
 /// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
 /// Informationen über den [Streckenabschnitt] des Gleises an der gesuchten Position.
-pub(in crate::gleise) struct AssoziierterStreckenabschnitt<'t, L> {
+pub(crate) struct AssoziierterStreckenabschnitt<'t, L> {
     // TODO Methoden/Datentyp public machen?
     #[allow(dead_code)]
     /// Der Name des Streckenabschnittes.
-    pub(in crate::gleise) name: streckenabschnitt::Name,
+    pub(crate) name: streckenabschnitt::Name,
     /// Der Streckenabschnitt.
-    pub(in crate::gleise) streckenabschnitt: &'t Streckenabschnitt,
+    pub(crate) streckenabschnitt: &'t Streckenabschnitt,
     #[allow(dead_code)]
     /// Die assoziierte [Geschwindigkeit].
-    pub(in crate::gleise) geschwindigkeit: Option<(geschwindigkeit::Name, &'t Geschwindigkeit<L>)>,
+    pub(crate) geschwindigkeit: Option<(geschwindigkeit::Name, &'t Geschwindigkeit<L>)>,
 }
 
 /// Alle Gleise, sowie das Rechteck zum speichern im [`RStern`] mit ihrer Id.
@@ -498,7 +494,7 @@ type RSternEintrag = GeomWithData<Rectangle<Vektor>, (AnyGleisDefinitionId, Posi
 
 /// Alle Gleise/GleisIds, optimiert für die örtliche Suche,
 /// z.B. alle Einträge innerhalb eines Rechtecks.
-pub(in crate::gleise) type RStern = RTree<RSternEintrag>;
+pub(crate) type RStern = RTree<RSternEintrag>;
 
 /// Alle aktuell bekannten Gleise.
 #[derive(Debug)]
@@ -526,7 +522,7 @@ pub(crate) struct GleiseDaten {
 
 impl GleiseDaten {
     /// Erstelle eine leere [`GleiseDaten`]-Struktur.
-    pub(in crate::gleise) fn neu() -> Self {
+    pub(crate) fn neu() -> Self {
         GleiseDaten {
             geraden: GleisMap::new(),
             kurven: GleisMap::new(),
@@ -659,10 +655,9 @@ fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     })
 }
 
-// FIXME 2-suffix entfernen
 /// Fehler beim [`hinzufügen`](crate::gleise::Gleise::hinzufügen) eines Gleises.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
-pub enum HinzufügenFehler2 {
+pub enum HinzufügenFehler {
     /// Unbekannte Definition-Id für das neue Gleis.
     DefinitionNichtGefunden(AnyDefinitionId),
     /// Es ist aktuell keine [`GleisId`] verfügbar.
@@ -684,15 +679,15 @@ impl GleiseDaten {
         mut position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<AnyId, HinzufügenFehler2> {
+    ) -> Result<AnyId, HinzufügenFehler> {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! hinzufügen_aux {
             ($gleise: expr, $definitionen: expr, $definition_id: expr, $steuerung: expr) => {{
                 // Erhalte Definition.
                 let Some(definition) = $definitionen.get(&$definition_id) else {
-                    return Err(HinzufügenFehler2::DefinitionNichtGefunden(
-                        AnyDefinitionId::from($definition_id),
-                    ));
+                    return Err(HinzufügenFehler::DefinitionNichtGefunden(AnyDefinitionId::from(
+                        $definition_id,
+                    )));
                 };
                 // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
                 if einrasten {
@@ -1118,7 +1113,7 @@ fn zeichne_gleis<T>(
 // Internes struct
 #[allow(clippy::struct_excessive_bools)]
 /// Hilfs-Typ für [`ist_gehalten_und_andere_verbindung`].
-pub(in crate::gleise) struct GehaltenVerbindung {
+pub(crate) struct GehaltenVerbindung {
     /// Ist die `gleis_id` aktuell gehalten.
     gehalten: bool,
     /// Gibt es eine [überlappende](ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT) Verbindung.
@@ -1221,7 +1216,7 @@ fn zeichne_verbindungen<T, L: Leiter>(
 // Alle Argumente benötigt
 #[allow(clippy::too_many_arguments)]
 /// Erzeuge den Text für Beschreibung und Name eines Gleises.
-fn schreibe_gleis_beschreibung_name<T>(
+fn schreibe_gleis_beschreibung_name<T, Thema>(
     frame: &mut Frame<'_>,
     spurweite: Spurweite,
     definition: &<T as MitSteuerung>::SelfUnit,
@@ -1230,10 +1225,12 @@ fn schreibe_gleis_beschreibung_name<T>(
     ist_gehalten: impl Fn(AnyId) -> bool,
     farbe: Farbe,
     skalieren: Skalar,
+    thema: &Thema,
 ) where
     AnyId: From<GleisId<T>>,
     T: MitSteuerung,
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
+    Thema: KnopfThema,
 {
     let (relative_position, beschreibung, name) =
         definition.beschreibung_und_name(steuerung, spurweite);
@@ -1252,7 +1249,7 @@ fn schreibe_gleis_beschreibung_name<T>(
             let mut text = Text {
                 content,
                 color: Color { a: alpha, ..Color::from(farbe) },
-                ..standard_text()
+                ..thema.standard_text()
             };
             text.size *= skalieren.0;
             frame.fill_text(text);
@@ -1262,7 +1259,7 @@ fn schreibe_gleis_beschreibung_name<T>(
 
 impl GleiseDaten {
     /// Füge die gefärbten Hintergründe aller Gleise dem Frame hinzu.
-    pub(in crate::gleise) fn färbe_alle_hintergründe<L: Leiter>(
+    pub(crate) fn färbe_alle_hintergründe<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1313,7 +1310,7 @@ impl GleiseDaten {
     }
 
     /// Füge die Konturen aller Gleise dem Frame hinzu.
-    pub(in crate::gleise) fn zeichne_alle_konturen<L: Leiter>(
+    pub(crate) fn zeichne_alle_konturen<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1357,7 +1354,7 @@ impl GleiseDaten {
     }
 
     /// Füge die Darstellung der Verbindungen aller Gleise dem Frame hinzu.
-    pub(in crate::gleise) fn zeichne_alle_verbindungen<L: Leiter>(
+    pub(crate) fn zeichne_alle_verbindungen<L: Leiter>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1401,17 +1398,18 @@ impl GleiseDaten {
     }
 
     /// Füge die Namen und Beschreibungen aller Gleise dem Frame hinzu.
-    pub(in crate::gleise) fn schreibe_alle_namen_und_beschreibungen<L: Leiter>(
+    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: KnopfThema>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
         ist_gehalten: impl Fn(AnyId) -> bool,
         farbe: Farbe,
         skalieren: Skalar,
+        thema: &Thema,
     ) {
         /// Erzeuge den Text für Name und Beschreibung des zur `$gleis_id` gehörenden Gleises.
         macro_rules! schreibe_name_und_beschreibung {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr, $thema: expr) => {{
                 let Some((gleis, _rectangle)) = $gleise.get($gleis_id) else {
                     error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
                     continue;
@@ -1432,6 +1430,7 @@ impl GleiseDaten {
                         &ist_gehalten,
                         farbe,
                         skalieren,
+                        $thema,
                     );
                 })
             }};
@@ -1441,7 +1440,7 @@ impl GleiseDaten {
             mit_any_id!(
                 {ref self, ref zugtyp},
                 [AnyGleisDefinitionId => gleis_id, definition_id] gleis_definition_id
-                => schreibe_name_und_beschreibung!(zugtyp.spurweite, position)
+                => schreibe_name_und_beschreibung!(zugtyp.spurweite, position, thema)
             );
         }
     }
@@ -1449,7 +1448,7 @@ impl GleiseDaten {
     // Alle Argumente benötigt
     #[allow(clippy::too_many_arguments)]
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(in crate::gleise) fn darstellen_aller_gleise<L: Leiter>(
+    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: KnopfThema>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1458,11 +1457,19 @@ impl GleiseDaten {
         ist_gehalten: impl Fn(AnyId) -> bool,
         farbe: Farbe,
         skalieren: Skalar,
+        thema: &Thema,
     ) {
         self.färbe_alle_hintergründe(frame, zugtyp, streckenabschnitte, &transparent_hintergrund);
         self.zeichne_alle_konturen(frame, zugtyp, &ist_gehalten, farbe);
         self.zeichne_alle_verbindungen(frame, zugtyp, &ist_gehalten);
-        self.schreibe_alle_namen_und_beschreibungen(frame, zugtyp, ist_gehalten, farbe, skalieren);
+        self.schreibe_alle_namen_und_beschreibungen(
+            frame,
+            zugtyp,
+            ist_gehalten,
+            farbe,
+            skalieren,
+            thema,
+        );
     }
 }
 
@@ -1522,7 +1529,7 @@ impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
 }
 
 /// [`SelectionFunction`], die einen bestimmten Envelope sucht.
-pub(in crate::gleise) struct SelectEnvelope(pub(in crate::gleise) AABB<Vektor>);
+pub(crate) struct SelectEnvelope(pub(crate) AABB<Vektor>);
 
 impl<T> SelectionFunction<T> for SelectEnvelope
 where

@@ -3865,9 +3865,7 @@ dependencies = [
 name = "zugkontrolle"
 version = "5.0.0"
 dependencies = [
- "associated_list",
  "async-io",
- "bincode",
  "difference",
  "either",
  "embed-resource",
@@ -3886,12 +3884,12 @@ dependencies = [
  "once_cell",
  "parking_lot 0.12.1",
  "rppal",
- "rstar",
  "serde",
  "take_mut",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
+ "zugkontrolle-gleise",
  "zugkontrolle-id",
  "zugkontrolle-macros",
  "zugkontrolle-test-util",
@@ -3939,6 +3937,30 @@ dependencies = [
  "parking_lot 0.12.1",
  "serde",
  "zugkontrolle-anschluss",
+ "zugkontrolle-id",
+ "zugkontrolle-macros",
+ "zugkontrolle-typen",
+ "zugkontrolle-util",
+]
+
+[[package]]
+name = "zugkontrolle-gleise"
+version = "0.1.0"
+dependencies = [
+ "associated_list",
+ "bincode",
+ "either",
+ "enum-iterator",
+ "iced",
+ "kommandozeilen_argumente",
+ "log",
+ "nonempty 0.9.0",
+ "once_cell",
+ "rstar",
+ "serde",
+ "zugkontrolle-anschluss",
+ "zugkontrolle-argumente",
+ "zugkontrolle-gleis",
  "zugkontrolle-id",
  "zugkontrolle-macros",
  "zugkontrolle-typen",

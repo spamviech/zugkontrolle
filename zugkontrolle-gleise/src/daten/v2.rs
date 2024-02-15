@@ -22,7 +22,7 @@ use zugkontrolle_gleis::{
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel};
 use zugkontrolle_util::{eingeschränkt::kleiner_8, void::Void};
 
-use crate::gleise::daten::{
+use crate::daten::{
     de_serialisieren::LadenFehler,
     v3::{self, kreuzung, weiche::orientierung::Orientierung},
     v4::ZugtypSerialisiert,

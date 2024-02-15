@@ -8,6 +8,7 @@ use iced::{
 };
 use itertools::{Itertools, MinMaxResult};
 
+use zugkontrolle_gleise::knopf::{KlickQuelle, KnopfThema};
 use zugkontrolle_typen::{
     canvas::{
         pfad::{self, Bogen},
@@ -18,7 +19,7 @@ use zugkontrolle_typen::{
     winkel::{self},
 };
 
-use crate::{application::style::thema::Thema, gleise::knopf::KlickQuelle};
+use crate::application::style::thema::Thema;
 
 /// Mögliche Bewegungen.
 #[derive(Debug, Clone, Copy)]

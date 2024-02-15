@@ -9,7 +9,7 @@ use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::mm::Spurweite;
 use zugkontrolle_util::{eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt};
 
-use crate::gleise::daten::{
+use crate::daten::{
     v3::{
         gerade::GeradeUnit,
         kreuzung::KreuzungUnit,

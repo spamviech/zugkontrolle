@@ -27,22 +27,20 @@ use zugkontrolle_gleis::steuerung::{
     streckenabschnitt::Name as StreckenabschnittName,
 };
 use zugkontrolle_gleis::zugtyp::Zugtyp;
+use zugkontrolle_gleise::{daten::v2::BekannterZugtyp, Gleise};
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
 
-use crate::{
-    application::{
-        auswahl::AuswahlZustand,
-        bewegen::{Bewegen, Bewegung},
-        drehen::Drehen,
-        empfänger::Empfänger,
-        fonts::BENÖTIGTE_FONT_BYTES,
-        geschwindigkeit::LeiterAnzeige,
-        icon::icon,
-        modal::Overlay,
-        nachricht::Nachricht,
-        style::thema::Thema,
-    },
-    gleise::{daten::v2::BekannterZugtyp, Gleise},
+use crate::application::{
+    auswahl::AuswahlZustand,
+    bewegen::{Bewegen, Bewegung},
+    drehen::Drehen,
+    empfänger::Empfänger,
+    fonts::BENÖTIGTE_FONT_BYTES,
+    geschwindigkeit::LeiterAnzeige,
+    icon::icon,
+    modal::Overlay,
+    nachricht::Nachricht,
+    style::thema::Thema,
 };
 
 pub mod anschluss;

@@ -33,18 +33,16 @@ use zugkontrolle_gleis::steuerung::{
     geschwindigkeit::{self, Leiter},
     streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},
 };
+use zugkontrolle_gleise::Gleise;
 use zugkontrolle_typen::farbe::Farbe;
 use zugkontrolle_util::unicase_ord::UniCaseOrd;
 
-use crate::{
-    application::{
-        anschluss,
-        bootstrap::{Bootstrap, Icon},
-        farbwahl::Farbwahl,
-        map_mit_zustand::MapMitZustand,
-        modal, style,
-    },
-    gleise::Gleise,
+use crate::application::{
+    anschluss,
+    bootstrap::{Bootstrap, Icon},
+    farbwahl::Farbwahl,
+    map_mit_zustand::MapMitZustand,
+    modal, style,
 };
 
 /// Eine Nachricht des [`Anzeige`]-Widgets.

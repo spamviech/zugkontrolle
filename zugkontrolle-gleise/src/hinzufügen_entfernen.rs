@@ -13,9 +13,9 @@ use zugkontrolle_gleis::{
 };
 use zugkontrolle_typen::{canvas::Position, vektor::Vektor};
 
-use crate::gleise::{
+use crate::{
     daten::{
-        AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
+        AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler,
         SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
     },
     knopf::KlickQuelle,
@@ -31,26 +31,33 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Es wurde kein zur [`DefinitionId`](crate::gleise::id::DefinitionId) gehörende
     /// Definition gefunden, oder es war keine [`GleisId`](crate::gleise::id::GleisId)
     /// verfügbar.
-    pub(crate) fn hinzufügen(
+    pub fn hinzufügen(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
         position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<AnyId, HinzufügenFehler2> {
+    ) -> Result<AnyId, HinzufügenFehler> {
         self.zustand.hinzufügen(definition_steuerung, position, streckenabschnitt, einrasten)
     }
 
     /// Füge ein Gleis zur letzten bekannten Maus-Position,
     /// beschränkt durch die zuletzt bekannte Canvas-Größe hinzu.
-    pub(crate) fn hinzufügen_gehalten_bei_maus(
+    ///
+    /// Anmerkung: Das neue Gleis wird nur gehalten,
+    /// wenn sich die [`Gleise`]-Struktur aktuell im [`Modus::Bauen`] befindet.
+    ///
+    /// ## Errors
+    /// Es wurde kein zur [`DefinitionId`] gehörende Definition gefunden,
+    /// oder es war keine [`GleisId`] verfügbar.
+    pub fn hinzufügen_gehalten_bei_maus(
         &mut self,
         definition_steuerung: AnyDefinitionIdSteuerung,
         klick_quelle: KlickQuelle,
         halte_position: Vektor,
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
-    ) -> Result<AnyId, HinzufügenFehler2>
+    ) -> Result<AnyId, HinzufügenFehler>
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
@@ -113,7 +120,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// ## Errors
     ///
     /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
-    pub(in crate::gleise) fn entfernen(
+    pub(crate) fn entfernen(
         &mut self,
         gleis_id: impl Into<AnyId>,
     ) -> Result<AnyGleis, EntfernenFehler> {
@@ -125,7 +132,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// ## Errors
     ///
     /// Es wurde kein zur [`GleisId`](crate::gleise::id::GleisId) gehörendes Gleis gefunden.
-    pub(in crate::gleise) fn gehalten_bewegen(
+    pub(crate) fn gehalten_bewegen(
         &mut self,
         klick_quelle: &KlickQuelle,
         canvas_pos: Vektor,

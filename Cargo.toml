@@ -16,6 +16,7 @@ members = [
     "zugkontrolle-argumente",
     "zugkontrolle-typen",
     "zugkontrolle-gleis",
+    "zugkontrolle-gleise",
 ]
 resolver = "2"
 
@@ -55,10 +56,8 @@ zugkontrolle-argumente.workspace = true
 zugkontrolle-typen.workspace = true
 zugkontrolle-id.workspace = true
 zugkontrolle-gleis.workspace = true
-associated_list.workspace = true
+zugkontrolle-gleise.workspace = true
 async-io.workspace = true
-bincode.workspace = true
-either.workspace = true
 enum-iterator.workspace = true
 flexi_logger.workspace = true
 iced.workspace = true
@@ -73,7 +72,6 @@ log.workspace = true
 nonempty.workspace = true
 once_cell.workspace = true
 parking_lot.workspace = true
-rstar.workspace = true
 serde.workspace = true
 take_mut.workspace = true
 
@@ -92,6 +90,7 @@ embed-resource.workspace = true
 [dev-dependencies]
 zugkontrolle-test-util.workspace = true
 difference.workspace = true
+either.workspace = true
 
 [workspace.lints.rust]
 # Aktiviere alle Warnungen/Lints, außer: box_pointers, non_ascii_idents, unstable_features
@@ -280,6 +279,10 @@ version = "0.1.0"
 
 [workspace.dependencies.zugkontrolle-gleis]
 path = "zugkontrolle-gleis"
+version = "0.1.0"
+
+[workspace.dependencies.zugkontrolle-gleise]
+path = "zugkontrolle-gleise"
 version = "0.1.0"
 
 [workspace.dependencies.zugkontrolle-test-util]

@@ -10,11 +10,14 @@ use iced::{
     Theme,
 };
 use iced_aw::{card, number_input};
-use iced_widget::vertical_slider;
+use iced_widget::{canvas::Text, vertical_slider};
 use int_enum::IntEnum;
 
 use zugkontrolle_argumente::ThemaArgument;
+use zugkontrolle_gleise::knopf::KnopfThema;
 use zugkontrolle_typen::farbe::Farbe;
+
+use crate::application::fonts::standard_text;
 
 /// Unterstützte Graphik-Themen, sehr nah am built-in [`iced::Theme`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, IntEnum, Sequence)]
@@ -42,19 +45,19 @@ impl From<ThemaArgument> for Thema {
     }
 }
 
-impl Thema {
-    /// Die Farbe für generische Striche (z.B. Text).
-    #[must_use]
-    pub fn strich(&self) -> Farbe {
+impl KnopfThema for Thema {
+    fn standard_text(&self) -> Text {
+        standard_text()
+    }
+
+    fn strich(&self) -> Farbe {
         match self {
             Thema::Hell => Farbe { rot: 0., grün: 0., blau: 0. },
             Thema::Dunkel => Farbe { rot: 1., grün: 1., blau: 1. },
         }
     }
 
-    /// Die Farbe für Hintergrund eines Widgets.
-    #[must_use]
-    pub fn hintergrund(&self, aktiv: bool, in_bounds: bool) -> Farbe {
+    fn hintergrund(&self, aktiv: bool, in_bounds: bool) -> Farbe {
         let grey_value = match self {
             Thema::Hell if aktiv => 0.5,
             Thema::Hell if in_bounds => 0.7,

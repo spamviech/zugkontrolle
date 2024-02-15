@@ -25,7 +25,7 @@ use zugkontrolle_gleis::{
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::canvas::Position;
 
-use crate::gleise::daten::{
+use crate::daten::{
     v3::{
         gerade::GeradeSerialisiert,
         kreuzung::KreuzungSerialisiert,
@@ -273,10 +273,10 @@ impl GleiseDatenSerialisiert {
 }
 
 /// Serialisierbare Streckenabschnitte mit Name.
-pub(in crate::gleise::daten) type StreckenabschnittMapSerialisiert =
+pub(in crate::daten) type StreckenabschnittMapSerialisiert =
     HashMap<streckenabschnitt::Name, (StreckenabschnittSerialisiert, GleiseDatenSerialisiert)>;
 /// Serialisierbare Geschwindigkeiten mit Name.
-pub(in crate::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> = HashMap<
+pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> = HashMap<
     geschwindigkeit::Name,
     (GeschwindigkeitSerialisiert<LeiterSerialisiert>, StreckenabschnittMapSerialisiert),
 >;
@@ -292,7 +292,7 @@ pub(in crate::gleise::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisi
     serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize, S: Serialize",
     deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
-pub(in crate::gleise) struct ZustandSerialisiert<L: Leiter, S> {
+pub(crate) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
     pub(crate) zugtyp: ZugtypSerialisiert<L>,
     /// Gleise ohne einen assoziierten Streckenabschnitt.

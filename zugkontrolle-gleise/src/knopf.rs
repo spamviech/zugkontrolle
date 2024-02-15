@@ -10,7 +10,7 @@ use iced::{
             stroke::{self, Stroke},
             Canvas, Event, Geometry, Program, Text,
         },
-        container::Container,
+        container::{self, Container},
     },
     Element, Length, Point, Rectangle, Renderer,
 };
@@ -22,6 +22,7 @@ use zugkontrolle_typen::{
         pfad::{Pfad, Transformation},
         Cache,
     },
+    farbe::Farbe,
     mm::Spurweite,
     rechteck::Rechteck,
     skalar::Skalar,
@@ -29,10 +30,7 @@ use zugkontrolle_typen::{
     Zeichnen,
 };
 
-use crate::{
-    application::{fonts::standard_text, style::thema::Thema},
-    gleise::draw::bewege_an_position,
-};
+use crate::draw::bewege_an_position;
 
 /// Die Breite von Kontur-Linien des Gleises.
 const STROKE_WIDTH: Skalar = Skalar(1.5);
@@ -78,13 +76,14 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
 
     /// Erstelle ein [Widget](iced_native::Element), dass den [`Knopf`] anzeigt.
     #[must_use]
-    pub fn als_iced_widget<Nachricht>(
+    pub fn als_iced_widget<Nachricht, Thema>(
         self,
         breite: Option<f32>,
     ) -> impl Into<Element<'t, Nachricht, Renderer<Thema>>>
     where
         Nachricht: 'static,
-        GleisId<T>: KnopfNachricht<Nachricht>,
+        Thema: 't + container::StyleSheet,
+        Knopf<'t, T>: Program<Nachricht, Renderer<Thema>>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
@@ -94,7 +93,7 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
         #[allow(clippy::arithmetic_side_effects)]
         let höhe = (DOUBLE_PADDING_BORDER_WIDTH + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
-        let canvas = Canvas::new(self)
+        let canvas: Canvas<_, Nachricht, Renderer<Thema>> = Canvas::new(self)
             .width(Length::Fixed(breite.unwrap_or(standard_breite)))
             .height(Length::Fixed(höhe));
         Container::new(canvas).width(Length::Fill).height(Length::Shrink)
@@ -110,10 +109,12 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T, Nachricht> Program<Nachricht, Renderer<Thema>> for Knopf<'_, T>
+impl<T, Nachricht, Thema> Program<Nachricht, Renderer<Thema>> for Knopf<'_, T>
 where
     T: Zeichnen<()>,
-    GleisId<T>: KnopfNachricht<Nachricht>,
+    Nachricht: KnopfNachricht<GleisId<T>>,
+    Thema: Clone + Into<u8> + PartialEq + KnopfThema,
+    u8: TryInto<Thema>,
 {
     type State = Zustand;
 
@@ -211,7 +212,7 @@ where
                     frame.fill_text(Text {
                         content: String::from(content),
                         color: thema.strich().into(),
-                        ..standard_text()
+                        ..thema.standard_text()
                     });
                 });
             }
@@ -233,12 +234,16 @@ where
             bounds: Rectangle,
         ) -> (event::Status, Option<Nachricht>)
         where
-            GleisId<T>: KnopfNachricht<Nachricht>,
+            Nachricht: KnopfNachricht<GleisId<T>>,
         {
             if let Some(Point { x, y }) = cursor.position_in(bounds) {
                 (
                     event::Status::Captured,
-                    Some(definition.nachricht(klick_quelle, Vektor { x: Skalar(x), y: Skalar(y) })),
+                    Some(<Nachricht as KnopfNachricht<GleisId<T>>>::nachricht(
+                        definition,
+                        klick_quelle,
+                        Vektor { x: Skalar(x), y: Skalar(y) },
+                    )),
                 )
             } else {
                 (event::Status::Ignored, None)
@@ -283,7 +288,26 @@ pub enum KlickQuelle {
 // TODO Behandeln erfordert anpassen des public API.
 #[allow(clippy::module_name_repetitions)]
 /// Alle Funktionen eines [`Knopfes`](Knopf) werden unterstützt.
-pub trait KnopfNachricht<Nachricht> {
+pub trait KnopfNachricht<Definition> {
     /// Erzeuge eine Nachricht ausgehend der relativen Position wo der [`Knopf`] gedrückt wurde.
-    fn nachricht(&self, klick_quelle: KlickQuelle, klick_position: Vektor) -> Nachricht;
+    fn nachricht(
+        definition: &Definition,
+        klick_quelle: KlickQuelle,
+        klick_position: Vektor,
+    ) -> Self;
+}
+
+// TODO Behandeln erfordert anpassen des public API. Soll auch an sinnvolleren Ort verschoben werden.
+#[allow(clippy::module_name_repetitions)]
+/// Anforderung für ein Thema, damit es für einen [`Knopf`] unterstützt wird.
+pub trait KnopfThema {
+    /// Die Standard-Schriftart, Größe und Ausrichtung für Text auf einem Canvas.
+    #[must_use]
+    fn standard_text(&self) -> Text;
+    /// Die Farbe für Hintergrund eines Widgets.
+    #[must_use]
+    fn hintergrund(&self, aktiv: bool, hovered: bool) -> Farbe;
+    /// Die Farbe für generische Striche (z.B. Text).
+    #[must_use]
+    fn strich(&self) -> Farbe;
 }

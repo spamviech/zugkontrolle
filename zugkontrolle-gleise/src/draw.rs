@@ -20,11 +20,9 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    application::style::thema::Thema,
-    gleise::{
-        nachricht::{Gehalten, Nachricht},
-        Gleise, ModusDaten,
-    },
+    knopf::KnopfThema,
+    nachricht::{Gehalten, Nachricht},
+    Gleise, ModusDaten,
 };
 
 /// Führe die notwendigen [`Transformationen`](Transformation) aus,
@@ -40,7 +38,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     // TODO Behandeln erfordert Anpassen des public API
     #[allow(clippy::same_name_method)]
     /// [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
-    pub fn draw(
+    pub fn draw<Thema>(
         &self,
         _state: &<Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
         renderer: &Renderer<Thema>,
@@ -50,6 +48,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) -> Vec<Geometry>
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
+        Thema: Clone + Into<u8> + PartialEq + KnopfThema,
+        u8: TryInto<Thema>,
+        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Renderer<Thema>>,
     {
         let Gleise { canvas, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
@@ -98,6 +99,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     ist_gehalten,
                     thema.strich(),
                     self.skalieren,
+                    thema,
                 );
             },
         )]
