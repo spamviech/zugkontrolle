@@ -34,22 +34,20 @@ use nonempty::NonEmpty;
 
 use zugkontrolle_anschluss::{pin::pwm, polarität::Polarität, OutputSerialisiert};
 use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_gleis::steuerung::{
+    geschwindigkeit::{
+        Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
+        MittelleiterSerialisiert, Name, Zweileiter, ZweileiterSerialisiert,
+    },
+    plan::AktionGeschwindigkeit,
+};
 use zugkontrolle_util::{eingeschränkt::NichtNegativ, unicase_ord::UniCaseOrd};
 
-use crate::{
-    application::{
-        anschluss,
-        bootstrap::{Bootstrap, Icon},
-        map_mit_zustand::MapMitZustand,
-        style::{sammlung::Sammlung, tab_bar::TabBar},
-    },
-    steuerung::{
-        geschwindigkeit::{
-            Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter, Mittelleiter,
-            MittelleiterSerialisiert, Name, Zweileiter, ZweileiterSerialisiert,
-        },
-        plan::AktionGeschwindigkeit,
-    },
+use crate::application::{
+    anschluss,
+    bootstrap::{Bootstrap, Icon},
+    map_mit_zustand::MapMitZustand,
+    style::{sammlung::Sammlung, tab_bar::TabBar},
 };
 
 /// Versuche ein Element vom [`NonEmpty::tail`] zu entfernen.

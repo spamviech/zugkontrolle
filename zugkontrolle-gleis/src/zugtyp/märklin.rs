@@ -4,6 +4,7 @@ use std::{marker::PhantomData, time::Duration};
 
 use once_cell::sync::Lazy;
 
+use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::{
     mm::{Länge, Radius, Spurweite},
     winkel::WinkelGradmaß,
@@ -11,20 +12,18 @@ use zugkontrolle_typen::{
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
-    gleis::{
-        gerade::{Gerade, GeradeUnit},
-        kreuzung::{self, Kreuzung, KreuzungUnit},
-        kurve::{Kurve, KurveUnit},
-        weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{Weiche, WeicheUnit},
-            kurve::{KurvenWeiche, KurvenWeicheUnit},
-            orientierung::Orientierung,
-            s_kurve::SKurvenWeiche,
-        },
-    },
-    gleise::daten::de_serialisieren::erzeuge_zugtyp_maps,
+    erzeuge_zugtyp_maps,
+    gerade::{Gerade, GeradeUnit},
+    kreuzung::{self, Kreuzung, KreuzungUnit},
+    kurve::{Kurve, KurveUnit},
     steuerung::geschwindigkeit::Mittelleiter,
+    weiche::{
+        dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+        gerade::{Weiche, WeicheUnit},
+        kurve::{KurvenWeiche, KurvenWeicheUnit},
+        orientierung::Orientierung,
+        s_kurve::SKurvenWeiche,
+    },
     zugtyp::Zugtyp,
 };
 
@@ -70,6 +69,7 @@ static MÄRKLIN: Lazy<Zugtyp<Mittelleiter>> = Lazy::new(|| {
         kurven_weichen: KurvenWeiche | "Anzahl der Kurven-Weichen kann man an den Händen abzählen.",
         s_kurven_weichen: SKurvenWeiche | "Anzahl der S-Kurven-Weichen kann man an den Händen abzählen.",
         kreuzungen: Kreuzung | "Anzahl der Kreuzungen kann man an den Händen abzählen.",
+        : KeineIdVerfügbar
     );
     Zugtyp {
         name: String::from("Märklin"),

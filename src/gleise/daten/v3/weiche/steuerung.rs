@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::steuerung::weiche as v4;
+use zugkontrolle_gleis::steuerung::weiche as v4;
 
 /// Serialisierbare Repräsentation der Steuerung einer [`Weiche`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

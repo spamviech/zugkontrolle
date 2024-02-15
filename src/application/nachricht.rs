@@ -5,6 +5,26 @@ use std::{convert::identity, fmt::Debug, time::Instant};
 use iced::Command;
 
 use zugkontrolle_anschluss::OutputSerialisiert;
+use zugkontrolle_gleis::{
+    gerade::GeradeUnit,
+    id::{
+        mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert,
+    },
+    kreuzung::KreuzungUnit,
+    kurve::KurveUnit,
+    steuerung::{
+        aktualisieren::Aktualisieren,
+        geschwindigkeit::{GeschwindigkeitSerialisiert, Leiter, Name as GeschwindigkeitName},
+        plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
+        streckenabschnitt::Name as StreckenabschnittName,
+    },
+    weiche::{
+        dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+        gerade::WeicheUnit,
+        kurve::{KurvenWeiche, KurvenWeicheUnit},
+        s_kurve::SKurvenWeicheUnit,
+    },
+};
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel};
 
@@ -18,31 +38,11 @@ use crate::{
         style::Thema,
         weiche,
     },
-    gleis::{
-        gerade::GeradeUnit,
-        kreuzung::KreuzungUnit,
-        kurve::KurveUnit,
-        weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::WeicheUnit,
-            kurve::{KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::SKurvenWeicheUnit,
-        },
-    },
     gleise::{
         self,
-        id::{
-            mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId,
-            AnyIdSteuerungSerialisiert,
-        },
         knopf::{KlickQuelle, KnopfNachricht},
         nachricht::Nachricht as GleiseNachricht,
         Modus,
-    },
-    steuerung::{
-        geschwindigkeit::{GeschwindigkeitSerialisiert, Leiter, Name as GeschwindigkeitName},
-        plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
-        streckenabschnitt::Name as StreckenabschnittName,
     },
 };
 
@@ -316,8 +316,8 @@ impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S>
     }
 }
 
-impl<L: Leiter, S> From<gleise::steuerung::Aktualisieren> for Nachricht<L, S> {
-    fn from(_value: gleise::steuerung::Aktualisieren) -> Self {
+impl<L: Leiter, S> From<Aktualisieren> for Nachricht<L, S> {
+    fn from(_value: Aktualisieren) -> Self {
         Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true }
     }
 }

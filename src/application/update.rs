@@ -18,6 +18,14 @@ use zugkontrolle_anschluss::{
     polarität::Fließend,
     OutputSerialisiert,
 };
+use zugkontrolle_gleis::{
+    id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
+    steuerung::{
+        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        plan::{Ausführen, Einstellungen},
+        streckenabschnitt::{self, Streckenabschnitt},
+    },
+};
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor};
 
 use crate::{
@@ -28,13 +36,7 @@ use crate::{
     gleise::{
         self,
         daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
-        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
         knopf::KlickQuelle,
-    },
-    steuerung::{
-        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
-        plan::{Ausführen, Einstellungen},
-        streckenabschnitt::{self, Streckenabschnitt},
     },
 };
 

@@ -6,7 +6,4 @@
 #![recursion_limit = "256"]
 
 pub mod application;
-pub mod gleis;
 pub mod gleise;
-pub mod steuerung;
-pub mod zugtyp;

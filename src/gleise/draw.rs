@@ -10,6 +10,10 @@ use iced::{
 use nonempty::NonEmpty;
 
 use zugkontrolle_anschluss::polarität::Fließend;
+use zugkontrolle_gleis::{
+    id::AnyId,
+    steuerung::{aktualisieren::Aktualisieren, geschwindigkeit::Leiter},
+};
 use zugkontrolle_typen::{
     canvas::{pfad::Transformation, Frame, Position},
     Transparenz,
@@ -18,12 +22,9 @@ use zugkontrolle_typen::{
 use crate::{
     application::style::thema::Thema,
     gleise::{
-        self,
-        id::AnyId,
         nachricht::{Gehalten, Nachricht},
         Gleise, ModusDaten,
     },
-    steuerung::geschwindigkeit::Leiter,
 };
 
 /// Führe die notwendigen [`Transformationen`](Transformation) aus,
@@ -48,7 +49,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         _cursor: Cursor,
     ) -> Vec<Geometry>
     where
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
         let Gleise { canvas, modus, .. } = self;
         // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)

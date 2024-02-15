@@ -1,16 +1,16 @@
-//! Steuerungs-Struktur eines Gleises, die bei [`drop`](Drop::drop) ein Neuzeichnen des
-//! [`Canvas`](iced::widget::canvas::Canvas) erzwingt.
+//! Hilfs-Struktur, die bei [`AsMut`]-Zugriff eine [`Aktualisieren`]-Nachricht erzeugt.
 
 use log::error;
 
 use zugkontrolle_util::erstelle_sender_trait_existential;
 
 use crate::{
-    gleis,
+    gerade, kreuzung, kurve,
     steuerung::{
         self,
         kontakt::{Kontakt, KontaktSerialisiert},
     },
+    weiche,
 };
 
 /// Es gab eine Änderung, die Anzeige muss aktualisiert werden.
@@ -133,7 +133,7 @@ pub trait MitSteuerung {
     fn steuerung(&self) -> &Self::Steuerung;
 
     /// Erzeuge eine [Steuerung]-Struktur, die bei [`Veränderung`](AsMut::as_mut)
-    /// ein [Neuzeichnen des Canvas](crate::typen::canvas::Cache::leeren) auslöst.
+    /// eine [`Aktualisieren`]-Nachricht erzeugt.
     fn steuerung_mut(
         &mut self,
         sender: impl 'static + AktualisierenSender,
@@ -172,25 +172,25 @@ type OptionWeicheSerialisiert<Richtung, AnschlüsseSerialisiert> =
 
 /// Spezialisierung von [`impl_mit_steuerung`] für Weichen.
 macro_rules! impl_mit_steuerung_weiche {
-    (gleis $(:: $pfad: ident)*, $type: ident $(,)?) => {
+    ($($pfad: ident)::*, $type: ident $(,)?) => {
         impl_mit_steuerung! {
-            gleis $(:: $pfad)* :: $type,
-            OptionWeiche<gleis$(:: $pfad)*::Richtung, gleis$(:: $pfad)*::RichtungAnschlüsse>,
-            OptionWeicheSerialisiert<gleis$(:: $pfad)*::Richtung, gleis$(:: $pfad)*::RichtungAnschlüsseSerialisiert>,
+            $($pfad::)* $type,
+            OptionWeiche<$($pfad ::)* Richtung, $($pfad ::)* RichtungAnschlüsse>,
+            OptionWeicheSerialisiert<$($pfad ::)* Richtung, $($pfad ::)* RichtungAnschlüsseSerialisiert>,
             steuerung,
         }
     }
 }
 
-impl_mit_steuerung! {gleis::gerade::Gerade, Option<Kontakt>, Option<KontaktSerialisiert>, kontakt}
-impl_mit_steuerung! {gleis::kurve::Kurve, Option<Kontakt>, Option<KontaktSerialisiert>, kontakt}
-impl_mit_steuerung_weiche! {gleis::weiche::gerade, Weiche}
+impl_mit_steuerung! {gerade::Gerade, Option<Kontakt>, Option<KontaktSerialisiert>, kontakt}
+impl_mit_steuerung! {kurve::Kurve, Option<Kontakt>, Option<KontaktSerialisiert>, kontakt}
+impl_mit_steuerung_weiche! {weiche::gerade, Weiche}
 impl_mit_steuerung! {
-    gleis::weiche::dreiwege::DreiwegeWeiche,
-    OptionWeiche<gleis::weiche::dreiwege::RichtungInformation, gleis::weiche::dreiwege::RichtungAnschlüsse>,
-    OptionWeicheSerialisiert<gleis::weiche::dreiwege::RichtungInformation, gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert>,
+    weiche::dreiwege::DreiwegeWeiche,
+    OptionWeiche<weiche::dreiwege::RichtungInformation, weiche::dreiwege::RichtungAnschlüsse>,
+    OptionWeicheSerialisiert<weiche::dreiwege::RichtungInformation, weiche::dreiwege::RichtungAnschlüsseSerialisiert>,
     steuerung,
 }
-impl_mit_steuerung_weiche! {gleis::weiche::kurve, KurvenWeiche}
-impl_mit_steuerung_weiche! {gleis::weiche::s_kurve, SKurvenWeiche}
-impl_mit_steuerung_weiche! {gleis::kreuzung, Kreuzung}
+impl_mit_steuerung_weiche! {weiche::kurve, KurvenWeiche}
+impl_mit_steuerung_weiche! {weiche::s_kurve, SKurvenWeiche}
+impl_mit_steuerung_weiche! {kreuzung, Kreuzung}

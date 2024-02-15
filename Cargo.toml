@@ -15,6 +15,7 @@ members = [
     "zugkontrolle-util",
     "zugkontrolle-argumente",
     "zugkontrolle-typen",
+    "zugkontrolle-gleis",
 ]
 resolver = "2"
 
@@ -44,6 +45,53 @@ raspi = ["rppal"]
 
 [lints]
 workspace = true
+
+# dependencies
+[dependencies]
+zugkontrolle-macros.workspace = true
+zugkontrolle-util.workspace = true
+zugkontrolle-anschluss.workspace = true
+zugkontrolle-argumente.workspace = true
+zugkontrolle-typen.workspace = true
+zugkontrolle-id.workspace = true
+zugkontrolle-gleis.workspace = true
+associated_list.workspace = true
+async-io.workspace = true
+bincode.workspace = true
+either.workspace = true
+enum-iterator.workspace = true
+flexi_logger.workspace = true
+iced.workspace = true
+iced_core.workspace = true
+iced_futures.workspace = true
+iced_widget.workspace = true
+iced_aw.workspace = true
+int-enum.workspace = true
+itertools.workspace = true
+kommandozeilen_argumente.workspace = true
+log.workspace = true
+nonempty.workspace = true
+once_cell.workspace = true
+parking_lot.workspace = true
+rstar.workspace = true
+serde.workspace = true
+take_mut.workspace = true
+
+# can't be used on non-raspi systems
+[dependencies.rppal]
+workspace = true
+optional = true
+
+#[dependencies.libcamera]
+#workspace = true
+#optional = true
+
+[build-dependencies]
+embed-resource.workspace = true
+
+[dev-dependencies]
+zugkontrolle-test-util.workspace = true
+difference.workspace = true
 
 [workspace.lints.rust]
 # Aktiviere alle Warnungen/Lints, außer: box_pointers, non_ascii_idents, unstable_features
@@ -201,53 +249,6 @@ use_debug = "allow"                      # TODO wird aktuell für die meisten Fe
 verbose_file_reads = "warn"
 wildcard_enum_match_arm = "warn"
 
-# dependencies
-[dependencies]
-zugkontrolle-macros.workspace = true
-zugkontrolle-util.workspace = true
-zugkontrolle-anschluss.workspace = true
-zugkontrolle-argumente.workspace = true
-zugkontrolle-typen.workspace = true
-zugkontrolle-id.workspace = true
-associated_list.workspace = true
-async-io.workspace = true
-bincode.workspace = true
-dyn-clonable.workspace = true
-either.workspace = true
-enum-iterator.workspace = true
-flexi_logger.workspace = true
-iced.workspace = true
-iced_core.workspace = true
-iced_futures.workspace = true
-iced_widget.workspace = true
-iced_aw.workspace = true
-int-enum.workspace = true
-itertools.workspace = true
-kommandozeilen_argumente.workspace = true
-log.workspace = true
-nonempty.workspace = true
-once_cell.workspace = true
-parking_lot.workspace = true
-rstar.workspace = true
-serde.workspace = true
-take_mut.workspace = true
-
-# can't be used on non-raspi systems
-[dependencies.rppal]
-workspace = true
-optional = true
-
-#[dependencies.libcamera]
-#workspace = true
-#optional = true
-
-[build-dependencies]
-embed-resource.workspace = true
-
-[dev-dependencies]
-zugkontrolle-test-util.workspace = true
-difference.workspace = true
-
 # workspace dependencies
 [workspace.dependencies.zugkontrolle-macros]
 path = "zugkontrolle-macros"
@@ -271,6 +272,14 @@ version = "0.1.0"
 
 [workspace.dependencies.zugkontrolle-id]
 path = "zugkontrolle-id"
+version = "0.1.0"
+
+[workspace.dependencies.zugkontrolle-steuerung]
+path = "zugkontrolle-steuerung"
+version = "0.1.0"
+
+[workspace.dependencies.zugkontrolle-gleis]
+path = "zugkontrolle-gleis"
 version = "0.1.0"
 
 [workspace.dependencies.zugkontrolle-test-util]

@@ -77,7 +77,7 @@ impl Streckenabschnitt {
     /// Erhalte Zugriff auf den [`Anschluss`](crate::anschluss::Anschluss) zur Steuerung des Streckenabschnittes.
     ///
     /// Blockiert, bis der Zugriff erhalten wurde.
-    pub(crate) fn lock_anschluss(&self) -> MutexGuard<'_, OutputAnschluss> {
+    pub fn lock_anschluss(&self) -> MutexGuard<'_, OutputAnschluss> {
         self.anschluss.lock()
     }
 }

@@ -23,14 +23,12 @@ use iced_widget::{
 
 use zugkontrolle_anschluss::{pcf8574::Lager, trigger::Trigger, InputSerialisiert};
 use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_gleis::steuerung::kontakt::{KontaktSerialisiert, Name};
 
-use crate::{
-    application::{
-        anschluss::{self, make_radios},
-        map_mit_zustand::MapMitZustand,
-        style::{sammlung::Sammlung, tab_bar::TabBar},
-    },
-    steuerung::kontakt::{KontaktSerialisiert, Name},
+use crate::application::{
+    anschluss::{self, make_radios},
+    map_mit_zustand::MapMitZustand,
+    style::{sammlung::Sammlung, tab_bar::TabBar},
 };
 
 /// Zustand eines Widgets zur [`Auswahl`] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).

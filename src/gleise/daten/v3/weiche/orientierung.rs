@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::weiche::orientierung as v4;
+use zugkontrolle_gleis::weiche::orientierung as v4;
 
 /// Die Orientierung einer [`Weiche`], in welche Richtung geht die Kurve.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

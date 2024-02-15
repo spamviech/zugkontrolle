@@ -18,14 +18,14 @@ use zugkontrolle_typen::nachschlagen::Nachschlagen;
 use zugkontrolle_util::eingeschränkt::NichtNegativ;
 
 use crate::{
-    gleis::weiche,
-    gleise::{self, steuerung::Steuerung},
     steuerung::{
+        aktualisieren::{Aktualisieren, Steuerung},
         geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
     },
+    weiche,
     zugtyp::Zugtyp,
 };
 
@@ -359,7 +359,7 @@ impl<L: Leiter, S: Eq + Hash> PlanSerialisiert<L, S> {
     /// ## Errors
     ///
     /// Fehler beim [`Deserialisieren`](Aktion::deserialisiere) einer [`Aktion`].
-    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
+    pub fn deserialisiere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
         bekannte_steuerungen: &SteuerungMaps<L, S>,
         sender: &Sender<Nachricht>,
@@ -487,7 +487,7 @@ impl<L: Leiter, S: Eq + Hash> AktionSerialisiert<L, S> {
     /// ## Errors
     ///
     /// Fehler beim Deserialisieren der Aktion.
-    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
+    pub fn deserialisiere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
         bekannte_steuerungen: &SteuerungMaps<L, S>,
         sender: Sender<Nachricht>,
@@ -803,7 +803,7 @@ impl AktionStreckenabschnittSerialisiert {
     /// ## Errors
     ///
     /// Der Streckenabschnitt der Aktion ist nicht bekannt.
-    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
+    pub fn deserialisiere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
         bekannte_streckenabschnitte: &HashMap<OutputSerialisiert, Streckenabschnitt>,
         sender: Sender<Nachricht>,
@@ -915,7 +915,7 @@ impl AnyAktionSchaltenSerialisiert {
     /// ## Errors
     ///
     /// Die Weiche der Aktion ist nicht bekannt.
-    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
+    pub fn deserialisiere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
         gerade_weichen: &HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
         kurven_weichen: &HashMap<KurvenWeicheSerialisiert, KurvenWeiche>,
@@ -1012,7 +1012,7 @@ impl<S, Richtung> AktionSchalten<S, Richtung> {
     where
         S: Eq + Hash,
         Weiche: Clone,
-        Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        Nachricht: 'static + From<Aktualisieren> + Send,
     {
         let AktionSchalten { weiche, richtung } = self;
         let weiche = bekannte_weichen.get(&weiche).ok_or(UnbekannteWeiche(weiche))?.clone();
@@ -1078,7 +1078,7 @@ impl AktionWartenSerialisiert {
     /// ## Errors
     ///
     /// Der Kontakt] der Aktion ist nicht bekannt.
-    pub fn deserialisiere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
+    pub fn deserialisiere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
         kontakte: &HashMap<KontaktSerialisiert, Kontakt>,
         sender: Sender<Nachricht>,

@@ -22,6 +22,11 @@ use zugkontrolle_anschluss::{
     InitFehler, Lager,
 };
 use zugkontrolle_argumente::{Argumente, I2cSettings, ZugtypArgument};
+use zugkontrolle_gleis::steuerung::{
+    geschwindigkeit::{BekannterLeiter, Leiter},
+    streckenabschnitt::Name as StreckenabschnittName,
+};
+use zugkontrolle_gleis::zugtyp::Zugtyp;
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
 
 use crate::{
@@ -38,11 +43,6 @@ use crate::{
         style::thema::Thema,
     },
     gleise::{daten::v2::BekannterZugtyp, Gleise},
-    steuerung::{
-        geschwindigkeit::{BekannterLeiter, Leiter},
-        streckenabschnitt::Name as StreckenabschnittName,
-    },
-    zugtyp::Zugtyp,
 };
 
 pub mod anschluss;

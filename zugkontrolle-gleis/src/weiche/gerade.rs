@@ -22,8 +22,9 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    gleis::{gerade, kurve, weiche::orientierung::Orientierung},
+    gerade, kurve,
     steuerung::{self, weiche::MitRichtung},
+    weiche::orientierung::Orientierung,
 };
 
 /// Steuerung einer [`Weiche`].

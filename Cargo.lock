@@ -3869,7 +3869,6 @@ dependencies = [
  "async-io",
  "bincode",
  "difference",
- "dyn-clonable",
  "either",
  "embed-resource",
  "enum-iterator",
@@ -3892,6 +3891,7 @@ dependencies = [
  "take_mut",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
+ "zugkontrolle-gleis",
  "zugkontrolle-id",
  "zugkontrolle-macros",
  "zugkontrolle-test-util",
@@ -3925,6 +3925,24 @@ version = "0.1.0"
 dependencies = [
  "kommandozeilen_argumente",
  "zugkontrolle-typen",
+]
+
+[[package]]
+name = "zugkontrolle-gleis"
+version = "0.1.0"
+dependencies = [
+ "dyn-clonable",
+ "either",
+ "log",
+ "nonempty 0.9.0",
+ "once_cell",
+ "parking_lot 0.12.1",
+ "serde",
+ "zugkontrolle-anschluss",
+ "zugkontrolle-id",
+ "zugkontrolle-macros",
+ "zugkontrolle-typen",
+ "zugkontrolle-util",
 ]
 
 [[package]]

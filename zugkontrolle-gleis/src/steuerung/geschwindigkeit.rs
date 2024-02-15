@@ -806,7 +806,8 @@ impl Geschwindigkeit<Mittelleiter> {
     }
 
     /// Wie viele Anschlüsse zum einstellen der Geschwindigkeit wurden konfiguriert?
-    pub(crate) fn ks_länge(&self) -> Option<usize> {
+    #[must_use]
+    pub fn ks_länge(&self) -> Option<usize> {
         match &*self.lock_leiter() {
             Mittelleiter::Pwm { .. } => None,
             Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
@@ -1151,7 +1152,8 @@ impl Geschwindigkeit<Zweileiter> {
     }
 
     /// Anzahl der konfigurierten [`Anschlüsse`](crate::anschluss::Anschluss) zum einstellen der Geschwindigkeit.
-    pub(crate) fn ks_länge(&self) -> Option<usize> {
+    #[must_use]
+    pub fn ks_länge(&self) -> Option<usize> {
         match &*self.lock_leiter() {
             Zweileiter::Pwm { .. } => None,
             Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),

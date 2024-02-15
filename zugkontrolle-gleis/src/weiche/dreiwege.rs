@@ -22,7 +22,7 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    gleis::{gerade, kurve},
+    gerade, kurve,
     steuerung::{
         self,
         weiche::{MitRichtung, WeicheSteuerung},

@@ -15,25 +15,26 @@ use iced::{
 use log::{debug, error, info, trace, warn};
 use nonempty::{nonempty, NonEmpty};
 
+use zugkontrolle_gleis::{
+    id::AnyIdSteuerung,
+    steuerung::{
+        aktualisieren::{Aktualisieren, Steuerung},
+        geschwindigkeit::Leiter,
+        plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
+        streckenabschnitt::Streckenabschnitt,
+    },
+    weiche,
+};
 use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel};
 
 use crate::{
     application::style::thema::Thema,
-    gleis::weiche,
     gleise::{
-        self,
         daten::{
             AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition, Zustand,
         },
-        id::AnyIdSteuerung,
         nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
-        steuerung::Steuerung,
         Gleise, KlickQuelle, ModusDaten,
-    },
-    steuerung::{
-        geschwindigkeit::Leiter,
-        plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
-        streckenabschnitt::Streckenabschnitt,
     },
 };
 
@@ -103,7 +104,7 @@ fn aktion_fahren<AktualisierenNachricht>(
     sender: Sender<AktualisierenNachricht>,
 ) -> Option<Nachricht>
 where
-    AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
 {
     use AnyIdSteuerung::{
         DreiwegeWeiche, Gerade, Kreuzung, Kurve, KurvenWeiche, SKurvenWeiche, Weiche,
@@ -212,7 +213,7 @@ fn aktion_gleis_an_position<L, AktualisierenNachricht>(
 ) -> (event::Status, Vec<Nachricht>)
 where
     L: Leiter,
-    AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+    AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
 {
     let mut nachrichten = Vec::new();
     let mut status = event::Status::Ignored;
@@ -294,7 +295,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         event_status: &mut event::Status,
         messages: &mut NonEmpty<Nachricht>,
     ) where
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
         let Gleise { zustand, pivot, skalieren, modus, sender, .. } = self;
         let (status, nachrichten) = aktion_gleis_an_position(
@@ -388,7 +389,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         cursor: Cursor,
     ) -> (event::Status, Option<NonEmpty<Nachricht>>)
     where
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
         let mut event_status = event::Status::Ignored;
         let mut messages =

@@ -24,13 +24,11 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    gleis::{gerade, kurve},
+    gerade, kurve,
     steuerung::{self, weiche::MitRichtung},
 };
 
-pub use crate::gleis::weiche::gerade::{
-    Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,
-};
+pub use crate::weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert};
 
 /// Die Steuerung einer [`Kreuzung`].
 type Steuerung = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;

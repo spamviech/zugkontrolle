@@ -4,6 +4,7 @@ use std::{f32::consts::PI, marker::PhantomData, time::Duration};
 
 use once_cell::sync::Lazy;
 
+use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::{
     mm::{Länge, Radius, Spurweite},
     winkel::Winkel,
@@ -11,20 +12,18 @@ use zugkontrolle_typen::{
 use zugkontrolle_util::eingeschränkt::NichtNegativ;
 
 use crate::{
-    gleis::{
-        gerade::{Gerade, GeradeUnit},
-        kreuzung::{self, Kreuzung, KreuzungUnit},
-        kurve::{Kurve, KurveUnit},
-        weiche::{
-            dreiwege::DreiwegeWeiche,
-            gerade::Weiche,
-            kurve::KurvenWeiche,
-            orientierung::Orientierung,
-            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
-        },
-    },
-    gleise::daten::de_serialisieren::erzeuge_zugtyp_maps,
+    erzeuge_zugtyp_maps,
+    gerade::{Gerade, GeradeUnit},
+    kreuzung::{self, Kreuzung, KreuzungUnit},
+    kurve::{Kurve, KurveUnit},
     steuerung::geschwindigkeit::Zweileiter,
+    weiche::{
+        dreiwege::DreiwegeWeiche,
+        gerade::Weiche,
+        kurve::KurvenWeiche,
+        orientierung::Orientierung,
+        s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+    },
     zugtyp::Zugtyp,
 };
 
@@ -45,6 +44,7 @@ static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
         kurven_weichen: KurvenWeiche | "Anzahl der Kurven-Weichen kann man an den Händen abzählen.",
         s_kurven_weichen: SKurvenWeiche | "Anzahl der S-Kurven-Weichen kann man an den Händen abzählen.",
         kreuzungen: Kreuzung | "Anzahl der Kreuzungen kann man an den Händen abzählen.",
+        : KeineIdVerfügbar
     );
     Zugtyp {
         name: String::from("Lego"),

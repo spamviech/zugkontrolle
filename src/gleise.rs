@@ -11,6 +11,12 @@ use iced::{
 use nonempty::NonEmpty;
 
 use zugkontrolle_argumente::ModusArgument;
+use zugkontrolle_gleis::steuerung::{
+    aktualisieren::Aktualisieren,
+    geschwindigkeit::{self, Geschwindigkeit, Leiter},
+    streckenabschnitt::{self, Streckenabschnitt},
+};
+use zugkontrolle_gleis::zugtyp::Zugtyp;
 use zugkontrolle_typen::{
     canvas::{Cache, Position},
     mm::Spurweite,
@@ -26,21 +32,14 @@ use crate::{
         knopf::KlickQuelle,
         nachricht::{Gehalten, Nachricht},
     },
-    steuerung::{
-        geschwindigkeit::{self, Geschwindigkeit, Leiter},
-        streckenabschnitt::{self, Streckenabschnitt},
-    },
-    zugtyp::Zugtyp,
 };
 
 pub mod daten;
 pub mod draw;
 #[path = "gleise/hinzufügen_entfernen.rs"]
 pub mod hinzufügen_entfernen;
-pub mod id;
 pub mod knopf;
 pub mod nachricht;
-pub mod steuerung;
 pub mod update;
 
 #[zugkontrolle_macros::erstelle_enum(pub, Modus)]
@@ -391,7 +390,7 @@ impl<L, AktualisierenNachricht> Program<NonEmpty<Nachricht>, Renderer<Thema>>
     for Gleise<L, AktualisierenNachricht>
 where
     L: Leiter,
-    AktualisierenNachricht: 'static + From<steuerung::Aktualisieren> + Send,
+    AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
 {
     type State = ();
 

@@ -16,6 +16,18 @@ use itertools::Itertools;
 use log::debug;
 
 use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
+use zugkontrolle_gleis::{
+    gerade::Gerade,
+    id::{AnyDefinitionId, DefinitionId},
+    kreuzung::Kreuzung,
+    kurve::Kurve,
+    steuerung::aktualisieren::MitSteuerung,
+    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
+    weiche::{
+        dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+    },
+    zugtyp::DefinitionMap,
+};
 use zugkontrolle_typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen};
 
 use crate::{
@@ -31,22 +43,10 @@ use crate::{
         style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
         MessageBox, Zugkontrolle,
     },
-    gleis::{
-        gerade::Gerade,
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
-    },
     gleise::{
-        id::{AnyDefinitionId, DefinitionId},
         knopf::{KlickQuelle, Knopf},
-        steuerung::MitSteuerung,
         Gleise, Modus,
     },
-    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
-    zugtyp::DefinitionMap,
 };
 
 /// Ein Widget, dessen Nachricht sich in einen [`Nachricht`] konvertieren lässt.

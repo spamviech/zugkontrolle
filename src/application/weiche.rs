@@ -26,15 +26,13 @@ use iced_widget::{
 
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_gleis::steuerung::weiche::{Name, WeicheSerialisiert};
 use zugkontrolle_typen::nachschlagen::Nachschlagen;
 
-use crate::{
-    application::{
-        anschluss,
-        map_mit_zustand::MapMitZustand,
-        style::{sammlung::Sammlung, tab_bar::TabBar},
-    },
-    steuerung::weiche::{Name, WeicheSerialisiert},
+use crate::application::{
+    anschluss,
+    map_mit_zustand::MapMitZustand,
+    style::{sammlung::Sammlung, tab_bar::TabBar},
 };
 
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).

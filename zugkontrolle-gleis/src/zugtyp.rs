@@ -1,21 +1,22 @@
 //! Alle Eigenschaften und bekannte Gleise für einen [`Zugtyp`].
 
+// only way to export macros from a module
+#![allow(clippy::pub_use)]
+
 use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
 use zugkontrolle_typen::mm::Spurweite;
 use zugkontrolle_util::eingeschränkt::NichtNegativ;
 
 use crate::{
-    gleis::{
-        gerade::Gerade,
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
+    gerade::Gerade,
+    id::DefinitionId,
+    kreuzung::Kreuzung,
+    kurve::Kurve,
+    steuerung::{aktualisieren::MitSteuerung, geschwindigkeit::Leiter},
+    weiche::{
+        dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
     },
-    gleise::{id::DefinitionId, steuerung::MitSteuerung},
-    steuerung::geschwindigkeit::Leiter,
 };
 
 pub mod lego;
@@ -24,7 +25,7 @@ pub mod lego;
 pub mod märklin;
 
 /// Die Definitionen für den Typ `T`.
-pub(crate) type DefinitionMap<T> = HashMap<DefinitionId<T>, <T as MitSteuerung>::SelfUnit>;
+pub type DefinitionMap<T> = HashMap<DefinitionId<T>, <T as MitSteuerung>::SelfUnit>;
 
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
@@ -62,3 +63,39 @@ pub struct Zugtyp<L: Leiter> {
     /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
     pub schalten_zeit: Duration,
 }
+
+#[macro_export]
+/// Erzeuge Maps mit [`DefinitionId`] für die Definitionen.
+macro_rules! erzeuge_zugtyp_maps {
+    ($id_maps: expr => $($gleise: ident : $typ: ty),* $(,)?) => {
+        $(
+        #[allow(unused_qualifications)]
+        let ($gleise, ids) = $gleise
+            .into_iter()
+            .fold(
+                Ok((HashMap::new(), HashMap::new())),
+                |acc, (gespeicherte_id, definition)| -> Result<_, ZugtypDeserialisierenFehler> {
+                    if let Ok((mut gleise, mut ids)) = acc {
+                        let id = $crate::id::DefinitionId::<$typ>::neu()?;
+                        // gespeicherte_id ist eindeutig, da es der Schlüssel einer HashMap war
+                        let _ = ids.insert(gespeicherte_id, id.clone());
+                        // id ist eindeutig, da es von GleisId::neu garantiert wird
+                        let _ = gleise.insert(id, definition);
+                        Ok((gleise, ids))
+                    } else {
+                        acc
+                    }
+                }
+            )?;
+        $id_maps.$gleise = ids;
+        )*
+    };
+    ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)? : $error: ty) => {$(
+        #[allow(unused_qualifications)]
+        let $gleise = $gleise
+            .into_iter()
+            .map(|definition| Ok(($crate::id::DefinitionId::<$typ>::neu()?, definition)) )
+            .collect::< Result<$crate::zugtyp::DefinitionMap<$typ>, $error>>().expect($expect_msg);
+    )*};
+}
+pub use crate::erzeuge_zugtyp_maps;

@@ -26,6 +26,25 @@ use zugkontrolle_anschluss::{
     polarität::Fließend,
     Fehler, Lager,
 };
+use zugkontrolle_gleis::{
+    gerade::Gerade,
+    id::{
+        erzeuge_any_enum, mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung,
+        AnyGleisDefinitionId, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert, DefinitionId,
+    },
+    kreuzung::Kreuzung,
+    kurve::Kurve,
+    steuerung::{
+        aktualisieren::{MitSteuerung, SomeAktualisierenSender},
+        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        plan::{self, Plan},
+        streckenabschnitt::{self, Streckenabschnitt},
+    },
+    weiche::{
+        dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+    },
+    zugtyp::Zugtyp,
+};
 use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
 use zugkontrolle_typen::{
     canvas::{
@@ -43,30 +62,7 @@ use zugkontrolle_typen::{
     Transparenz, Zeichnen,
 };
 
-use crate::{
-    application::fonts::standard_text,
-    gleis::{
-        gerade::Gerade,
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
-    },
-    gleise::{
-        id::{
-            erzeuge_any_enum, mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung,
-            AnyGleisDefinitionId, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert, DefinitionId,
-        },
-        steuerung::{MitSteuerung, SomeAktualisierenSender},
-    },
-    steuerung::{
-        geschwindigkeit::{self, Geschwindigkeit, Leiter},
-        plan::{self, Plan},
-        streckenabschnitt::{self, Streckenabschnitt},
-    },
-    zugtyp::Zugtyp,
-};
+use crate::application::fonts::standard_text;
 
 use self::v4::GleisSerialisiert;
 

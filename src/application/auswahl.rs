@@ -6,6 +6,19 @@ use iced::{Element, Renderer};
 
 use zugkontrolle_anschluss::{de_serialisieren::Serialisiere, pcf8574::Lager};
 use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_gleis::id::AnyIdSteuerungSerialisiert;
+use zugkontrolle_gleis::{
+    gerade::Gerade,
+    kreuzung::Kreuzung,
+    kurve::Kurve,
+    steuerung::{
+        self, geschwindigkeit::GeschwindigkeitSerialisiert, kontakt::KontaktSerialisiert,
+        streckenabschnitt::StreckenabschnittSerialisiert,
+    },
+    weiche::{
+        dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+    },
+};
 use zugkontrolle_id::GleisId;
 
 use crate::{
@@ -17,20 +30,7 @@ use crate::{
         style::{sammlung::Sammlung, thema::Thema},
         weiche,
     },
-    gleis::{
-        self,
-        gerade::Gerade,
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
-    },
-    gleise::{id::AnyIdSteuerungSerialisiert, Gleise},
-    steuerung::{
-        self, geschwindigkeit::GeschwindigkeitSerialisiert, kontakt::KontaktSerialisiert,
-        streckenabschnitt::StreckenabschnittSerialisiert,
-    },
+    gleise::Gleise,
 };
 
 use super::kontakt;
@@ -56,20 +56,23 @@ pub enum WeichenId {
 }
 
 // Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
+#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`Weiche`], [`SKurvenWeiche`] oder [`Kreuzung`].
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::gerade::Richtung,
-    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+    zugkontrolle_gleis::weiche::gerade::Richtung,
+    zugkontrolle_gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
+#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`DreiwegeWeiche`].
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::dreiwege::RichtungInformation,
-    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+    zugkontrolle_gleis::weiche::dreiwege::RichtungInformation,
+    zugkontrolle_gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
+#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`KurvenWeiche`].
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
-    gleis::weiche::kurve::Richtung,
-    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+    zugkontrolle_gleis::weiche::kurve::Richtung,
+    zugkontrolle_gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
 // Beheben benötigt Änderung des public API.
@@ -133,22 +136,25 @@ impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
     }
 }
 
+#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// `AuswahlNachricht` für die Steuerung einer [Weiche], [Kreuzung] und [`SKurvenWeiche`].
 pub(in crate::application) type WeicheNachricht = weiche::Nachricht<
-    gleis::weiche::gerade::Richtung,
-    gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
+    zugkontrolle_gleis::weiche::gerade::Richtung,
+    zugkontrolle_gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
+#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// `AuswahlNachricht` für die Steuerung einer [`DreiwegeWeiche`].
 pub(in crate::application) type DreiwegeWeicheNachricht = weiche::Nachricht<
-    gleis::weiche::dreiwege::RichtungInformation,
-    gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
+    zugkontrolle_gleis::weiche::dreiwege::RichtungInformation,
+    zugkontrolle_gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
+#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// `AuswahlNachricht` für die Steuerung einer [`KurvenWeiche`].
 pub(in crate::application) type KurvenWeicheNachricht = weiche::Nachricht<
-    gleis::weiche::kurve::Richtung,
-    gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
+    zugkontrolle_gleis::weiche::kurve::Richtung,
+    zugkontrolle_gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
 impl<S> AuswahlZustand<S> {

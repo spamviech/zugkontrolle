@@ -19,37 +19,32 @@ use zugkontrolle_anschluss::{
     pin::{self, input},
     Lager,
 };
-use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
-use zugkontrolle_typen::{mm::Spurweite, Zeichnen};
-
-use crate::{
-    gleis::{
-        gerade::Gerade,
-        kreuzung::Kreuzung,
-        kurve::Kurve,
-        weiche::{
-            dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
-        },
-    },
-    gleise::{
-        self,
-        daten::{
-            v2::{self, BekannterZugtyp},
-            v3::{self},
-            v4::{
-                GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert, ZustandSerialisiert,
-            },
-            GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
-        },
-        id::{AnyDefinitionId, AnyGleisDefinitionId, DefinitionId},
-        steuerung::{MitSteuerung, SomeAktualisierenSender},
-        Fehler, Gleise,
-    },
+use zugkontrolle_gleis::{
+    gerade::Gerade,
+    id::{AnyDefinitionId, AnyGleisDefinitionId, DefinitionId},
+    kreuzung::Kreuzung,
+    kurve::Kurve,
     steuerung::{
+        aktualisieren::{Aktualisieren, MitSteuerung, SomeAktualisierenSender},
         geschwindigkeit::{BekannterLeiter, Leiter},
         plan::{self, SteuerungMaps, UnbekannteAnschlüsse},
     },
+    weiche::{
+        dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
+    },
     zugtyp::{DefinitionMap, Zugtyp},
+};
+use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
+use zugkontrolle_typen::{mm::Spurweite, Zeichnen};
+
+use crate::gleise::{
+    daten::{
+        v2::{self, BekannterZugtyp},
+        v3::{self},
+        v4::{GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert, ZustandSerialisiert},
+        GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
+    },
+    Fehler, Gleise,
 };
 
 /// [`bincode`]-Optionen, bei denen trailing bytes abgelehnt werden.
@@ -330,7 +325,7 @@ impl GleiseDatenSerialisiert {
     ) -> (GleiseDaten, Anschlüsse)
     where
         L: Leiter,
-        Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        Nachricht: 'static + From<Aktualisieren> + Send,
     {
         let GleiseDatenSerialisiert {
             geraden,
@@ -390,9 +385,9 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-impl<L: BekannterLeiter> Zugtyp<L> {
+impl<L: BekannterLeiter> From<&Zugtyp<L>> for ZugtypSerialisiert<L> {
     /// Erzeuge eine serialisierbare Darstellung eines [`Zugtyp`].
-    pub(crate) fn serialisiere(&self) -> ZugtypSerialisiert<L> {
+    fn from(zugtyp: &Zugtyp<L>) -> ZugtypSerialisiert<L> {
         let Zugtyp {
             name,
             leiter: PhantomData,
@@ -409,7 +404,7 @@ impl<L: BekannterLeiter> Zugtyp<L> {
             stopp_zeit,
             umdrehen_zeit,
             schalten_zeit,
-        } = self;
+        } = zugtyp;
         let leiter = L::NAME.to_owned();
         /// Erzeuge eine serialisierbare Darstellung für die [`DefinitionMaps`](DefinitionMap).
         macro_rules! erzeuge_zugtyp_maps {
@@ -467,7 +462,7 @@ macro_rules! erzeuge_zugtyp_maps {
                 Ok((HashMap::new(), HashMap::new())),
                 |acc, (gespeicherte_id, definition)| -> Result<_, ZugtypDeserialisierenFehler> {
                     if let Ok((mut gleise, mut ids)) = acc {
-                        let id = crate::gleise::id::DefinitionId::<$typ>::neu()?;
+                        let id = DefinitionId::<$typ>::neu()?;
                         // gespeicherte_id ist eindeutig, da es der Schlüssel einer HashMap war
                         let _ = ids.insert(gespeicherte_id, id.clone());
                         // id ist eindeutig, da es von GleisId::neu garantiert wird
@@ -585,7 +580,7 @@ impl<L: Leiter> Zustand<L> {
             (plan): pläne - clone,
         );
         ZustandSerialisiert {
-            zugtyp: zugtyp.serialisiere(),
+            zugtyp: ZugtypSerialisiert::from(zugtyp),
             geschwindigkeiten,
             streckenabschnitte,
             gleise: gleise.serialisiere(),
@@ -647,7 +642,7 @@ where
     S: Clone + Eq + Hash + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
     /// Reserviere alle benötigten Anschlüsse.
-    fn reserviere<Nachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send>(
+    fn reserviere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
@@ -784,7 +779,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         L: BekannterZugtyp,
         S: From<<L as BekannterZugtyp>::V2>,
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.erzwinge_neuzeichnen();

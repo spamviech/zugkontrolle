@@ -6,39 +6,37 @@ use associated_list::{entry::Entry, AssocList};
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
-use zugkontrolle_typen::canvas::Position;
-
-use crate::{
-    gleis::{
-        gerade::{Gerade, GeradeUnit},
-        kreuzung::{Kreuzung, KreuzungUnit},
-        kurve::{Kurve, KurveUnit},
-        weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{Weiche, WeicheUnit},
-            kurve::{KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
-        },
-    },
-    gleise::daten::{
-        v3::{
-            gerade::GeradeSerialisiert,
-            kreuzung::KreuzungSerialisiert,
-            kurve::KurveSerialisiert,
-            weiche::{
-                dreiwege::DreiwegeWeicheSerialisiert, gerade::WeicheSerialisiert,
-                kurve::KurvenWeicheSerialisiert, s_kurve::SKurvenWeicheSerialisiert,
-            },
-            zugtyp::ZugtypSerialisiert,
-        },
-        v4,
-    },
+use zugkontrolle_gleis::{
+    gerade::{Gerade, GeradeUnit},
+    kreuzung::{Kreuzung, KreuzungUnit},
+    kurve::{Kurve, KurveUnit},
     steuerung::{
         geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
         plan::{self, PlanSerialisiert},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
+    weiche::{
+        dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+        gerade::{Weiche, WeicheUnit},
+        kurve::{KurvenWeiche, KurvenWeicheUnit},
+        s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+    },
+};
+use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
+use zugkontrolle_typen::canvas::Position;
+
+use crate::gleise::daten::{
+    v3::{
+        gerade::GeradeSerialisiert,
+        kreuzung::KreuzungSerialisiert,
+        kurve::KurveSerialisiert,
+        weiche::{
+            dreiwege::DreiwegeWeicheSerialisiert, gerade::WeicheSerialisiert,
+            kurve::KurvenWeicheSerialisiert, s_kurve::SKurvenWeicheSerialisiert,
+        },
+        zugtyp::ZugtypSerialisiert,
+    },
+    v4,
 };
 
 pub mod gerade;

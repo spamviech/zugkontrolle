@@ -4,28 +4,25 @@ use std::{collections::HashMap, fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use zugkontrolle_typen::{canvas::Position, mm::Spurweite};
-use zugkontrolle_util::eingeschränkt::NichtNegativ;
-
-use crate::{
-    gleis::{
-        gerade::{Gerade, GeradeUnit},
-        kreuzung::{Kreuzung, KreuzungUnit},
-        kurve::{Kurve, KurveUnit},
-        weiche::{
-            dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
-            gerade::{Weiche, WeicheUnit},
-            kurve::{KurvenWeiche, KurvenWeicheUnit},
-            s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
-        },
-    },
-    gleise::steuerung::MitSteuerung,
+use zugkontrolle_gleis::{
+    gerade::{Gerade, GeradeUnit},
+    kreuzung::{Kreuzung, KreuzungUnit},
+    kurve::{Kurve, KurveUnit},
     steuerung::{
+        aktualisieren::MitSteuerung,
         geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
         plan::{self, PlanSerialisiert},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
+    weiche::{
+        dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
+        gerade::{Weiche, WeicheUnit},
+        kurve::{KurvenWeiche, KurvenWeicheUnit},
+        s_kurve::{SKurvenWeiche, SKurvenWeicheUnit},
+    },
 };
+use zugkontrolle_typen::{canvas::Position, mm::Spurweite};
+use zugkontrolle_util::eingeschränkt::NichtNegativ;
 
 /// Streckenabschnitte und ihre Namen.
 pub(in crate::gleise::daten) type StreckenabschnittMapSerialisiert = HashMap<

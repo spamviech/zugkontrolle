@@ -22,19 +22,15 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    gleis::{
-        gerade, kurve,
-        weiche::{
-            gerade::{VerbindungName, Verbindungen},
-            orientierung::Orientierung,
-        },
-    },
+    gerade, kurve,
     steuerung::{self, weiche::MitRichtung},
+    weiche::{
+        gerade::{VerbindungName, Verbindungen},
+        orientierung::Orientierung,
+    },
 };
 
-pub use crate::gleis::weiche::gerade::{
-    Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert,
-};
+pub use crate::weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert};
 
 /// Steuerung einer [`SKurvenWeiche`].
 type Steuerung = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;

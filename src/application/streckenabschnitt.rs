@@ -29,6 +29,10 @@ use zugkontrolle_anschluss::{
     de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert,
 };
 use zugkontrolle_argumente::I2cSettings;
+use zugkontrolle_gleis::steuerung::{
+    geschwindigkeit::{self, Leiter},
+    streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},
+};
 use zugkontrolle_typen::farbe::Farbe;
 use zugkontrolle_util::unicase_ord::UniCaseOrd;
 
@@ -41,10 +45,6 @@ use crate::{
         modal, style,
     },
     gleise::Gleise,
-    steuerung::{
-        geschwindigkeit::{self, Leiter},
-        streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},
-    },
 };
 
 /// Eine Nachricht des [`Anzeige`]-Widgets.

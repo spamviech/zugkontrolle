@@ -2,9 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use zugkontrolle_gleis::{gerade as v4, steuerung::kontakt::KontaktSerialisiert};
 use zugkontrolle_typen::skalar::Skalar;
-
-use crate::{gleis::gerade as v4, steuerung::kontakt::KontaktSerialisiert};
 
 // Folge Konvention TypName -> TypNameSerialisiert
 #[allow(clippy::module_name_repetitions)]

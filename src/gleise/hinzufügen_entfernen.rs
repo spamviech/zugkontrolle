@@ -3,21 +3,23 @@
 use log::{error, info};
 
 use zugkontrolle_anschluss::Lager;
+use zugkontrolle_gleis::{
+    id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
+    steuerung::{
+        aktualisieren::{Aktualisieren, SomeAktualisierenSender},
+        geschwindigkeit::Leiter,
+        streckenabschnitt,
+    },
+};
 use zugkontrolle_typen::{canvas::Position, vektor::Vektor};
 
-use crate::{
-    gleise::{
-        self,
-        daten::{
-            AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
-            SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
-        },
-        id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
-        knopf::KlickQuelle,
-        steuerung::SomeAktualisierenSender,
-        Gehalten, Gleise, ModusDaten,
+use crate::gleise::{
+    daten::{
+        AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler2,
+        SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
     },
-    steuerung::{geschwindigkeit::Leiter, streckenabschnitt},
+    knopf::KlickQuelle,
+    Gehalten, Gleise, ModusDaten,
 };
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
@@ -50,7 +52,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         einrasten: bool,
     ) -> Result<AnyId, HinzufügenFehler2>
     where
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
@@ -172,7 +174,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         gleis_steuerung: AnyIdSteuerungSerialisiert,
     ) -> Result<(), Box<SteuerungAktualisierenFehler>>
     where
-        AktualisierenNachricht: 'static + From<gleise::steuerung::Aktualisieren> + Send,
+        AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
         self.zustand.steuerung_aktualisieren(
             lager,

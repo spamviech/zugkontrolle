@@ -12,19 +12,20 @@ use zugkontrolle_anschluss::{
     trigger::Trigger,
     InputSerialisiert as V4_InputSerialisiert, OutputSerialisiert as V4_OutputSerialisiert,
 };
-use zugkontrolle_typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel};
-use zugkontrolle_util::{eingeschränkt::kleiner_8, void::Void};
-
-use crate::{
-    gleise::daten::{
-        de_serialisieren::LadenFehler,
-        v3::{self, kreuzung, weiche::orientierung::Orientierung},
-    },
+use zugkontrolle_gleis::{
     steuerung::{
         geschwindigkeit::{self, BekannterLeiter, Mittelleiter, Zweileiter},
         kontakt, plan, streckenabschnitt, weiche,
     },
     zugtyp::Zugtyp,
+};
+use zugkontrolle_typen::{canvas::Position, farbe::Farbe, skalar::Skalar, winkel::Winkel};
+use zugkontrolle_util::{eingeschränkt::kleiner_8, void::Void};
+
+use crate::gleise::daten::{
+    de_serialisieren::LadenFehler,
+    v3::{self, kreuzung, weiche::orientierung::Orientierung},
+    v4::ZugtypSerialisiert,
 };
 
 /// Beschreibung eines [`anschluss::pcf85747::Pcf8574`].
@@ -567,7 +568,7 @@ impl BekannterZugtyp for Mittelleiter {
     type V2 = MittelleiterSerialisiert;
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
-        (name == "Märklin").then(|| Zugtyp::märklin().serialisiere().v3())
+        (name == "Märklin").then(|| ZugtypSerialisiert::from(Zugtyp::märklin()).v3())
     }
 }
 
@@ -626,7 +627,7 @@ impl BekannterZugtyp for Zweileiter {
     type V2 = ZweileiterSerialisiert;
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
-        (name == "Lego").then(|| Zugtyp::lego().serialisiere().v3())
+        (name == "Lego").then(|| ZugtypSerialisiert::from(Zugtyp::lego()).v3())
     }
 }
 

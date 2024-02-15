@@ -23,7 +23,7 @@ use zugkontrolle_anschluss::{
 use zugkontrolle_typen::MitName;
 use zugkontrolle_util::erstelle_sender_trait_existential;
 
-use crate::gleise::steuerung::{Aktualisieren, SomeAktualisierenSender, Steuerung};
+use crate::steuerung::aktualisieren::{Aktualisieren, SomeAktualisierenSender, Steuerung};
 
 /// Name eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -74,7 +74,7 @@ fn serialisiere_anschluss<T: Serialisiere<S>, S: Clone>(either: &Either<T, S>) -
     }
 }
 
-/// Setzte den Interrupt-Pin eines Anschlusse zurück.
+/// Setzte den Interrupt-Pin eines Anschlusses zurück.
 fn interrupt_zurücksetzen(anschluss: &mut InputAnschluss, kontakt_name: &Name) {
     if let Err(fehler) = anschluss.lösche_async_interrupt() {
         error!(
