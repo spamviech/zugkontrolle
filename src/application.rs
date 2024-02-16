@@ -8,20 +8,16 @@ use std::{
     time::Instant,
 };
 
-use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{
-    application::Application, executor, font, window, Command, Element, Renderer, Settings,
-    Subscription,
-};
+use flexi_logger::FlexiLoggerError;
+use iced::{application::Application, executor, font, Command, Element, Renderer, Subscription};
 use kommandozeilen_argumente::crate_version;
-use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
     de_serialisieren::{Reserviere, Serialisiere},
     InitFehler, Lager,
 };
-use zugkontrolle_argumente::{Argumente, I2cSettings, ZugtypArgument};
+use zugkontrolle_argumente::{Argumente, I2cSettings};
 use zugkontrolle_gleis::steuerung::{
     geschwindigkeit::{BekannterLeiter, Leiter},
     streckenabschnitt::Name as StreckenabschnittName,
@@ -35,9 +31,7 @@ use crate::application::{
     bewegen::{Bewegen, Bewegung},
     drehen::Drehen,
     empfänger::Empfänger,
-    fonts::BENÖTIGTE_FONT_BYTES,
     geschwindigkeit::LeiterAnzeige,
-    icon::icon,
     modal::Overlay,
     nachricht::Nachricht,
     style::thema::Thema,
@@ -131,77 +125,7 @@ pub enum Fehler {
 }
 
 /// Flags für den [`Application`]-Trait.
-type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
-
-/// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
-///
-/// ## Errors
-///
-/// Fehler beim Initialisieren der Anwendung.
-pub fn ausführen_aus_env() -> Result<(), Fehler> {
-    let args = Argumente::parse_aus_env();
-    ausführen(args)
-}
-
-/// Parse die übergebenen Kommandozeilen-Argumente und führe die Anwendung aus.
-///
-/// ## Errors
-///
-/// Fehler beim Initialisieren der Anwendung.
-pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
-    /// Initialisiere die Logger-Instanz.
-    fn start_logger(verbose: bool, log_datei: bool) -> Result<LoggerHandle, FlexiLoggerError> {
-        let log_level = if verbose { LevelFilter::Debug } else { LevelFilter::Warn };
-        let mut log_spec_builder = LogSpecBuilder::new();
-        let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", log_level);
-        let log_spec = log_spec_builder.finalize();
-        let logger_base = Logger::with(log_spec);
-        let logger = if log_datei {
-            logger_base
-                .log_to_file(FileSpec::default().directory("log"))
-                .duplicate_to_stderr(Duplicate::All)
-        } else {
-            logger_base.log_to_stderr()
-        };
-        logger.start()
-    }
-
-    /// Erstelle die Settings-Struktur für [`Zugkontrolle::run`].
-    fn erstelle_settings<L: Leiter>(
-        argumente: Argumente,
-        lager: Lager,
-        zugtyp: &'static Zugtyp<L>,
-    ) -> Settings<Flags<L>> {
-        Settings {
-            window: window::Settings {
-                size: (800, 480),
-                icon: icon(),
-                ..window::Settings::default()
-            },
-            default_font: fonts::REGULAR,
-            ..Settings::with_flags((argumente, lager, zugtyp, BENÖTIGTE_FONT_BYTES))
-        }
-    }
-
-    let Argumente { i2c_settings, zugtyp, verbose, log_datei, .. } = argumente;
-    let lager = Lager::neu(i2c_settings)?;
-
-    let logger_handle = start_logger(verbose, log_datei)?;
-
-    match zugtyp {
-        ZugtypArgument::Märklin => {
-            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::märklin()))
-        },
-        ZugtypArgument::Lego => {
-            Zugkontrolle::run(erstelle_settings(argumente, lager, Zugtyp::lego()))
-        },
-    }?;
-
-    // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
-    drop(logger_handle);
-
-    Ok(())
-}
+pub type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
 
 impl<L, S> Application for Zugkontrolle<L, S>
 where
