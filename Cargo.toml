@@ -50,32 +50,13 @@ workspace = true
 
 # dependencies
 [dependencies]
-zugkontrolle-macros.workspace = true
-zugkontrolle-util.workspace = true
 zugkontrolle-anschluss.workspace = true
-zugkontrolle-argumente.workspace = true
-zugkontrolle-typen.workspace = true
-zugkontrolle-id.workspace = true
-zugkontrolle-gleis.workspace = true
-zugkontrolle-gleise.workspace = true
 zugkontrolle-application.workspace = true
-async-io.workspace = true
-enum-iterator.workspace = true
+zugkontrolle-argumente.workspace = true
+zugkontrolle-gleis.workspace = true
 flexi_logger.workspace = true
 iced.workspace = true
-iced_core.workspace = true
-iced_futures.workspace = true
-iced_widget.workspace = true
-iced_aw.workspace = true
-int-enum.workspace = true
-itertools.workspace = true
-kommandozeilen_argumente.workspace = true
 log.workspace = true
-nonempty.workspace = true
-once_cell.workspace = true
-parking_lot.workspace = true
-serde.workspace = true
-take_mut.workspace = true
 
 # can't be used on non-raspi systems
 [dependencies.rppal]
@@ -88,11 +69,6 @@ optional = true
 
 [build-dependencies]
 embed-resource.workspace = true
-
-[dev-dependencies]
-zugkontrolle-test-util.workspace = true
-difference.workspace = true
-either.workspace = true
 
 [workspace.lints.rust]
 # Aktiviere alle Warnungen/Lints, außer: box_pointers, non_ascii_idents, unstable_features

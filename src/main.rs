@@ -1,7 +1,5 @@
-//! Steuerung einer Model-Eisenbahn über einen Raspberry Pi.
+//! Steuerung einer Modell-Eisenbahn über einen Raspberry Pi.
 
-// Werden in der lib verwendet. Alles explizit nicht zu benutzen führt nur zu Duplikation mit der `Cargo.toml`.
-#![allow(unused_crate_dependencies)]
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
 #![allow(clippy::multiple_crate_versions)]
 
@@ -9,8 +7,8 @@ use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger
 use iced::{window, Application, Settings};
 use log::LevelFilter;
 
-use zugkontrolle_application::{fonts, icon::icon, Fehler, Flags, Zugkontrolle};
 use zugkontrolle_anschluss::Lager;
+use zugkontrolle_application::{fonts, icon::icon, Fehler, Flags, Zugkontrolle};
 use zugkontrolle_argumente::{Argumente, ZugtypArgument};
 use zugkontrolle_gleis::{steuerung::geschwindigkeit::Leiter, zugtyp::Zugtyp};
 
