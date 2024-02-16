@@ -8,7 +8,8 @@
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use iced::{window, Application, Settings};
 use log::LevelFilter;
-use zugkontrolle::application::{fonts, icon::icon, Fehler, Flags, Zugkontrolle};
+
+use zugkontrolle_application::{fonts, icon::icon, Fehler, Flags, Zugkontrolle};
 use zugkontrolle_anschluss::Lager;
 use zugkontrolle_argumente::{Argumente, ZugtypArgument};
 use zugkontrolle_gleis::{steuerung::geschwindigkeit::Leiter, zugtyp::Zugtyp};

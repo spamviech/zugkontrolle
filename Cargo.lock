@@ -3887,6 +3887,7 @@ dependencies = [
  "serde",
  "take_mut",
  "zugkontrolle-anschluss",
+ "zugkontrolle-application",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
  "zugkontrolle-gleise",
@@ -3914,6 +3915,40 @@ dependencies = [
  "zugkontrolle-id",
  "zugkontrolle-macros",
  "zugkontrolle-test-util",
+ "zugkontrolle-util",
+]
+
+[[package]]
+name = "zugkontrolle-application"
+version = "0.1.0"
+dependencies = [
+ "async-io",
+ "difference",
+ "either",
+ "enum-iterator",
+ "flexi_logger",
+ "iced",
+ "iced_aw",
+ "iced_core",
+ "iced_futures",
+ "iced_widget",
+ "int-enum",
+ "itertools 0.12.1",
+ "kommandozeilen_argumente",
+ "log",
+ "nonempty 0.9.0",
+ "once_cell",
+ "parking_lot 0.12.1",
+ "serde",
+ "take_mut",
+ "zugkontrolle-anschluss",
+ "zugkontrolle-argumente",
+ "zugkontrolle-gleis",
+ "zugkontrolle-gleise",
+ "zugkontrolle-id",
+ "zugkontrolle-macros",
+ "zugkontrolle-test-util",
+ "zugkontrolle-typen",
  "zugkontrolle-util",
 ]
 
