@@ -5,14 +5,14 @@
 //! so dass es zu keinen Deadlocks kommen sollte.
 
 use std::{
-    array,
     collections::hash_map::{Entry, HashMap},
-    fmt::Debug,
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
     hash::Hash,
+    mem,
     sync::Arc,
 };
 
+use enum_iterator::{all, Sequence};
 use itertools::iproduct;
 use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
@@ -103,32 +103,6 @@ impl I2cBus {
     }
 }
 
-// TODO durch enum-iterator::Sequence ersetzen.
-/// Ein [`Iterator`] über alle [`I2cBus`]-Varianten.
-fn alle_i2c_bus() -> array::IntoIter<I2cBus, 5> {
-    [
-        I2cBus::I2c0_1,
-        // I2cBus::I2c2,
-        I2cBus::I2c3,
-        I2cBus::I2c4,
-        I2cBus::I2c5,
-        I2cBus::I2c6,
-    ]
-    .into_iter()
-}
-
-// TODO durch enum-iterator::Sequence ersetzen.
-/// Ein [`Iterator`] über alle [`Level`]-Varianten.
-fn alle_level() -> array::IntoIter<Level, 2> {
-    [Level::Low, Level::High].into_iter()
-}
-
-// TODO durch enum-iterator::Sequence ersetzen.
-/// Ein [`Iterator`] über alle [`Variante`]-Varianten.
-fn alle_varianten() -> array::IntoIter<Variante, 2> {
-    [Variante::Normal, Variante::A].into_iter()
-}
-
 /// Ein [`Pcf8574`] und seine noch verfügbaren [`Ports`](Port).
 type Pcf8574MitPorts = (Arc<Mutex<Pcf8574>>, [Option<Port>; 8]);
 
@@ -146,13 +120,13 @@ impl Lager {
         let arc = Arc::new(RwLock::new(HashMap::new()));
         {
             let mut map = arc.write();
-            for i2c_bus in alle_i2c_bus() {
+            for i2c_bus in all::<I2cBus>() {
                 if !i2c_bus.aktiviert(settings) {
                     continue;
                 }
                 let i2c = Arc::new(Mutex::new(I2cMitPins::neu(lager, i2c_bus)?));
                 let beschreibungen =
-                    iproduct!(alle_level(), alle_level(), alle_level(), alle_varianten());
+                    iproduct!(all::<Level>(), all::<Level>(), all::<Level>(), all::<Variante>());
                 for (a0, a1, a2, variante) in beschreibungen {
                     let beschreibung = Beschreibung { i2c_bus, a0, a1, a2, variante };
                     let pcf8574 =
@@ -248,7 +222,7 @@ impl Lager {
 /// Beachte dazu den Abschnitt "Aktivieren zusätzlicher I2C-Busse" in der `README.md`.
 ///
 /// ACHTUNG: Dabei werden nur die Standard-Pins, die auch bei Pi4 verwendet werden, unterstützt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Sequence, Serialize, Deserialize)]
 pub enum I2cBus {
     /// I2C-Bus auf den GPIO-Pins 2 (SDA) und 3 (SCL), physisch 3 und 5.
     ///
@@ -576,7 +550,7 @@ impl Pcf8574 {
 }
 
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Sequence, Serialize, Deserialize)]
 #[allow(clippy::min_ident_chars)]
 pub enum Variante {
     /// Variante ohne Zusätze auf dem Chip-Aufdruck.
@@ -816,7 +790,7 @@ impl InputPort {
     ///
     /// ## Errors
     ///
-    /// TODO
+    /// Fehler beim setzten des Callback.
     pub fn setze_interrupt_pin(
         &mut self,
         mut interrupt: input::Pin,
@@ -859,9 +833,7 @@ impl InputPort {
                     Fehler::Gpio { beschreibung: *pcf8574.beschreibung(), fehler }
                 },
             )?;
-            // std::mem::replace soll auffallen
-            #[allow(clippy::absolute_paths)]
-            std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
+            mem::replace(&mut pcf8574.interrupt, Some(interrupt))
         };
         // clear interrupt on previous pin.
         let _ = previous.as_mut().map(input::Pin::lösche_async_interrupt);

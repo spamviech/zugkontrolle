@@ -5,6 +5,8 @@
 - Aufteilen in mehrere crates. Dazu waren ein paar Anpassungen notwendig:
   - Neuer `KnopfThema`-trait um Canvas-basierte Darstellungen über das `Thema` zu parametrisieren.
   - Invertiere parameter + implementierender Typ für den `KnopfNachricht`-Trait.
+  - Entferne verbleibende 2-suffixe.
+  - Behebe clippy-lints, die eine public API-Anpassung benötigen (z.B. needless_pass_by_value).
 - Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
 - Verwende PickList für Modus-Auswahl.
 

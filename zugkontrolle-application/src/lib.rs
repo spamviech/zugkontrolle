@@ -250,7 +250,7 @@ where
                 anschluss_definition,
             ) => self.streckenabschnitt_hinzufügen(
                 geschwindigkeit,
-                name,
+                &name,
                 farbe,
                 anschluss_definition,
             ),
@@ -264,12 +264,12 @@ where
                 self.streckenabschnitt_festlegen(festlegen);
             },
             Nachricht::Speichern(pfad) => {
-                command = self.speichern(pfad);
+                command = self.speichern(&pfad);
             },
             Nachricht::EntferneSpeichernFarbe(nachricht_zeit) => {
                 self.entferne_speichern_farbe(nachricht_zeit);
             },
-            Nachricht::Laden(pfad) => self.laden(pfad),
+            Nachricht::Laden(pfad) => self.laden(&pfad),
             Nachricht::AktionGeschwindigkeit(aktion) => self.async_aktion_ausführen(
                 aktion,
                 Some(Nachricht::AsyncAktualisieren { gleise_neuzeichnen: false }),
@@ -299,7 +299,7 @@ where
     }
 
     fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
-        Zugkontrolle::view(self)
+        self.view_impl()
     }
 
     fn theme(&self) -> Self::Theme {

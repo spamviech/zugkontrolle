@@ -65,10 +65,10 @@ impl Rechteck {
         let mut ecke_c = Vektor { x: ecke_a.x, y: ecke_b.y };
         let mut ecke_d = Vektor { x: ecke_b.x, y: ecke_a.y };
         // rotiere alle Ecken
-        ecke_a.rotiere(*winkel);
-        ecke_b.rotiere(*winkel);
-        ecke_c.rotiere(*winkel);
-        ecke_d.rotiere(*winkel);
+        ecke_a.rotiere(winkel);
+        ecke_b.rotiere(winkel);
+        ecke_c.rotiere(winkel);
+        ecke_d.rotiere(winkel);
         // finde maximale x-, y-Werte
         *self = Rechteck::aus_vektoren([ecke_a, ecke_b, ecke_c, ecke_d].into_iter())
             .expect("Iterator besteht aus 4 Elementen.");

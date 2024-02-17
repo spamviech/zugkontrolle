@@ -354,15 +354,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             .collect()
     }
 
-    // FIXME 2-suffix entfernen
     /// Verwendeter Zugtyp.
-    pub fn zugtyp2(&self) -> &Zugtyp<L> {
+    pub fn zugtyp(&self) -> &Zugtyp<L> {
         self.zustand.zugtyp()
     }
 
     /// Spurweite des verwendeten Zugtyps.
     pub fn spurweite(&self) -> Spurweite {
-        self.zugtyp2().spurweite
+        self.zugtyp().spurweite
     }
 }
 
@@ -403,7 +402,7 @@ where
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        Gleise::draw(self, state, renderer, thema, bounds, cursor)
+        self.draw_impl(state, renderer, thema, bounds, cursor)
     }
 
     fn update(
@@ -413,7 +412,7 @@ where
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<NonEmpty<Nachricht>>) {
-        Gleise::update::<Thema>(self, state, event, bounds, cursor)
+        self.update_impl(state, event, bounds, cursor)
     }
 
     fn mouse_interaction(

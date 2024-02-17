@@ -104,10 +104,8 @@ impl Vektor {
         Winkel::acos(self.skalarprodukt(other) / (self.länge() * other.länge()))
     }
 
-    // TODO Behandeln erfordert Anpassung des public API.
-    #[allow(clippy::needless_pass_by_value)]
     /// Rotiere einen Vektor um `winkel` im Uhrzeigersinn.
-    pub fn rotiere<T: Trigonometrie>(&mut self, winkel: T) {
+    pub fn rotiere<T: Trigonometrie>(&mut self, winkel: &T) {
         let Vektor { x, y } = *self;
         let cos = winkel.cos();
         let sin = winkel.sin();
@@ -121,7 +119,7 @@ impl Vektor {
 
     /// Erzeuge einen Vektor, der um `winkel` im Uhrzeigersinn rotiert ist.
     #[must_use]
-    pub fn rotiert<T: Trigonometrie>(mut self, winkel: T) -> Self {
+    pub fn rotiert<T: Trigonometrie>(mut self, winkel: &T) -> Self {
         self.rotiere(winkel);
         self
     }

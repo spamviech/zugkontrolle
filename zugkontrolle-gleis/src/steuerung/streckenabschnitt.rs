@@ -31,13 +31,11 @@ impl Display for Name {
     }
 }
 
-// TODO Benötigt public API Anpassung, ersetzte durch "Getter"
-#[allow(clippy::partial_pub_fields)]
 /// Steuerung der Stromzufuhr.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Streckenabschnitt<Anschluss = Arc<Mutex<OutputAnschluss>>> {
     /// Die Farbe des Streckenabschnittes.
-    pub farbe: Farbe,
+    farbe: Farbe,
     /// Die Anschlüsse des Streckenabschnittes.
     anschluss: Anschluss,
 }
@@ -79,6 +77,19 @@ impl Streckenabschnitt {
     /// Blockiert, bis der Zugriff erhalten wurde.
     pub fn lock_anschluss(&self) -> MutexGuard<'_, OutputAnschluss> {
         self.anschluss.lock()
+    }
+}
+
+impl<Anschluss> Streckenabschnitt<Anschluss> {
+    /// Die Farbe des Streckenabschnittes.
+    #[must_use]
+    pub fn farbe(&self) -> Farbe {
+        self.farbe
+    }
+
+    /// Anpassen der Farbe des Streckenabschnittes.
+    pub fn setze_farbe(&mut self, farbe: Farbe) {
+        self.farbe = farbe;
     }
 }
 

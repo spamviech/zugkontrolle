@@ -174,11 +174,8 @@ where
         column = column.push(text_input);
         for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push({
-                let anschluss_auswahl = anschluss::Auswahl::neu_output_s(
-                    Some(anschluss.clone()),
-                    scrollable_style,
-                    settings,
-                );
+                let anschluss_auswahl =
+                    anschluss::Auswahl::neu_output_s(Some(anschluss), scrollable_style, settings);
                 Element::from(anschluss_auswahl).map(move |anschluss_serialisiert| {
                     InterneNachricht::Anschluss(richtung.clone(), anschluss_serialisiert)
                 })

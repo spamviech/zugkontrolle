@@ -143,7 +143,7 @@ impl AuswahlZustand {
         // TODO assoziierte Geschwindigkeit berücksichtigen
         let (neu_name, neu_farbe, neu_anschluss) =
             if let Some((name, streckenabschnitt, _geschwindigkeit)) = startwert {
-                (name.0, streckenabschnitt.farbe, streckenabschnitt.anschluss())
+                (name.0, streckenabschnitt.farbe(), streckenabschnitt.anschluss())
             } else {
                 (
                     String::new(),
@@ -168,7 +168,7 @@ impl AuswahlZustand {
         let anschluss = &*streckenabschnitt.lock_anschluss();
         (
             UniCaseOrd::neu(name.clone()),
-            (anschluss.to_string(), streckenabschnitt.farbe, anschluss.serialisiere()),
+            (anschluss.to_string(), streckenabschnitt.farbe(), anschluss.serialisiere()),
         )
     }
 }
@@ -304,7 +304,7 @@ where
             .push(Farbwahl::neu(&InterneAuswahlNachricht::FarbeBestimmen).durchmesser(50))
             .push(
                 Element::from(anschluss::Auswahl::neu_output_s(
-                    Some(neu_anschluss.clone()),
+                    Some(neu_anschluss),
                     scrollable_style,
                     settings,
                 ))

@@ -25,6 +25,7 @@ zugkontrolle-id.workspace = true
 zugkontrolle-macros.workspace = true
 zugkontrolle-util.workspace = true
 either.workspace = true
+enum-iterator.workspace = true
 itertools.workspace = true
 log.workspace = true
 nonempty.workspace = true

@@ -910,7 +910,7 @@ impl Leiter for Zweileiter {
         stopp_zeit: Duration,
         PhantomData: Self::UmdrehenZeit,
     ) -> Result<(), Fehler> {
-        self.umdrehen(pwm_frequenz, stopp_zeit)
+        self.umdrehen_impl(pwm_frequenz, stopp_zeit)
     }
 
     fn async_umdrehen_allgemein_aux(
@@ -932,7 +932,7 @@ impl Leiter for Zweileiter {
         stopp_zeit: Duration,
         PhantomData: Self::UmdrehenZeit,
     ) -> Result<(), Fehler> {
-        self.fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
+        self.fahrtrichtung_impl(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 
     fn async_fahrtrichtung_allgemein_aux(
@@ -987,14 +987,12 @@ macro_rules! fahrtrichtung_zweileiter {
 }
 
 impl Zweileiter {
-    // TODO Änderung bedeutet API-Änderung, kann entfernt werden
-    #[allow(clippy::same_name_method)]
     /// Umdrehen der aktuellen Fahrtrichtung.
     ///
     /// ## Errors
     ///
     /// Fehler beim Ändern der Polarität der Geschwindigkeits-Spannung.
-    pub fn umdrehen(
+    fn umdrehen_impl(
         &mut self,
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
@@ -1022,14 +1020,12 @@ impl Zweileiter {
         )
     }
 
-    // TODO Änderung bedeutet API-Änderung, kann entfernt werden
-    #[allow(clippy::same_name_method)]
     /// Einstellen der aktuellen Fahrtrichtung.
     ///
     /// ## Errors
     ///
     /// Fehler beim Einstellen der Polarität der Geschwindigkeits-Spannung.
-    pub fn fahrtrichtung(
+    fn fahrtrichtung_impl(
         &mut self,
         neue_fahrtrichtung: Fahrtrichtung,
         pwm_frequenz: NichtNegativ,
@@ -1076,7 +1072,7 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
     ) -> Result<(), Fehler> {
-        self.lock_leiter().umdrehen(pwm_frequenz, stopp_zeit)
+        self.lock_leiter().umdrehen_impl(pwm_frequenz, stopp_zeit)
     }
 
     /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
@@ -1118,7 +1114,7 @@ impl Geschwindigkeit<Zweileiter> {
         pwm_frequenz: NichtNegativ,
         stopp_zeit: Duration,
     ) -> Result<(), Fehler> {
-        self.lock_leiter().fahrtrichtung(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
+        self.lock_leiter().fahrtrichtung_impl(neue_fahrtrichtung, pwm_frequenz, stopp_zeit)
     }
 
     /// Erstelle einen neuen Thread zum einstellen der aktuellen Fahrtrichtung.

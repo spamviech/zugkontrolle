@@ -60,8 +60,6 @@ impl<'t, T> Knopf<'t, T> {
     pub fn neu(gleis: &'t T, definition: GleisId<T>, spurweite: Spurweite) -> Self {
         Knopf { gleis, definition, spurweite }
     }
-
-    // TODO Cache zurücksetzen
 }
 
 impl<'t, T: Zeichnen<()>> Knopf<'t, T> {

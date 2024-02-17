@@ -1188,7 +1188,7 @@ fn zeichne_verbindungen<T, L: Leiter>(
             let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
             // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
             #[allow(clippy::arithmetic_side_effects)]
-            let richtung_seite = Skalar(0.5) * richtung.rotiert(winkel::FRAC_PI_2);
+            let richtung_seite = Skalar(0.5) * richtung.rotiert(&winkel::FRAC_PI_2);
             let verbindung_position = verbindung.position;
             let mut path_builder = pfad::Erbauer::neu();
             // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
@@ -1282,7 +1282,7 @@ impl GleiseDaten {
                     .as_ref()
                     .and_then(|name| streckenabschnitte.get(name))
                     .map(|(streckenabschnitt, _geschwindigkeit)| {
-                        (streckenabschnitt.farbe, streckenabschnitt.fließend())
+                        (streckenabschnitt.farbe(), streckenabschnitt.fließend())
                     });
                 frame.with_save(|frame| {
                     bewege_an_position(frame, $position);
@@ -1492,7 +1492,7 @@ impl GleiseDaten {
             let relative_pos = canvas_pos - position.punkt;
             // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
             #[allow(clippy::arithmetic_side_effects)]
-            let rotated_pos = relative_pos.rotiert(-position.winkel);
+            let rotated_pos = relative_pos.rotiert(&(-position.winkel));
             /// Hilfs-Makro für [`mit_any_id`].
             macro_rules! gleis_an_position_aux {
                 ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr) => {{

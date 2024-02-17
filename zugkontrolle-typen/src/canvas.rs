@@ -214,14 +214,14 @@ impl Position {
         // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
         #[allow(clippy::arithmetic_side_effects)]
         {
-            self.punkt + anchor.rotiert(self.winkel)
+            self.punkt + anchor.rotiert(&self.winkel)
         }
     }
 
     /// Vektor nachdem er um den Winkel gedreht wurde.
     #[must_use]
     pub fn rotation(&self, richtung: Vektor) -> Vektor {
-        richtung.rotiert(self.winkel)
+        richtung.rotiert(&self.winkel)
     }
 
     /// Position damit Verbindungen übereinander mit entgegengesetzter Richtung liegen.

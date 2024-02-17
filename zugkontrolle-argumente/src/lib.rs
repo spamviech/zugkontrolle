@@ -82,8 +82,6 @@ pub struct I2cSettings {
 }
 
 impl Argumente {
-    // TODO Behandeln benötigt Anpassung des public API.
-    #[allow(clippy::same_name_method)]
     /// Parse Kommandozeilen-Argumente.
     /// Ein einzelnes Argument (das nicht mit "-" beginnt) wird als Pfad interpretiert.
     ///
@@ -91,7 +89,7 @@ impl Argumente {
     ///
     /// Programmierfehler, wenn [`NonZeroI32::new`] [`None`] für den Exit-Code zurückgibt.
     #[must_use]
-    pub fn parse_aus_env() -> Self {
+    pub fn parse_aus_env_einzelnes_als_pfad() -> Self {
         let mut args: Vec<_> = env::args_os().skip(1).collect();
         if args.len() == 1
             && !args

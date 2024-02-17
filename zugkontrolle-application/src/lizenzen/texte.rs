@@ -448,21 +448,21 @@ pub fn mit<'t, 'p, 'i>(
 /// ohne Einrückung und ohne Leerzeile am Anfang.
 #[must_use]
 pub fn apache_2_0_standard_nicht_eingerückt<'t>() -> Cow<'t, str> {
-    apache_2_0_nicht_eingerückt(false, ApacheCopyright::standard(), true, 1)
+    apache_2_0_nicht_eingerückt(false, &ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
 #[must_use]
 pub fn apache_2_0_nicht_eingerückt<'t>(
     beginn_leerzeile: bool,
-    copyright: ApacheCopyright<'_>,
+    copyright: &ApacheCopyright<'_>,
     appendix: bool,
     ende_neue_zeile: usize,
 ) -> Cow<'t, str> {
     apache_2_0(
         beginn_leerzeile,
         copyright,
-        ApacheEinrückung::nicht_eingerückt(),
+        &ApacheEinrückung::nicht_eingerückt(),
         appendix,
         ende_neue_zeile,
     )
@@ -472,21 +472,21 @@ pub fn apache_2_0_nicht_eingerückt<'t>(
 /// und Leerzeile am Anfang.
 #[must_use]
 pub fn apache_2_0_standard_eingerückt<'t>() -> Cow<'t, str> {
-    apache_2_0_eingerückt(true, ApacheCopyright::standard(), true, 1)
+    apache_2_0_eingerückt(true, &ApacheCopyright::standard(), true, 1)
 }
 
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz mit eingerücktem Text.
 #[must_use]
 pub fn apache_2_0_eingerückt<'t>(
     beginn_leerzeile: bool,
-    copyright: ApacheCopyright<'_>,
+    copyright: &ApacheCopyright<'_>,
     appendix: bool,
     ende_neue_zeile: usize,
 ) -> Cow<'t, str> {
     apache_2_0(
         beginn_leerzeile,
         copyright,
-        ApacheEinrückung::eingerückt(),
+        &ApacheEinrückung::eingerückt(),
         appendix,
         ende_neue_zeile,
     )
@@ -568,14 +568,12 @@ impl ApacheCopyright<'_> {
 
 // Hauptsächlich der Lizenztext.
 #[allow(clippy::too_many_lines)]
-// TODO Beheben erfordert anpassen des public API.
-#[allow(clippy::needless_pass_by_value)]
 /// Erzeuge den Lizenztext für die Apache-2.0-Lizenz.
 #[must_use]
 pub fn apache_2_0<'t>(
     beginn_leerzeile: bool,
-    copyright: ApacheCopyright<'_>,
-    einrückung: ApacheEinrückung<'_>,
+    copyright: &ApacheCopyright<'_>,
+    einrückung: &ApacheEinrückung<'_>,
     appendix: bool,
     ende_neue_zeile: usize,
 ) -> Cow<'t, str> {
@@ -935,14 +933,12 @@ pub struct BSD3Darstellung<'t> {
 
 // Hauptsächlich der Lizenztext.
 #[allow(clippy::too_many_lines)]
-// TODO Beheben erfordert Anpassung des public APIs.
-#[allow(clippy::needless_pass_by_value)]
 /// Erzeuge den Lizenztext für die BSD-3-Lizenz.
 #[must_use]
 pub fn bsd_3<'t>(
     copyright: Vec<BSD3Copyright<'t>>,
     zeilenumbrüche: BSD3Zeilenumbruch,
-    darstellung: BSD3Darstellung<'t>,
+    darstellung: &BSD3Darstellung<'t>,
 ) -> Cow<'t, str> {
     use BSD3Zeilenumbruch::{Instant, TinySkia};
     let copyright_d = VecD(copyright, ());

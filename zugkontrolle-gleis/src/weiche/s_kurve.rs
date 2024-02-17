@@ -357,7 +357,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         }
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
-        let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(-self.winkel);
+        let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(&(-self.winkel));
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         {

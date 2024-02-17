@@ -167,7 +167,7 @@ where
             .width(Length::Fixed(200.));
         column = column.push(text_input);
         let anschluss_auswahl = Element::from(anschluss::Auswahl::neu_input_s(
-            Some(anschluss.clone()),
+            Some(anschluss),
             lager,
             scrollable_style,
             settings,

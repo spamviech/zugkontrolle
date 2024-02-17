@@ -367,7 +367,7 @@ fn mozilla_foundation_lizenz() -> Cow<'static, str> {
 fn ab_glyph_lizenz(appendix: bool, ende_neue_zeile: usize) -> Cow<'static, str> {
     apache_2_0_eingerückt(
         false,
-        ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
+        &ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
         appendix,
         ende_neue_zeile,
     )
@@ -403,8 +403,8 @@ fn bytemuck_lizenz() -> Cow<'static, str> {
 fn clipboard_apache_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
-        ApacheCopyright::braces(),
-        ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+        &ApacheCopyright::braces(),
+        &ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
         true,
         1,
     )
@@ -469,8 +469,8 @@ fn futures_lizenz() -> Cow<'static, str> {
 fn glutin_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
-        ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "The glutin contributors" },
-        ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+        &ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "The glutin contributors" },
+        &ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
         true,
         1,
     )
@@ -480,7 +480,7 @@ fn glutin_lizenz() -> Cow<'static, str> {
 fn glyph_brush_lizenz() -> Cow<'static, str> {
     apache_2_0_eingerückt(
         false,
-        ApacheCopyright { brackets: "{}", jahr: "2017", voller_name: "Alex Butler" },
+        &ApacheCopyright { brackets: "{}", jahr: "2017", voller_name: "Alex Butler" },
         true,
         1,
     )
@@ -762,7 +762,7 @@ fn tiny_skia_lizenz() -> Cow<'static, str> {
             BSD3Copyright::neu("2020", false, "Yevhenii Reizner", false),
         ],
         BSD3Zeilenumbruch::TinySkia,
-        BSD3Darstellung {
+        &BSD3Darstellung {
             punkte: |_| Cow::Borrowed("*"),
             einrückung_punkte: "  ",
             einrückung_text: "    ",
@@ -906,8 +906,8 @@ fn gimli_developers_lizenz(großes_g: bool, jahr: &'static str) -> Cow<'static, 
 fn android_glue_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
-        ApacheCopyright::braces(),
-        ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+        &ApacheCopyright::braces(),
+        &ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
         true,
         1,
     )
@@ -1181,8 +1181,8 @@ fn fnv_lizenz() -> Cow<'static, str> {
 fn gethostname_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
-        ApacheCopyright::standard(),
-        ApacheEinrückung {
+        &ApacheCopyright::standard(),
+        &ApacheEinrückung {
             titel: "                              ",
             version: "                        ",
             url: "                     ",
@@ -1275,8 +1275,8 @@ Nota Bene: This is same as the Rust Project's own license.
         "\n\n[2]: <http://www.apache.org/licenses/LICENSE-2.0>, which is reproduced below:\n";
     let apache = apache_2_0(
         false,
-        ApacheCopyright::standard(),
-        ApacheEinrückung {
+        &ApacheCopyright::standard(),
+        &ApacheEinrückung {
             titel: "                              ",
             version: "                        ",
             url: "                     ",
@@ -1296,7 +1296,7 @@ fn instant_lizenz() -> Cow<'static, str> {
     bsd_3(
         vec![BSD3Copyright::neu("2019", true, "Sébastien Crozet", true)],
         BSD3Zeilenumbruch::Instant,
-        BSD3Darstellung {
+        &BSD3Darstellung {
             punkte: |i| Cow::Owned(format!("{i}.")),
             einrückung_punkte: "",
             einrückung_text: "   ",
@@ -1440,7 +1440,7 @@ fn ordered_float_lizenz() -> Cow<'static, str> {
 fn owned_ttf_parser_lizenz() -> Cow<'static, str> {
     apache_2_0_eingerückt(
         false,
-        ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
+        &ApacheCopyright { brackets: "{}", jahr: "2020", voller_name: "Alex Butler" },
         false,
         0,
     )
@@ -1541,8 +1541,8 @@ fn rstar_lizenz() -> Cow<'static, str> {
 fn ryu_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
-        ApacheCopyright::standard(),
-        ApacheEinrückung {
+        &ApacheCopyright::standard(),
+        &ApacheEinrückung {
             titel: "                              ",
             version: "                        ",
             url: "                     ",
@@ -1805,8 +1805,8 @@ fn window_clipboard_lizenz() -> Cow<'static, str> {
 fn winit_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
-        ApacheCopyright::braces(),
-        ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
+        &ApacheCopyright::braces(),
+        &ApacheEinrückung { titel: "", ..ApacheEinrückung::eingerückt() },
         true,
         0,
     )
@@ -1868,8 +1868,8 @@ fn crc32fast_lizenz() -> Cow<'static, str> {
 fn crossfont_lizenz() -> Cow<'static, str> {
     apache_2_0(
         false,
-        ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "The Alacritty Project" },
-        ApacheEinrückung {
+        &ApacheCopyright { brackets: "[]", jahr: "2020", voller_name: "The Alacritty Project" },
+        &ApacheEinrückung {
             titel: "                              ",
             version: "                        ",
             url: "                     ",
@@ -2567,7 +2567,7 @@ fn com_rs_lizenz() -> Cow<'static, str> {
 
 /// Apache-Lizenz des `codespan-reporting`-crates.
 fn codespan_reporting_lizenz() -> Cow<'static, str> {
-    apache_2_0(false, ApacheCopyright::standard(), ApacheEinrückung::eingerückt(), true, 1)
+    apache_2_0(false, &ApacheCopyright::standard(), &ApacheEinrückung::eingerückt(), true, 1)
 }
 
 /// MIT-Lizenz des `ash`-crates.
@@ -2619,12 +2619,12 @@ fn ahash_lizenz() -> Cow<'static, str> {
 
 /// Apache-Lizenz des `unicode-linebreak`-crates.
 fn unicode_linebreak_lizenz() -> Cow<'static, str> {
-    apache_2_0_eingerückt(false, ApacheCopyright::standard(), true, 1)
+    apache_2_0_eingerückt(false, &ApacheCopyright::standard(), true, 1)
 }
 
 /// Apache-Lizenz des `unicode-general-category`-crates.
 fn unicode_general_category_lizenz() -> Cow<'static, str> {
-    apache_2_0_eingerückt(false, ApacheCopyright::braces(), true, 1)
+    apache_2_0_eingerückt(false, &ApacheCopyright::braces(), true, 1)
 }
 
 /// BSD-Lizenz des `arrayref`-crates.
@@ -2695,7 +2695,6 @@ fn enum_iterator_lizenz() -> Cow<'static, str> {
 
 // Mindestens eine Zeile pro dependency notwendig!
 #[allow(clippy::too_many_lines)]
-// TODO Fehlende Lizenztexte suchen/Issues öffnen.
 /// Die Lizenzen aller in `Cargo.lock` erwähnten Open-Source Bibliotheken.
 fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
     HashMap::from([

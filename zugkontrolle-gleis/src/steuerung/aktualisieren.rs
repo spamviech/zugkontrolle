@@ -118,8 +118,6 @@ impl<T> Steuerung<&mut Option<T>> {
 }
 
 // TODO Wird das alles benötigt? Es werden aktuell nur die Typ-Aliase verwendet.
-// TODO Behandeln erfordert Anpassen des public API.
-#[allow(clippy::module_name_repetitions)]
 /// Enthält eine Steuerung, die auf dem Canvas angezeigt wird.
 pub trait MitSteuerung {
     /// Self mit `()` als Steuerung.

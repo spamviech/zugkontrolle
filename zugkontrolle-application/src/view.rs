@@ -76,10 +76,8 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Send,
     S: 'static + Clone + PartialEq + Send,
 {
-    // TODO Behandeln benötigt Anpassung des public API
-    #[allow(clippy::same_name_method)]
     /// [view](iced::Application::view)-Methode für [`Zugkontrolle`].
-    pub fn view(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
+    pub(crate) fn view_impl(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
         let Zugkontrolle {
             gleise,
             scrollable_style,
@@ -349,13 +347,13 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                 }
             }
             knöpfe_hinzufügen!(
-                &gleise.zugtyp2().geraden => Gerade,
-                &gleise.zugtyp2().kurven => Kurve,
-                &gleise.zugtyp2().weichen => Weiche,
-                &gleise.zugtyp2().dreiwege_weichen => DreiwegeWeiche,
-                &gleise.zugtyp2().kurven_weichen => KurvenWeiche,
-                &gleise.zugtyp2().s_kurven_weichen => SKurvenWeiche,
-                &gleise.zugtyp2().kreuzungen => Kreuzung,
+                &gleise.zugtyp().geraden => Gerade,
+                &gleise.zugtyp().kurven => Kurve,
+                &gleise.zugtyp().weichen => Weiche,
+                &gleise.zugtyp().dreiwege_weichen => DreiwegeWeiche,
+                &gleise.zugtyp().kurven_weichen => KurvenWeiche,
+                &gleise.zugtyp().s_kurven_weichen => SKurvenWeiche,
+                &gleise.zugtyp().kreuzungen => Kreuzung,
             );
             if let Some(max) = max_breite {
                 width = Length::Fixed(max);

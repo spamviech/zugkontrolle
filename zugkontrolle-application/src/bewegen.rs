@@ -199,7 +199,7 @@ impl WichtigeWerte {
         #[allow(clippy::arithmetic_side_effects)]
         let links_oben = links
             + Skalar(0.5) * links_nach_oben
-            + abstand_diagonale * links_nach_oben.rotiert(-winkel::FRAC_PI_2).einheitsvektor();
+            + abstand_diagonale * links_nach_oben.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         let links_nach_unten = unten - links;
@@ -207,7 +207,7 @@ impl WichtigeWerte {
         #[allow(clippy::arithmetic_side_effects)]
         let links_unten = links
             + Skalar(0.5) * links_nach_unten
-            + abstand_diagonale * links_nach_unten.rotiert(winkel::FRAC_PI_2).einheitsvektor();
+            + abstand_diagonale * links_nach_unten.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         let rechts_nach_oben = oben - rechts;
@@ -215,7 +215,7 @@ impl WichtigeWerte {
         #[allow(clippy::arithmetic_side_effects)]
         let rechts_oben = rechts
             + Skalar(0.5) * rechts_nach_oben
-            + abstand_diagonale * rechts_nach_oben.rotiert(winkel::FRAC_PI_2).einheitsvektor();
+            + abstand_diagonale * rechts_nach_oben.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         let rechts_nach_unten = unten - rechts;
@@ -223,7 +223,7 @@ impl WichtigeWerte {
         #[allow(clippy::arithmetic_side_effects)]
         let rechts_unten = rechts
             + Skalar(0.5) * rechts_nach_unten
-            + abstand_diagonale * rechts_nach_unten.rotiert(-winkel::FRAC_PI_2).einheitsvektor();
+            + abstand_diagonale * rechts_nach_unten.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
 
         // Zurücksetzen
         // Inkreis-Radius r = 2A/u

@@ -545,7 +545,7 @@ where
             .push(Text::new(fahrtrichtung_beschreibung.to_owned()))
             .push(
                 Element::from(anschluss::Auswahl::neu_output_s(
-                    Some(umdrehen_anschluss.clone()),
+                    Some(umdrehen_anschluss),
                     scrollable_style,
                     settings,
                 ))
@@ -606,7 +606,7 @@ where
             // (davor wird nur das scrollable größer)
             let mut row = Row::new().height(Length::Shrink).push(
                 Element::from(anschluss::Auswahl::neu_output_s(
-                    Some(ks_anschluss.clone()),
+                    Some(ks_anschluss),
                     scrollable_style,
                     settings,
                 ))

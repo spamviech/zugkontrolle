@@ -403,7 +403,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let horizontal_vector = relative_position - start;
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
-        let mut gedreht_vector = (relative_position - zentrum).rotiert(-winkel);
+        let mut gedreht_vector = (relative_position - zentrum).rotiert(&(-winkel));
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         {

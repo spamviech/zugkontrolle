@@ -80,7 +80,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
     where
         <Aktion as Ausführen<L>>::Fehler: Debug,
     {
-        let einstellungen = Einstellungen::from(self.gleise.zugtyp2());
+        let einstellungen = Einstellungen::from(self.gleise.zugtyp());
         if let Err(fehler) = aktion.ausführen(einstellungen) {
             self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"));
         }
@@ -96,8 +96,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         <L as Leiter>::Fahrtrichtung: Send,
         S: 'static + Send,
     {
-        let join_handle = aktion
-            .async_ausführen(Einstellungen::from(self.gleise.zugtyp2()), self.sender.clone());
+        let join_handle =
+            aktion.async_ausführen(Einstellungen::from(self.gleise.zugtyp()), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
             let sender = self.sender.clone();
             let _join_handle = thread::spawn(move || {
@@ -117,13 +117,11 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         self.streckenabschnitt_aktuell = streckenabschnitt;
     }
 
-    // TODO Behandeln erfordert Anpassen des public API
-    #[allow(clippy::needless_pass_by_value)]
     /// Füge einen neuen [`Streckenabschnitt`] hinzu.
     pub fn streckenabschnitt_hinzufügen(
         &mut self,
         geschwindigkeit: Option<geschwindigkeit::Name>,
-        name: streckenabschnitt::Name,
+        name: &streckenabschnitt::Name,
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
@@ -135,11 +133,11 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
         ))));
         // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
         // vermeidet (unmöglichen) Fehlerfall mit doppeltem Namen beim hinzufügen.
-        match self.gleise.streckenabschnitt_mut(&name) {
+        match self.gleise.streckenabschnitt_mut(name) {
             Ok(streckenabschnitt)
                 if streckenabschnitt.lock_anschluss().serialisiere() == anschluss_definition =>
             {
-                streckenabschnitt.farbe = farbe;
+                streckenabschnitt.setze_farbe(farbe);
                 let titel = format!("Streckenabschnitt {} anpassen", name.0);
                 let fehlermeldung = if let Err(fehler) = streckenabschnitt.strom(Fließend::Gesperrt)
                 {
@@ -466,7 +464,7 @@ where
                 #[allow(clippy::arithmetic_side_effects)]
                 bewegung
                     .vektor(Skalar(1.) / self.gleise.skalierfaktor())
-                    .rotiert(-self.gleise.pivot().winkel),
+                    .rotiert(&(-self.gleise.pivot().winkel)),
             );
             Some(Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20)))
         } else {
@@ -495,11 +493,9 @@ where
     <L as Leiter>::UmdrehenZeit: Serialize,
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
 {
-    // TODO Behandeln erfordert anpassen des public API
-    #[allow(clippy::needless_pass_by_value)]
     /// Speicher den aktuellen Zustand in einer Datei.
-    pub fn speichern(&mut self, pfad: String) -> Command<Nachricht<L, S>> {
-        let ergebnis = self.gleise.speichern(&pfad);
+    pub fn speichern(&mut self, pfad: &str) -> Command<Nachricht<L, S>> {
+        let ergebnis = self.gleise.speichern(pfad);
         let speicher_zeit = Instant::now();
         self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit));
         if let Err(fehler) = ergebnis {
@@ -518,10 +514,8 @@ where
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
-    // TODO Behandeln erfordert anpassen des public API
-    #[allow(clippy::needless_pass_by_value)]
     /// Lade einen neuen Zustand aus einer Datei.
-    pub fn laden(&mut self, pfad: String)
+    pub fn laden(&mut self, pfad: &str)
     where
         L: BekannterLeiter + Serialisiere<S>,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
@@ -538,7 +532,7 @@ where
         S: From<<L as BekannterZugtyp>::V2>,
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
-        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
+        let lade_ergebnis = self.gleise.laden(&mut self.lager, pfad);
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.zeige_message_box(

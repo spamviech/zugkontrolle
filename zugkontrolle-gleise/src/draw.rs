@@ -35,10 +35,8 @@ pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
 }
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
-    // TODO Behandeln erfordert Anpassen des public API
-    #[allow(clippy::same_name_method)]
     /// [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
-    pub fn draw<Thema>(
+    pub(crate) fn draw_impl<Thema>(
         &self,
         _state: &<Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
         renderer: &Renderer<Thema>,

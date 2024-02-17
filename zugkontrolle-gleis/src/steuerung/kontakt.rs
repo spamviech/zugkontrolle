@@ -41,15 +41,13 @@ erstelle_sender_trait_existential! {
 trait LetztesLevel: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send {}
 impl<T: Debug + AsRef<Option<Level>> + AsMut<Option<Level>> + Send> LetztesLevel for T {}
 
-// TODO Würde API verändert, ersetzte durch "Getter".
-#[allow(clippy::partial_pub_fields)]
 /// Ein `Kontakt` erlaubt warten auf ein bestimmtes [`Trigger`]-Ereignis.
 #[derive(Debug, Clone)]
 pub struct Kontakt {
     /// Der Name des Kontaktes.
-    pub name: Name,
+    name: Name,
     /// Wann wird der Kontakt ausgelöst.
-    pub trigger: Trigger,
+    trigger: Trigger,
     /// Die letzte bekannte [Level] eines [`Kontaktes`](Kontakt).
     letztes_level: Arc<Mutex<dyn LetztesLevel>>,
     /// Der Anschluss des Kontaktes.
@@ -194,6 +192,12 @@ impl Kontakt {
     pub fn warte_auf_trigger(&mut self) -> Result<Level, RecvError> {
         let receiver = self.registriere_trigger_channel();
         receiver.recv()
+    }
+
+    /// Wann wird der Kontakt ausgelöst.
+    #[must_use]
+    pub fn trigger(&self) -> Trigger {
+        self.trigger
     }
 }
 

@@ -50,7 +50,7 @@ fn berechne_canvas_position(
         // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
         #[allow(clippy::arithmetic_side_effects)]
         {
-            pivot.punkt + (relative_position / skalieren).rotiert(-pivot.winkel)
+            pivot.punkt + (relative_position / skalieren).rotiert(&(-pivot.winkel))
         }
     })
 }
@@ -375,10 +375,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         }
     }
 
-    // TODO Behandeln erfordert Anpassen des public API.
-    #[allow(clippy::same_name_method)]
     /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`]
-    pub fn update<Thema>(
+    pub(crate) fn update_impl<Thema>(
         &self,
         _state: &mut <Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
         event: Event,

@@ -155,12 +155,10 @@ where
         )
     }
 
-    // TODO Behandeln erfordert Anpassung des public API.
-    #[allow(clippy::needless_pass_by_value)]
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     #[must_use]
     pub fn neu_input_s(
-        start_wert: Option<InputSerialisiert>,
+        start_wert: Option<&InputSerialisiert>,
         lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -168,16 +166,16 @@ where
         let (active_tab, pin, beschreibung, port, modus) = match start_wert {
             Some(InputSerialisiert::Pin { pin }) => (TabId::Pin, Some(pin), None, None, None),
             Some(InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt }) => {
-                (TabId::Pcf8574, None, Some(beschreibung), Some(port), interrupt)
+                (TabId::Pcf8574, None, Some(beschreibung), Some(port), interrupt.as_ref())
             },
             None => (TabId::Pin, None, None, None, None),
         };
         Self::neu_input_aux(
             active_tab,
-            pin,
-            beschreibung,
-            port,
-            modus,
+            pin.copied(),
+            beschreibung.copied(),
+            port.copied(),
+            modus.copied(),
             lager,
             scrollable_style,
             settings,
@@ -287,12 +285,10 @@ where
         Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
-    // TODO Behandeln erfordert Anpassung des public API.
-    #[allow(clippy::needless_pass_by_value)]
     /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
     pub fn neu_output_s(
-        start_wert: Option<OutputSerialisiert>,
+        start_wert: Option<&OutputSerialisiert>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
@@ -305,7 +301,15 @@ where
             },
             None => (TabId::Pin, None, None, None, None),
         };
-        Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
+        Self::neu_output_aux(
+            active_tab,
+            pin.copied(),
+            beschreibung.copied(),
+            port.copied(),
+            modus.copied(),
+            scrollable_style,
+            settings,
+        )
     }
 
     /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).

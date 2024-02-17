@@ -18,7 +18,7 @@ use zugkontrolle_gleis::{steuerung::geschwindigkeit::Leiter, zugtyp::Zugtyp};
 ///
 /// Fehler beim Initialisieren der Anwendung.
 fn main() -> Result<(), Fehler> {
-    let args = Argumente::parse_aus_env();
+    let args = Argumente::parse_aus_env_einzelnes_als_pfad();
     ausführen(args)
 }
 
