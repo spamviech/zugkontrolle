@@ -2,6 +2,7 @@
 name = "zugkontrolle"
 version = "5.0.0"
 authors.workspace = true
+readme.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
@@ -23,6 +24,7 @@ resolver = "2"
 
 [workspace.package]
 authors = ["spamviech <spamviech@web.de>"]
+readme = "README.md"
 edition = "2021"
 license = "MIT"
 publish = false
@@ -287,8 +289,8 @@ log = "0.4.14"
 num-traits = "0.2.14"
 once_cell = "1.17.1"
 parking_lot = "0.12.0"
-proc-macro2 = "1.0.36"
 proc-macro-crate = "3.1.0"
+proc-macro2 = "1.0.36"
 quote = "1.0.15"
 rstar = "0.12.0"
 take_mut = "0.2.2"
