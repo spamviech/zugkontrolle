@@ -43,7 +43,7 @@ panic = "abort"
 [features]
 default = []
 # Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
-raspi = ["rppal"]
+raspi = ["zugkontrolle-anschluss/raspi"]
 
 [lints]
 workspace = true
