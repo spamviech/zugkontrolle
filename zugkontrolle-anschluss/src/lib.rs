@@ -10,12 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
-// FIXME
-// use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, AnyDefinitionId};
 use zugkontrolle_util::eingeschränkt::kleiner_8;
-
-// FIXME
-// use zugkontrolle_gleis::gleise::daten::de_serialisieren::ZugtypDeserialisierenFehler;
 
 use crate::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
