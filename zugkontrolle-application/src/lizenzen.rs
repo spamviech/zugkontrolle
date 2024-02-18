@@ -2632,7 +2632,7 @@ fn arrayref_lizenz() -> Cow<'static, str> {
     bsd_2("2015", "David Roundy <roundyd@physics.oregonstate.edu>")
 }
 
-/// MIT-Lizenz des `libloading`-crates.
+/// ISC-Lizenz des `libloading`-crates.
 fn libloading_lizenz() -> Cow<'static, str> {
     isc(true, "2015", "Simonas Kazlauskas", ISCZeilenumbruch::Libloading)
 }
@@ -2687,6 +2687,23 @@ fn enum_iterator_lizenz() -> Cow<'static, str> {
         vec![MITCopyright::neu(true, "2023", "Stephane Raux")],
         None,
         MITZeilenumbruch::Standard,
+        MITEinrückung::keine(),
+        false,
+        MITEnde::standard(),
+    )
+}
+
+/// MIT-Lizenz des `yansi`-crates.
+fn yansi_lizenz(jahr: &str) -> Cow<'static, str> {
+    mit(
+        MITPräfix("The MIT License (MIT)", 1),
+        vec![MITCopyright {
+            c_in_klammern: true,
+            jahr: Some(jahr),
+            voller_name: Some("Sergio Benitez"),
+        }],
+        None,
+        MITZeilenumbruch::Iced,
         MITEinrückung::keine(),
         false,
         MITEnde::standard(),
@@ -2882,6 +2899,7 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("ppv-lite86", Lizenz::neu(ppv_lite86_lizenz)),
         ("proc-macro-crate", Lizenz::neu(mit_ohne_copyright_x11)),
         ("proc-macro2", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("proc-macro2-diagnostics", Lizenz::neu(|| yansi_lizenz("2016-2020"))),
         ("quote", Lizenz::neu(mit_ohne_copyright_x11)),
         ("rand", Lizenz::neu(rand_lizenz)),
         ("rand_chacha", Lizenz::neu(rand_lizenz)),
@@ -3160,6 +3178,8 @@ fn cargo_lock_lizenzen() -> HashMap<&'static str, Lizenz> {
         ("calloop-wayland-source", Lizenz::neu(calloop_wayland_source_lizenz)),
         ("async-lock", Lizenz::neu(mit_ohne_copyright_x11)),
         ("async-io", Lizenz::neu(mit_ohne_copyright_x11)),
+        ("yansi", Lizenz::neu(|| yansi_lizenz("2017"))),
+        ("int-enum", Lizenz::neu(mit_ohne_copyright_x11)),
     ])
 }
 
