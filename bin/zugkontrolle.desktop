@@ -4,4 +4,4 @@
 Type=Application
 Terminal=false
 Name[en_EN]=zugkontrolle
-Exec=sh -c "/home/pi/bin/zugkontrolle-4.0.2-aarch64-unknown-linux-gnu --i2c0_1 %f"
+Exec=sh -c "/home/pi/bin/zugkontrolle-4.0.3-aarch64-unknown-linux-gnu --i2c0_1 %f"

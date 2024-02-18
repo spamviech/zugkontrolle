@@ -22,3 +22,4 @@ jobs:
               - commit result
               - check test output if licenses are up to date
             - [ ] update `Changelog.md`, so all included changes appear under the <version> section
+            - [ ] update `zugkontrolle.desktop`
