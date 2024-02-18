@@ -2,12 +2,6 @@ name: Build, test, lint, check
 
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'branch'
-        required: true
-        default: 'main'
-        type: string
   pull_request_target:
     types:
       - opened
@@ -29,7 +23,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.base_ref }}
+        ref: ${{ github.sha }}
         submodules: 'true'
     - name: Install Rust
       uses: actions-rs/toolchain@v1
