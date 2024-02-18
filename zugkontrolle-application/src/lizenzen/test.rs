@@ -267,7 +267,10 @@ fn finde_unterschiede<'t, 'f>(
     let mut unterschiede = BTreeMap::new();
     let is_diff = |diff: &Difference| !matches!(diff, Difference::Same(_));
     for ((name, version), funktion) in lizenzen {
-        let repo_pfad = env!("CARGO_MANIFEST_DIR");
+        let manifest_pfad = env!("CARGO_MANIFEST_DIR");
+        // Es gibt aktuell keine env-variable für das workspace-root.
+        // https://github.com/rust-lang/cargo/issues/3946
+        let repo_pfad = format!("{manifest_pfad}/..");
         let ordner_pfad = format!("{repo_pfad}/licenses/{name}-{version}");
         let standard_lizenz_pfad: &str = standard_lizenz_pfade
             .iter()
@@ -278,7 +281,7 @@ fn finde_unterschiede<'t, 'f>(
             lizenz_dateien.get(&UniCaseOrd::neu(name)).unwrap_or(&standard_lizenz_pfad_mit_map);
         let datei = version_spezifisch.get(version).unwrap_or(pfad);
         let verwendete_lizenz = funktion();
-        let lizenz_pfad = format!("licenses/{name}-{version}/{datei}");
+        let lizenz_pfad = format!("{repo_pfad}/licenses/{name}-{version}/{datei}");
         match fs::read_to_string(lizenz_pfad.clone()) {
             Ok(gespeicherte_lizenz) => {
                 let gespeicherte_lizenz_unix = gespeicherte_lizenz.replace("\r\n", "\n");
