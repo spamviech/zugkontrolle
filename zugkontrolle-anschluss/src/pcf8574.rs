@@ -881,7 +881,6 @@ impl InputPort {
     }
 }
 
-// TODO genauere Eingrenzung auf einzelne Methoden
 /// Ein bei Interaktion mit einem [`Pcf8574`] aufgetretener Fehler.
 #[derive(Debug)]
 pub enum Fehler {
