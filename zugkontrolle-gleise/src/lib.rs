@@ -29,7 +29,7 @@ use zugkontrolle_typen::{
 
 use crate::{
     daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
-    knopf::{KlickQuelle, KnopfThema},
+    knopf::KlickQuelle,
     nachricht::{Gehalten, Nachricht},
 };
 
@@ -389,7 +389,7 @@ impl<L, AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Renderer<The
 where
     L: Leiter,
     AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
-    Thema: Clone + Into<u8> + PartialEq + KnopfThema,
+    Thema: Clone + Into<u8> + PartialEq + knopf::Thema,
     u8: TryInto<Thema>,
 {
     type State = ();

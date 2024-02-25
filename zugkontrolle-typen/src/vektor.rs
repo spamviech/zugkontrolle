@@ -4,10 +4,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    skalar::Skalar,
-    winkel::{Trigonometrie, Winkel},
-};
+use crate::{skalar::Skalar, winkel::Winkel};
 
 /// Vektoren über [Skalar] ([`f32`]) mit allen Funktionen für einen 2-dimensionen Vektorraum.
 ///
@@ -105,7 +102,7 @@ impl Vektor {
     }
 
     /// Rotiere einen Vektor um `winkel` im Uhrzeigersinn.
-    pub fn rotiere<T: Trigonometrie>(&mut self, winkel: &T) {
+    pub fn rotiere(&mut self, winkel: &Winkel) {
         let Vektor { x, y } = *self;
         let cos = winkel.cos();
         let sin = winkel.sin();
@@ -119,7 +116,7 @@ impl Vektor {
 
     /// Erzeuge einen Vektor, der um `winkel` im Uhrzeigersinn rotiert ist.
     #[must_use]
-    pub fn rotiert<T: Trigonometrie>(mut self, winkel: &T) -> Self {
+    pub fn rotiert(mut self, winkel: &Winkel) -> Self {
         self.rotiere(winkel);
         self
     }

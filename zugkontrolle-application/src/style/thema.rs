@@ -14,7 +14,7 @@ use iced_widget::{canvas::Text, vertical_slider};
 use int_enum::IntEnum;
 
 use zugkontrolle_argumente::ThemaArgument;
-use zugkontrolle_gleise::knopf::KnopfThema;
+use zugkontrolle_gleise::knopf;
 use zugkontrolle_typen::farbe::Farbe;
 
 use crate::fonts::standard_text;
@@ -45,7 +45,7 @@ impl From<ThemaArgument> for Thema {
     }
 }
 
-impl KnopfThema for Thema {
+impl knopf::Thema for Thema {
     fn standard_text(&self) -> Text {
         standard_text()
     }

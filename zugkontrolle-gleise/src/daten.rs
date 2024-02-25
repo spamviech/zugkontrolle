@@ -58,11 +58,11 @@ use zugkontrolle_typen::{
     skalar::Skalar,
     vektor::Vektor,
     verbindung::{self, Verbindung},
-    winkel::{self, Trigonometrie, Winkel},
+    winkel::{self, Winkel},
     Transparenz, Zeichnen,
 };
 
-use crate::knopf::KnopfThema;
+use crate::knopf;
 
 use self::v4::GleisSerialisiert;
 
@@ -414,7 +414,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(crate) fn darstellen_aller_gleise<Thema: KnopfThema>(
+    pub(crate) fn darstellen_aller_gleise<Thema: knopf::Thema>(
         &self,
         frame: &mut Frame<'_>,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
@@ -1230,7 +1230,7 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
     AnyId: From<GleisId<T>>,
     T: MitSteuerung,
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
-    Thema: KnopfThema,
+    Thema: knopf::Thema,
 {
     let (relative_position, beschreibung, name) =
         definition.beschreibung_und_name(steuerung, spurweite);
@@ -1398,7 +1398,7 @@ impl GleiseDaten {
     }
 
     /// Füge die Namen und Beschreibungen aller Gleise dem Frame hinzu.
-    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: KnopfThema>(
+    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: knopf::Thema>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1448,7 +1448,7 @@ impl GleiseDaten {
     // Alle Argumente benötigt
     #[allow(clippy::too_many_arguments)]
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: KnopfThema>(
+    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: knopf::Thema>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,

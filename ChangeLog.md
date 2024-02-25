@@ -7,6 +7,8 @@
   - Invertiere parameter + implementierender Typ für den `KnopfNachricht`-Trait.
   - Entferne verbleibende 2-suffixe.
   - Behebe clippy-lints, die eine public API-Anpassung benötigen (z.B. needless_pass_by_value).
+  - Entferne `WinkelGradmaß`. Ein Konstruktor für `Winkel` ist ausreichend.
+  - Entferne Trigonometrie-Trait. Verwende statt dessen Methoden auf dem `Winkel`-Typ.
 - Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
 - Verwende PickList für Modus-Auswahl.
 

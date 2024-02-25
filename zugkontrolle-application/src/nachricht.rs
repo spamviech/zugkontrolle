@@ -27,7 +27,7 @@ use zugkontrolle_gleis::{
 };
 use zugkontrolle_gleise::{
     self,
-    knopf::{KlickQuelle, KnopfNachricht},
+    knopf::{self, KlickQuelle},
     nachricht::{Nachricht as GleiseNachricht, ZustandAktualisieren},
     Modus,
 };
@@ -98,7 +98,7 @@ impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
     }
 }
 
-impl<T, L> KnopfNachricht<T> for NachrichtClone<L>
+impl<T, L> knopf::Nachricht<T> for NachrichtClone<L>
 where
     T: Clone + Into<AnyDefinitionId>,
     L: Leiter,

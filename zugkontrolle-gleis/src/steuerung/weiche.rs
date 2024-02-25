@@ -35,14 +35,12 @@ impl<R, A> MitName for Weiche<R, A> {
     }
 }
 
-// TODO Benötigt public API Anpassung, ersetzte durch "Getter"
-#[allow(clippy::partial_pub_fields)]
 // inklusive Kreuzung
 /// [`Name`], aktuelle Richtung und Anschlüsse einer Weiche.
 #[derive(Debug, zugkontrolle_macros::Clone)]
 pub struct Weiche<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
-    pub name: Name,
+    name: Name,
     /// Die aktuelle und eventuell weitere Richtungen einer [`Weiche`].
     richtung: Arc<Mutex<Steuerung<Richtung>>>,
     /// Die Anschlüsse der Weiche.

@@ -17,7 +17,7 @@ use zugkontrolle_typen::{
     skalar::Skalar,
     vektor::Vektor,
     verbindung::Verbindung,
-    winkel::{self, Trigonometrie, Winkel},
+    winkel::{self, Winkel},
     MitName, Transparenz, Zeichnen,
 };
 
@@ -35,7 +35,7 @@ type Steuerung = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlü
 type AnschlüsseSerialisiert =
     steuerung::weiche::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
-// TODO Behandeln erfordert anpassen des public API.
+// Soll unqualifiziert verwendet werden.
 #[allow(clippy::module_name_repetitions)]
 /// Definition einer Dreiwege-Weiche.
 ///

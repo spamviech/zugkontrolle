@@ -20,7 +20,7 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    knopf::KnopfThema,
+    knopf,
     nachricht::{Gehalten, Nachricht},
     Gleise, ModusDaten,
 };
@@ -46,7 +46,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) -> Vec<Geometry>
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
-        Thema: Clone + Into<u8> + PartialEq + KnopfThema,
+        Thema: Clone + Into<u8> + PartialEq + knopf::Thema,
         u8: TryInto<Thema>,
         Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Renderer<Thema>>,
     {

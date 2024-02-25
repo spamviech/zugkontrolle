@@ -1,8 +1,8 @@
 //! Trait für fehler-freies Nachschlagen von Elementen.
 
-// TODO Behandeln erfordert Anpassung des public API.
+// Erlaube, `zugkontrolle_macros` nicht direkt als dependency anzugeben.
 #![allow(clippy::pub_use)]
-// TODO Behandeln erfordert Anpassung des public API.
+// Soll unqualifiziert verwendet werden.
 #[allow(clippy::module_name_repetitions)]
 pub use zugkontrolle_macros::impl_nachschlagen;
 

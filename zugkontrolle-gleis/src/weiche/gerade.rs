@@ -17,7 +17,7 @@ use zugkontrolle_typen::{
     skalar::Skalar,
     vektor::Vektor,
     verbindung::Verbindung,
-    winkel::{self, Trigonometrie, Winkel},
+    winkel::{self, Winkel},
     MitName, Transparenz, Zeichnen,
 };
 

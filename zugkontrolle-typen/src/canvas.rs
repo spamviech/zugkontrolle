@@ -18,7 +18,7 @@ use crate::{
     skalar::Skalar,
     vektor::Vektor,
     verbindung::{self, Verbindung},
-    winkel::{self, Trigonometrie, Winkel},
+    winkel::{self, Winkel},
     Zeichnen,
 };
 

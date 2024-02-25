@@ -107,20 +107,20 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<T, Nachricht, Thema> Program<Nachricht, Renderer<Thema>> for Knopf<'_, T>
+impl<Gleis, N, T> Program<N, Renderer<T>> for Knopf<'_, Gleis>
 where
-    T: Zeichnen<()>,
-    Nachricht: KnopfNachricht<GleisId<T>>,
-    Thema: Clone + Into<u8> + PartialEq + KnopfThema,
-    u8: TryInto<Thema>,
+    Gleis: Zeichnen<()>,
+    N: Nachricht<GleisId<Gleis>>,
+    T: Clone + Into<u8> + PartialEq + Thema,
+    u8: TryInto<T>,
 {
     type State = Zustand;
 
     fn draw(
         &self,
         state: &Self::State,
-        renderer: &Renderer<Thema>,
-        thema: &Thema,
+        renderer: &Renderer<T>,
+        thema: &T,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
@@ -223,21 +223,21 @@ where
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht>) {
+    ) -> (event::Status, Option<N>) {
         /// Reagiere darauf, dass der [`Knopf`] angeklickt wurde.
-        fn pressed<T, Nachricht>(
-            definition: &GleisId<T>,
+        fn pressed<Gleis, N>(
+            definition: &GleisId<Gleis>,
             klick_quelle: KlickQuelle,
             cursor: Cursor,
             bounds: Rectangle,
-        ) -> (event::Status, Option<Nachricht>)
+        ) -> (event::Status, Option<N>)
         where
-            Nachricht: KnopfNachricht<GleisId<T>>,
+            N: Nachricht<GleisId<Gleis>>,
         {
             if let Some(Point { x, y }) = cursor.position_in(bounds) {
                 (
                     event::Status::Captured,
-                    Some(<Nachricht as KnopfNachricht<GleisId<T>>>::nachricht(
+                    Some(<N as Nachricht<GleisId<Gleis>>>::nachricht(
                         definition,
                         klick_quelle,
                         Vektor { x: Skalar(x), y: Skalar(y) },
@@ -283,10 +283,8 @@ pub enum KlickQuelle {
     Touch(Finger),
 }
 
-// TODO Behandeln erfordert anpassen des public API.
-#[allow(clippy::module_name_repetitions)]
 /// Alle Funktionen eines [`Knopfes`](Knopf) werden unterstützt.
-pub trait KnopfNachricht<Definition> {
+pub trait Nachricht<Definition> {
     /// Erzeuge eine Nachricht ausgehend der relativen Position wo der [`Knopf`] gedrückt wurde.
     fn nachricht(
         definition: &Definition,
@@ -295,10 +293,8 @@ pub trait KnopfNachricht<Definition> {
     ) -> Self;
 }
 
-// TODO Behandeln erfordert anpassen des public API. Soll auch an sinnvolleren Ort verschoben werden.
-#[allow(clippy::module_name_repetitions)]
 /// Anforderung für ein Thema, damit es für einen [`Knopf`] unterstützt wird.
-pub trait KnopfThema {
+pub trait Thema {
     /// Die Standard-Schriftart, Größe und Ausrichtung für Text auf einem Canvas.
     #[must_use]
     fn standard_text(&self) -> Text;

@@ -25,7 +25,9 @@ use zugkontrolle_gleis::{
     },
     weiche,
 };
-use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel};
+use zugkontrolle_typen::{
+    canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel, MitName,
+};
 
 use crate::{
     daten::{
@@ -158,7 +160,7 @@ where
                 RichtungInformation { aktuelle_richtung: Gerade, letzte_richtung: Gerade } => {
                     error!(
                         "Letzte und aktuelle Richtung für Dreiwege-Weiche {} sind beide Gerade!",
-                        steuerung.name.0
+                        steuerung.name().unwrap_or("\"\"")
                     );
                     Links
                 },

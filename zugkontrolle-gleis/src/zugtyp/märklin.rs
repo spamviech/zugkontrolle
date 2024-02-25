@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::{
     mm::{Länge, Radius, Spurweite},
-    winkel::WinkelGradmaß,
+    winkel::Winkel,
 };
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
@@ -173,42 +173,42 @@ Kurve
 /// Eine Kurve mit Winkel `45°` und Radius `286mm`.
 #[must_use]
 pub fn kurve_5120() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_INDUSTRIE, WinkelGradmaß::neu(45.).into(), "5120")
+    Kurve::neu_mit_beschreibung(RADIUS_INDUSTRIE, Winkel::gradmaß(45.), "5120")
 }
 /// Eine Kurve mit Winkel `30°` und Radius `360mm` (R1).
 #[must_use]
 pub fn kurve_5100() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(30.).into(), "5100")
+    Kurve::neu_mit_beschreibung(RADIUS_R1, Winkel::gradmaß(30.), "5100")
 }
 /// Eine Kurve mit Winkel `15°` und Radius `360mm` (R1).
 #[must_use]
 pub fn kurve_5101() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(15.).into(), "5101")
+    Kurve::neu_mit_beschreibung(RADIUS_R1, Winkel::gradmaß(15.), "5101")
 }
 /// Eine Kurve mit Winkel `7.5°` und Radius `360mm` (R1).
 #[must_use]
 pub fn kurve_5102() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(7.5).into(), "5102")
+    Kurve::neu_mit_beschreibung(RADIUS_R1, Winkel::gradmaß(7.5), "5102")
 }
 /// Eine Kurve mit Winkel `30°` und Radius `437.4mm` (R2).
 #[must_use]
 pub fn kurve_5200() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(30.).into(), "5200")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, Winkel::gradmaß(30.), "5200")
 }
 /// Eine Kurve mit Winkel `24.28°` und Radius `437.4mm` (R2).
 #[must_use]
 pub fn kurve_5206() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(24.28).into(), "5206")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, Winkel::gradmaß(24.28), "5206")
 }
 /// Eine Kurve mit Winkel `15°` und Radius `437.4mm` (R2).
 #[must_use]
 pub fn kurve_5201() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(15.).into(), "5201")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, Winkel::gradmaß(15.), "5201")
 }
 /// Eine Kurve mit Winkel `5.72°` und Radius `437.4mm` (R2).
 #[must_use]
 pub fn kurve_5205() -> KurveUnit {
-    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(5.72).into(), "5205")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, Winkel::gradmaß(5.72), "5205")
 }
 
 /*
@@ -227,7 +227,7 @@ pub fn weiche_5117(orientierung: Orientierung) -> WeicheUnit {
     WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
-        WinkelGradmaß::neu(30.).into(),
+        Winkel::gradmaß(30.),
         orientierung,
         beschreibung,
     )
@@ -252,7 +252,7 @@ pub fn weiche_5137(richtung: Orientierung) -> WeicheUnit {
     WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
-        WinkelGradmaß::neu(22.5).into(),
+        Winkel::gradmaß(22.5),
         richtung,
         beschreibung,
     )
@@ -277,7 +277,7 @@ pub fn weiche_5202(richtung: Orientierung) -> WeicheUnit {
     WeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
-        WinkelGradmaß::neu(24.28).into(),
+        Winkel::gradmaß(24.28),
         richtung,
         beschreibung,
     )
@@ -303,7 +303,7 @@ pub fn dreiwege_weiche_5214() -> DreiwegeWeicheUnit {
     DreiwegeWeicheUnit::neu_mit_beschreibung(
         Länge::neu(180.),
         RADIUS_R2,
-        WinkelGradmaß::neu(24.28).into(),
+        Winkel::gradmaß(24.28),
         "5214",
     )
 }
@@ -322,7 +322,7 @@ pub fn kurven_weiche_5140(orientierung: Orientierung) -> KurvenWeicheUnit {
     KurvenWeiche::neu_mit_beschreibung(
         Länge::neu(77.3),
         RADIUS_R1,
-        WinkelGradmaß::neu(30.).into(),
+        Winkel::gradmaß(30.),
         orientierung,
         beschreibung,
     )

@@ -136,8 +136,6 @@ impl Anschluss {
     }
 }
 
-// TODO Behandeln erfordert Anpassung des public API.
-#[allow(clippy::module_name_repetitions)]
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
 #[allow(variant_size_differences)]
@@ -377,8 +375,6 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
     }
 }
 
-// TODO Behandeln erfordert Anpassung des public API.
-#[allow(clippy::module_name_repetitions)]
 /// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
 #[allow(variant_size_differences)]

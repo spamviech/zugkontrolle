@@ -375,10 +375,10 @@ where
     <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
     <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
-    /// TODO Behandeln benötigt Anpassung des public API.
+    // Alle Argumente benötigt.
     #[allow(clippy::too_many_arguments)]
     /// Erstelle eine neue [`Auswahl`].
-    pub fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
+    fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
         startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,

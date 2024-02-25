@@ -3209,11 +3209,9 @@ fn verwendete_lizenzen_impl<K: Ord>(
         .collect()
 }
 
-// TODO Behandeln erfordert Anpassung des public API.
-#[allow(clippy::module_name_repetitions)]
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken für das übergebene target.
 #[must_use]
-pub fn verwendete_lizenzen(
+fn verwendete_lizenzen(
     target_crates: HashMap<&'static str, NonEmpty<&'static str>>,
 ) -> LizenzenMap {
     verwendete_lizenzen_impl(target_crates, |name, version| {

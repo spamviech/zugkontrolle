@@ -7,10 +7,10 @@ use std::fmt::{self, Debug, Formatter};
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
 
 #[cfg(feature = "raspi")]
-// TODO wird nur für die Fallback-Implementierung benötigt.
+// wird nur für die Fallback-Implementierung benötigt.
 use num_traits as _;
 #[cfg(feature = "raspi")]
-// TODO wird nur für die Fallback-Implementierung benötigt.
+// wird nur für die Fallback-Implementierung benötigt.
 use take_mut as _;
 
 pub mod gpio;

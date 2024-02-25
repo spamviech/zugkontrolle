@@ -118,6 +118,7 @@ impl<T> Steuerung<&mut Option<T>> {
 }
 
 // TODO Wird das alles benötigt? Es werden aktuell nur die Typ-Aliase verwendet.
+// Angedacht für Plan erstellen?
 /// Enthält eine Steuerung, die auf dem Canvas angezeigt wird.
 pub trait MitSteuerung {
     /// Self mit `()` als Steuerung.

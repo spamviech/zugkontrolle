@@ -12,7 +12,7 @@ use iced::{
     Point, Rectangle, Renderer,
 };
 
-use zugkontrolle_gleise::knopf::{KlickQuelle, KnopfThema};
+use zugkontrolle_gleise::knopf::{KlickQuelle, Thema as _};
 use zugkontrolle_typen::{
     canvas::{
         pfad::{self, Bogen},
@@ -20,7 +20,7 @@ use zugkontrolle_typen::{
     },
     skalar::Skalar,
     vektor::Vektor,
-    winkel::{self, Trigonometrie, Winkel},
+    winkel::{self, Winkel},
 };
 
 use crate::style::thema::Thema;

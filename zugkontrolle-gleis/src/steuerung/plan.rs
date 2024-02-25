@@ -20,7 +20,9 @@ use zugkontrolle_util::eingeschränkt::NichtNegativ;
 use crate::{
     steuerung::{
         aktualisieren::{Aktualisieren, Steuerung},
-        geschwindigkeit::{self, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{
+            self, AsyncAktion, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
+        },
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
         weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
@@ -200,9 +202,9 @@ macro_rules! impl_ausführen_simple {
     };
 }
 
-// TODO Anpassung bedeutet Änderung des public APIs.
+// Sollte nicht direkt verwendet werden.
 #[allow(clippy::module_name_repetitions)]
-/// Ein Fahrplan.
+/// Ein Fahrplan. Wird normalerweise über das [`Plan`]-alias verwendet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanEnum<Aktion> {
     /// Alle [`Aktionen`](Aktion) des Plans.
@@ -214,11 +216,9 @@ pub struct PlanEnum<Aktion> {
 /// Ein Fahrplan.
 pub type Plan<L> = PlanEnum<Aktion<L>>;
 
-// TODO Anpassung bedeutet Änderung des public APIs. Assoziation Plan-PlanFehler hilfreich?
-#[allow(clippy::module_name_repetitions)]
 /// Fehler beim Ausführen eines Plans.
 #[derive(Debug)]
-pub struct PlanFehler {
+pub struct Fehler {
     /// Der aufgetretene Fehler.
     pub fehler: AktionFehler,
     /// Der Index des aufgetretenen Fehlers.
@@ -232,7 +232,7 @@ where
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
     <L as Leiter>::UmdrehenZeit: Send,
 {
-    type Fehler = PlanFehler;
+    type Fehler = Fehler;
 
     fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler>
     where
@@ -245,7 +245,7 @@ where
             for (i, aktion) in aktionen.iter_mut().enumerate() {
                 aktion
                     .ausführen(einstellungen.clone())
-                    .map_err(|fehler| PlanFehler { fehler, aktion: i })?;
+                    .map_err(|fehler| Fehler { fehler, aktion: i })?;
             }
         }
         Ok(())
@@ -405,7 +405,7 @@ pub enum AktionFehler {
     /// Fehler beim Ausführen einer [`AktionWarten`].
     Warten(RecvError),
     /// Fehler beim Ausführen eines [`Plans`](Plan).
-    Ausführen(Box<PlanFehler>),
+    Ausführen(Box<Fehler>),
 }
 
 impl<L: Leiter> Ausführen<L> for Aktion<L>
@@ -644,9 +644,11 @@ where
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
-                    sender,
-                    Some(erzeuge_aktualisieren_nachricht),
-                    |_clone, fehler| erzeuge_fehler_nachricht(fehler),
+                    AsyncAktion {
+                        sender,
+                        erzeuge_aktualisieren_nachricht: Some(erzeuge_aktualisieren_nachricht),
+                        erzeuge_fehler_nachricht: |_clone, fehler| erzeuge_fehler_nachricht(fehler),
+                    },
                 ),
             AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.async_fahrtrichtung_allgemein(
@@ -655,9 +657,11 @@ where
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
                     einstellungen.umdrehen_zeit,
-                    sender,
-                    Some(erzeuge_aktualisieren_nachricht),
-                    |_clone, fehler| erzeuge_fehler_nachricht(fehler),
+                    AsyncAktion {
+                        sender,
+                        erzeuge_aktualisieren_nachricht: Some(erzeuge_aktualisieren_nachricht),
+                        erzeuge_fehler_nachricht: |_clone, fehler| erzeuge_fehler_nachricht(fehler),
+                    },
                 )
             },
         }

@@ -12,12 +12,7 @@ use iced_core::{
     Background, BorderRadius, Clipboard, Color, Element, Length, Rectangle, Shell, Size, Widget,
 };
 
-use zugkontrolle_typen::{
-    farbe::Farbe,
-    skalar::Skalar,
-    vektor::Vektor,
-    winkel::{self, Trigonometrie},
-};
+use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel};
 
 /// Widget zur Farbwahl.
 ///

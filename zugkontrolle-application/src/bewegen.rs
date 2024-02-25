@@ -8,7 +8,7 @@ use iced::{
 };
 use itertools::{Itertools, MinMaxResult};
 
-use zugkontrolle_gleise::knopf::{KlickQuelle, KnopfThema};
+use zugkontrolle_gleise::knopf::{KlickQuelle, Thema as _};
 use zugkontrolle_typen::{
     canvas::{
         pfad::{self, Bogen},

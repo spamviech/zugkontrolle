@@ -189,6 +189,19 @@ macro_rules! sende_aktualisieren_nachricht {
     }}
 }
 
+/// Notwendige Informationen zum asynchronen Ausführen einer Aktion.
+#[derive(Debug, Clone)]
+pub struct AsyncAktion<Nachricht, AktualisierenFn, FehlerFn> {
+    /// Sender zum schicken der Nachricht.
+    pub sender: Sender<Nachricht>,
+    /// Erzeuge eine Nachricht, um auf eine Änderung zu reagieren.
+    ///
+    /// Bei [`None`] wird keine Nachricht erzeugt.
+    pub erzeuge_aktualisieren_nachricht: Option<AktualisierenFn>,
+    /// Erzeuge eine Nachricht, um auf einen Fehler zu reagieren.
+    pub erzeuge_fehler_nachricht: FehlerFn,
+}
+
 impl<L: Leiter> Geschwindigkeit<L> {
     /// Anpassen der Fahrgeschwindigkeit.
     ///
@@ -235,8 +248,6 @@ impl<L: Leiter> Geschwindigkeit<L> {
         )
     }
 
-    // TODO Beheben würde eine Typ-Anpassung erfordern, z.B. über ein Zugtyp-Argument.
-    #[allow(clippy::too_many_arguments)]
     /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
     pub fn async_umdrehen_allgemein<Nachricht: Send + 'static>(
         &mut self,
@@ -244,17 +255,19 @@ impl<L: Leiter> Geschwindigkeit<L> {
         verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
-        sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<
+        async_aktion: AsyncAktion<
+            Nachricht,
             impl 'static + FnOnce() -> Nachricht + Clone + Send,
+            impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
         >,
-        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
+        let AsyncAktion { sender, erzeuge_aktualisieren_nachricht, erzeuge_fehler_nachricht } =
+            async_aktion;
         let sende_aktualisieren_nachricht =
             sende_aktualisieren_nachricht!(sender, erzeuge_aktualisieren_nachricht);
         let async_umdrehen_allgemein_aux = <L as Leiter>::async_umdrehen_allgemein_aux;
@@ -296,8 +309,6 @@ impl<L: Leiter> Geschwindigkeit<L> {
         )
     }
 
-    // TODO Beheben würde eine Typ-Anpassung erfordern, z.B. über ein Zugtyp-Argument.
-    #[allow(clippy::too_many_arguments)]
     /// Erstelle einen neuen Thread zum einstellen der aktuellen Fahrtrichtung.
     pub fn async_fahrtrichtung_allgemein<Nachricht: Send + 'static>(
         &mut self,
@@ -306,11 +317,11 @@ impl<L: Leiter> Geschwindigkeit<L> {
         verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
-        sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<
+        async_aktion: AsyncAktion<
+            Nachricht,
             impl 'static + FnOnce() -> Nachricht + Clone + Send,
+            impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
         >,
-        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()>
     where
         L: 'static + Send,
@@ -318,6 +329,8 @@ impl<L: Leiter> Geschwindigkeit<L> {
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
         <L as Leiter>::UmdrehenZeit: Send,
     {
+        let AsyncAktion { sender, erzeuge_aktualisieren_nachricht, erzeuge_fehler_nachricht } =
+            async_aktion;
         let sende_aktualisieren_nachricht =
             sende_aktualisieren_nachricht!(sender, erzeuge_aktualisieren_nachricht);
         let async_fahrtrichtung_allgemein_aux = <L as Leiter>::async_fahrtrichtung_allgemein_aux;
@@ -779,8 +792,6 @@ impl Geschwindigkeit<Mittelleiter> {
         )
     }
 
-    /// TODO Behandeln würde eine Typ-Änderung benötigen, z.B. ein Zugtyp-Argument.
-    #[allow(clippy::too_many_arguments)]
     /// Erstelle einen neuen Thread zum Umdrehen der aktuellen Fahrtrichtung.
     pub fn async_umdrehen<Nachricht: Send + 'static>(
         &mut self,
@@ -788,20 +799,18 @@ impl Geschwindigkeit<Mittelleiter> {
         verhältnis_fahrspannung_überspannung: <Mittelleiter as Leiter>::VerhältnisFahrspannungÜberspannung,
         stopp_zeit: Duration,
         umdrehen_zeit: <Mittelleiter as Leiter>::UmdrehenZeit,
-        sender: Sender<Nachricht>,
-        erzeuge_aktualisieren_nachricht: Option<
+        async_aktion: AsyncAktion<
+            Nachricht,
             impl 'static + FnOnce() -> Nachricht + Clone + Send,
+            impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
         >,
-        erzeuge_fehler_nachricht: impl 'static + FnOnce(Self, Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()> {
         self.async_umdrehen_allgemein(
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
             stopp_zeit,
             umdrehen_zeit,
-            sender,
-            erzeuge_aktualisieren_nachricht,
-            erzeuge_fehler_nachricht,
+            async_aktion,
         )
     }
 
