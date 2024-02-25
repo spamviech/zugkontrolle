@@ -1,6 +1,6 @@
 //! Farbe im RGB-Schema (inklusive Serialize/Deserialize-Implementierungen).
 
-use iced::Color;
+use iced_core::Color;
 use serde::{Deserialize, Serialize};
 
 /// Rote [`Farbe`].

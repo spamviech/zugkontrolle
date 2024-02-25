@@ -5,9 +5,11 @@ use std::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
-use iced::{
-    widget::canvas::{self, fill::Fill, stroke::Stroke, Geometry, Text},
-    Renderer, Size,
+use iced_core::Size;
+use iced_graphics::geometry::{fill::Fill, stroke::Stroke, Text};
+use iced_renderer::{
+    geometry::{self, Geometry},
+    Renderer,
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,10 +28,10 @@ pub mod pfad;
 
 /// Newtype auf [`iced::widget::canvas::Frame`], dessen Methoden meine Typen verwenden.
 ///
-/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [`Frame`](canvas::Frame) liegt.
+/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [`Frame`](iced_renderer::Frame) liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
-pub struct Frame<'t>(&'t mut canvas::Frame);
+pub struct Frame<'t>(&'t mut geometry::Frame);
 
 impl Debug for Frame<'_> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
@@ -39,7 +41,7 @@ impl Debug for Frame<'_> {
 
 impl<'t> Frame<'t> {
     /// Erzeuge einen neuen [`Frame`].
-    pub fn neu(frame: &'t mut canvas::Frame) -> Self {
+    pub fn neu(frame: &'t mut geometry::Frame) -> Self {
         Frame(frame)
     }
 
@@ -100,7 +102,7 @@ impl<'t> Frame<'t> {
     pub fn transformation(&mut self, transformation: &Transformation) {
         match transformation {
             Transformation::Translation(Vektor { x, y }) => {
-                self.0.translate(iced::Vector { x: x.0, y: y.0 });
+                self.0.translate(iced_core::Vector { x: x.0, y: y.0 });
             },
             Transformation::Rotation(winkel) => self.0.rotate(winkel.0),
             Transformation::Skalieren(scale) => self.0.scale(scale.0),
@@ -115,7 +117,7 @@ impl<'t> Frame<'t> {
 #[derive(Debug, Default)]
 pub struct Cache {
     /// Der Cache mit der gespeicherten Geometrie.
-    cache: canvas::Cache,
+    cache: geometry::Cache,
     /// Die [`u8`]-Repräsentation des Themas beim letzten
     /// [`zeichnen_skaliert_von_pivot`](Cache::zeichnen_skaliert_von_pivot)-Aufruf.
     thema: AtomicU8,
@@ -127,7 +129,7 @@ impl Cache {
     pub fn neu() -> Self {
         // Initialer Wert ist nicht relevant.
         let thema = AtomicU8::new(0);
-        Cache { cache: canvas::Cache::new(), thema }
+        Cache { cache: geometry::Cache::new(), thema }
     }
 
     /// Leere den [`Cache`], so dass er neu gezeichnet wird.

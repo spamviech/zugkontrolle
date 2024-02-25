@@ -5,10 +5,8 @@ use std::{
     marker::PhantomData,
 };
 
-use iced::{
-    widget::canvas::{path, Path},
-    Point,
-};
+use iced_core::Point;
+use iced_graphics::geometry::{path, Path};
 
 use crate::{
     skalar::Skalar,

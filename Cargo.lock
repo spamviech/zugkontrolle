@@ -4026,8 +4026,9 @@ dependencies = [
 name = "zugkontrolle-typen"
 version = "0.1.0"
 dependencies = [
- "iced",
  "iced_core",
+ "iced_graphics",
+ "iced_renderer",
  "kommandozeilen_argumente",
  "rstar",
  "serde",
