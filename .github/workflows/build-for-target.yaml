@@ -44,7 +44,8 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable-${{ inputs.target }}
+        toolchain: stable
+        target: ${{ inputs.target }}
         override: true
     - name: Setup Cache
       uses: Swatinem/rust-cache@v2
@@ -53,4 +54,4 @@ jobs:
       with:
         command: build
         use-cross: true
-        args: --target=${{ inputs.target }} ${{ inputs.raspi && --features="raspi" }}
+        args: --target=${{ inputs.target }} ${{ inputs.raspi && '--features=raspi' }}
