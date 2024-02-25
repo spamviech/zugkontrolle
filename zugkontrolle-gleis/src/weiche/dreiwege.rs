@@ -25,7 +25,7 @@ use crate::{
     gerade, kurve,
     steuerung::{
         self,
-        weiche::{MitRichtung, WeicheSteuerung},
+        weiche::{self, MitRichtung},
     },
 };
 
@@ -125,7 +125,7 @@ impl MitRichtung<Richtung> for RichtungInformation {
     }
 }
 
-impl WeicheSteuerung<Richtung> for RichtungInformation {
+impl weiche::Steuerung<Richtung> for RichtungInformation {
     type Zurücksetzen = Richtung;
 
     fn einstellen(&mut self, neue_richtung: Richtung) -> Self::Zurücksetzen {
@@ -159,8 +159,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let rechteck_gerade_verschoben = rechteck_gerade.verschiebe_chain(&verschieben);
         let rechteck_kurve_verschoben = rechteck_kurve.clone().verschiebe_chain(&verschieben);
         rechteck_gerade_verschoben
-            .einschließend(rechteck_kurve)
-            .einschließend(rechteck_kurve_verschoben)
+            .einschließend(&rechteck_kurve)
+            .einschließend(&rechteck_kurve_verschoben)
     }
 
     fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {

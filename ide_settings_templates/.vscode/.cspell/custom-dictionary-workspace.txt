@@ -439,6 +439,7 @@ wsapoll
 xcursor
 xkeysym
 xorg
+yansi
 yazi
 Yevhenii
 Yuki

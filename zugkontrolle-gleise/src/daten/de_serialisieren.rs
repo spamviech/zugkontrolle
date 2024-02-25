@@ -785,8 +785,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.erzwinge_neuzeichnen();
         let anschlüsse = self.zustand.anschlüsse_ausgeben();
 
-        // TODO pivot, skalieren, Modus?
-        // last_mouse, last_size nicht anpassen
+        // pivot, skalieren, modus, letzte_maus_position, letzte_canvas_größe nicht anpassen
 
         // lese & parse Datei
         let content = fs::read(pfad).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;

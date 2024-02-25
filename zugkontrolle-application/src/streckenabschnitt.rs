@@ -77,7 +77,6 @@ where
     /// Erstelle eine neue [`Anzeige`].
     pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool, overlay: Overlay) -> Self {
         let mut children = Vec::new();
-        // TODO Assoziierte Geschwindigkeit berücksichtigen
         let style = if let Some((streckenabschnitt_name, farbe)) = zustand {
             children.push(Text::new(&streckenabschnitt_name.0).into());
             style::streckenabschnitt::anzeige_farbe(*farbe)
@@ -140,7 +139,6 @@ impl AuswahlZustand {
         startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
         gleise: &Gleise<L, AktualisierenNachricht>,
     ) -> AuswahlZustand {
-        // TODO assoziierte Geschwindigkeit berücksichtigen
         let (neu_name, neu_farbe, neu_anschluss) =
             if let Some((name, streckenabschnitt, _geschwindigkeit)) = startwert {
                 (name.0, streckenabschnitt.farbe(), streckenabschnitt.anschluss())
@@ -275,7 +273,6 @@ where
                     Vec::new()
                 },
                 InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
-                    // TODO assoziierte Geschwindigkeit berücksichtigen
                     zustand.neu_name = name.0;
                     zustand.neu_farbe = farbe;
                     zustand.neu_anschluss = anschluss;
@@ -332,7 +329,6 @@ where
                             .style(style::streckenabschnitt::auswahl_button(*farbe).into()),
                     )
                     .push(Button::new(Icon::neu(Bootstrap::Feather)).on_press(
-                        // TODO assoziierte Geschwindigkeit berücksichtigen
                         InterneAuswahlNachricht::Bearbeiten(
                             None,
                             name.clone().into_inner(),

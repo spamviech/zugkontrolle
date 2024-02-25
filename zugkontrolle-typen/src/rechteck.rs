@@ -40,15 +40,13 @@ impl Rechteck {
         }
     }
 
-    // TODO Behandeln bedeutet Anpassung des public API.
-    #[allow(clippy::needless_pass_by_value)]
     /// Erzeuge ein Rechteck, in dem `self` und `other` enthalten sind.
     ///
     /// ## Panics
     ///
     /// Bei einem Programmier-Fehler, wenn [`Rechteck::aus_vektoren`] [`None`] zurück gibt.
     #[must_use]
-    pub fn einschließend(self, other: Self) -> Self {
+    pub fn einschließend(self, other: &Self) -> Self {
         Rechteck::aus_vektoren([self.ecke_a, self.ecke_b, other.ecke_a, other.ecke_b].into_iter())
             .expect("Iterator besteht aus 4 Elementen.")
     }

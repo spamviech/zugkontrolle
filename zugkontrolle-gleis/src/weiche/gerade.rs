@@ -115,7 +115,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let Weiche { länge, radius, winkel, .. } = *self;
         let rechteck_gerade = gerade::rechteck(spurweite, länge);
         let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
-        rechteck_gerade.einschließend(rechteck_kurve)
+        rechteck_gerade.einschließend(&rechteck_kurve)
     }
 
     fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {

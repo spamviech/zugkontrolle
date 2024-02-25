@@ -116,7 +116,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
         let rechteck_kurve_verschoben =
             rechteck_kurve.clone().verschiebe_chain(&Vektor { x: länge, y: Skalar(0.) });
-        rechteck_gerade.einschließend(rechteck_kurve).einschließend(rechteck_kurve_verschoben)
+        rechteck_gerade.einschließend(&rechteck_kurve).einschließend(&rechteck_kurve_verschoben)
     }
 
     fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {

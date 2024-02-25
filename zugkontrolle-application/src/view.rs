@@ -373,7 +373,6 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
                     )
                 });
             });
-            // TODO Wegstrecken?, Pläne?, Separator dazwischen?
         },
     }
     let scrollable = Scrollable::new(scrollable_column);

@@ -1473,8 +1473,6 @@ impl GleiseDaten {
     }
 }
 
-// TODO innerhalb auf enum umstellen, dass zwischen
-// wirklich_innerhalb und innerhalb_toleranz unterscheidet?
 /// Wie weit kann neben ein Gleis geklickt werden, so dass es trotzdem erkannt wird.
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 

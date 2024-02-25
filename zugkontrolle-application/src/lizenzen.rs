@@ -165,7 +165,6 @@ where
             });
         }
         let buttons = Scrollable::new(buttons).style(scrollable_style);
-        // FIXME Schließen-Knopf nach den Buttons wird nicht angezeigt :(
         let column = Column::new()
             .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
             .push(Space::with_height(Length::Fixed(PADDING)))

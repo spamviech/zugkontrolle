@@ -1675,7 +1675,6 @@ impl Display for OptionD<OflCopyright<'_>, ()> {
     }
 }
 
-// TODO Beheben erfordert Anpassung des public APIs
 #[allow(clippy::fn_params_excessive_bools)]
 /// Erzeuge einen Lizenz-Text für die OFL-Lizenz.
 #[must_use]

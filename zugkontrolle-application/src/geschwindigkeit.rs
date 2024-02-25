@@ -129,11 +129,9 @@ where
         ks_länge: impl FnOnce(&'s Geschwindigkeit<L>) -> Option<usize>,
         geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
         zeige_fahrtrichtung: impl FnOnce(Option<<L as Leiter>::Fahrtrichtung>) -> Element<'t, M, R>,
-        // TODO overlay mit Anschlüssen?
     ) -> Self {
         let aktuelle_geschwindigkeit = geschwindigkeit.aktuelle_geschwindigkeit();
         let aktuelle_fahrtrichtung = geschwindigkeit.aktuelle_fahrtrichtung();
-        // TODO Anschluss-Anzeige (Expander über Overlay?)
         let mut column = Column::new().spacing(1).push(Text::new(name.0.clone()));
         column = if let Some(länge) = ks_länge(geschwindigkeit) {
             if länge > u8::MAX.into() {
@@ -602,8 +600,6 @@ where
             .push(Space::with_height(Length::Fixed(1.)))
             .push(Text::new("Geschwindigkeit"));
         for (i, ks_anschluss) in ks_anschlüsse.iter().enumerate() {
-            // FIXME neu hinzugefügte Anschlüsse werden erst nach Ändern der Fenstergröße angezeigt
-            // (davor wird nur das scrollable größer)
             let mut row = Row::new().height(Length::Shrink).push(
                 Element::from(anschluss::Auswahl::neu_output_s(
                     Some(ks_anschluss),

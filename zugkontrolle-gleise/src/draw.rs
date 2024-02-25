@@ -51,12 +51,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Renderer<Thema>>,
     {
         let Gleise { canvas, modus, .. } = self;
-        // TODO zeichne keine out-of-bounds Gleise (`locate_in_envelope_intersecting`)
-        // bounds müssen an Position angepasst werden:
-        // - ignoriere screen-position (verwende nur height+width, i.e. size)
-        // - berücksichtige eigene Position (Punkt + Winkel)
-        // - berücksichtige Zoom
-        // keine Priorität, in den meisten Fällen dürften alle Gleise angezeigt werden
         vec![canvas.zeichnen_skaliert_von_pivot(
             renderer,
             thema,

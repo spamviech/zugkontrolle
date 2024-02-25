@@ -198,7 +198,6 @@ where
         Auswahl::neu_mit_modus_view(
             ZeigeModus::Pcf8574,
             |pin, beschreibung| {
-                // TODO Erlaube immer Anpassen des Interrupt-Pins.
                 let interrupt_pin = lager.interrupt_pin(&beschreibung).map_or(
                     Element::from(
                         NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
@@ -546,7 +545,6 @@ where
                     ))
                     .width(Length::Fixed(75.)),
             );
-        // TODO Length::Fill/Shrink funktioniert nicht richtig (Card zu klein)
         let width = Length::Fixed(600.);
         let row = match zeige_modus {
             ZeigeModus::Pcf8574 => {

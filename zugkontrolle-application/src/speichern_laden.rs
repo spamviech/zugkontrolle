@@ -15,8 +15,6 @@ use iced_widget::{
 
 use crate::{map_mit_zustand::MapMitZustand, style};
 
-// TODO rfd verwenden https://crates.io/crates/rfd
-
 /// Zustand von [`SpeichernLaden`].
 #[derive(Debug, PartialEq, Eq)]
 struct Zustand {

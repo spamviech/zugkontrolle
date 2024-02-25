@@ -146,8 +146,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             .respektiere_rotation_chain(&winkel)
             .verschiebe_chain(&verschieben);
         rechteck_gerade
-            .einschließend(rechteck_kurve)
-            .einschließend(rechteck_kurve_reverse_verschoben)
+            .einschließend(&rechteck_kurve)
+            .einschließend(&rechteck_kurve_reverse_verschoben)
     }
 
     fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {

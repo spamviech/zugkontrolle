@@ -19,13 +19,14 @@ use zugkontrolle_util::eingeschränkt::NichtNegativ;
 
 use crate::{
     steuerung::{
+        self,
         aktualisieren::{Aktualisieren, Steuerung},
         geschwindigkeit::{
             self, AsyncAktion, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
         },
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
-        weiche::{Weiche, WeicheSerialisiert, WeicheSteuerung},
+        weiche::{Weiche, WeicheSerialisiert},
     },
     weiche,
     zugtyp::Zugtyp,
@@ -954,7 +955,7 @@ impl<L, Anschlüsse, T, Richtung> Ausführen<L>
     for AktionSchalten<Steuerung<Weiche<T, Anschlüsse>>, Richtung>
 where
     L: Leiter,
-    T: 'static + Debug + Clone + WeicheSteuerung<Richtung> + Send,
+    T: 'static + Debug + Clone + steuerung::weiche::Steuerung<Richtung> + Send,
     Richtung: 'static + Debug + Clone + Send,
     Anschlüsse: 'static + Debug + Nachschlagen<Richtung, OutputAnschluss> + Send,
 {

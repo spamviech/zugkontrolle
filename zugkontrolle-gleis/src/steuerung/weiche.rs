@@ -21,7 +21,7 @@ use zugkontrolle_anschluss::{
 use zugkontrolle_typen::{nachschlagen::Nachschlagen, MitName};
 
 use crate::{
-    steuerung::aktualisieren::{SomeAktualisierenSender, Steuerung},
+    steuerung::aktualisieren::{self, SomeAktualisierenSender},
     steuerung::plan::async_ausführen,
 };
 
@@ -42,7 +42,7 @@ pub struct Weiche<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     name: Name,
     /// Die aktuelle und eventuell weitere Richtungen einer [`Weiche`].
-    richtung: Arc<Mutex<Steuerung<Richtung>>>,
+    richtung: Arc<Mutex<aktualisieren::Steuerung<Richtung>>>,
     /// Die Anschlüsse der Weiche.
     anschlüsse: Arc<Mutex<Anschlüsse>>,
 }
@@ -57,7 +57,7 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     ) -> Self {
         Weiche {
             name,
-            richtung: Arc::new(Mutex::new(Steuerung::neu(richtung, sender))),
+            richtung: Arc::new(Mutex::new(aktualisieren::Steuerung::neu(richtung, sender))),
             anschlüsse: Arc::new(Mutex::new(anschlüsse)),
         }
     }
@@ -78,10 +78,8 @@ impl<Richtung, Anschlüsse> Weiche<Richtung, Anschlüsse> {
     }
 }
 
-// TODO Behandeln erfordert Anpassung des public APIs, umbenennen zu Steuerung?
-#[allow(clippy::module_name_repetitions)]
 /// Notwendige Information zum ermitteln der nächsten Richtung einer Weiche.
-pub trait WeicheSteuerung<R>: MitRichtung<R> {
+pub trait Steuerung<R>: MitRichtung<R> {
     /// Notwendige Information zum zurücksetzen bei Schalt-Fehler.
     type Zurücksetzen;
 
@@ -92,7 +90,7 @@ pub trait WeicheSteuerung<R>: MitRichtung<R> {
     fn zurücksetzen(&mut self, zurücksetzen: Self::Zurücksetzen);
 }
 
-impl<R: MitRichtung<R>> WeicheSteuerung<R> for R {
+impl<R: MitRichtung<R>> Steuerung<R> for R {
     type Zurücksetzen = R;
 
     fn einstellen(&mut self, neue_richtung: R) -> Self::Zurücksetzen {
@@ -116,7 +114,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
         schalten_zeit: Duration,
     ) -> Result<(), Fehler>
     where
-        T: WeicheSteuerung<Richtung>,
+        T: Steuerung<Richtung>,
         Richtung: Clone,
         Anschlüsse: Nachschlagen<Richtung, OutputAnschluss>,
     {
@@ -132,14 +130,14 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
 
     /// Implementierung für [`schalten`](Weiche::schalten).
     fn schalten_aux<Richtung>(
-        richtung: &Arc<Mutex<Steuerung<T>>>,
+        richtung: &Arc<Mutex<aktualisieren::Steuerung<T>>>,
         anschlüsse: &Arc<Mutex<Anschlüsse>>,
         neue_richtung: Richtung,
         schalten_zeit: Duration,
         aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler>
     where
-        T: WeicheSteuerung<Richtung>,
+        T: Steuerung<Richtung>,
         Richtung: Clone,
         Anschlüsse: Nachschlagen<Richtung, OutputAnschluss>,
     {
@@ -188,7 +186,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
         erzeuge_fehler_nachricht: impl 'static + FnOnce(Fehler) -> Nachricht + Send,
     ) -> JoinHandle<()>
     where
-        T: 'static + WeicheSteuerung<Richtung> + Send,
+        T: 'static + Steuerung<Richtung> + Send,
         Richtung: 'static + Clone + Send,
         Anschlüsse: 'static + Nachschlagen<Richtung, OutputAnschluss> + Send,
         Nachricht: 'static + Send,

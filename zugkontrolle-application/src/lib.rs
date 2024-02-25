@@ -113,7 +113,6 @@ pub struct Zugkontrolle<L: Leiter, S> {
     sender: Sender<Nachricht<L, S>>,
     /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
     empfänger: Empfänger<Nachricht<L, S>>,
-    // TODO Plan
 }
 
 /// Bei der [`Ausführung`](ausführen) potentiell auftretende Fehler.

@@ -152,7 +152,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             )
             .respektiere_rotation_chain(&winkel)
             .verschiebe_chain(&gerade_zentrum);
-        let rechteck_geraden = rechteck_gerade_verschoben.einschließend(rechteck_gerade_gedreht);
+        let rechteck_geraden = rechteck_gerade_verschoben.einschließend(&rechteck_gerade_gedreht);
         if self.variante == Variante::MitKurve {
             let rechteck_kurve_verschoben = rechteck_kurve.clone().verschiebe_chain(&verschieben);
             let rechteck_kurve_gespiegelt = Rechteck {
@@ -165,8 +165,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             }
             .verschiebe_chain(&Vektor { x: self.länge, y: rechteck_kurve.ecke_max().y });
             rechteck_geraden
-                .einschließend(rechteck_kurve_verschoben)
-                .einschließend(rechteck_kurve_gespiegelt)
+                .einschließend(&rechteck_kurve_verschoben)
+                .einschließend(&rechteck_kurve_gespiegelt)
         } else {
             rechteck_geraden
         }
