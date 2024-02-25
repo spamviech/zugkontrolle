@@ -225,26 +225,6 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
         });
     }
 
-    /*
-    // TODO Funktioniert nicht mit with_invert_x,y :(
-    //      (wurde es mittlerweile gefixt?)
-    // iced-github-Issue öffnen, die verwendete Bibliothek scheint eine Flag zu unterstützen
-    /// Strike an arc from `a` to `b` with given radius (clockwise).
-    ///
-    /// If `move_to` is `true` start a new subgraph before the arc.
-    /// Otherwise, strike a direct line from the current point to the start of the arc.
-    pub fn arc_to(&mut self, a: Point, b: Point, radius: Radius, new_sub_path: bool) {
-        if new_sub_path {
-            self.move_to(a.clone())
-        }
-        self.builder.arc_to(
-            self.invert_point_axis(a).into(),
-            self.invert_point_axis(b).into(),
-            radius.0,
-        )
-    }
-    */
-
     /// Zeichne eine Linie vom aktuellen Punkt zum start des aktuellen Unterpfades.
     #[zugkontrolle_macros::chain]
     pub fn close(&mut self) {
