@@ -1,4 +1,4 @@
-name: Build, test, lint, check
+name: Build for target
 
 on:
   workflow_dispatch:
