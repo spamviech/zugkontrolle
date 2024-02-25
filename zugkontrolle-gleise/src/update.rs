@@ -364,8 +364,11 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             &self.pivot,
             self.skalieren,
         ) {
-            messages
-                .push(Nachricht::from(ZustandAktualisierenEnum::LetzteMausPosition(canvas_pos)));
+            if let KlickQuelle::Maus = quelle {
+                messages.push(Nachricht::from(ZustandAktualisierenEnum::LetzteMausPosition(
+                    canvas_pos,
+                )));
+            }
             if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
                 if gehalten.contains_key(&quelle) {
                     messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(

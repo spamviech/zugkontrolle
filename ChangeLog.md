@@ -12,6 +12,7 @@
 - Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
 - Verwende PickList für Modus-Auswahl.
 - Anpassen der Widget-Anordnung der Kopf-Leiste.
+- Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
 
 ## 4.0.3
 
