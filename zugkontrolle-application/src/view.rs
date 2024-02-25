@@ -28,11 +28,10 @@ use zugkontrolle_gleis::{
     },
     zugtyp::DefinitionMap,
 };
-use zugkontrolle_gleise::{
-    knopf::{KlickQuelle, Knopf},
-    Gleise, Modus,
+use zugkontrolle_gleise::{knopf::Knopf, Gleise, Modus};
+use zugkontrolle_typen::{
+    farbe::Farbe, klick_quelle::KlickQuelle, mm::Spurweite, skalar::Skalar, Zeichnen,
 };
-use zugkontrolle_typen::{farbe::Farbe, mm::Spurweite, skalar::Skalar, Zeichnen};
 
 use crate::{
     auswahl::AuswahlZustand,

@@ -8,15 +8,16 @@ use iced::{
 };
 use itertools::{Itertools, MinMaxResult};
 
-use zugkontrolle_gleise::knopf::{KlickQuelle, Thema as _};
+use zugkontrolle_gleise::knopf::Thema as _;
 use zugkontrolle_typen::{
     canvas::{
         pfad::{self, Bogen},
         Cache,
     },
+    klick_quelle::KlickQuelle,
     skalar::Skalar,
     vektor::Vektor,
-    winkel::{self},
+    winkel,
 };
 
 use crate::style::thema::Thema;

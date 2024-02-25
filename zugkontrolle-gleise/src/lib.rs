@@ -21,6 +21,7 @@ use zugkontrolle_gleis::{
 };
 use zugkontrolle_typen::{
     canvas::{Cache, Position},
+    klick_quelle::KlickQuelle,
     mm::Spurweite,
     skalar::Skalar,
     vektor::Vektor,
@@ -29,7 +30,6 @@ use zugkontrolle_typen::{
 
 use crate::{
     daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
-    knopf::KlickQuelle,
     nachricht::{Gehalten, Nachricht},
 };
 

@@ -29,10 +29,9 @@ use zugkontrolle_gleis::{
 use zugkontrolle_gleise::{
     self,
     daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
-    knopf::KlickQuelle,
     nachricht::ZustandAktualisieren,
 };
-use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor};
+use zugkontrolle_typen::{farbe::Farbe, klick_quelle::KlickQuelle, skalar::Skalar, vektor::Vektor};
 
 use crate::{
     auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,

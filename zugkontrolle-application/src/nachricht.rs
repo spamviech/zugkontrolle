@@ -26,13 +26,14 @@ use zugkontrolle_gleis::{
     },
 };
 use zugkontrolle_gleise::{
-    self,
-    knopf::{self, KlickQuelle},
+    self, knopf,
     nachricht::{Nachricht as GleiseNachricht, ZustandAktualisieren},
     Modus,
 };
 use zugkontrolle_id::GleisId;
-use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel::Winkel};
+use zugkontrolle_typen::{
+    farbe::Farbe, klick_quelle::KlickQuelle, skalar::Skalar, vektor::Vektor, winkel::Winkel,
+};
 
 use crate::{
     auswahl::{

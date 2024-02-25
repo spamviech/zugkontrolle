@@ -11,14 +11,13 @@ use zugkontrolle_gleis::{
         streckenabschnitt,
     },
 };
-use zugkontrolle_typen::{canvas::Position, vektor::Vektor};
+use zugkontrolle_typen::{canvas::Position, klick_quelle::KlickQuelle, vektor::Vektor};
 
 use crate::{
     daten::{
         AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler,
         SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
     },
-    knopf::KlickQuelle,
     Gehalten, Gleise, ModusDaten,
 };
 

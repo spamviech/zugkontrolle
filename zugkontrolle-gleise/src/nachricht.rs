@@ -6,9 +6,7 @@ use zugkontrolle_gleis::{
     id::{AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
     steuerung::plan::{AktionStreckenabschnitt, AnyAktionSchalten},
 };
-use zugkontrolle_typen::{vektor::Vektor, winkel::Winkel};
-
-use crate::knopf::KlickQuelle;
+use zugkontrolle_typen::{klick_quelle::KlickQuelle, vektor::Vektor, winkel::Winkel};
 
 /// Ein aktuell gehaltenes Gleis.
 #[derive(Debug)]

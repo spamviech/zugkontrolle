@@ -2,7 +2,7 @@
 
 use iced::{
     mouse::{self, Cursor},
-    touch::{self, Finger},
+    touch,
     widget::{
         canvas::{
             event,
@@ -23,6 +23,7 @@ use zugkontrolle_typen::{
         Cache,
     },
     farbe::Farbe,
+    klick_quelle::KlickQuelle,
     mm::Spurweite,
     rechteck::Rechteck,
     skalar::Skalar,
@@ -271,16 +272,6 @@ where
             },
         }
     }
-}
-
-// TODO in eigenes Modul verschieben
-/// Der Auslöser eines Klicks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum KlickQuelle {
-    /// Der Klick wurde mit der Maus ausgelöst.
-    Maus,
-    /// Der Klick wurde mit einem Finger ausgelöst.
-    Touch(Finger),
 }
 
 /// Alle Funktionen eines [`Knopfes`](Knopf) werden unterstützt.

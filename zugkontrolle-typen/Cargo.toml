@@ -20,6 +20,7 @@ workspace = true
 [dependencies]
 zugkontrolle-macros.workspace = true
 iced.workspace = true
+iced_core.workspace = true
 kommandozeilen_argumente.workspace = true
 rstar.workspace = true
 serde.workspace = true

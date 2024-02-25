@@ -13,6 +13,7 @@ use crate::{
 
 pub mod canvas;
 pub mod farbe;
+pub mod klick_quelle;
 pub mod mm;
 pub mod nachschlagen;
 pub mod rechteck;
