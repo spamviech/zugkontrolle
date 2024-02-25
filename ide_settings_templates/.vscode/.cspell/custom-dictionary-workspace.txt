@@ -331,6 +331,7 @@ rppal
 rstar
 rstern
 rustc
+rustfmt
 rustix
 rustup
 rustversion
@@ -381,6 +382,7 @@ stylelintcache
 sublicensable
 Sverdrup
 svgs
+Swatinem
 syscall
 Tangren
 termcolor
