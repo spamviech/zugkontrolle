@@ -1,5 +1,7 @@
 //! Low level Steuerung eines i2c Kanals.
 
+// Mit raspi-feature wird das rppal-crate verwendet.
+#![cfg_attr(feature = "raspi", allow(clippy::pub_use))]
 // Dokumentation ist (modulo backticks) copy+paste vom rppal-crate.
 #![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
 
