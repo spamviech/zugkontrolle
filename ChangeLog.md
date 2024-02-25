@@ -11,6 +11,7 @@
   - Entferne Trigonometrie-Trait. Verwende statt dessen Methoden auf dem `Winkel`-Typ.
 - Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
 - Verwende PickList für Modus-Auswahl.
+- Anpassen der Widget-Anordnung der Kopf-Leiste.
 
 ## 4.0.3
 
