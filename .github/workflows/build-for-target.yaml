@@ -54,4 +54,4 @@ jobs:
       with:
         command: build
         use-cross: true
-        args: --target=${{ inputs.target }} ${{ inputs.raspi && '--features="raspi"' }}
+        args: --target=${{ inputs.target }} ${{ inputs.raspi && '--features=raspi' }}
