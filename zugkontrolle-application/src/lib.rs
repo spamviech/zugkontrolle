@@ -240,7 +240,7 @@ where
                 }
             },
             Nachricht::Position(position) => self.gleise.setze_pivot(position),
-            Nachricht::Winkel(winkel) => self.gleise.winkel(winkel),
+            Nachricht::Winkel(winkel) => self.gleise.setze_winkel(winkel),
             Nachricht::Skalieren(skalieren) => self.gleise.setze_skalierfaktor(skalieren),
             Nachricht::WähleStreckenabschnitt(aktuell) => self.streckenabschnitt_wählen(aktuell),
             Nachricht::HinzufügenStreckenabschnitt(

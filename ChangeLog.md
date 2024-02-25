@@ -14,7 +14,8 @@
 - Anpassen der Widget-Anordnung der Kopf-Leiste.
 - Verbesserungen im `Gleise`-canvas:
   - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
-  - zeige Gleise direkt nach dem hinzufügen an
+  - Zeige Gleise direkt nach dem hinzufügen an.
+  - Korrigiere Offset bei gedrehtem Canvas.
 
 ## 4.0.3
 

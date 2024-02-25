@@ -289,11 +289,11 @@ where
             .streckenabschnitt_aktuell
             .as_ref()
             .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone());
-        // FIXME x-position abhängig vom aktuellen pivot-punkt (rotation?)
+        let winkel = self.gleise.winkel();
         if let Err(fehler) = self.gleise.hinzufügen_gehalten_bei_maus(
             definition_steuerung,
             klick_quelle,
-            Vektor { x: Skalar(0.), y: klick_höhe },
+            Vektor { x: Skalar(0.), y: klick_höhe }.rotiert(&winkel),
             streckenabschnitt,
             false,
         ) {

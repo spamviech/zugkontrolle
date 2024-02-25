@@ -172,8 +172,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         self.canvas.leeren();
     }
 
+    /// Der [`Winkel`] für die aktuelle Darstellung.
+    pub fn winkel(&mut self) -> Winkel {
+        self.pivot.winkel
+    }
+
     /// Setze den `winkel` für die aktuelle Darstellung.
-    pub fn winkel(&mut self, winkel: Winkel) {
+    pub fn setze_winkel(&mut self, winkel: Winkel) {
         self.pivot.winkel = winkel;
         self.canvas.leeren();
     }
