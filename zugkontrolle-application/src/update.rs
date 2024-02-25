@@ -28,7 +28,7 @@ use zugkontrolle_gleis::{
 };
 use zugkontrolle_gleise::{
     self,
-    daten::{v2::BekannterZugtyp, SteuerungAktualisierenFehler},
+    daten::{v2::geschwindigkeit::BekannterZugtyp, SteuerungAktualisierenFehler},
     nachricht::ZustandAktualisieren,
 };
 use zugkontrolle_typen::{farbe::Farbe, klick_quelle::KlickQuelle, skalar::Skalar, vektor::Vektor};

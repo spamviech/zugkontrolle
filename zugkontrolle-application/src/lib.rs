@@ -26,7 +26,7 @@ use zugkontrolle_gleis::steuerung::{
     streckenabschnitt::Name as StreckenabschnittName,
 };
 use zugkontrolle_gleis::zugtyp::Zugtyp;
-use zugkontrolle_gleise::{daten::v2::BekannterZugtyp, Gleise};
+use zugkontrolle_gleise::{daten::v2::geschwindigkeit::BekannterZugtyp, Gleise};
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
 
 use crate::{

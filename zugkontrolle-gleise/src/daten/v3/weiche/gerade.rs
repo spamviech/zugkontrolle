@@ -6,7 +6,7 @@ use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_gleis::weiche::gerade as v4;
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
-use crate::daten::v3::weiche::{orientierung::Orientierung, steuerung};
+use crate::daten::{v2::weiche::orientierung::Orientierung, v3::weiche::steuerung};
 
 /// Serialisierbare Darstellung der Steuerung einer [`Weiche`].
 type AnschlüsseSerialisiert =

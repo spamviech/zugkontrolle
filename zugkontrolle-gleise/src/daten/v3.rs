@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use associated_list::{entry::Entry, AssocList};
 use log::error;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use zugkontrolle_gleis::{
     gerade::{Gerade, GeradeUnit},
@@ -46,7 +46,7 @@ pub mod weiche;
 pub mod zugtyp;
 
 /// Definition und Position eines Gleises.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Gleis<T> {
     /// Wie sieht da Gleis aus, welche [`Anschlüsse`](anschluss::Anschluss) hat es.
     pub definition: T,
@@ -55,7 +55,7 @@ pub struct Gleis<T> {
 }
 
 /// Die serialisierte Darstellung aller Gleise, wie sie in Version 3 verwendet wurde.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub(crate) struct GleiseDatenSerialisiert {
     #[allow(clippy::missing_docs_in_private_items)]
     pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
@@ -282,14 +282,13 @@ pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> = H
 >;
 
 /// Die serialisierbare Darstellung des aktuelle Zustands, wie sie in Version 3 verwendet wurde.
-#[derive(zugkontrolle_macros::Debug, Serialize, Deserialize)]
+#[derive(zugkontrolle_macros::Debug, Deserialize)]
 #[zugkontrolle_debug(L: Debug)]
 #[zugkontrolle_debug(S: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[serde(bound(
-    serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize, S: Serialize",
     deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
 pub(crate) struct ZustandSerialisiert<L: Leiter, S> {

@@ -39,7 +39,7 @@ use zugkontrolle_typen::{mm::Spurweite, Zeichnen};
 
 use crate::{
     daten::{
-        v2::{self, BekannterZugtyp},
+        v2::{self, geschwindigkeit::BekannterZugtyp},
         v3::{self},
         v4::{GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert, ZustandSerialisiert},
         GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,

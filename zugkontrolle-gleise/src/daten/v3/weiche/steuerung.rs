@@ -1,11 +1,13 @@
 //! Serialisierbare Darstellung einer Weichen-Steuerung in Version 3.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use zugkontrolle_gleis::steuerung::weiche as v4;
 
+use crate::daten::v2::weiche::steuerung::Name;
+
 /// Serialisierbare Repräsentation der Steuerung einer [`Weiche`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
     /// Der Name der Weiche.
     pub name: Name,
@@ -32,15 +34,5 @@ impl<R3: Into<R4>, A3: Into<A4>, R4, A4> From<WeicheSerialisiert<R3, A3>>
             richtung: richtung.into(),
             anschlüsse: anschlüsse.into(),
         }
-    }
-}
-
-/// Name einer [`Weiche`](WeicheSerialisiert).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct Name(pub String);
-
-impl From<Name> for v4::Name {
-    fn from(wert: Name) -> Self {
-        v4::Name(wert.0)
     }
 }
