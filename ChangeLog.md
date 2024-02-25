@@ -12,7 +12,9 @@
 - Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
 - Verwende PickList für Modus-Auswahl.
 - Anpassen der Widget-Anordnung der Kopf-Leiste.
-- Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
+- Verbesserungen im `Gleise`-canvas:
+  - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
+  - zeige Gleise direkt nach dem hinzufügen an
 
 ## 4.0.3
 

@@ -37,6 +37,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         streckenabschnitt: Option<streckenabschnitt::Name>,
         einrasten: bool,
     ) -> Result<AnyId, HinzufügenFehler> {
+        self.canvas.leeren();
         self.zustand.hinzufügen(definition_steuerung, position, streckenabschnitt, einrasten)
     }
 
