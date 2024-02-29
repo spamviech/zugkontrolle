@@ -380,17 +380,19 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         }
     }
 
+    // Event: Kopiere Signatur von [`Program::update`].
+    #[allow(clippy::needless_pass_by_value)]
     /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`]
     pub(crate) fn update_impl<Thema>(
         &self,
-        _state: &mut <Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
+        _state: &mut <Self as Program<NonEmpty<Nachricht>, Thema, Renderer>>::State,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<NonEmpty<Nachricht>>)
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
-        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Renderer<Thema>>,
+        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
     {
         let mut event_status = event::Status::Ignored;
         let mut messages =

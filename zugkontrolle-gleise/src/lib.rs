@@ -389,7 +389,7 @@ impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht
     }
 }
 
-impl<L, AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Renderer<Thema>>
+impl<L, AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Thema, Renderer>
     for Gleise<L, AktualisierenNachricht>
 where
     L: Leiter,
@@ -402,7 +402,7 @@ where
     fn draw(
         &self,
         state: &Self::State,
-        renderer: &Renderer<Thema>,
+        renderer: &Renderer,
         thema: &Thema,
         bounds: Rectangle,
         cursor: Cursor,

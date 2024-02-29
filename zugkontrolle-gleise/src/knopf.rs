@@ -78,11 +78,11 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
     pub fn als_iced_widget<Nachricht, Thema>(
         self,
         breite: Option<f32>,
-    ) -> impl Into<Element<'t, Nachricht, Renderer<Thema>>>
+    ) -> impl Into<Element<'t, Nachricht, Thema, Renderer>>
     where
         Nachricht: 'static,
         Thema: 't + container::StyleSheet,
-        Knopf<'t, T>: Program<Nachricht, Renderer<Thema>>,
+        Knopf<'t, T>: Program<Nachricht, Thema, Renderer>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
@@ -92,7 +92,7 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
         #[allow(clippy::arithmetic_side_effects)]
         let höhe = (DOUBLE_PADDING_BORDER_WIDTH + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
-        let canvas: Canvas<_, Nachricht, Renderer<Thema>> = Canvas::new(self)
+        let canvas: Canvas<_, Nachricht, Thema, Renderer> = Canvas::new(self)
             .width(Length::Fixed(breite.unwrap_or(standard_breite)))
             .height(Length::Fixed(höhe));
         Container::new(canvas).width(Length::Fill).height(Length::Shrink)
@@ -108,7 +108,7 @@ pub struct Zustand {
     in_bounds: bool,
 }
 
-impl<Gleis, N, T> Program<N, Renderer<T>> for Knopf<'_, Gleis>
+impl<Gleis, N, T> Program<N, T, Renderer> for Knopf<'_, Gleis>
 where
     Gleis: Zeichnen<()>,
     N: Nachricht<GleisId<Gleis>>,
@@ -120,7 +120,7 @@ where
     fn draw(
         &self,
         state: &Self::State,
-        renderer: &Renderer<T>,
+        renderer: &Renderer,
         thema: &T,
         bounds: Rectangle,
         _cursor: Cursor,

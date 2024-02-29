@@ -5,7 +5,7 @@ use std::{
     marker::PhantomData,
 };
 
-use iced_core::Point;
+use iced_core::{Point, Radians};
 use iced_graphics::geometry::{path, Path};
 
 use crate::{
@@ -220,8 +220,8 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
         self.builder.arc(path::Arc {
             center: Point { x: x.0, y: y.0 },
             radius: radius.0,
-            start_angle: anfang.0,
-            end_angle: ende.0,
+            start_angle: Radians(anfang.0),
+            end_angle: Radians(ende.0),
         });
     }
 

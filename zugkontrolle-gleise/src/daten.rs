@@ -1251,7 +1251,11 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
                 color: Color { a: alpha, ..Color::from(farbe) },
                 ..thema.standard_text()
             };
-            text.size *= skalieren.0;
+            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                text.size = text.size * skalieren.0;
+            }
             frame.fill_text(text);
         });
     }

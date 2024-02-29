@@ -47,36 +47,38 @@ use crate::{
 };
 
 /// Ein Widget, dessen Nachricht sich in einen [`Nachricht`] konvertieren lässt.
-trait MitTeilNachricht<'t, Msg, R>: Into<Element<'t, Msg, R>>
+trait MitTeilNachricht<'t, Msg, Thema, R>: Into<Element<'t, Msg, Thema, R>>
 where
     Msg: 'static,
+    Thema: 't,
     R: 't + iced_core::Renderer,
 {
     /// Erzeuge ein [ge`map`tes Element](Element::map).
-    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, R>, S: 'static>(
+    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, Thema, R>, S: 'static>(
         self,
         konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
-    ) -> Element<'t, Nachricht<L, S>, R> {
+    ) -> Element<'t, Nachricht<L, S>, Thema, R> {
         self.into().map(konstruktor)
     }
 }
 
-impl<'t, T, R, Msg> MitTeilNachricht<'t, Msg, R> for T
+impl<'t, T, Msg, Thema, R> MitTeilNachricht<'t, Msg, Thema, R> for T
 where
+    T: Into<Element<'t, Msg, Thema, R>>,
     Msg: 'static,
-    T: Into<Element<'t, Msg, R>>,
+    Thema: 't,
     R: 't + iced_core::Renderer,
 {
 }
 
 impl<L, S> Zugkontrolle<L, S>
 where
-    L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Thema, Renderer> + Send,
     <L as Leiter>::Fahrtrichtung: Clone + Send,
     S: 'static + Clone + PartialEq + Send,
 {
     /// [view](iced::Application::view)-Methode für [`Zugkontrolle`].
-    pub(crate) fn view_impl(&self) -> Element<'_, Nachricht<L, S>, Renderer<Thema>> {
+    pub(crate) fn view_impl(&self) -> Element<'_, Nachricht<L, S>, Thema, Renderer> {
         let Zugkontrolle {
             gleise,
             scrollable_style,
@@ -142,7 +144,7 @@ where
                     touch::Event::FingerLifted { id, position: _ }
                     | touch::Event::FingerLost { id, position: _ },
                 ) => KlickQuelle::Touch(*id),
-                Event::Keyboard(_) | Event::Mouse(_) | Event::Window(_) | Event::Touch(_) => {
+                Event::Keyboard(_) | Event::Mouse(_) | Event::Window(_, _) | Event::Touch(_) => {
                     return false
                 },
             };
@@ -202,16 +204,16 @@ fn top_row<'t, L, S>(
     aktuelles_thema: Thema,
     initialer_pfad: &'t str,
     speichern_gefärbt: Option<bool>,
-) -> Row<'t, AuswahlNachricht<L, S>, Renderer<Thema>>
+) -> Row<'t, AuswahlNachricht<L, S>, Thema, Renderer>
 where
-    L: 'static + Debug + LeiterAnzeige<'t, S, Renderer<Thema>>,
+    L: 'static + Debug + LeiterAnzeige<'t, S, Thema, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
     S: 'static + Clone + PartialEq,
 {
     let modus_pick_list =
-        PickList::new(all::<Modus>().collect_vec(), Some(aktueller_modus), Nachricht::Modus);
+        PickList::new(all::<Modus>().collect_vec(), Some(aktueller_modus), NachrichtClone::Modus);
     let thema_pick_list =
-        PickList::new(all::<Thema>().collect_vec(), Some(aktuelles_thema), Nachricht::Thema);
+        PickList::new(all::<Thema>().collect_vec(), Some(aktuelles_thema), NachrichtClone::Thema);
     let bewegen = Canvas::new(bewegen)
         .width(Length::Fixed(BEWEGEN_HÖHE))
         .height(Length::Fixed(BEWEGEN_BREITE));
@@ -230,8 +232,13 @@ where
     let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad, speichern_gefärbt);
     let mut row = Row::new()
         .push(
-            Element::from(Column::new().push(modus_pick_list).push(thema_pick_list))
-                .map(modal::Nachricht::Underlay),
+            Element::from(
+                Column::new()
+                    .push(modus_pick_list)
+                    .push(thema_pick_list)
+                    .mit_teil_nachricht(Nachricht::from),
+            )
+            .map(modal::Nachricht::Underlay),
         )
         .push(
             Element::from(
@@ -288,12 +295,12 @@ type MessageBoxNachricht<L, S> =
     modal::Nachricht<AuswahlZustand<S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>;
 
 /// Erzeuge die Seitenleiste.
-fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S: 'static>(
+fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     gleise: &'t Gleise<L, Nachricht<L, S>>,
-) -> Row<'t, MessageBoxNachricht<L, S>, Renderer<Thema>> {
-    let mut scrollable_column: Column<'_, NachrichtClone<_>, Renderer<Thema>> = Column::new();
+) -> Row<'t, MessageBoxNachricht<L, S>, Thema, Renderer> {
+    let mut scrollable_column: Column<'_, NachrichtClone<_>, Thema, Renderer> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
 
@@ -303,10 +310,10 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>>, S:
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 spurweite: Spurweite,
                 max_breite: Option<f32>,
-                scrollable_column: &mut Column<'t, NachrichtClone<L>, Renderer<Thema>>,
+                scrollable_column: &mut Column<'t, NachrichtClone<L>, Thema, Renderer>,
                 buttons: &'t DefinitionMap<T>,
             ) where
-                L: 'static + LeiterAnzeige<'t, S, R>,
+                L: 'static + LeiterAnzeige<'t, S, Thema, R>,
                 T: MitSteuerung,
                 DefinitionId<T>: Into<AnyDefinitionId>,
                 <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,

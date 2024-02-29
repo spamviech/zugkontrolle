@@ -142,7 +142,7 @@ impl Cache {
     /// und mit `skalieren` vergrößert/verkleinert angezeigt wird.
     pub fn zeichnen_skaliert_von_pivot<Thema>(
         &self,
-        renderer: &Renderer<Thema>,
+        renderer: &Renderer,
         thema: &Thema,
         bounds: Size<f32>,
         pivot: &Position,
@@ -179,7 +179,7 @@ impl Cache {
     /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [`Cache`].
     pub fn zeichnen<Thema>(
         &self,
-        renderer: &Renderer<Thema>,
+        renderer: &Renderer,
         thema: &Thema,
         bounds: Size<f32>,
         draw_fn: impl Fn(&mut Frame<'_>),

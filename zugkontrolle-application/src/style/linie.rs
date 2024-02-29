@@ -1,8 +1,9 @@
 //! Style Strukturen für eine [`iced::widget::Rule`].
 
 use iced::{
+    border,
     widget::rule::{Appearance, FillMode, StyleSheet},
-    BorderRadius, Color,
+    Color,
 };
 
 use crate::style::thema::Thema;
@@ -30,7 +31,7 @@ impl StyleSheet for Thema {
                 let Linie { farbe: color, breite: width, radius } = *style;
                 Appearance {
                     color,
-                    radius: BorderRadius::from(radius),
+                    radius: border::Radius::from(radius),
                     width,
                     fill_mode: FillMode::Full,
                 }

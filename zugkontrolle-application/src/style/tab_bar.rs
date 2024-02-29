@@ -3,7 +3,7 @@
 
 use iced::{Background, Color};
 use iced_aw::style::tab_bar::{Appearance, StyleSheet};
-use iced_core::BorderRadius;
+use iced_core::border;
 
 use crate::style::thema::Thema;
 
@@ -24,7 +24,7 @@ impl TabBar {
             tab_label_border_width: 1.,
             icon_color: Color::BLACK,
             icon_background: None,
-            icon_border_radius: BorderRadius::default(),
+            icon_border_radius: border::Radius::default(),
             text_color: Color::BLACK,
         }
     }

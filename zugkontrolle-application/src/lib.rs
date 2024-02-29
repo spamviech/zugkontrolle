@@ -6,13 +6,12 @@
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
-    iter,
     sync::mpsc::{channel, Sender},
     time::Instant,
 };
 
 use flexi_logger::FlexiLoggerError;
-use iced::{application::Application, executor, font, Command, Element, Renderer, Subscription};
+use iced::{application::Application, executor, Command, Element, Renderer, Subscription};
 use kommandozeilen_argumente::crate_version;
 use serde::{Deserialize, Serialize};
 
@@ -127,14 +126,14 @@ pub enum Fehler {
 }
 
 /// Flags für den [`Application`]-Trait.
-pub type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>, &'static [&'static [u8]]);
+pub type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>);
 
 impl<L, S> Application for Zugkontrolle<L, S>
 where
     L: 'static
         + Debug
         + Display
-        + for<'l> LeiterAnzeige<'l, S, Renderer<Thema>>
+        + for<'l> LeiterAnzeige<'l, S, Thema, Renderer>
         + Serialisiere<S>
         + BekannterLeiter
         + Send,
@@ -156,20 +155,9 @@ where
     type Message = Nachricht<L, S>;
     type Theme = Thema;
 
-    fn new(
-        (argumente, lager, zugtyp, schriftarten): Self::Flags,
-    ) -> (Self, Command<Self::Message>) {
+    fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
         let Argumente { pfad, modus, thema, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
-        let lade_schriftarten = schriftarten.iter().map(|&schriftart| {
-            font::load(schriftart).map(|ergebnis| match ergebnis {
-                Ok(()) => Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true },
-                Err(fehler) => Nachricht::AsyncFehler {
-                    titel: String::from("Schriftart laden"),
-                    nachricht: format!("{fehler:?}"),
-                },
-            })
-        });
         let lade_zustand: Command<Self::Message>;
         let initialer_pfad: String;
         if let Some(pfad) = pfad {
@@ -213,7 +201,7 @@ where
             empfänger: Empfänger::neu(receiver, ()),
         };
 
-        (zugkontrolle, Command::batch(lade_schriftarten.chain(iter::once(lade_zustand))))
+        (zugkontrolle, lade_zustand)
     }
 
     fn title(&self) -> String {
@@ -297,7 +285,7 @@ where
         command
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
+    fn view(&self) -> Element<'_, Self::Message, Thema, Renderer> {
         self.view_impl()
     }
 

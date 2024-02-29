@@ -105,22 +105,22 @@ impl<L: Leiter> AnzeigeZustand<L> {
 }
 
 /// Anzeige und Steuerung einer [`Geschwindigkeit`].
-pub struct Anzeige<'t, M, R> {
+pub struct Anzeige<'t, M, Thema, R> {
     /// Das Element mit der Widget-Hierarchie.
-    element: Element<'t, M, R>,
+    element: Element<'t, M, Thema, R>,
 }
 
-impl<M, R> Debug for Anzeige<'_, M, R> {
+impl<M, Thema, R> Debug for Anzeige<'_, M, Thema, R> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
-impl<'t, M, R> Anzeige<'t, M, R>
+impl<'t, M, Thema, R> Anzeige<'t, M, Thema, R>
 where
     M: 't + Clone,
     R: 't + text_core::Renderer,
-    <R as Renderer>::Theme: radio::StyleSheet + slider::StyleSheet + text::StyleSheet,
+    Thema: 't + radio::StyleSheet + slider::StyleSheet + text::StyleSheet,
 {
     /// Erstelle eine neue [Anzeige] für einen [`Leiter`].
     pub fn neu<'s, L: Leiter>(
@@ -128,7 +128,9 @@ where
         geschwindigkeit: &'s Geschwindigkeit<L>,
         ks_länge: impl FnOnce(&'s Geschwindigkeit<L>) -> Option<usize>,
         geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
-        zeige_fahrtrichtung: impl FnOnce(Option<<L as Leiter>::Fahrtrichtung>) -> Element<'t, M, R>,
+        zeige_fahrtrichtung: impl FnOnce(
+            Option<<L as Leiter>::Fahrtrichtung>,
+        ) -> Element<'t, M, Thema, R>,
     ) -> Self {
         let aktuelle_geschwindigkeit = geschwindigkeit.aktuelle_geschwindigkeit();
         let aktuelle_fahrtrichtung = geschwindigkeit.aktuelle_fahrtrichtung();
@@ -138,21 +140,17 @@ where
                 error!("Zu viele Anschlüsse mit Konstanter Spannung bei einer Geschwindigkeit: {länge}");
             }
             column.push(
-                Row::with_children(
-                    (0..=länge)
-                        .map(|i| {
-                            let i_u8 = u8::try_from(i).unwrap_or(u8::MAX);
-                            Radio::new(
-                                i_u8.to_string(),
-                                i_u8,
-                                Some(aktuelle_geschwindigkeit),
-                                geschwindigkeit_nachricht.clone(),
-                            )
-                            .spacing(0)
-                            .into()
-                        })
-                        .collect(),
-                )
+                Row::with_children((0..=länge).map(|i| {
+                    let i_u8 = u8::try_from(i).unwrap_or(u8::MAX);
+                    Radio::new(
+                        i_u8.to_string(),
+                        i_u8,
+                        Some(aktuelle_geschwindigkeit),
+                        geschwindigkeit_nachricht.clone(),
+                    )
+                    .spacing(0)
+                    .into()
+                }))
                 .spacing(0),
             )
         } else {
@@ -166,13 +164,13 @@ where
     }
 }
 
-impl<'t, L, R> From<Anzeige<'t, AktionGeschwindigkeit<L>, R>>
-    for Element<'t, AktionGeschwindigkeit<L>, R>
+impl<'t, L, Thema, R> From<Anzeige<'t, AktionGeschwindigkeit<L>, Thema, R>>
+    for Element<'t, AktionGeschwindigkeit<L>, Thema, R>
 where
     L: 'static + Leiter,
     R: 't + Renderer,
 {
-    fn from(anzeige: Anzeige<'t, AktionGeschwindigkeit<L>, R>) -> Self {
+    fn from(anzeige: Anzeige<'t, AktionGeschwindigkeit<L>, Thema, R>) -> Self {
         anzeige.element
     }
 }
@@ -335,12 +333,13 @@ pub enum AuswahlNachricht<LeiterSerialisiert> {
 
 /// Hinzufügen und Anpassen einer [`Geschwindigkeit`].
 #[derive(Debug)]
-pub struct Auswahl<'t, LeiterSerialisiert, R>(
+pub struct Auswahl<'t, LeiterSerialisiert, Thema, R>(
     MapMitZustand<
         't,
         AuswahlZustand<LeiterSerialisiert>,
         InterneAuswahlNachricht,
         AuswahlNachricht<LeiterSerialisiert>,
+        Thema,
         R,
     >,
 );
@@ -357,11 +356,12 @@ pub enum FahrtrichtungAnschluss {
     Immer,
 }
 
-impl<'t, LeiterSerialisiert, R> Auswahl<'t, LeiterSerialisiert, R>
+impl<'t, LeiterSerialisiert, Thema, R> Auswahl<'t, LeiterSerialisiert, Thema, R>
 where
     LeiterSerialisiert: 't + Display + Clone,
     R: 't + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: container::StyleSheet
+    Thema: 't
+        + container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
         + radio::StyleSheet
@@ -370,13 +370,13 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + card::StyleSheet,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
     // Alle Argumente benötigt.
     #[allow(clippy::too_many_arguments)]
     /// Erstelle eine neue [`Auswahl`].
-    fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
+    fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>(
         startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
@@ -397,7 +397,7 @@ where
         let auswahl_startwert = startwert.map(|(name, start_geschwindigkeit)| {
             (
                 name,
-                <L as LeiterAnzeige<'l, LeiterSerialisiert, R>>::auswahl_startwert(
+                <L as LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>::auswahl_startwert(
                     start_geschwindigkeit,
                 ),
             )
@@ -538,7 +538,7 @@ where
         scrollable_style: Sammlung,
         settings: I2cSettings,
         umdrehen_anschluss: &OutputSerialisiert,
-    ) -> Element<'t, InterneAuswahlNachricht, R> {
+    ) -> Element<'t, InterneAuswahlNachricht, Thema, R> {
         Column::new()
             .push(Text::new(fahrtrichtung_beschreibung.to_owned()))
             .push(
@@ -555,10 +555,10 @@ where
     /// Erzeuge die Widgets für die Pin-Auswahl zu Steuerung über ein Pwm-Signal.
     fn pwm_auswahl(
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
-        umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, R>,
+        umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, Thema, R>,
         pwm_pin: &pwm::Serialisiert,
         pwm_polarität: Polarität,
-    ) -> Element<'t, InterneAuswahlNachricht, R> {
+    ) -> Element<'t, InterneAuswahlNachricht, Thema, R> {
         let make_radio = |polarität: Polarität| {
             Radio::new(
                 polarität.to_string(),
@@ -587,11 +587,11 @@ where
     /// Erzeuge die Widgets für die Anschlüsse-Auswahl zur Steuerung über konstante Spannungswerte.
     fn ks_auswahl(
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
-        umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, R>,
+        umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, Thema, R>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
         ks_anschlüsse: &NonEmpty<OutputSerialisiert>,
-    ) -> Element<'t, InterneAuswahlNachricht, R> {
+    ) -> Element<'t, InterneAuswahlNachricht, Thema, R> {
         let mut ks_auswahl = Column::new().height(Length::Shrink);
         if let FahrtrichtungAnschluss::KonstanteSpannung = fahrtrichtung_anschluss {
             ks_auswahl = ks_auswahl.push(umdrehen_auswahl());
@@ -628,13 +628,13 @@ where
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.
-    fn erzeuge_element<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, R>>(
+    fn erzeuge_element<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>(
         zustand: &AuswahlZustand<LeiterSerialisiert>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: &str,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Element<'t, InterneAuswahlNachricht, R> {
+    ) -> Element<'t, InterneAuswahlNachricht, Thema, R> {
         let AuswahlZustand {
             neu_name,
             aktueller_tab,
@@ -672,7 +672,7 @@ where
             settings,
             ks_anschlüsse,
         );
-        let tabs = Tabs::with_tabs(
+        let tabs = Tabs::new_with_tabs(
             vec![
                 (TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl),
                 (
@@ -695,7 +695,7 @@ where
             let bearbeiten = Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                 InterneAuswahlNachricht::Bearbeiten(
                     name.clone().into_inner(),
-                    <L as LeiterAnzeige<'l, LeiterSerialisiert, R>>::auswahl_startwert(
+                    <L as LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>::auswahl_startwert(
                         anschlüsse.clone(),
                     ),
                 ),
@@ -718,24 +718,25 @@ where
     }
 }
 
-impl<'t, LeiterSerialisiert, R> From<Auswahl<'t, LeiterSerialisiert, R>>
-    for Element<'t, AuswahlNachricht<LeiterSerialisiert>, R>
+impl<'t, LeiterSerialisiert, Thema, R> From<Auswahl<'t, LeiterSerialisiert, Thema, R>>
+    for Element<'t, AuswahlNachricht<LeiterSerialisiert>, Thema, R>
 where
     LeiterSerialisiert: 'static + PartialEq,
     R: 't + text_core::Renderer<Font = Font>,
+    Thema: 't,
 {
-    fn from(anzeige: Auswahl<'t, LeiterSerialisiert, R>) -> Self {
+    fn from(anzeige: Auswahl<'t, LeiterSerialisiert, Thema, R>) -> Self {
         Element::new(anzeige.0)
     }
 }
 
 /// Ermöglicht Erstellen und Anpassen einer [`Geschwindigkeit`] mit dieser Leiter-Art.
-pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
+pub trait LeiterAnzeige<'t, S, Thema, R>: Leiter + Sized {
     /// Erstelle eine neue [`Anzeige`].
     fn anzeige_neu(
         name: &Name,
         geschwindigkeit: &Geschwindigkeit<Self>,
-    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R>;
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, Thema, R>;
 
     /// Erstelle eine neue [`Auswahl`].
     fn auswahl_neu(
@@ -743,7 +744,7 @@ pub trait LeiterAnzeige<'t, S, R>: Leiter + Sized {
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Auswahl<'t, S, R>;
+    ) -> Auswahl<'t, S, Thema, R>;
 
     /// Erzeuge den [Startwert](AuswahlStartwert) für ein [`Auswahl`]-Widget.
     fn auswahl_startwert(serialisiert: GeschwindigkeitSerialisiert<S>) -> AuswahlStartwert;
@@ -756,10 +757,11 @@ pub struct ZustandZurücksetzenMittelleiter {
     pub bisherige_geschwindigkeit: u8,
 }
 
-impl<'t, R> LeiterAnzeige<'t, MittelleiterSerialisiert, R> for Mittelleiter
+impl<'t, Thema, R> LeiterAnzeige<'t, MittelleiterSerialisiert, Thema, R> for Mittelleiter
 where
     R: 't + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: container::StyleSheet
+    Thema: 't
+        + container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
         + radio::StyleSheet
@@ -769,13 +771,13 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + card::StyleSheet,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
     fn anzeige_neu(
         name: &Name,
         geschwindigkeit: &Geschwindigkeit<Mittelleiter>,
-    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, Thema, R> {
         let zeige_fahrtrichtung = |_none| {
             Button::new(Text::new("Umdrehen"))
                 .on_press(AktionGeschwindigkeit::Umdrehen {
@@ -801,7 +803,7 @@ where
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Auswahl<'t, MittelleiterSerialisiert, R> {
+    ) -> Auswahl<'t, MittelleiterSerialisiert, Thema, R> {
         Auswahl::neu::<Self>(
             startwert,
             geschwindigkeiten,
@@ -843,10 +845,11 @@ pub struct ZustandZurücksetzenZweileiter {
     pub bisherige_fahrtrichtung: Fahrtrichtung,
 }
 
-impl<'t, R: 't> LeiterAnzeige<'t, ZweileiterSerialisiert, R> for Zweileiter
+impl<'t, Thema, R> LeiterAnzeige<'t, ZweileiterSerialisiert, Thema, R> for Zweileiter
 where
-    R: text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: container::StyleSheet
+    R: 't + text_core::Renderer<Font = Font>,
+    Thema: 't
+        + container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
         + radio::StyleSheet
@@ -856,13 +859,13 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + card::StyleSheet,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
 {
     fn anzeige_neu(
         name: &Name,
         geschwindigkeit: &Geschwindigkeit<Zweileiter>,
-    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, R> {
+    ) -> Anzeige<'t, AktionGeschwindigkeit<Self>, Thema, R> {
         let geschwindigkeit_radio_clone = geschwindigkeit.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
@@ -900,7 +903,7 @@ where
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Auswahl<'t, ZweileiterSerialisiert, R> {
+    ) -> Auswahl<'t, ZweileiterSerialisiert, Thema, R> {
         Auswahl::neu::<Self>(
             startwert,
             geschwindigkeiten,

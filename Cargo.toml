@@ -338,10 +338,12 @@ default-features = false
 [workspace.dependencies.iced_graphics]
 version = "0.12.1"
 default-features = false
+features = ["geometry"]
 
 [workspace.dependencies.iced_renderer]
 version = "0.12.1"
 default-features = false
+features = ["geometry"]
 
 [workspace.dependencies.iced_aw]
 version = "0.8.0"

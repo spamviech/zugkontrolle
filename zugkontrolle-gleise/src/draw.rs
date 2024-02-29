@@ -38,8 +38,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
     pub(crate) fn draw_impl<Thema>(
         &self,
-        _state: &<Self as Program<NonEmpty<Nachricht>, Renderer<Thema>>>::State,
-        renderer: &Renderer<Thema>,
+        _state: &<Self as Program<NonEmpty<Nachricht>, Thema, Renderer>>::State,
+        renderer: &Renderer,
         thema: &Thema,
         bounds: iced::Rectangle,
         _cursor: Cursor,
@@ -48,7 +48,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
         Thema: Clone + Into<u8> + PartialEq + knopf::Thema,
         u8: TryInto<Thema>,
-        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Renderer<Thema>>,
+        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
     {
         let Gleise { canvas, modus, .. } = self;
         vec![canvas.zeichnen_skaliert_von_pivot(

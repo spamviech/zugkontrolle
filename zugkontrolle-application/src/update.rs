@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     /// Zeige eine neue [`MessageBox`] mit Titel und Nachricht.
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
@@ -274,7 +274,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
@@ -342,7 +342,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer> + Display, S> Zugkontrolle<L, S> {
     /// Entferne eine [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
@@ -356,7 +356,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>> + Display, S> Zugkontrolle<L, 
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S> + Display,
+    L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S> + Display,
     S: Debug + Clone + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
     /// Füge eine  [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
@@ -435,7 +435,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
     pub fn async_fehler(&mut self, titel: String, nachricht: String) {
         self.zeige_message_box(titel, nachricht);
@@ -444,7 +444,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
@@ -472,7 +472,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
+impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [`update`](Gleise::update)-Methode.
     pub fn gleise_zustand_aktualisieren(&mut self, nachricht: ZustandAktualisieren) {
         if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
@@ -486,7 +486,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Renderer<Thema>>, S> Zugkontrolle<L, S> {
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + BekannterLeiter + Serialisiere<S> + Send,
+    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + BekannterLeiter + Serialisiere<S> + Send,
     S: 'static + Serialize + Send,
     <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
     <L as Leiter>::UmdrehenZeit: Serialize,
@@ -509,7 +509,7 @@ where
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: 'static + LeiterAnzeige<'t, S, Renderer<Thema>> + Send,
+    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + Send,
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {

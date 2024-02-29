@@ -1,6 +1,11 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Container`].
 
-use iced::{theme, widget::container, Background, BorderRadius, Color, Theme};
+use iced::{
+    border::{self, Border},
+    theme,
+    widget::container,
+    Background, Color, Theme,
+};
 
 use crate::style::thema::Thema;
 
@@ -34,7 +39,7 @@ pub enum Container {
         /// Die Breite des Rands.
         breite: f32,
         /// Radius der abgerundeten Ecken.
-        radius: BorderRadius,
+        radius: border::Radius,
     },
     /// Style-Struktur für die Auswahl einer [`Pcf8574-Beschreibung`](crate::anschluss::pcf8574::Beschreibung).
     Pcf8574Beschreibung,
@@ -91,9 +96,7 @@ impl container::StyleSheet for Thema {
             },
             (Thema::Hell | Thema::Dunkel, Container::Rand { farbe, breite, radius }) => {
                 container::Appearance {
-                    border_color: *farbe,
-                    border_width: *breite,
-                    border_radius: *radius,
+                    border: Border { color: *farbe, width: *breite, radius: *radius },
                     ..container::Appearance::default()
                 }
             },

@@ -88,24 +88,26 @@ pub enum Nachricht<Richtung, AnschlüsseSerialisiert> {
 
 /// Widget zur Auswahl der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
 #[derive(Debug)]
-pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>(
+pub struct Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>(
     MapMitZustand<
         't,
         Zustand<AnschlüsseSerialisiert>,
         InterneNachricht<Richtung>,
         Nachricht<RichtungInformation, AnschlüsseSerialisiert>,
+        Thema,
         R,
     >,
 );
 
-impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
-    Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
+impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>
+    Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>
 where
     AnschlüsseSerialisiert: 't + Clone + Default + Nachschlagen<Richtung, OutputSerialisiert>,
     Richtung: 'static + Clone + Display,
     RichtungInformation: 't + Clone + Default,
     R: 't + Renderer + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: button::StyleSheet
+    Thema: 't
+        + button::StyleSheet
         + card::StyleSheet
         + container::StyleSheet
         + number_input::StyleSheet
@@ -114,8 +116,8 @@ where
         + tab_bar::StyleSheet
         + text::StyleSheet
         + text_input::StyleSheet,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu(
@@ -164,13 +166,12 @@ where
         zustand: &Zustand<AnschlüsseSerialisiert>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Element<'t, InterneNachricht<Richtung>, R> {
+    ) -> Element<'t, InterneNachricht<Richtung>, Thema, R> {
         let Zustand { name, anschlüsse, hat_steuerung } = zustand;
-        let mut column: Column<'t, InterneNachricht<Richtung>, R> = Column::new();
-        let text_input: TextInput<'t, InterneNachricht<Richtung>, R> =
-            TextInput::new("<Name>", name)
-                .on_input(InterneNachricht::Name)
-                .width(Length::Fixed(200.));
+        let mut column = Column::new();
+        let text_input = TextInput::new("<Name>", name)
+            .on_input(InterneNachricht::Name)
+            .width(Length::Fixed(200.));
         column = column.push(text_input);
         for (richtung, anschluss) in anschlüsse.referenzen() {
             column = column.push(Row::new().push(Text::new(richtung.to_string())).push({
@@ -190,26 +191,26 @@ where
                     Button::new(Text::new("Keine Anschlüsse")).on_press(InterneNachricht::Schließen)
                 }),
         );
-        let card: Card<'t, InterneNachricht<Richtung>, R> =
-            Card::new(Text::new(weichen_art), column)
-                .on_close(InterneNachricht::Schließen)
-                .width(Length::Shrink)
-                .height(Length::Shrink);
+        let card = Card::new(Text::new(weichen_art), column)
+            .on_close(InterneNachricht::Schließen)
+            .width(Length::Shrink)
+            .height(Length::Shrink);
         card.into()
     }
 }
 
-impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>
-    From<Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>>
-    for Element<'t, Nachricht<RichtungInformation, AnschlüsseSerialisiert>, R>
+impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>
+    From<Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>>
+    for Element<'t, Nachricht<RichtungInformation, AnschlüsseSerialisiert>, Thema, R>
 where
     AnschlüsseSerialisiert: 'static + PartialEq,
     Richtung: 't,
     RichtungInformation: 't,
+    Thema: 't,
     R: 't + Renderer,
 {
     fn from(
-        anzeige: Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, R>,
+        anzeige: Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>,
     ) -> Self {
         Element::from(anzeige.0)
     }

@@ -1,8 +1,11 @@
 //! Icons aus der Schriftart bootstrap-icons <https://icons.getbootstrap.com/>.
 
-use iced_core::{text as text_core, Element, Font, Renderer};
+use iced_core::{text as text_core, Element, Font};
 use iced_widget::{text, Text};
 
+// TODO replace with bootstrap-feature from iced_aw
+// Wurde aktualisiert -> alle benötigten Symbole enthalten :)
+// Alternativ: Durch kleinere Schriftart mit nur den verwendeten Symbolen ersetzen.
 use crate::fonts::BOOTSTRAP;
 
 /// Icons aus der Schriftart bootstrap-icons <https://icons.getbootstrap.com/>.
@@ -35,30 +38,30 @@ impl Bootstrap {
 ///
 /// Damit das Icon richtig angezeigt wird muss vorher die [BOOTSTRAP]-Schriftart [`geladen`](iced::font::load) werden.
 #[allow(missing_debug_implementations)]
-pub struct Icon<'a, R>(Text<'a, R>)
+pub struct Icon<'a, Thema, R>(Text<'a, Thema, R>)
 where
     R: text_core::Renderer,
-    <R as Renderer>::Theme: text::StyleSheet;
+    Thema: text::StyleSheet;
 
-impl<'a, R> Icon<'_, R>
+impl<'a, Thema, R> Icon<'_, Thema, R>
 where
     R: text_core::Renderer,
-    <R as Renderer>::Theme: text::StyleSheet,
+    Thema: text::StyleSheet,
     <R as text_core::Renderer>::Font: From<Font>,
 {
     /// Erzeuge ein neues Widget, dass das gewählte [`Bootstrap`]-Icon anzeigt.
     #[must_use]
-    pub fn neu(bootstrap: Bootstrap) -> Icon<'a, R> {
+    pub fn neu(bootstrap: Bootstrap) -> Icon<'a, Thema, R> {
         Icon(Text::new(bootstrap.als_str()).font(BOOTSTRAP))
     }
 }
 
-impl<'a, M, R> From<Icon<'a, R>> for Element<'a, M, R>
+impl<'a, M, Thema, R> From<Icon<'a, Thema, R>> for Element<'a, M, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    <R as Renderer>::Theme: text::StyleSheet,
+    Thema: 'a + text::StyleSheet,
 {
-    fn from(icon: Icon<'a, R>) -> Self {
+    fn from(icon: Icon<'a, Thema, R>) -> Self {
         Element::new(icon.0)
     }
 }

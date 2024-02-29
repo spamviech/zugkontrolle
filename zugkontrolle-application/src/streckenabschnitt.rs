@@ -55,24 +55,24 @@ pub enum AnzeigeNachricht {
 
 /// Widget zur Anzeige des aktuellen [`Streckenabschnittes`](Streckenabschnitt),
 /// sowie Buttons zum Öffnen des Auswahl-Fensters.
-pub struct Anzeige<'a, Overlay, R> {
+pub struct Anzeige<'a, Overlay, Thema, R> {
     /// Das [`iced_core::widget::Widget`].
-    element: Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, R>,
+    element: Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, Thema, R>,
 }
 
-impl<Overlay, R> Debug for Anzeige<'_, Overlay, R> {
+impl<Overlay, Thema, R> Debug for Anzeige<'_, Overlay, Thema, R> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
-impl<'a, Overlay, R> Anzeige<'a, Overlay, R>
+impl<'a, Overlay, Thema, R> Anzeige<'a, Overlay, Thema, R>
 where
     Overlay: 'a + Clone,
     R: 'a + text_core::Renderer,
-    <R as Renderer>::Theme:
-        container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
+    Thema:
+        'a + container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
+    <Thema as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle eine neue [`Anzeige`].
     pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool, overlay: Overlay) -> Self {
@@ -95,10 +95,11 @@ where
                         .on_press(modal::Nachricht::ZeigeOverlay(overlay)),
                 )
                 .push(
-                    Checkbox::new("Festlegen", festlegen, |neu_festlegen| {
-                        modal::Nachricht::Underlay(AnzeigeNachricht::Festlegen(neu_festlegen))
-                    })
-                    .spacing(0),
+                    Checkbox::new("Festlegen", festlegen)
+                        .on_toggle(|neu_festlegen| {
+                            modal::Nachricht::Underlay(AnzeigeNachricht::Festlegen(neu_festlegen))
+                        })
+                        .spacing(0),
                 )
                 .spacing(1)
                 .into(),
@@ -112,10 +113,10 @@ where
     }
 }
 
-impl<'a, Overlay, R: 'a + Renderer> From<Anzeige<'a, Overlay, R>>
-    for Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, R>
+impl<'a, Overlay, Thema, R: 'a + Renderer> From<Anzeige<'a, Overlay, Thema, R>>
+    for Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, Thema, R>
 {
-    fn from(auswahl: Anzeige<'a, Overlay, R>) -> Self {
+    fn from(auswahl: Anzeige<'a, Overlay, Thema, R>) -> Self {
         auswahl.element
     }
 }
@@ -207,14 +208,15 @@ pub enum AuswahlNachricht {
 
 /// Auswahl-Fenster für [`Streckenabschnitte`](Streckenabschnitt).
 #[derive(Debug)]
-pub struct Auswahl<'a, R: Renderer>(
-    MapMitZustand<'a, AuswahlZustand, InterneAuswahlNachricht, AuswahlNachricht, R>,
+pub struct Auswahl<'a, Thema, R: Renderer>(
+    MapMitZustand<'a, AuswahlZustand, InterneAuswahlNachricht, AuswahlNachricht, Thema, R>,
 );
 
-impl<'a, R> Auswahl<'a, R>
+impl<'a, Thema, R> Auswahl<'a, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: card::StyleSheet
+    Thema: 'a
+        + card::StyleSheet
         + text::StyleSheet
         + scrollable::StyleSheet
         + container::StyleSheet
@@ -223,10 +225,10 @@ where
         + number_input::StyleSheet
         + tab_bar::StyleSheet
         + radio::StyleSheet,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<style::Sammlung>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<style::TabBar>,
+    <Thema as button::StyleSheet>::Style: From<style::Button>,
+    <Thema as container::StyleSheet>::Style: From<style::Container>,
+    <Thema as scrollable::StyleSheet>::Style: From<style::Sammlung>,
+    <Thema as tab_bar::StyleSheet>::Style: From<style::TabBar>,
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu<L: Leiter, AktualisierenNachricht>(
@@ -288,7 +290,7 @@ where
         auswahl_zustand: &AuswahlZustand,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
-    ) -> Element<'a, InterneAuswahlNachricht, R> {
+    ) -> Element<'a, InterneAuswahlNachricht, Thema, R> {
         let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
             auswahl_zustand;
 
@@ -326,7 +328,7 @@ where
                                 name.clone().into_inner(),
                                 *farbe,
                             ))))
-                            .style(style::streckenabschnitt::auswahl_button(*farbe).into()),
+                            .style(style::streckenabschnitt::auswahl_button(*farbe)),
                     )
                     .push(Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                         InterneAuswahlNachricht::Bearbeiten(
@@ -353,11 +355,12 @@ where
     }
 }
 
-impl<'a, R> From<Auswahl<'a, R>> for Element<'a, AuswahlNachricht, R>
+impl<'a, Thema, R> From<Auswahl<'a, Thema, R>> for Element<'a, AuswahlNachricht, Thema, R>
 where
+    Thema: 'a,
     R: 'a + Renderer,
 {
-    fn from(auswahl: Auswahl<'a, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, Thema, R>) -> Self {
         Element::from(auswahl.0)
     }
 }

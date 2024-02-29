@@ -107,22 +107,23 @@ impl OutputNachricht {
 
 /// Widget zur Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Debug)]
-pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>(
-    MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, R>,
+pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>(
+    MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, Thema, R>,
 );
 
-impl<'a, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, R>
+impl<'a, Thema, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: number_input::StyleSheet
+    Thema: 'a
+        + number_input::StyleSheet
         + tab_bar::StyleSheet
         + container::StyleSheet
         + radio::StyleSheet
         + scrollable::StyleSheet
         + text::StyleSheet
         + text_input::StyleSheet,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     #[must_use]
@@ -203,7 +204,7 @@ where
                         NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
                     ),
                     |interrupt_pin| {
-                        let text: Text<'_, R> = Text::new(interrupt_pin.to_string());
+                        let text: Text<'_, Thema, R> = Text::new(interrupt_pin.to_string());
                         Element::from(text)
                     },
                 );
@@ -248,18 +249,19 @@ where
     }
 }
 
-impl<'a, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, R>
+impl<'a, Thema, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: number_input::StyleSheet
+    Thema: 'a
+        + number_input::StyleSheet
         + tab_bar::StyleSheet
         + container::StyleSheet
         + radio::StyleSheet
         + scrollable::StyleSheet
         + text::StyleSheet
         + text_input::StyleSheet,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
@@ -377,16 +379,16 @@ enum ZeigeModus {
 // anonymous lifetimes in `impl Trait` are unstable
 #[allow(single_use_lifetimes)]
 /// Erstelle einen [`Radio`] für alle `elemente` und füge sie zu einem [`Column`] hinzu.
-pub(crate) fn make_radios<'a, 'b, T, M, R>(
+pub(crate) fn make_radios<'a, 'b, T, M, Thema, R>(
     aktuell: &T,
     elemente: impl IntoIterator<Item = (&'b str, T)>,
     als_nachricht: impl Fn(T) -> M + Clone + 'static,
-) -> Column<'a, M, R>
+) -> Column<'a, M, Thema, R>
 where
     T: Eq + Copy,
     M: 'a + Clone,
     R: 'a + text_core::Renderer,
-    <R as Renderer>::Theme: radio::StyleSheet + text::StyleSheet,
+    Thema: 'a + radio::StyleSheet + text::StyleSheet,
     <R as text_core::Renderer>::Font: From<Font>,
 {
     let mut column = Column::new();
@@ -402,27 +404,29 @@ where
     column
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
+    Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
 where
     Modus: Copy,
     ModusNachricht: 'static + Clone,
     R: 'a + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: number_input::StyleSheet
+    Thema: 'a
+        + number_input::StyleSheet
         + tab_bar::StyleSheet
         + container::StyleSheet
         + radio::StyleSheet
         + scrollable::StyleSheet
         + text::StyleSheet
         + text_input::StyleSheet,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     // Alle Argumente werden benötigt.
     #[allow(clippy::too_many_arguments)]
     /// Erzeuge ein neues [`Auswahl`]-Widget.
     fn neu_mit_modus_view(
         zeige_modus: ZeigeModus,
-        view_modus: impl 'a + Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
+        view_modus: impl 'a + Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, Thema, R>,
         update_modus: &'a impl Fn(&mut Modus, ModusNachricht),
         make_pin: &'a impl Fn(u8, &Modus) -> Serialisiert,
         make_port: impl 'a + Fn(Beschreibung, kleiner_8, &Modus) -> Serialisiert,
@@ -469,28 +473,30 @@ where
 /// Wie viel [`Platz`](Space) soll zwischen Widgets eingefügt werden?
 const PADDING: f32 = 2.5;
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R> Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
+    Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
 where
     ModusNachricht: 'static + Clone,
     R: 'a + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: number_input::StyleSheet
+    Thema: 'a
+        + number_input::StyleSheet
         + tab_bar::StyleSheet
         + container::StyleSheet
         + radio::StyleSheet
         + scrollable::StyleSheet
         + text::StyleSheet
         + text_input::StyleSheet,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erzeuge die interne Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
         zustand: &Zustand<Modus>,
-        view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, R>,
+        view_modus: &impl Fn(&Modus, Beschreibung) -> Element<'a, ModusNachricht, Thema, R>,
         zeige_modus: ZeigeModus,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Element<'a, InterneNachricht<ModusNachricht>, R> {
+    ) -> Element<'a, InterneNachricht<ModusNachricht>, Thema, R> {
         let Zustand { active_tab, pin, beschreibung, port, modus } = zustand;
         let element_modus = view_modus(modus, *beschreibung);
         let Beschreibung { i2c_bus, a0, a1, a2, variante } = beschreibung;
@@ -521,11 +527,7 @@ where
                         .push(Space::with_width(Length::Fixed(scrollable_style.breite()))),
                 )
                 .height(Length::Fixed(55.))
-                .style(
-                    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style::from(
-                        scrollable_style,
-                    ),
-                ),
+                .style(<Thema as scrollable::StyleSheet>::Style::from(scrollable_style)),
             )
             .push(high_low_column(a0, InterneNachricht::A0))
             .push(high_low_column(a1, InterneNachricht::A1))
@@ -558,7 +560,7 @@ where
                         pcf8574_row.push(view_modus_mapped).into()
                     }),
                 ];
-                let tabs = Tabs::with_tabs(tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::new_with_tabs(tabs, InterneNachricht::TabSelected)
                     .set_active_tab(active_tab)
                     .tab_bar_style(TabBar.into())
                     .height(Length::Shrink)
@@ -576,7 +578,7 @@ where
                         pcf8574_row.into()
                     }),
                 ];
-                let tabs = Tabs::with_tabs(tabs, InterneNachricht::TabSelected)
+                let tabs = Tabs::new_with_tabs(tabs, InterneNachricht::TabSelected)
                     .set_active_tab(active_tab)
                     .tab_bar_style(TabBar.into())
                     .height(Length::Shrink)
@@ -588,15 +590,17 @@ where
     }
 }
 
-impl<'a, Modus, ModusNachricht, Serialisiert, R>
-    From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>> for Element<'a, Serialisiert, R>
+impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
+    From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>>
+    for Element<'a, Serialisiert, Thema, R>
 where
     Modus: 'static + PartialEq,
     ModusNachricht: 'a,
     Serialisiert: 'a,
+    Thema: 'a,
     R: 'a + Renderer,
 {
-    fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, R>) -> Self {
+    fn from(auswahl: Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>) -> Self {
         Element::from(auswahl.0)
     }
 }
@@ -617,12 +621,15 @@ impl PwmZustand {
 
 /// Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
 #[derive(Debug)]
-pub struct Pwm<'a, R>(MapMitZustand<'a, PwmZustand, pwm::Serialisiert, pwm::Serialisiert, R>);
+pub struct Pwm<'a, Thema, R>(
+    MapMitZustand<'a, PwmZustand, pwm::Serialisiert, pwm::Serialisiert, Thema, R>,
+);
 
-impl<'a, R> Pwm<'a, R>
+impl<'a, Thema, R> Pwm<'a, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: number_input::StyleSheet
+    Thema: 'a
+        + number_input::StyleSheet
         + text::StyleSheet
         + container::StyleSheet
         + text_input::StyleSheet,
@@ -640,7 +647,7 @@ where
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Pwm`]-Widget.
-    fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, R> {
+    fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, Thema, R> {
         NumberInput::new(zustand.pin, 32, pwm::Serialisiert).into()
     }
 
@@ -657,11 +664,12 @@ where
     }
 }
 
-impl<'a, R> From<Pwm<'a, R>> for Element<'a, pwm::Serialisiert, R>
+impl<'a, Thema, R> From<Pwm<'a, Thema, R>> for Element<'a, pwm::Serialisiert, Thema, R>
 where
+    Thema: 'a,
     R: 'a + Renderer,
 {
-    fn from(auswahl: Pwm<'a, R>) -> Self {
+    fn from(auswahl: Pwm<'a, Thema, R>) -> Self {
         Element::from(auswahl.0)
     }
 }

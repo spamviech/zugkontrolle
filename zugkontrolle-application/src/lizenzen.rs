@@ -9,7 +9,7 @@ use std::{
 use iced_core::{
     event, text as text_core,
     widget::text::{self, Text},
-    Element, Length, Renderer,
+    Element, Length,
 };
 use iced_widget::{
     button::{self, Button},
@@ -83,29 +83,32 @@ impl Zustand {
 
 /// Widget zur Anzeige der Lizenzen verwendeten Open-Source Bibliotheken.
 #[derive(Debug)]
-pub struct Lizenzen<'a, R>(MapMitZustand<'a, Zustand, InterneNachricht, Nachricht, R>);
+pub struct Lizenzen<'a, Thema, R>(
+    MapMitZustand<'a, Zustand, InterneNachricht, Nachricht, Thema, R>,
+);
 
 /// Der [`Abstand`](Space) zwischen Widgets in Pixel.
 const PADDING: f32 = 5.;
 /// Die Breite der [`Trennlinie`](Rule) zwischen der Auswahl-Liste und dem aktuell gezeigten Lizenztext.
 const TRENNLINIE_BREITE: u16 = 1;
 
-impl<'a, R> Lizenzen<'a, R>
+impl<'a, Thema, R> Lizenzen<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    <R as Renderer>::Theme: container::StyleSheet
+    Thema: 'a
+        + container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
         + rule::StyleSheet
         + text::StyleSheet,
-    <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
+    <Thema as rule::StyleSheet>::Style: From<Linie>,
+    <Thema as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle ein neues [`Lizenzen`]-Widget mit den verwendeten Lizenzen.
     pub fn neu_mit_verwendeten_lizenzen<ScrollableStyle>(scrollable_style: ScrollableStyle) -> Self
     where
         ScrollableStyle: 'a + Clone,
-        <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
         Self::neu(&TARGET_LIZENZEN, scrollable_style)
     }
@@ -117,10 +120,10 @@ where
     ) -> Self
     where
         ScrollableStyle: 'a + Clone,
-        <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
         let erzeuge_zustand = || Zustand::neu(lizenzen);
-        let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, R> {
+        let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
         let mapper = |interne_nachricht,
@@ -143,9 +146,9 @@ where
         zustand: &Zustand,
         lizenzen: &'a LizenzenMap,
         scrollable_style: ScrollableStyle,
-    ) -> Element<'a, InterneNachricht, R>
+    ) -> Element<'a, InterneNachricht, Thema, R>
     where
-        <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Shrink);
@@ -195,18 +198,19 @@ where
     }
 }
 
-impl<'a, R> From<Lizenzen<'a, R>> for Element<'a, Nachricht, R>
+impl<'a, Thema, R> From<Lizenzen<'a, Thema, R>> for Element<'a, Nachricht, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    <R as Renderer>::Theme: container::StyleSheet
+    Thema: 'a
+        + container::StyleSheet
         + button::StyleSheet
         + scrollable::StyleSheet
         + rule::StyleSheet
         + text::StyleSheet,
-    <<R as Renderer>::Theme as rule::StyleSheet>::Style: From<Linie>,
-    <<R as Renderer>::Theme as container::StyleSheet>::Style: From<style::Container>,
+    <Thema as rule::StyleSheet>::Style: From<Linie>,
+    <Thema as container::StyleSheet>::Style: From<style::Container>,
 {
-    fn from(lizenzen: Lizenzen<'a, R>) -> Self {
+    fn from(lizenzen: Lizenzen<'a, Thema, R>) -> Self {
         Element::new(lizenzen.0)
     }
 }

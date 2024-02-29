@@ -59,13 +59,13 @@ impl Default for Zustand {
     }
 }
 
-impl Program<Winkel, Renderer<Thema>> for Drehen {
+impl Program<Winkel, Thema, Renderer> for Drehen {
     type State = Zustand;
 
     fn draw(
         &self,
         state: &Self::State,
-        renderer: &Renderer<Thema>,
+        renderer: &Renderer,
         thema: &Thema,
         bounds: Rectangle,
         cursor: Cursor,

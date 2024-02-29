@@ -5,7 +5,7 @@ use std::{fmt::Debug, ops::DerefMut};
 use iced_core::{
     event, text as text_core,
     widget::text::{self, Text},
-    Alignment, Element, Length, Renderer,
+    Alignment, Element, Length,
 };
 use iced_widget::{
     button::{self, Button},
@@ -51,13 +51,15 @@ pub enum Nachricht {
 
 /// Widget mit Pfadauswahl und Knöpfen zum Speichern und Laden.
 #[derive(Debug)]
-pub struct SpeichernLaden<'a, R>(MapMitZustand<'a, Zustand, InterneNachricht, Nachricht, R>);
+pub struct SpeichernLaden<'a, Thema, R>(
+    MapMitZustand<'a, Zustand, InterneNachricht, Nachricht, Thema, R>,
+);
 
-impl<'a, R> SpeichernLaden<'a, R>
+impl<'a, Thema, R> SpeichernLaden<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
+    Thema: 'a + button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
+    <Thema as button::StyleSheet>::Style: From<style::Button>,
 {
     /// Erstelle ein [`SpeichernLaden`]-Widget.
     #[must_use]
@@ -89,7 +91,7 @@ where
     fn erzeuge_element(
         zustand: &Zustand,
         speichern_gefärbt: Option<bool>,
-    ) -> Element<'a, InterneNachricht, R> {
+    ) -> Element<'a, InterneNachricht, Thema, R> {
         let Zustand { aktueller_pfad } = zustand;
 
         let speichern_ungefärbt =
@@ -102,10 +104,10 @@ where
         let row = Row::new()
             .push(
                 Column::new()
-                    .push(speichern_ungefärbt.style(speichern_style.into()))
+                    .push(speichern_ungefärbt.style(speichern_style))
                     .push(
                         Button::new(Text::new("Laden"))
-                            .style(style::Button::Standard.into())
+                            .style(style::Button::Standard)
                             .on_press(InterneNachricht::Laden),
                     )
                     .align_items(Alignment::End),
@@ -123,13 +125,13 @@ where
     }
 }
 
-impl<'a, R> From<SpeichernLaden<'a, R>> for Element<'a, Nachricht, R>
+impl<'a, Thema, R> From<SpeichernLaden<'a, Thema, R>> for Element<'a, Nachricht, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    <R as Renderer>::Theme: button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
-    <<R as Renderer>::Theme as button::StyleSheet>::Style: From<style::Button>,
+    Thema: 'a + button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
+    <Thema as button::StyleSheet>::Style: From<style::Button>,
 {
-    fn from(auswahl: SpeichernLaden<'a, R>) -> Self {
+    fn from(auswahl: SpeichernLaden<'a, Thema, R>) -> Self {
         Element::from(auswahl.0)
     }
 }

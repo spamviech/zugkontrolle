@@ -83,6 +83,10 @@ pub(crate) enum NachrichtClone<L: Leiter> {
     /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit)
     /// im [`Fahren`](Modus::Fahren)-Modus.
     AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
+    /// Wechsle den aktuellen Modus.
+    Modus(Modus),
+    /// Ändere das aktuelle Anzeige-[`Thema`].
+    Thema(Thema),
 }
 
 impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
@@ -95,6 +99,8 @@ impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
             NachrichtClone::AktionGeschwindigkeit(aktion) => {
                 Nachricht::AktionGeschwindigkeit(aktion)
             },
+            NachrichtClone::Modus(modus) => Nachricht::Modus(modus),
+            NachrichtClone::Thema(thema) => Nachricht::Thema(thema),
         }
     }
 }

@@ -12,32 +12,32 @@ use iced_core::{
         tree::{self, Tree},
         Widget,
     },
-    Length, Point, Rectangle, Shell, Size,
+    Length, Point, Rectangle, Shell, Size, Vector,
 };
 
 use crate::map_mit_zustand::MapOperation;
 
 ///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]
-pub struct FlatMap<'a, A, B, I: IntoIterator<Item = B>, Renderer> {
+pub struct FlatMap<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer> {
     /// Das ursprüngliche Widget.
-    widget: Box<dyn Widget<A, Renderer> + 'a>,
+    widget: Box<dyn Widget<A, Thema, Renderer> + 'a>,
     /// Die Funktion zur Transformation der ursprünglichen Nachrichten.
     mapper: Box<dyn Fn(A) -> I + 'a>,
 }
 
-impl<'a, A, B, I: IntoIterator<Item = B>, Renderer> FlatMap<'a, A, B, I, Renderer> {
+impl<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer> FlatMap<'a, A, B, I, Thema, Renderer> {
     /// Erzeuge ein neues [`FlatMap`]-widget.
     pub fn neu(
-        widget: Box<dyn Widget<A, Renderer> + 'a>,
+        widget: Box<dyn Widget<A, Thema, Renderer> + 'a>,
         mapper: impl 'a + Fn(A) -> I,
-    ) -> FlatMap<'a, A, B, I, Renderer> {
+    ) -> FlatMap<'a, A, B, I, Thema, Renderer> {
         FlatMap { widget, mapper: Box::new(mapper) }
     }
 }
 
-impl<'a, A, B, I: IntoIterator<Item = B>, Renderer> Widget<B, Renderer>
-    for FlatMap<'a, A, B, I, Renderer>
+impl<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer> Widget<B, Thema, Renderer>
+    for FlatMap<'a, A, B, I, Thema, Renderer>
 where
     Renderer: self::Renderer + 'a,
     A: 'a,
@@ -59,16 +59,21 @@ where
         self.widget.diff(tree);
     }
 
-    fn width(&self) -> Length {
-        self.widget.width()
+    fn size(&self) -> Size<Length> {
+        self.widget.size()
     }
 
-    fn height(&self) -> Length {
-        self.widget.height()
+    fn size_hint(&self) -> Size<Length> {
+        self.widget.size_hint()
     }
 
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
-        self.widget.layout(renderer, limits)
+    fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.widget.layout(tree, renderer, limits)
     }
 
     fn operate(
@@ -129,7 +134,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Thema,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -154,47 +159,43 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, B, Renderer>> {
+        translation: Vector,
+    ) -> Option<overlay::Element<'b, B, Thema, Renderer>> {
         let mapper = &self.mapper;
 
-        // self.widget.overlay(tree, layout, renderer).map(move |overlay| overlay.map(mapper))
-        self.widget.overlay(tree, layout, renderer).map(move |overlay| {
-            overlay::Element::new(
-                overlay.position(),
-                Box::new(OverlayFlatMap::neu(overlay, mapper)),
-            )
+        self.widget.overlay(tree, layout, renderer, translation).map(move |overlay| {
+            overlay::Element::new(Box::new(OverlayFlatMap::neu(overlay, mapper)))
         })
     }
 }
 
 /// Overlay für ein [`FlatMap`]-Widget.
-struct OverlayFlatMap<'a, A, B, I: IntoIterator<Item = B>, Renderer> {
+struct OverlayFlatMap<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer> {
     /// Das Overlay.
-    content: overlay::Element<'a, A, Renderer>,
+    content: overlay::Element<'a, A, Thema, Renderer>,
     /// Die Funktion zur Transformation der ursprünglichen Nachrichten.
     mapper: &'a dyn Fn(A) -> I,
 }
 
-impl<'a, A, B, I: IntoIterator<Item = B>, Renderer> OverlayFlatMap<'a, A, B, I, Renderer> {
+impl<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer>
+    OverlayFlatMap<'a, A, B, I, Thema, Renderer>
+{
     /// Erzeuge ein neues [`OverlayFlatMap`].
     fn neu(
-        content: overlay::Element<'a, A, Renderer>,
+        content: overlay::Element<'a, A, Thema, Renderer>,
         mapper: &'a dyn Fn(A) -> I,
-    ) -> OverlayFlatMap<'a, A, B, I, Renderer> {
+    ) -> OverlayFlatMap<'a, A, B, I, Thema, Renderer> {
         OverlayFlatMap { content, mapper }
     }
 }
 
-impl<A, B, I: IntoIterator<Item = B>, Renderer> Overlay<B, Renderer>
-    for OverlayFlatMap<'_, A, B, I, Renderer>
+impl<A, B, I: IntoIterator<Item = B>, Thema, Renderer> Overlay<B, Thema, Renderer>
+    for OverlayFlatMap<'_, A, B, I, Thema, Renderer>
 where
     Renderer: self::Renderer,
 {
-    fn layout(&self, renderer: &Renderer, bounds: Size, position: Point) -> layout::Node {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        let translation = position - self.content.position();
-        self.content.layout(renderer, bounds, translation)
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.content.layout(renderer, bounds)
     }
 
     fn operate(
@@ -259,7 +260,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Thema,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,

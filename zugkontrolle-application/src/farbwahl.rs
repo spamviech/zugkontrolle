@@ -3,13 +3,14 @@
 use std::fmt::{self, Debug, Formatter};
 
 use iced_core::{
+    border::{self, Border},
     event::{self, Event},
     layout::{self, Layout},
     mouse,
     renderer::{Quad, Renderer, Style},
     touch,
     widget::tree::Tree,
-    Background, BorderRadius, Clipboard, Color, Element, Length, Rectangle, Shell, Size, Widget,
+    Background, Clipboard, Color, Element, Length, Rectangle, Shadow, Shell, Size, Vector, Widget,
 };
 
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel};
@@ -107,16 +108,15 @@ impl<'a, M> Farbwahl<'a, M> {
     }
 }
 
-impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
-    fn width(&self) -> Length {
-        Length::Fixed(f32::from(self.durchmesser))
+impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fixed(f32::from(self.durchmesser)),
+            height: Length::Fixed(f32::from(self.durchmesser)),
+        }
     }
 
-    fn height(&self) -> Length {
-        Length::Fixed(f32::from(self.durchmesser))
-    }
-
-    fn layout(&self, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
+    fn layout(&self, _tree: &mut Tree, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
         let durchmesser = f32::from(self.durchmesser);
         layout::Node::new(Size { width: durchmesser, height: durchmesser })
     }
@@ -125,7 +125,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
         &self,
         _state: &Tree,
         renderer: &mut R,
-        _theme: &<R as Renderer>::Theme,
+        _theme: &Thema,
         _style: &Style,
         layout: Layout<'_>,
         _cursor_position: mouse::Cursor,
@@ -148,9 +148,16 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
                             width: 1.,
                             height: 1.,
                         },
-                        border_radius: BorderRadius::from(0.),
-                        border_width: 0.,
-                        border_color: Color::default(),
+                        border: Border {
+                            color: Color::default(),
+                            width: 0.,
+                            radius: border::Radius::from(0.),
+                        },
+                        shadow: Shadow {
+                            color: Color::default(),
+                            offset: Vector::default(),
+                            blur_radius: 0.,
+                        },
                     };
                     let background = Background::Color(farbe.into());
                     renderer.fill_quad(quad, background);
@@ -194,7 +201,7 @@ impl<M, R: Renderer> Widget<M, R> for Farbwahl<'_, M> {
     }
 }
 
-impl<'a, M, R: Renderer> From<Farbwahl<'a, M>> for Element<'a, M, R> {
+impl<'a, M, Thema, R: Renderer> From<Farbwahl<'a, M>> for Element<'a, M, Thema, R> {
     fn from(farbwahl: Farbwahl<'a, M>) -> Self {
         Element::new(farbwahl)
     }

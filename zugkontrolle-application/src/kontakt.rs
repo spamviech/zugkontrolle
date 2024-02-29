@@ -88,12 +88,13 @@ pub enum Nachricht {
 
 /// Widget zur Auswahl der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug)]
-pub struct Auswahl<'t, R>(MapMitZustand<'t, Zustand, InterneNachricht, Nachricht, R>);
+pub struct Auswahl<'t, Thema, R>(MapMitZustand<'t, Zustand, InterneNachricht, Nachricht, Thema, R>);
 
-impl<'t, R> Auswahl<'t, R>
+impl<'t, Thema, R> Auswahl<'t, Thema, R>
 where
     R: 't + Renderer + text_core::Renderer<Font = Font>,
-    <R as Renderer>::Theme: button::StyleSheet
+    Thema: 't
+        + button::StyleSheet
         + card::StyleSheet
         + container::StyleSheet
         + number_input::StyleSheet
@@ -102,8 +103,8 @@ where
         + tab_bar::StyleSheet
         + text::StyleSheet
         + text_input::StyleSheet,
-    <<R as Renderer>::Theme as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <<R as Renderer>::Theme as tab_bar::StyleSheet>::Style: From<TabBar>,
+    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
 {
     /// Erstelle eine neue [`Auswahl`].
     #[must_use]
@@ -159,10 +160,10 @@ where
         lager: &'t Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Element<'t, InterneNachricht, R> {
+    ) -> Element<'t, InterneNachricht, Thema, R> {
         let Zustand { name, anschluss, trigger, hat_steuerung } = zustand;
-        let mut column: Column<'t, InterneNachricht, R> = Column::new();
-        let text_input: TextInput<'t, InterneNachricht, R> = TextInput::new("<Name>", name)
+        let mut column = Column::new();
+        let text_input = TextInput::new("<Name>", name)
             .on_input(InterneNachricht::Name)
             .width(Length::Fixed(200.));
         column = column.push(text_input);
@@ -193,7 +194,7 @@ where
                     Button::new(Text::new("Keine Anschlüsse")).on_press(InterneNachricht::Schließen)
                 }),
         );
-        let card: Card<'t, InterneNachricht, R> = Card::new(Text::new(weichen_art), column)
+        let card: Card<'t, InterneNachricht, Thema, R> = Card::new(Text::new(weichen_art), column)
             .on_close(InterneNachricht::Schließen)
             .width(Length::Shrink)
             .height(Length::Shrink);
@@ -201,8 +202,10 @@ where
     }
 }
 
-impl<'t, R: 't + Renderer> From<Auswahl<'t, R>> for Element<'t, Nachricht, R> {
-    fn from(anzeige: Auswahl<'t, R>) -> Self {
+impl<'t, Thema: 't, R: 't + Renderer> From<Auswahl<'t, Thema, R>>
+    for Element<'t, Nachricht, Thema, R>
+{
+    fn from(anzeige: Auswahl<'t, Thema, R>) -> Self {
         Element::from(anzeige.0)
     }
 }

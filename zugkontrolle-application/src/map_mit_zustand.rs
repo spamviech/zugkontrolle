@@ -62,16 +62,16 @@ impl<T> DerefMut for MutTracer<'_, T> {
 /// mit potentieller Mutation eines Zustands erlaubt.
 ///
 /// Anmerkung: Das overlay des Elements wird NICHT angezeigt.
-pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
+pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Das ursprüngliche Widget.
-    element: Element<'a, Intern, R>,
+    element: Element<'a, Intern, Thema, R>,
     /// Erzeuge einen neuen Zustand.
     erzeuge_zustand: Box<dyn 'a + Fn() -> Zustand>,
     /// Der initiale Zustand, und ob es seit erzeugen des Widgets weiterhin der initiale Zustand gilt.
     initialer_zustand: (Zustand, bool),
     /// Erzeuge die Widget-Hierarchie.
     #[allow(clippy::type_complexity)]
-    erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, R>>,
+    erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>>,
     /// Konvertiere eine interne Nachricht, potentiell unter Änderung des Zustands.
     #[allow(clippy::type_complexity)]
     mapper: Box<
@@ -79,7 +79,9 @@ pub struct MapMitZustand<'a, Zustand, Intern, Extern, R> {
     >,
 }
 
-impl<Zustand: Debug, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Intern, Extern, R> {
+impl<Zustand: Debug, Intern, Extern, Thema, R> Debug
+    for MapMitZustand<'_, Zustand, Intern, Extern, Thema, R>
+{
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("MapMitZustand")
@@ -92,13 +94,13 @@ impl<Zustand: Debug, Intern, Extern, R> Debug for MapMitZustand<'_, Zustand, Int
     }
 }
 
-impl<'a, Zustand, Intern, Extern, R> MapMitZustand<'a, Zustand, Intern, Extern, R> {
+impl<'a, Zustand, Intern, Extern, Thema, R> MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Erzeuge einen neuen [`MapMitZustand`].
     ///
     /// **ANMERKUNG**: Aus technischen Gründen wird das overlay NICHT angezeigt.
     pub fn neu(
         erzeuge_zustand: impl 'a + Fn() -> Zustand,
-        erzeuge_element: impl 'a + Fn(&Zustand) -> Element<'a, Intern, R>,
+        erzeuge_element: impl 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>,
         mapper: impl 'a
             + Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
     ) -> Self {
@@ -129,14 +131,14 @@ fn synchronisiere_widget_layout_validierung<Intern, Extern>(
 // mapper-Funktion
 #[allow(clippy::type_complexity)]
 /// Konvertiere interne Nachrichten mit dem `mapper` und erzeuge bei Zustands-Änderung das `element` neu.
-fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
+fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, Thema, R>(
     interne_nachrichten: Vec<Intern>,
     shell: &mut Shell<'_, Extern>,
     zustand: &mut Zustand,
     event_status: &mut event::Status,
     mapper: &dyn Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
-    element: &mut Element<'a, Intern, R>,
-    erzeuge_element: &dyn Fn(&Zustand) -> Element<'a, Intern, R>,
+    element: &mut Element<'a, Intern, Thema, R>,
+    erzeuge_element: &dyn Fn(&Zustand) -> Element<'a, Intern, Thema, R>,
 ) {
     let mut mut_tracer = MutTracer::neu(zustand);
     for nachricht in interne_nachrichten {
@@ -150,28 +152,29 @@ fn verarbeite_nachrichten<'a, Zustand, Intern, Extern, R>(
     }
 }
 
-impl<Zustand, Intern, Extern, R> Widget<Extern, R> for MapMitZustand<'_, Zustand, Intern, Extern, R>
+impl<Zustand, Intern, Extern, Thema, R> Widget<Extern, Thema, R>
+    for MapMitZustand<'_, Zustand, Intern, Extern, Thema, R>
 where
     Zustand: 'static + PartialEq,
     R: Renderer,
 {
-    fn width(&self) -> Length {
-        self.element.as_widget().width()
+    fn size(&self) -> Size<Length> {
+        self.element.as_widget().size()
     }
 
-    fn height(&self) -> Length {
-        self.element.as_widget().height()
+    fn size_hint(&self) -> Size<Length> {
+        self.element.as_widget().size_hint()
     }
 
-    fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.element.as_widget().layout(renderer, limits)
+    fn layout(&self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
+        self.element.as_widget().layout(tree, renderer, limits)
     }
 
     fn draw(
         &self,
         state: &Tree,
         renderer: &mut R,
-        theme: &<R as Renderer>::Theme,
+        theme: &Thema,
         style: &Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -277,18 +280,18 @@ where
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &R,
-    ) -> Option<overlay::Element<'a, Extern, R>> {
+        translation: Vector,
+    ) -> Option<overlay::Element<'a, Extern, Thema, R>> {
         // FIXME die aktuelle Implementierung benötigt gleichzeitigen mutable-borrow von state & element
         None
         // let MapMitZustand { element, erzeuge_element, mapper, .. } = self;
-        // element.as_widget_mut().overlay(state, layout, renderer).map(|overlay| {
+        // element.as_widget_mut().overlay(state, layout, renderer, translation).map(|overlay| {
         //     // FIXME state-borrow so lange wie overlay
         //     let zustand: &mut Zustand = state.state.downcast_mut();
-        //     let position = overlay.position();
         //     // FIXME element-borrow so lange wie overlay
         //     let map_mit_zustand_overlay =
         //         MapMitZustandOverlay { overlay, element, erzeuge_element, zustand, mapper };
-        //     overlay::Element::new(position, Box::new(map_mit_zustand_overlay))
+        //     overlay::Element::new(Box::new(map_mit_zustand_overlay))
         // })
     }
 }
@@ -338,15 +341,16 @@ impl<T, B> Operation<T> for MapOperation<'_, B> {
     }
 }
 
-impl<'a, Zustand, Intern, Extern, R> From<MapMitZustand<'a, Zustand, Intern, Extern, R>>
-    for Element<'a, Extern, R>
+impl<'a, Zustand, Intern, Extern, Thema, R>
+    From<MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>> for Element<'a, Extern, Thema, R>
 where
     Zustand: 'static + PartialEq,
     Intern: 'a,
     Extern: 'a,
+    Thema: 'a,
     R: 'a + Renderer,
 {
-    fn from(map_mit_zustand: MapMitZustand<'a, Zustand, Intern, Extern, R>) -> Self {
+    fn from(map_mit_zustand: MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>) -> Self {
         Element::new(map_mit_zustand)
     }
 }
@@ -354,13 +358,13 @@ where
 /// Hilfs-Struct für [`MapMitZustand`] zum anzeigen des Overlays.
 ///
 /// Funktioniert aktuell nicht.
-struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
+struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, Thema, R> {
     /// Das Overlay des Elements.
-    overlay: overlay::Element<'a, Intern, R>,
+    overlay: overlay::Element<'a, Intern, Thema, R>,
     /// Das Element.
-    element: &'a mut Element<'e, Intern, R>,
+    element: &'a mut Element<'e, Intern, Thema, R>,
     /// Erzeuge ein neues Element aus dem aktuellen Zustand.
-    erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, R>,
+    erzeuge_element: &'a dyn Fn(&Zustand) -> Element<'e, Intern, Thema, R>,
     /// Der aktuelle Zustand.
     zustand: &'a mut Zustand,
     /// Konvertiere eine interne Nachricht, potentiell unter Anpassung des aktuellen Zustands.
@@ -369,7 +373,8 @@ struct MapMitZustandOverlay<'a, 'e, Zustand, Intern, Extern, R> {
         &'a dyn Fn(Intern, &mut dyn DerefMut<Target = Zustand>, &mut event::Status) -> Vec<Extern>,
 }
 
-impl<Zustand, Intern, Extern, R> Debug for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, R>
+impl<Zustand, Intern, Extern, Thema, R> Debug
+    for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, Thema, R>
 where
     Zustand: Debug,
 {
@@ -385,24 +390,20 @@ where
     }
 }
 
-impl<Zustand, Intern, Extern, R> Overlay<Extern, R>
-    for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, R>
+impl<Zustand, Intern, Extern, Thema, R> Overlay<Extern, Thema, R>
+    for MapMitZustandOverlay<'_, '_, Zustand, Intern, Extern, Thema, R>
 where
     Zustand: 'static,
     R: Renderer,
 {
-    fn layout(&self, renderer: &R, bounds: Size, position: Point) -> layout::Node {
-        let bisher = self.overlay.position();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
-        let unterschied = position - bisher;
-        self.overlay.layout(renderer, bounds, unterschied)
+    fn layout(&mut self, renderer: &R, bounds: Size) -> layout::Node {
+        self.overlay.layout(renderer, bounds)
     }
 
     fn draw(
         &self,
         renderer: &mut R,
-        theme: &<R as Renderer>::Theme,
+        theme: &Thema,
         style: &Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -458,5 +459,15 @@ where
 
     fn is_over(&self, layout: Layout<'_>, _renderer: &R, cursor_position: Point) -> bool {
         layout.bounds().contains(cursor_position)
+    }
+
+    fn overlay<'a>(
+        &'a mut self,
+        layout: Layout<'_>,
+        renderer: &R,
+    ) -> Option<overlay::Element<'a, Extern, Thema, R>> {
+        // self.overlay.overlay(layout, renderer)
+        // todo!()
+        None
     }
 }

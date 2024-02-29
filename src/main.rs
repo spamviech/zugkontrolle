@@ -4,7 +4,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{window, Application, Settings};
+use iced::{window, Application, Settings, Size};
 use log::LevelFilter;
 
 use zugkontrolle_anschluss::Lager;
@@ -53,12 +53,13 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     ) -> Settings<Flags<L>> {
         Settings {
             window: window::Settings {
-                size: (800, 480),
+                size: Size { width: 800., height: 480. },
                 icon: icon(),
                 ..window::Settings::default()
             },
             default_font: fonts::REGULAR,
-            ..Settings::with_flags((argumente, lager, zugtyp, fonts::BENÖTIGTE_FONT_BYTES))
+            fonts: fonts::benötigte_font_bytes(),
+            ..Settings::with_flags((argumente, lager, zugtyp))
         }
     }
 

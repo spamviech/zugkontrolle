@@ -163,9 +163,9 @@ impl<S> AuswahlZustand<S> {
         lager: &'t Lager,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
-    ) -> Element<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht>, Renderer<Thema>>
+    ) -> Element<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht>, Thema, Renderer>
     where
-        L: LeiterAnzeige<'t, S, Renderer<Thema>> + Serialisiere<S>,
+        L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
         S: 'static + Clone + PartialEq,
         modal::Nachricht<AuswahlZustand<S>, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
@@ -190,7 +190,7 @@ impl<S> AuswahlZustand<S> {
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
                         (name.clone(), geschwindigkeit.serialisiere())
                     });
-                Element::from(<L as LeiterAnzeige<S, Renderer<Thema>>>::auswahl_neu(
+                Element::from(<L as LeiterAnzeige<S, Thema, Renderer>>::auswahl_neu(
                     startwert.clone(),
                     geschwindigkeiten,
                     scrollable_style,

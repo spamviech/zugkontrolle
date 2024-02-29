@@ -393,13 +393,13 @@ fn pressed(
     }
 }
 
-impl Program<Nachricht, Renderer<Thema>> for Bewegen {
+impl Program<Nachricht, Thema, Renderer> for Bewegen {
     type State = Option<KlickQuelle>;
 
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &Renderer<Thema>,
+        renderer: &Renderer,
         thema: &Thema,
         bounds: Rectangle,
         _cursor: Cursor,
