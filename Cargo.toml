@@ -319,32 +319,32 @@ features = ["unicode"]
 default-features = false
 
 [workspace.dependencies.iced]
-version = "0.10.0"
+version = "0.12.1"
 default-features = false
 features = ["canvas", "wgpu"]
 
 [workspace.dependencies.iced_core]
-version = "0.10.0"
+version = "0.12.2"
 default-features = false
 
 [workspace.dependencies.iced_futures]
-version = "0.7.0"
+version = "0.12.0"
 default-features = false
 
 [workspace.dependencies.iced_widget]
-version = "0.1.3"
+version = "0.12.3"
 default-features = false
 
 [workspace.dependencies.iced_graphics]
-version = "0.9.0"
+version = "0.12.1"
 default-features = false
 
 [workspace.dependencies.iced_renderer]
-version = "0.1.0"
+version = "0.12.1"
 default-features = false
 
 [workspace.dependencies.iced_aw]
-version = "0.7.0"
+version = "0.8.0"
 default-features = false
 features = ["card", "tab_bar", "tabs", "number_input"]
 
