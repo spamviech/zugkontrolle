@@ -166,8 +166,12 @@ where
         self.element.as_widget().size_hint()
     }
 
-    fn layout(&self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.element.as_widget().layout(tree, renderer, limits)
+    fn layout(&self, state: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
+        self.element.as_widget().layout(
+            state.children.first_mut().expect("Keine State-Children gefunden!"),
+            renderer,
+            limits,
+        )
     }
 
     fn draw(
@@ -280,7 +284,7 @@ where
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &R,
-        translation: Vector,
+        _translation: Vector,
     ) -> Option<overlay::Element<'a, Extern, Thema, R>> {
         // FIXME die aktuelle Implementierung benötigt gleichzeitigen mutable-borrow von state & element
         None
