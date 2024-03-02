@@ -16,6 +16,7 @@
   - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
   - Zeige Gleise direkt nach dem hinzufügen an.
   - Korrigiere Offset bei gedrehtem Canvas.
+- Aktualisiere auf iced v0.12
 
 ## 4.0.3
 
