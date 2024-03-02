@@ -5,7 +5,7 @@ use std::{
     hash::Hash,
     pin::Pin,
     sync::{
-        mpsc::{Receiver, RecvError},
+        mpsc::{Receiver, TryRecvError},
         Arc,
     },
     task::{Context, Poll},
@@ -59,10 +59,11 @@ impl<Nachricht: Unpin, Id: Unpin> Stream for Empfänger<Nachricht, Id> {
 
     fn poll_next(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let unpinned = Pin::into_inner(self);
-        let receiver = unpinned.receiver.lock();
-        match receiver.recv() {
+        let Some(receiver) = unpinned.receiver.try_lock() else { return Poll::Pending };
+        match receiver.try_recv() {
             Ok(nachricht) => Poll::Ready(Some(nachricht)),
-            Err(RecvError) => {
+            Err(TryRecvError::Empty) => Poll::Pending,
+            Err(TryRecvError::Disconnected) => {
                 debug!("Channel für Nachricht subscription getrennt!");
                 Poll::Ready(None)
             },
