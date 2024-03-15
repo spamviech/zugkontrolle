@@ -324,7 +324,7 @@ default-features = false
 features = ["canvas", "wgpu"]
 
 [workspace.dependencies.iced_core]
-version = "0.12.2"
+version = "0.12.3"
 default-features = false
 
 [workspace.dependencies.iced_futures]
