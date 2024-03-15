@@ -481,9 +481,6 @@ where
         let [state_underlay, state_overlay] = state.children.as_mut_slice() else {
             unreachable!("Invalide children-Anzahl!")
         };
-        let element_overlay: Option<
-            overlay::Element<'s, Nachricht<Overlay, ElementNachricht>, Thema, R>,
-        > = self.underlay.as_widget_mut().overlay(state_underlay, layout, renderer, translation);
         aktualisiere_overlay_element(
             &mut self.overlay,
             state_overlay,
@@ -491,16 +488,27 @@ where
             &zustand.overlay,
             &mut zustand.aktualisiere_element,
         );
-        let modal_overlay = self.overlay.as_mut();
-        let overlay = ModalOverlay {
-            modal_overlay,
-            element_overlay,
-            zustand,
-            state_overlay,
-            passthrough_event: &self.passthrough_event,
-            viewport: layout.bounds(),
-        };
-        Some(overlay::Element::new(Box::new(overlay)))
+        let modal_overlay = self
+            .overlay
+            .as_mut()
+            .map(|element| ModalOverlayElement::Modal { element, state: state_overlay })
+            .or_else(|| {
+                self.underlay
+                    .as_widget_mut()
+                    .overlay(state_underlay, layout, renderer, translation)
+                    .map(|overlay_element| ModalOverlayElement::Underlay { overlay_element })
+            });
+        // false-positive: modal_overlay related über `map`
+        #[allow(clippy::shadow_unrelated)]
+        modal_overlay.map(|modal_overlay| {
+            let overlay = ModalOverlay {
+                modal_overlay,
+                zustand,
+                passthrough_event: &self.passthrough_event,
+                viewport: layout.bounds(),
+            };
+            overlay::Element::new(Box::new(overlay))
+        })
     }
 }
 
@@ -550,16 +558,28 @@ impl<M, Thema, R: Renderer> From<Dummy> for Element<'_, M, Thema, R> {
     }
 }
 
+/// Das Element für das Overlay eines [`Modal`]-Widgets.
+enum ModalOverlayElement<'a, 'e, Overlay, ElementNachricht, Thema, R> {
+    /// Das durch das [`Modal`] selbst erzeugte Overlay.
+    Modal {
+        /// Das Element des Overlays.
+        element: &'a mut Element<'e, Nachricht<Overlay, ElementNachricht>, Thema, R>,
+        /// Der Zustand des Overlays.
+        state: &'a mut Tree,
+    },
+    /// Das Overlay des Underlays, sofern kein Overlay aktiv gewünscht wird.
+    Underlay {
+        /// Das [`overlay::Element`].
+        overlay_element: overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, Thema, R>,
+    },
+}
+
 /// Hilfs-Struktur für [`Modal`] um das aktuelle Overlay anzuzeigen.
 struct ModalOverlay<'a, 'e, Overlay, ElementNachricht, Thema, R> {
     // Unterschied zu state_overlay
     #[allow(clippy::struct_field_names)]
-    /// Die Overlay durch das Modal-Widget.
-    modal_overlay: Option<&'a mut Element<'e, Nachricht<Overlay, ElementNachricht>, Thema, R>>,
-    /// Der Zustand von `modal_overlay`.
-    state_overlay: &'a mut Tree,
-    /// Die Overlay des Elements.
-    element_overlay: Option<overlay::Element<'a, Nachricht<Overlay, ElementNachricht>, Thema, R>>,
+    /// Die Overlay durch das Modal-Widget, sowie sein Zustand, oder das Overlay des Underlays.
+    modal_overlay: ModalOverlayElement<'a, 'e, Overlay, ElementNachricht, Thema, R>,
     /// Der aktuelle Zustand.
     zustand: &'a mut Zustand<Overlay>,
     /// Wird das Overlay geschlossen, wenn `Esc` gedrückt wird.
@@ -578,16 +598,15 @@ where
     <Thema as container::StyleSheet>::Style: From<style::Container>,
 {
     fn layout(&mut self, renderer: &R, bounds: Size) -> layout::Node {
-        if let Some(modal_overlay) = &mut self.modal_overlay {
-            modal_overlay.as_widget_mut().layout(
-                self.state_overlay,
+        match &mut self.modal_overlay {
+            ModalOverlayElement::Modal { element, state } => element.as_widget_mut().layout(
+                state,
                 renderer,
                 &layout::Limits::new(bounds, bounds),
-            )
-        } else if let Some(element_overlay) = &mut self.element_overlay {
-            element_overlay.layout(renderer, bounds)
-        } else {
-            layout::Node::new(Size::ZERO)
+            ),
+            ModalOverlayElement::Underlay { overlay_element } => {
+                overlay_element.layout(renderer, bounds)
+            },
         }
     }
 
@@ -599,20 +618,21 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        if let Some(modal_overlay) = &self.modal_overlay {
-            modal_overlay.as_widget().draw(
-                self.state_overlay,
-                renderer,
-                theme,
-                style,
-                layout,
-                cursor_position,
-                &layout.bounds(),
-            );
-        } else if let Some(element_overlay) = &self.element_overlay {
-            element_overlay.draw(renderer, theme, style, layout, cursor_position);
-        } else {
-            // zeichne nichts
+        match &self.modal_overlay {
+            ModalOverlayElement::Modal { element, state } => {
+                element.as_widget().draw(
+                    state,
+                    renderer,
+                    theme,
+                    style,
+                    layout,
+                    cursor_position,
+                    &layout.bounds(),
+                );
+            },
+            ModalOverlayElement::Underlay { overlay_element } => {
+                overlay_element.draw(renderer, theme, style, layout, cursor_position);
+            },
         }
     }
 
@@ -622,17 +642,18 @@ where
         renderer: &R,
         operation: &mut dyn Operation<ElementNachricht>,
     ) {
-        if let Some(modal_overlay) = &self.modal_overlay {
-            modal_overlay.as_widget().operate(
-                self.state_overlay,
-                layout,
-                renderer,
-                &mut MapOperation { operation },
-            );
-        } else if let Some(element_overlay) = &mut self.element_overlay {
-            element_overlay.operate(layout, renderer, &mut MapOperation { operation });
-        } else {
-            // keine Operation
+        match &mut self.modal_overlay {
+            ModalOverlayElement::Modal { element, state } => {
+                element.as_widget().operate(
+                    state,
+                    layout,
+                    renderer,
+                    &mut MapOperation { operation },
+                );
+            },
+            ModalOverlayElement::Underlay { overlay_element } => {
+                overlay_element.operate(layout, renderer, &mut MapOperation { operation });
+            },
         }
     }
 
@@ -647,25 +668,31 @@ where
     ) -> event::Status {
         let mut messages = Vec::new();
         let mut inner_shell = Shell::new(&mut messages);
-        let mut status = if let Some(overlay) = &mut self.modal_overlay {
-            if (self.passthrough_event)(&event) {
-                event::Status::Ignored
-            } else {
-                overlay.as_widget_mut().on_event(
-                    self.state_overlay,
-                    event,
-                    layout,
-                    cursor_position,
-                    renderer,
-                    clipboard,
-                    &mut inner_shell,
-                    &self.viewport,
-                )
-            }
-        } else if let Some(overlay) = &mut self.element_overlay {
-            overlay.on_event(event, layout, cursor_position, renderer, clipboard, &mut inner_shell)
-        } else {
-            event::Status::Ignored
+        let mut status = match &mut self.modal_overlay {
+            ModalOverlayElement::Modal { element, state } => {
+                if (self.passthrough_event)(&event) {
+                    event::Status::Ignored
+                } else {
+                    element.as_widget_mut().on_event(
+                        state,
+                        event,
+                        layout,
+                        cursor_position,
+                        renderer,
+                        clipboard,
+                        &mut inner_shell,
+                        &self.viewport,
+                    )
+                }
+            },
+            ModalOverlayElement::Underlay { overlay_element } => overlay_element.on_event(
+                event,
+                layout,
+                cursor_position,
+                renderer,
+                clipboard,
+                &mut inner_shell,
+            ),
         };
         synchronisiere_widget_layout_validierung(&inner_shell, shell);
         bearbeite_modal_nachrichten(messages, shell, self.zustand, &mut status);
@@ -679,18 +706,17 @@ where
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        if let Some(modal_overlay) = &self.modal_overlay {
-            modal_overlay.as_widget().mouse_interaction(
-                self.state_overlay,
+        match &self.modal_overlay {
+            ModalOverlayElement::Modal { element, state } => element.as_widget().mouse_interaction(
+                state,
                 layout,
                 cursor_position,
                 viewport,
                 renderer,
-            )
-        } else if let Some(element_overlay) = &self.element_overlay {
-            element_overlay.mouse_interaction(layout, cursor_position, viewport, renderer)
-        } else {
-            mouse::Interaction::default()
+            ),
+            ModalOverlayElement::Underlay { overlay_element } => {
+                overlay_element.mouse_interaction(layout, cursor_position, viewport, renderer)
+            },
         }
     }
 
@@ -703,19 +729,24 @@ where
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'a, ElementNachricht, Thema, R>> {
-        // if let Some(modal_overlay) = &self.modal_overlay {
-        //     modal_overlay.as_widget_mut().overlay(
-        //         self.state_overlay,
-        //         layout,
-        //         renderer,
-        //         layout.position(),
-        //     )
-        // } else if let Some(element_overlay) = &self.element_overlay {
-        //     element_overlay.overlay(layout, renderer)
-        // } else {
-        //     // zeichne nichts
-        // }
-        // todo!()
-        None
+        let overlay_element = match &mut self.modal_overlay {
+            ModalOverlayElement::Modal { element, state } => {
+                element.as_widget_mut().overlay(state, layout, renderer, Vector { x: 0., y: 0. })
+            },
+            ModalOverlayElement::Underlay { overlay_element } => {
+                overlay_element.overlay(layout, renderer)
+            },
+        };
+        // false-positive: overlay_element related über `map`
+        #[allow(clippy::shadow_unrelated)]
+        overlay_element.map(|overlay_element| {
+            let overlay = ModalOverlay {
+                modal_overlay: ModalOverlayElement::Underlay { overlay_element },
+                zustand: self.zustand,
+                passthrough_event: &self.passthrough_event,
+                viewport: layout.bounds(),
+            };
+            overlay::Element::new(Box::new(overlay))
+        })
     }
 }
