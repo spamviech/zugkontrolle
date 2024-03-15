@@ -470,8 +470,14 @@ where
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'a, Extern, Thema, R>> {
-        // self.overlay.overlay(layout, renderer)
-        // todo!()
-        None
+        let MapMitZustandOverlay { overlay, element, erzeuge_element, zustand, mapper } = self;
+        let overlay = overlay.overlay(layout, renderer);
+        // false-positive: overlay related über `map`
+        #[allow(clippy::shadow_unrelated)]
+        overlay.map(|overlay| {
+            let map_mit_zustand_overlay =
+                MapMitZustandOverlay { overlay, element, erzeuge_element, zustand, mapper };
+            overlay::Element::new(Box::new(map_mit_zustand_overlay))
+        })
     }
 }
