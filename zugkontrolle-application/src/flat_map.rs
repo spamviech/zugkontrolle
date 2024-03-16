@@ -12,78 +12,69 @@ use iced_core::{
         tree::{self, Tree},
         Widget,
     },
-    Length, Point, Rectangle, Shell, Size, Vector,
+    Element, Length, Point, Rectangle, Shell, Size, Vector,
 };
 
 use crate::map_mit_zustand::MapOperation;
 
 ///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]
-pub struct FlatMap<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer> {
+pub struct FlatMap<'a, A, I, Thema, R> {
     /// Das ursprüngliche Widget.
-    widget: Box<dyn Widget<A, Thema, Renderer> + 'a>,
+    element: Element<'a, A, Thema, R>,
     /// Die Funktion zur Transformation der ursprünglichen Nachrichten.
     mapper: Box<dyn Fn(A) -> I + 'a>,
 }
 
-impl<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer> FlatMap<'a, A, B, I, Thema, Renderer> {
+impl<'a, A, I, Thema, R> FlatMap<'a, A, I, Thema, R> {
     /// Erzeuge ein neues [`FlatMap`]-widget.
-    pub fn neu(
-        widget: Box<dyn Widget<A, Thema, Renderer> + 'a>,
-        mapper: impl 'a + Fn(A) -> I,
-    ) -> FlatMap<'a, A, B, I, Thema, Renderer> {
-        FlatMap { widget, mapper: Box::new(mapper) }
+    pub fn neu(widget: impl Into<Element<'a, A, Thema, R>>, mapper: impl 'a + Fn(A) -> I) -> Self {
+        FlatMap { element: widget.into(), mapper: Box::new(mapper) }
     }
 }
 
-impl<'a, A, B, I: IntoIterator<Item = B>, Thema, Renderer> Widget<B, Thema, Renderer>
-    for FlatMap<'a, A, B, I, Thema, Renderer>
+impl<'a, A, B, I, Thema, R> Widget<B, Thema, R> for FlatMap<'a, A, I, Thema, R>
 where
-    Renderer: self::Renderer + 'a,
-    A: 'a,
     B: 'a,
+    I: IntoIterator<Item = B>,
+    R: Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        self.widget.tag()
+        self.element.as_widget().tag()
     }
 
     fn state(&self) -> tree::State {
-        self.widget.state()
+        self.element.as_widget().state()
     }
 
     fn children(&self) -> Vec<Tree> {
-        self.widget.children()
+        self.element.as_widget().children()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        self.widget.diff(tree);
+        self.element.as_widget().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
-        self.widget.size()
+        self.element.as_widget().size()
     }
 
     fn size_hint(&self) -> Size<Length> {
-        self.widget.size_hint()
+        self.element.as_widget().size_hint()
     }
 
-    fn layout(
-        &self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.widget.layout(tree, renderer, limits)
+    fn layout(&self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
+        self.element.as_widget().layout(tree, renderer, limits)
     }
 
     fn operate(
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
-        renderer: &Renderer,
+        renderer: &R,
         operation: &mut dyn widget::Operation<B>,
     ) {
-        self.widget.operate(tree, layout, renderer, &mut MapOperation { operation });
+        self.element.as_widget().operate(tree, layout, renderer, &mut MapOperation { operation });
     }
 
     fn on_event(
@@ -92,7 +83,7 @@ where
         event: Event,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
-        renderer: &Renderer,
+        renderer: &R,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
@@ -100,7 +91,7 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let status = self.widget.on_event(
+        let status = self.element.as_widget_mut().on_event(
             tree,
             event,
             layout,
@@ -133,14 +124,22 @@ where
     fn draw(
         &self,
         tree: &Tree,
-        renderer: &mut Renderer,
+        renderer: &mut R,
         theme: &Thema,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.widget.draw(tree, renderer, theme, style, layout, cursor_position, viewport);
+        self.element.as_widget().draw(
+            tree,
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor_position,
+            viewport,
+        );
     }
 
     fn mouse_interaction(
@@ -149,23 +148,41 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
         viewport: &Rectangle,
-        renderer: &Renderer,
+        renderer: &R,
     ) -> mouse::Interaction {
-        self.widget.mouse_interaction(tree, layout, cursor_position, viewport, renderer)
+        self.element.as_widget().mouse_interaction(
+            tree,
+            layout,
+            cursor_position,
+            viewport,
+            renderer,
+        )
     }
 
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
-        renderer: &Renderer,
+        renderer: &R,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, B, Thema, Renderer>> {
+    ) -> Option<overlay::Element<'b, B, Thema, R>> {
         let mapper = &self.mapper;
+        self.element.as_widget_mut().overlay(tree, layout, renderer, translation).map(
+            move |overlay| overlay::Element::new(Box::new(OverlayFlatMap::neu(overlay, mapper))),
+        )
+    }
+}
 
-        self.widget.overlay(tree, layout, renderer, translation).map(move |overlay| {
-            overlay::Element::new(Box::new(OverlayFlatMap::neu(overlay, mapper)))
-        })
+impl<'a, A, B, I, Thema, R> From<FlatMap<'a, A, I, Thema, R>> for Element<'a, B, Thema, R>
+where
+    A: 'a,
+    B: 'a,
+    I: 'a + IntoIterator<Item = B>,
+    Thema: 'a,
+    R: 'a + Renderer,
+{
+    fn from(flat_map: FlatMap<'a, A, I, Thema, R>) -> Self {
+        Element::new(flat_map)
     }
 }
 

@@ -7,10 +7,22 @@ use crate::rppal::gpio;
 
 /// Level eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(
-    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Sequence, Serialize, Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Sequence,
+    Serialize,
+    Deserialize,
 )]
 pub enum Level {
     /// Tiefes Volt-Level.
+    #[default]
     Low,
     /// Hohes Volt-Level.
     High,

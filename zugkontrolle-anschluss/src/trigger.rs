@@ -7,11 +7,12 @@ use serde::{Deserialize, Serialize};
 use crate::{level::Level, rppal};
 
 /// [`Trigger`] für auslösen eines Interrupt-Events.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Trigger {
     /// Deaktiviert, es wird kein Event ausgelöst.
     Disabled,
     /// Löse ein Event aus, wenn die Spannung von [Low](Level::Low) auf [`High`](Level::High) wechselt.
+    #[default]
     RisingEdge,
     /// Löse ein Event aus, wenn die Spannung von [High](Level::High) auf [`Low`](Level::Low) wechselt.
     FallingEdge,

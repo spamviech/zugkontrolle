@@ -189,7 +189,7 @@ pub enum Fehler {
 
 /// Serialisierbare Informationen einen Pwm-Pins.
 #[allow(missing_copy_implementations)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
 
 impl Serialisiere<Serialisiert> for Pin {

@@ -75,7 +75,7 @@ impl<L, S> Zugkontrolle<L, S>
 where
     L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Thema, Renderer> + Send,
     <L as Leiter>::Fahrtrichtung: Clone + Send,
-    S: 'static + Clone + PartialEq + Send,
+    S: 'static + Clone + Default + PartialEq + Send,
 {
     /// [view](iced::Application::view)-Methode für [`Zugkontrolle`].
     pub(crate) fn view_impl(&self) -> Element<'_, Nachricht<L, S>, Thema, Renderer> {
@@ -113,7 +113,7 @@ where
         );
         let row_mit_scrollable = row_mit_scrollable(aktueller_modus, *scrollable_style, gleise);
         let canvas = Element::new(FlatMap::neu(
-            Box::new(Canvas::new(gleise).width(Length::Fill).height(Length::Fill)),
+            Canvas::new(gleise).width(Length::Fill).height(Length::Fill),
             |nachrichten| {
                 nachrichten
                     .into_iter()
@@ -208,7 +208,7 @@ fn top_row<'t, L, S>(
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Thema, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
-    S: 'static + Clone + PartialEq,
+    S: 'static + Clone,
 {
     let modus_pick_list =
         PickList::new(all::<Modus>().collect_vec(), Some(aktueller_modus), NachrichtClone::Modus);

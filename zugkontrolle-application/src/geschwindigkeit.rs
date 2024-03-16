@@ -176,16 +176,17 @@ where
 }
 
 /// Welche Tab-Seite wird angezeigt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 enum TabId {
     /// Auswahl für Steuerung über einen Pwm-Pin wird angezeigt.
+    #[default]
     Pwm,
     /// Auswahl für Steuerung über mehrere Anschlüsse mit unterschiedlicher konstanter Spannung wird angezeigt.
     KonstanteSpannung,
 }
 
 /// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [`Geschwindigkeit`].
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 struct AuswahlZustand<S> {
     /// Der aktuell gewählte Name.
     neu_name: String,
@@ -721,12 +722,12 @@ where
 impl<'t, LeiterSerialisiert, Thema, R> From<Auswahl<'t, LeiterSerialisiert, Thema, R>>
     for Element<'t, AuswahlNachricht<LeiterSerialisiert>, Thema, R>
 where
-    LeiterSerialisiert: 'static + PartialEq,
+    LeiterSerialisiert: 'static + Default,
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't,
 {
     fn from(anzeige: Auswahl<'t, LeiterSerialisiert, Thema, R>) -> Self {
-        Element::new(anzeige.0)
+        Element::from(anzeige.0)
     }
 }
 

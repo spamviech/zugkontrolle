@@ -31,16 +31,17 @@ use crate::{
 };
 
 /// Welche Tab-Seite wird angezeigt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 enum TabId {
     /// Auswahl eines Pins.
+    #[default]
     Pin,
     /// Auswahl eines Pcf8574-Ports.
     Pcf8574,
 }
 
 /// Zustand eines Widgets zur Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 struct Zustand<T> {
     /// Welche Tab-Seite wird angezeigt.
     active_tab: TabId,
@@ -594,7 +595,7 @@ impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>>
     for Element<'a, Serialisiert, Thema, R>
 where
-    Modus: 'static + PartialEq,
+    Modus: 'static + Default,
     ModusNachricht: 'a,
     Serialisiert: 'a,
     Thema: 'a,
@@ -606,7 +607,7 @@ where
 }
 
 /// Zustand eines Widgets zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 struct PwmZustand {
     /// Der aktuell gewählte Pin.
     pin: u8,

@@ -32,7 +32,7 @@ use crate::{
 };
 
 /// Zustand eines Widgets zur [`Auswahl`] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Zustand {
     /// Der aktuelle gewählte Name.
     name: String,

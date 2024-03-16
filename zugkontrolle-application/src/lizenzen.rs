@@ -59,7 +59,7 @@ pub enum Nachricht {
 }
 
 /// Zustand eines [`Lizenzen`]-Widgets.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 struct Zustand {
     /// Die aktuell gezeigte Lizenz.
     aktuell: Option<(UniCaseOrd<String>, Cow<'static, str>)>,
@@ -211,7 +211,7 @@ where
     <Thema as container::StyleSheet>::Style: From<style::Container>,
 {
     fn from(lizenzen: Lizenzen<'a, Thema, R>) -> Self {
-        Element::new(lizenzen.0)
+        Element::from(lizenzen.0)
     }
 }
 

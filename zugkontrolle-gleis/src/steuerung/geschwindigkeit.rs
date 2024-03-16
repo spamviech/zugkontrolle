@@ -546,6 +546,15 @@ pub enum MittelleiterSerialisiert {
     },
 }
 
+impl Default for MittelleiterSerialisiert {
+    fn default() -> Self {
+        MittelleiterSerialisiert::Pwm {
+            pin: pwm::Serialisiert::default(),
+            polarität: Polarität::default(),
+        }
+    }
+}
+
 impl Display for MittelleiterSerialisiert {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -1186,6 +1195,16 @@ pub enum ZweileiterSerialisiert {
         /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: OutputSerialisiert,
     },
+}
+
+impl Default for ZweileiterSerialisiert {
+    fn default() -> Self {
+        ZweileiterSerialisiert::Pwm {
+            geschwindigkeit: pwm::Serialisiert::default(),
+            polarität: Polarität::default(),
+            fahrtrichtung: OutputSerialisiert::default(),
+        }
+    }
 }
 
 impl Display for ZweileiterSerialisiert {

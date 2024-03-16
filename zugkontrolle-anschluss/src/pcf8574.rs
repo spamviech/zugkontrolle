@@ -222,7 +222,7 @@ impl Lager {
 /// Beachte dazu den Abschnitt "Aktivieren zusätzlicher I2C-Busse" in der `README.md`.
 ///
 /// ACHTUNG: Dabei werden nur die Standard-Pins, die auch bei Pi4 verwendet werden, unterstützt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Sequence, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Sequence, Serialize, Deserialize)]
 pub enum I2cBus {
     /// I2C-Bus auf den GPIO-Pins 2 (SDA) und 3 (SCL), physisch 3 und 5.
     ///
@@ -231,6 +231,7 @@ pub enum I2cBus {
     ///
     /// Der jeweils andere ist für Kommunikation mit dem EEPROM z.B. eines Hats
     /// und nicht für allgemeine Nutzung vorgesehen.
+    #[default]
     I2c0_1,
     // /// I2C-Bus wird u.a. für HDMI und Kamera verwendet
     // /// und ist nicht für allgemeine Nutzung vorgesehen.
@@ -347,7 +348,7 @@ pub struct Pcf8574 {
 /// Die Beschreibung eines [`Pcf8574`].
 ///
 /// Enthält Anschluss-Details notwendig zur Adressierung.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Beschreibung {
     /// I2CBus, über den das [`Pcf8574`] angeschlossen ist.
     pub i2c_bus: I2cBus,
@@ -550,10 +551,11 @@ impl Pcf8574 {
 }
 
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Sequence, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Sequence, Serialize, Deserialize)]
 #[allow(clippy::min_ident_chars)]
 pub enum Variante {
     /// Variante ohne Zusätze auf dem Chip-Aufdruck.
+    #[default]
     Normal,
     /// Variante mit extra A auf dem Chip-Aufdruck.
     A,

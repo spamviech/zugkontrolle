@@ -36,7 +36,7 @@ use crate::{
 };
 
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Zustand<AnschlüsseSerialisiert> {
     /// Der aktuell gewählte Name.
     name: String,
@@ -203,7 +203,7 @@ impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>
     From<Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>>
     for Element<'t, Nachricht<RichtungInformation, AnschlüsseSerialisiert>, Thema, R>
 where
-    AnschlüsseSerialisiert: 'static + PartialEq,
+    AnschlüsseSerialisiert: 'static + Default,
     Richtung: 't,
     RichtungInformation: 't,
     Thema: 't,

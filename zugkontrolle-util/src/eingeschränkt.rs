@@ -23,7 +23,17 @@ macro_rules! definiere_u8_typ {
         #[doc = $docstring]
         /// [Add]-Implementierung verwendet [`saturating_add`](u8::saturating_add).
         #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+            Debug,
+            Clone,
+            Copy,
+            Default,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            Serialize,
+            Deserialize,
         )]
         #[allow(non_camel_case_types)]
         pub struct $ident(u8);

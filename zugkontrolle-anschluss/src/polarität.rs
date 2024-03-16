@@ -8,10 +8,11 @@ use serde::{Deserialize, Serialize};
 use crate::{level::Level, rppal};
 
 /// Bei welchem [`Level`] fließt der Strom an einem Anschluss.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Polarität {
     /// [High](Level::High) ist [`Fließend`](Fließend::Fließend),
     /// [Low](Level::Low) ist [`Gesperrt`](Fließend::Gesperrt).
+    #[default]
     Normal,
     /// [Low](Level::Low) ist [`Fließend`](Fließend::Fließend),
     /// [High](Level::High) ist [`Gesperrt`](Fließend::Gesperrt).

@@ -3,23 +3,20 @@
 
 use std::{
     any::Any,
+    convert::identity,
     fmt::{self, Debug, Formatter},
     ops::{Deref, DerefMut},
 };
 
 use iced_core::{
-    event::{self, Event},
-    layout::{self, Layout},
-    mouse,
-    overlay::{self, Overlay},
-    renderer::{Renderer, Style},
-    widget::{
-        self,
-        operation::Operation,
-        tree::{State, Tag, Tree},
-    },
-    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
+    event::{self},
+    renderer::Renderer,
+    widget::{self, operation::Operation},
+    Element, Length, Rectangle, Size, Vector,
 };
+use iced_widget::{component, Component};
+
+use crate::flat_map::FlatMap;
 
 /// Ein Wrapper um eine mutable Referenz, die [`DerefMut`]-Zugriff überwacht.
 #[derive(Debug)]
@@ -36,11 +33,10 @@ impl<'a, T> MutTracer<'a, T> {
         MutTracer { mut_ref, verändert: false }
     }
 
-    /// Hat bereits ein Zugriff über [`DerefMut`] stattgefunden?
-
-    fn verändert(&self) -> bool {
-        self.verändert
-    }
+    // /// Hat bereits ein Zugriff über [`DerefMut`] stattgefunden?
+    // fn verändert(&self) -> bool {
+    //     self.verändert
+    // }
 }
 
 impl<T> Deref for MutTracer<'_, T> {
@@ -65,8 +61,6 @@ impl<T> DerefMut for MutTracer<'_, T> {
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Das ursprüngliche Widget.
     element: Element<'a, Intern, Thema, R>,
-    /// Erzeuge einen neuen Zustand.
-    erzeuge_zustand: Box<dyn 'a + Fn() -> Zustand>,
     /// Der initiale Zustand, und ob es seit erzeugen des Widgets weiterhin der initiale Zustand gilt.
     initialer_zustand: (Zustand, bool),
     /// Erzeuge die Widget-Hierarchie.
@@ -86,7 +80,6 @@ impl<Zustand: Debug, Intern, Extern, Thema, R> Debug
         formatter
             .debug_struct("MapMitZustand")
             .field("element", &"<Element>")
-            .field("erzeuge_zustand", &"<closure>")
             .field("initialerZustand", &self.initialer_zustand)
             .field("erzeuge_element", &"<closure>")
             .field("mapper", &"<closure>")
@@ -108,7 +101,6 @@ impl<'a, Zustand, Intern, Extern, Thema, R> MapMitZustand<'a, Zustand, Intern, E
         let element = erzeuge_element(&zustand);
         MapMitZustand {
             element,
-            erzeuge_zustand: Box::new(erzeuge_zustand),
             initialer_zustand: (zustand, true),
             erzeuge_element: Box::new(erzeuge_element),
             mapper: Box::new(mapper),
@@ -116,6 +108,95 @@ impl<'a, Zustand, Intern, Extern, Thema, R> MapMitZustand<'a, Zustand, Intern, E
     }
 }
 
+impl<Zustand, Intern, Extern, Thema, R> Component<Vec<Extern>, Thema, R>
+    for MapMitZustand<'_, Zustand, Intern, Extern, Thema, R>
+where
+    Zustand: Default,
+    R: Renderer,
+{
+    type State = Zustand;
+
+    type Event = Intern;
+
+    fn update(&mut self, state: &mut Self::State, event: Self::Event) -> Option<Vec<Extern>> {
+        // TODO status,MutTracer aus mapper entfernen
+        let mut status = event::Status::Ignored;
+        Some((self.mapper)(event, &mut MutTracer::neu(state), &mut status))
+    }
+
+    fn view(&self, state: &Self::State) -> Element<'_, Self::Event, Thema, R> {
+        (self.erzeuge_element)(state)
+    }
+
+    fn operate(&self, _state: &mut Self::State, _operation: &mut dyn Operation<Vec<Extern>>) {
+        // überlasse operate dem element
+    }
+
+    fn size_hint(&self) -> Size<Length> {
+        self.element.as_widget().size_hint()
+    }
+}
+
+impl<'a, Zustand, Intern, Extern, Thema, R>
+    From<MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>> for Element<'a, Extern, Thema, R>
+where
+    Zustand: 'static + Default,
+    Intern: 'a,
+    Extern: 'a,
+    Thema: 'a,
+    R: 'a + Renderer,
+{
+    fn from(map_mit_zustand: MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>) -> Self {
+        Element::from(FlatMap::neu(component(map_mit_zustand), identity))
+    }
+}
+
+/// Kopiert von [`iced_core`](https://docs.rs/iced_core/latest/src/iced_core/element.rs.html#322)
+pub(crate) struct MapOperation<'a, B> {
+    /// [Operation]
+    pub(crate) operation: &'a mut dyn Operation<B>,
+}
+
+impl<T, B> Operation<T> for MapOperation<'_, B> {
+    fn container(
+        &mut self,
+        id: Option<&widget::Id>,
+        bounds: Rectangle,
+        operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
+    ) {
+        self.operation.container(id, bounds, &mut |operation| {
+            operate_on_children(&mut MapOperation { operation });
+        });
+    }
+
+    fn focusable(&mut self, state: &mut dyn widget::operation::Focusable, id: Option<&widget::Id>) {
+        self.operation.focusable(state, id);
+    }
+
+    fn scrollable(
+        &mut self,
+        state: &mut dyn widget::operation::Scrollable,
+        id: Option<&widget::Id>,
+        bounds: Rectangle,
+        translation: Vector,
+    ) {
+        self.operation.scrollable(state, id, bounds, translation);
+    }
+
+    fn text_input(
+        &mut self,
+        state: &mut dyn widget::operation::TextInput,
+        id: Option<&widget::Id>,
+    ) {
+        self.operation.text_input(state, id);
+    }
+
+    fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
+        self.operation.custom(state, id);
+    }
+}
+
+/*
 /// Invalidiere Widgets und Layout der `shell`, wenn sie bei `interne_shell` invalidiert wurden.
 fn synchronisiere_widget_layout_validierung<Intern, Extern>(
     interne_shell: &Shell<'_, Intern>,
@@ -300,65 +381,6 @@ where
     }
 }
 
-/// Kopiert von [`iced_core`](https://docs.rs/iced_core/latest/src/iced_core/element.rs.html#322)
-pub(crate) struct MapOperation<'a, B> {
-    /// [Operation]
-    pub(crate) operation: &'a mut dyn Operation<B>,
-}
-
-impl<T, B> Operation<T> for MapOperation<'_, B> {
-    fn container(
-        &mut self,
-        id: Option<&widget::Id>,
-        bounds: Rectangle,
-        operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
-    ) {
-        self.operation.container(id, bounds, &mut |operation| {
-            operate_on_children(&mut MapOperation { operation });
-        });
-    }
-
-    fn focusable(&mut self, state: &mut dyn widget::operation::Focusable, id: Option<&widget::Id>) {
-        self.operation.focusable(state, id);
-    }
-
-    fn scrollable(
-        &mut self,
-        state: &mut dyn widget::operation::Scrollable,
-        id: Option<&widget::Id>,
-        bounds: Rectangle,
-        translation: Vector,
-    ) {
-        self.operation.scrollable(state, id, bounds, translation);
-    }
-
-    fn text_input(
-        &mut self,
-        state: &mut dyn widget::operation::TextInput,
-        id: Option<&widget::Id>,
-    ) {
-        self.operation.text_input(state, id);
-    }
-
-    fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
-        self.operation.custom(state, id);
-    }
-}
-
-impl<'a, Zustand, Intern, Extern, Thema, R>
-    From<MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>> for Element<'a, Extern, Thema, R>
-where
-    Zustand: 'static + PartialEq,
-    Intern: 'a,
-    Extern: 'a,
-    Thema: 'a,
-    R: 'a + Renderer,
-{
-    fn from(map_mit_zustand: MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>) -> Self {
-        Element::new(map_mit_zustand)
-    }
-}
-
 /// Hilfs-Struct für [`MapMitZustand`] zum anzeigen des Overlays.
 ///
 /// Funktioniert aktuell nicht.
@@ -481,3 +503,4 @@ where
         })
     }
 }
+*/

@@ -166,7 +166,7 @@ impl<S> AuswahlZustand<S> {
     ) -> Element<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht>, Thema, Renderer>
     where
         L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
-        S: 'static + Clone + PartialEq,
+        S: 'static + Clone + Default,
         modal::Nachricht<AuswahlZustand<S>, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
             + From<(kontakt::Nachricht, KontaktId)>

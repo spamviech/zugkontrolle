@@ -19,7 +19,7 @@ pub const WEIẞ: Farbe = Farbe { rot: 1., grün: 1., blau: 1. };
 pub const SCHWARZ: Farbe = Farbe { rot: 0., grün: 0., blau: 0. };
 
 /// Eine Farbe im RGB-Schema.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct Farbe {
     /// Rot
     pub rot: f32,

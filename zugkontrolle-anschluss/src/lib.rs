@@ -255,6 +255,12 @@ pub enum OutputSerialisiert {
     },
 }
 
+impl Default for OutputSerialisiert {
+    fn default() -> Self {
+        OutputSerialisiert::Pin { pin: u8::default(), polarität: Polarität::default() }
+    }
+}
+
 impl Display for OutputSerialisiert {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -481,6 +487,12 @@ pub enum InputSerialisiert {
         /// Der konfigurierte Interrupt-Pin des Pcf8574.
         interrupt: Option<u8>,
     },
+}
+
+impl Default for InputSerialisiert {
+    fn default() -> Self {
+        InputSerialisiert::Pin { pin: u8::default() }
+    }
 }
 
 impl InputSerialisiert {
