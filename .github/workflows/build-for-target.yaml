@@ -8,6 +8,11 @@ on:
         default: 'aarch64-unknown-linux-gnu'
         required: false
         type: string
+      profile:
+        description: 'Cargo profile to use for compilation'
+        required: true
+        default: 'release'
+        type: string
       raspi:
         description: 'Activate the "raspi" feature'
         required: true
@@ -18,6 +23,11 @@ on:
         description: 'The target triple'
         default: 'aarch64-unknown-linux-gnu'
         required: false
+        type: string
+      profile:
+        description: 'Cargo profile to use for compilation'
+        required: true
+        default: 'release'
         type: string
       raspi:
         description: 'Activate the "raspi" feature'
@@ -54,4 +64,4 @@ jobs:
       with:
         command: build
         use-cross: true
-        args: --target=${{ inputs.target }} ${{ inputs.raspi && '--features=raspi' || '' }}
+        args: --profile=${{ inputs.profile }} --target=${{ inputs.target }} ${{ inputs.raspi && '--features=raspi' || '' }}
