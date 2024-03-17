@@ -6,7 +6,7 @@ on:
       target:
         description: 'The target triple'
         default: 'aarch64-unknown-linux-gnu'
-        required: false
+        required: true
         type: string
       profile:
         description: 'Cargo profile to use for compilation'
@@ -22,7 +22,7 @@ on:
       target:
         description: 'The target triple'
         default: 'aarch64-unknown-linux-gnu'
-        required: false
+        required: true
         type: string
       profile:
         description: 'Cargo profile to use for compilation'
