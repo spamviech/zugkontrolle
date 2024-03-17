@@ -321,7 +321,7 @@ default-features = false
 [workspace.dependencies.iced]
 version = "0.12.1"
 default-features = false
-features = ["canvas", "wgpu"]
+features = ["canvas"]
 
 [workspace.dependencies.iced_core]
 version = "0.12.3"
@@ -348,7 +348,8 @@ features = ["geometry"]
 [workspace.dependencies.iced_aw]
 version = "0.8.0"
 default-features = false
-features = ["card", "tab_bar", "tabs", "number_input"]
+features = ["card", "tab_bar", "tabs", "number_input", "icons"]
+git = "https://github.com/spamviech/iced_aw.git"
 
 [workspace.dependencies.rppal]
 version = "0.17.1"

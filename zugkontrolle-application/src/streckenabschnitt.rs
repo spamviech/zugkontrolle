@@ -7,8 +7,8 @@ use std::{
 };
 
 use iced_aw::{
-    native::card::{self, Card},
     style::{number_input, tab_bar},
+    widgets::card::{self, Card},
 };
 use iced_core::{
     event, text as text_core,

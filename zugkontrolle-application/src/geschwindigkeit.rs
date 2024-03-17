@@ -9,11 +9,11 @@ use std::{
 };
 
 use iced_aw::{
-    native::{
+    style::{number_input, tab_bar},
+    widgets::{
         card::{self, Card},
         TabLabel, Tabs,
     },
-    style::{number_input, tab_bar},
 };
 use iced_core::{
     event, text as text_core,

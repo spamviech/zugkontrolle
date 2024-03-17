@@ -3,8 +3,8 @@
 use std::ops::DerefMut;
 
 use iced_aw::{
-    native::{NumberInput, TabLabel, Tabs},
     number_input, style, tab_bar,
+    widgets::{NumberInput, TabLabel, Tabs},
 };
 use iced_core::{event, text as text_core, widget::Text, Element, Font, Length, Renderer};
 use iced_widget::{

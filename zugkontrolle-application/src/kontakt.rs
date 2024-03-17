@@ -3,11 +3,11 @@
 use std::{fmt::Debug, ops::DerefMut};
 
 use iced_aw::{
-    native::{
+    tab_bar,
+    widgets::{
         card::{self, Card},
         number_input,
     },
-    tab_bar,
 };
 use iced_core::{
     event, text as text_core,

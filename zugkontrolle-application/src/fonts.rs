@@ -7,7 +7,7 @@ use iced::{
     widget::canvas::Text,
     Font, Pixels, Point,
 };
-use iced_aw::graphics::icons::BOOTSTRAP_FONT_BYTES;
+use iced_aw::core::icons::BOOTSTRAP_FONT_BYTES;
 
 /// Schriftart ohne zusätzliche Eigenschaften.
 pub static REGULAR: Font = Font::with_name("Source Serif 4");
