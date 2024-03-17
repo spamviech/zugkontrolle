@@ -1267,7 +1267,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.8.0"
-source = "git+https://github.com/spamviech/iced_aw.git#996662c4cac7e696718f63a3ab00b05444f2471a"
+source = "git+https://github.com/iced-rs/iced_aw?rev=7311ccce7d805edfb1ad28f7e4be65c9521bd56f#7311ccce7d805edfb1ad28f7e4be65c9521bd56f"
 dependencies = [
  "cfg-if",
  "iced",
