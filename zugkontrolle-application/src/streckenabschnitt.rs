@@ -42,12 +42,14 @@ use crate::{
     bootstrap::{Bootstrap, Icon},
     farbwahl::Farbwahl,
     map_mit_zustand::MapMitZustand,
-    modal, style,
+    style,
 };
 
 /// Eine Nachricht des [`Anzeige`]-Widgets.
 #[derive(Debug, Clone, Copy)]
 pub enum AnzeigeNachricht {
+    /// Zeige das Overlay zur Streckenabschnitt-[`Auswahl`].
+    ZeigeOverlay,
     /// Einstellen ob ein Klick auf ein Gleis den [`Streckenabschnitt`]
     /// zum aktuellen Streckenabschnitt ändert.
     Festlegen(bool),
@@ -55,27 +57,27 @@ pub enum AnzeigeNachricht {
 
 /// Widget zur Anzeige des aktuellen [`Streckenabschnittes`](Streckenabschnitt),
 /// sowie Buttons zum Öffnen des Auswahl-Fensters.
-pub struct Anzeige<'a, Overlay, Thema, R> {
+pub struct Anzeige<'a, Thema, R> {
     /// Das [`iced_core::widget::Widget`].
-    element: Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, Thema, R>,
+    element: Element<'a, AnzeigeNachricht, Thema, R>,
 }
 
-impl<Overlay, Thema, R> Debug for Anzeige<'_, Overlay, Thema, R> {
+impl<Thema, R> Debug for Anzeige<'_, Thema, R> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter.debug_struct("Anzeige").field("element", &"<Element>").finish()
     }
 }
 
-impl<'a, Overlay, Thema, R> Anzeige<'a, Overlay, Thema, R>
+impl<'a, Thema, R> Anzeige<'a, Thema, R>
 where
-    Overlay: 'a + Clone,
     R: 'a + text_core::Renderer,
     Thema:
         'a + container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
     <Thema as container::StyleSheet>::Style: From<style::Container>,
 {
     /// Erstelle eine neue [`Anzeige`].
-    pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool, overlay: Overlay) -> Self {
+    #[must_use]
+    pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool) -> Self {
         let mut children = Vec::new();
         let style = if let Some((streckenabschnitt_name, farbe)) = zustand {
             children.push(Text::new(&streckenabschnitt_name.0).into());
@@ -90,15 +92,10 @@ where
         };
         children.push(
             Row::new()
-                .push(
-                    Button::new(Text::new("Auswählen"))
-                        .on_press(modal::Nachricht::ZeigeOverlay(overlay)),
-                )
+                .push(Button::new(Text::new("Auswählen")).on_press(AnzeigeNachricht::ZeigeOverlay))
                 .push(
                     Checkbox::new("Festlegen", festlegen)
-                        .on_toggle(|neu_festlegen| {
-                            modal::Nachricht::Underlay(AnzeigeNachricht::Festlegen(neu_festlegen))
-                        })
+                        .on_toggle(AnzeigeNachricht::Festlegen)
                         .spacing(0),
                 )
                 .spacing(1)
@@ -113,10 +110,10 @@ where
     }
 }
 
-impl<'a, Overlay, Thema, R: 'a + Renderer> From<Anzeige<'a, Overlay, Thema, R>>
-    for Element<'a, modal::Nachricht<Overlay, AnzeigeNachricht>, Thema, R>
+impl<'a, Thema, R: 'a + Renderer> From<Anzeige<'a, Thema, R>>
+    for Element<'a, AnzeigeNachricht, Thema, R>
 {
-    fn from(auswahl: Anzeige<'a, Overlay, Thema, R>) -> Self {
+    fn from(auswahl: Anzeige<'a, Thema, R>) -> Self {
         auswahl.element
     }
 }

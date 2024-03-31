@@ -57,21 +57,16 @@ where
 }
 
 impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
-    /// Zeige eine neue [`MessageBox`] mit Titel und Nachricht.
+    /// Aktualisiere die angezeigte [`MessageBox`].
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
-    pub fn zeige_message_box(&mut self, titel: String, nachricht: String) {
-        *self.message_box = Some(MessageBox { titel, nachricht });
+    pub fn aktualisiere_message_box(&mut self, message_box: Option<MessageBox>) {
+        self.message_box = message_box;
     }
 
-    /// Zeige einen neuen [`AuswahlZustand`], z.B. zum anpassen der Anschlüsse eines Gleises.
-    pub fn zeige_auswahlzustand(&mut self, auswahl_zustand: AuswahlZustand<S>) {
-        *self.auswahl_zustand = Some(auswahl_zustand);
-    }
-
-    /// Verstecke den [`AuswahlZustand`], z.B. nach erfolgreichem anpassen der Anschlüsse eines Gleises.
-    pub fn verstecke_auswahlzustand(&mut self) {
-        *self.auswahl_zustand = None;
+    /// Aktualisiere das angezeigte [Auswahl-Fenster](AuswahlZustand), z.B. zum anpassen der Anschlüsse eines Gleises.
+    pub fn aktualisiere_auswahlzustand(&mut self, auswahl_zustand: Option<AuswahlZustand<S>>) {
+        self.auswahl_zustand = auswahl_zustand;
     }
 
     /// Führe eine Aktion aus.
@@ -81,7 +76,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     {
         let einstellungen = Einstellungen::from(self.gleise.zugtyp());
         if let Err(fehler) = aktion.ausführen(einstellungen) {
-            self.zeige_message_box(format!("{aktion:?}"), format!("{fehler:?}"));
+            self.aktualisiere_message_box(Some(MessageBox {
+                titel: format!("{aktion:?}"),
+                nachricht: format!("{fehler:?}"),
+            }));
         }
     }
 
@@ -125,11 +123,11 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
         anschluss_definition: OutputSerialisiert,
     ) {
         use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
-        self.zeige_auswahlzustand(AuswahlZustand::Streckenabschnitt(Some((
+        self.aktualisiere_auswahlzustand(Some(AuswahlZustand::Streckenabschnitt(Some((
             name.clone(),
             Streckenabschnitt::neu_serialisiert(farbe, anschluss_definition.clone()),
             geschwindigkeit.clone(),
-        ))));
+        )))));
         // Implementierung über streckenabschnitt_mut (anstelle streckenabschnitt_entfernen)
         // vermeidet (unmöglichen) Fehlerfall mit doppeltem Namen beim hinzufügen.
         match self.gleise.streckenabschnitt_mut(name) {
@@ -144,7 +142,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
                 } else {
                     format!("Streckenabschnitt {} angepasst.", name.0)
                 };
-                self.zeige_message_box(titel, fehlermeldung);
+                self.aktualisiere_message_box(Some(MessageBox { titel, nachricht: fehlermeldung }));
                 return;
             },
             _fehler => {},
@@ -194,7 +192,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
         }
 
         if let Some((titel, nachricht)) = fehlermeldung {
-            self.zeige_message_box(titel, nachricht);
+            self.aktualisiere_message_box(Some(MessageBox { titel, nachricht }));
         }
     }
 
@@ -228,10 +226,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
                     .as_ref()
                     .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone()),
             ) {
-                self.zeige_message_box(
-                    String::from("Gleis entfernt"),
-                    format!("Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {fehler:?}"),
-                );
+                self.aktualisiere_message_box(Some(MessageBox {titel:                    String::from("Gleis entfernt"),nachricht:                    format!("Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {fehler:?}"),}));
             }
         }
     }
@@ -297,10 +292,10 @@ where
             streckenabschnitt,
             false,
         ) {
-            self.zeige_message_box(
-                String::from("Fehler beim Gleis hinzufügen!"),
-                format!("{fehler:?}"),
-            );
+            self.aktualisiere_message_box(Some(MessageBox {
+                titel: String::from("Fehler beim Gleis hinzufügen!"),
+                nachricht: format!("{fehler:?}"),
+            }));
         }
     }
 
@@ -332,12 +327,15 @@ where
             },
         }
         if let Some((titel, nachricht)) = fehlermeldung {
-            self.zeige_message_box(titel, nachricht);
+            self.aktualisiere_message_box(Some(MessageBox { titel, nachricht }));
             let hat_steuerung =
                 self.gleise.hat_steuerung(anschlüsse_anpassen.id()).unwrap_or(false);
-            self.zeige_auswahlzustand(AuswahlZustand::from((anschlüsse_anpassen, hat_steuerung)));
+            self.aktualisiere_auswahlzustand(Some(AuswahlZustand::from((
+                anschlüsse_anpassen,
+                hat_steuerung,
+            ))));
         } else {
-            self.verstecke_auswahlzustand();
+            self.aktualisiere_auswahlzustand(None);
         }
     }
 }
@@ -346,10 +344,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer> + Display, S> Zugkontrolle<L, 
     /// Entferne eine [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
-            self.zeige_message_box(
-                String::from("Geschwindigkeit entfernen"),
-                format!("{fehler:?}"),
-            );
+            self.aktualisiere_message_box(Some(MessageBox {
+                titel: String::from("Geschwindigkeit entfernen"),
+                nachricht: format!("{fehler:?}"),
+            }));
         }
     }
 }
@@ -366,10 +364,10 @@ where
         geschwindigkeit: GeschwindigkeitSerialisiert<S>,
     ) {
         use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
-        self.zeige_auswahlzustand(AuswahlZustand::Geschwindigkeit(Some((
+        self.aktualisiere_auswahlzustand(Some(AuswahlZustand::Geschwindigkeit(Some((
             name.clone(),
             geschwindigkeit.clone(),
-        ))));
+        )))));
         let (alt_serialisiert, anschlüsse) =
             if let Ok(alte_geschwindigkeit) = self.gleise.geschwindigkeit_entfernen(&name) {
                 let serialisiert = alte_geschwindigkeit.serialisiere();
@@ -384,10 +382,13 @@ where
             match geschwindigkeit.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                 Wert { anschluss: geschwindigkeit, .. } => {
                     if let Some(serialisiert) = alt_serialisiert {
-                        self.zeige_message_box(
-                            format!("Geschwindigkeit {} anpassen", name.0),
-                            format!("Geschwindigkeit {} angepasst: {:?}", name.0, serialisiert),
-                        );
+                        self.aktualisiere_message_box(Some(MessageBox {
+                            titel: format!("Geschwindigkeit {} anpassen", name.0),
+                            nachricht: format!(
+                                "Geschwindigkeit {} angepasst: {:?}",
+                                name.0, serialisiert
+                            ),
+                        }));
                     };
                     if let Some(bisher) =
                         self.gleise.geschwindigkeit_hinzufügen(name, geschwindigkeit)
@@ -431,14 +432,10 @@ where
             }
         }
 
-        self.zeige_message_box(format!("Hinzufügen Geschwindigkeit {}", name.0), fehlermeldung);
-    }
-}
-
-impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
-    /// Behandle einen Fehler, der bei einer asynchronen Aktion aufgetreten ist.
-    pub fn async_fehler(&mut self, titel: String, nachricht: String) {
-        self.zeige_message_box(titel, nachricht);
+        self.aktualisiere_message_box(Some(MessageBox {
+            titel: format!("Hinzufügen Geschwindigkeit {}", name.0),
+            nachricht: fehlermeldung,
+        }));
     }
 }
 
@@ -476,10 +473,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [`update`](Gleise::update)-Methode.
     pub fn gleise_zustand_aktualisieren(&mut self, nachricht: ZustandAktualisieren) {
         if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
-            self.zeige_message_box(
-                String::from("Interner Applikations-Fehler."),
-                format!("{fehler:?}"),
-            );
+            self.aktualisiere_message_box(Some(MessageBox {
+                titel: String::from("Interner Applikations-Fehler."),
+                nachricht: format!("{fehler:?}"),
+            }));
         }
     }
 }
@@ -498,10 +495,10 @@ where
         let speicher_zeit = Instant::now();
         self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit));
         if let Err(fehler) = ergebnis {
-            self.zeige_message_box(
-                format!("Fehler beim Speichern in '{pfad}'."),
-                format!("{fehler:?}"),
-            );
+            self.aktualisiere_message_box(Some(MessageBox {
+                titel: format!("Fehler beim Speichern in '{pfad}'."),
+                nachricht: format!("{fehler:?}"),
+            }));
         }
         Nachricht::EntferneSpeichernFarbe(speicher_zeit).als_sleep_command(Duration::from_secs(2))
     }
@@ -534,10 +531,10 @@ where
         let lade_ergebnis = self.gleise.laden(&mut self.lager, pfad);
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
-            self.zeige_message_box(
-                format!("Fehler beim Laden von '{pfad}'."),
-                format!("{fehler:?}"),
-            );
+            self.aktualisiere_message_box(Some(MessageBox {
+                titel: format!("Fehler beim Laden von '{pfad}'."),
+                nachricht: format!("{fehler:?}"),
+            }));
         }
     }
 }

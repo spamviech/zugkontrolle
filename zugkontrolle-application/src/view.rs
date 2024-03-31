@@ -39,7 +39,7 @@ use crate::{
     drehen::Drehen,
     flat_map::FlatMap,
     geschwindigkeit::LeiterAnzeige,
-    modal::{self, Modal},
+    modal::Modal,
     nachricht::{Nachricht, NachrichtClone},
     speichern_laden, streckenabschnitt,
     style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
@@ -114,26 +114,20 @@ where
         let row_mit_scrollable = row_mit_scrollable(aktueller_modus, *scrollable_style, gleise);
         let canvas = Element::new(FlatMap::neu(
             Canvas::new(gleise).width(Length::Fill).height(Length::Fill),
-            |nachrichten| {
-                nachrichten
-                    .into_iter()
-                    .map(modal::Nachricht::<AuswahlZustand<S>, Nachricht<L, S>>::from)
-            },
-        ))
-        .map(|modal_nachricht| modal_nachricht.underlay_map(modal::Nachricht::Underlay));
+            |nachrichten| nachrichten.into_iter().map(Nachricht::from),
+        ));
         let row_mit_scrollable_und_canvas = row_mit_scrollable
             .push(Container::new(canvas).width(Length::Fill).height(Length::Fill));
 
         let column = Element::from(
             Column::new()
-                .push(Element::from(top_row).map(modal::Nachricht::underlay_from))
+                .push(Element::from(top_row).map(Nachricht::from))
                 .push(Rule::horizontal(1).style(TRENNLINIE))
                 .push(Element::from(row_mit_scrollable_und_canvas)),
         );
 
         let zeige_auswahlzustand = |modal: &AuswahlZustand<S>| {
             AuswahlZustand::view(modal, gleise, &lager.pcf8574, *scrollable_style, *i2c_settings)
-                .map(modal::Nachricht::äußeres_modal)
         };
         let passthrough_event = |event: &Event| {
             let klick_quelle = match event {
@@ -152,10 +146,10 @@ where
             debug!("{event:?} -> {gehalten}");
             gehalten
         };
-        let auswahlzustand = Element::from(
-            Modal::neu(column, auswahl_zustand, zeige_auswahlzustand)
+        let auswahl_zustand = Element::from(
+            Modal::neu(column, auswahl_zustand.as_ref().map(zeige_auswahlzustand))
                 .passthrough_event(passthrough_event)
-                .schließe_bei_esc(),
+                .schließe_bei_esc(|| Nachricht::AuswahlFenster(None)),
         );
 
         let zeige_message_box = |MessageBox { titel, nachricht }: &MessageBox| {
@@ -164,15 +158,16 @@ where
                     Text::new(titel.clone()),
                     Scrollable::new(Text::new(nachricht.clone())).height(Length::Fixed(300.)),
                 )
-                .foot(Button::new(Text::new("Ok")).on_press(modal::Nachricht::VersteckeOverlay))
-                .on_close(modal::Nachricht::VersteckeOverlay)
+                .foot(Button::new(Text::new("Ok")).on_press(NachrichtClone::MessageBox(None)))
+                .on_close(NachrichtClone::MessageBox(None))
                 .width(Length::Shrink),
             )
-            .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>)
+            .map(Nachricht::from)
         };
-        let message_box_modal = Modal::neu(auswahlzustand, message_box, zeige_message_box)
-            .passthrough_event(passthrough_event)
-            .schließe_bei_esc();
+        let message_box_modal =
+            Modal::neu(auswahl_zustand, message_box.as_ref().map(zeige_message_box))
+                .passthrough_event(passthrough_event)
+                .schließe_bei_esc(|| Nachricht::MessageBox(None));
         message_box_modal.into()
     }
 }
@@ -188,9 +183,6 @@ const DREHEN_BREITE: f32 = 50.;
 /// Die Breite des [`Sliders`](Slider) zum Einstellen der Skalierung in Pixeln.
 const SKALIEREN_BREITE: f32 = 75.;
 
-/// [`Nachricht`] mit der Möglichkeit, das [`Auswahl`](AuswahlZustand)-[`Modal`] zu öffnen.
-type AuswahlNachricht<L, S> = modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>;
-
 // Interne Methode, alle Argumente benötigt.
 #[allow(clippy::too_many_arguments)]
 /// Erzeuge die Widgets für die Kopfleiste.
@@ -204,7 +196,7 @@ fn top_row<'t, L, S>(
     aktuelles_thema: Thema,
     initialer_pfad: &'t str,
     speichern_gefärbt: Option<bool>,
-) -> Row<'t, AuswahlNachricht<L, S>, Thema, Renderer>
+) -> Row<'t, Nachricht<L, S>, Thema, Renderer>
 where
     L: 'static + Debug + LeiterAnzeige<'t, S, Thema, Renderer>,
     <L as Leiter>::Fahrtrichtung: Clone,
@@ -231,58 +223,47 @@ where
         .align_items(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad, speichern_gefärbt);
     let mut row = Row::new()
-        .push(
-            Element::from(
-                Column::new()
-                    .push(modus_pick_list)
-                    .push(thema_pick_list)
-                    .mit_teil_nachricht(Nachricht::from),
-            )
-            .map(modal::Nachricht::Underlay),
-        )
-        .push(
-            Element::from(
-                Column::new()
-                    .push(
-                        Row::new()
-                            .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
-                            .push(drehen.mit_teil_nachricht(Nachricht::Winkel)),
-                    )
-                    .push(Element::from(skalieren_slider).map(Nachricht::from)),
-            )
-            .map(modal::Nachricht::Underlay),
-        );
+        .push(Element::from(
+            Column::new()
+                .push(modus_pick_list)
+                .push(thema_pick_list)
+                .mit_teil_nachricht(Nachricht::from),
+        ))
+        .push(Element::from(
+            Column::new()
+                .push(
+                    Row::new()
+                        .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
+                        .push(drehen.mit_teil_nachricht(Nachricht::Winkel)),
+                )
+                .push(Element::from(skalieren_slider).map(Nachricht::from)),
+        ));
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
     if let Modus::Bauen { .. } = aktueller_modus {
-        let geschwindigkeit = Element::new(
-            Button::new(Text::new("Geschwindigkeiten"))
-                .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::Geschwindigkeit(None))),
-        )
-        .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>);
+        let geschwindigkeit =
+            Element::new(Button::new(Text::new("Geschwindigkeiten")).on_press(
+                NachrichtClone::AuswahlModal(Some(AuswahlZustand::Geschwindigkeit(None))),
+            ))
+            .map(Nachricht::from);
         let streckenabschnitt = Element::from(streckenabschnitt::Anzeige::neu(
             streckenabschnitt_aktuell,
             *streckenabschnitt_festlegen,
-            AuswahlZustand::Streckenabschnitt(None),
         ))
-        .map(modal::Nachricht::underlay_from);
+        .map(Nachricht::from);
         row = row.push(Column::new().push(geschwindigkeit).push(streckenabschnitt).spacing(1));
     }
 
     row.push(Space::new(Length::Fill, Length::Shrink))
-        .push(
-            Element::from(speichern_laden)
-                .map(|message| match message {
-                    speichern_laden::Nachricht::Speichern(pfad) => Nachricht::Speichern(pfad),
-                    speichern_laden::Nachricht::Laden(pfad) => Nachricht::Laden(pfad),
-                })
-                .map(modal::Nachricht::Underlay),
-        )
+        .push(Element::from(speichern_laden).map(|message| match message {
+            speichern_laden::Nachricht::Speichern(pfad) => Nachricht::Speichern(pfad),
+            speichern_laden::Nachricht::Laden(pfad) => Nachricht::Laden(pfad),
+        }))
         .push(
             Element::from(
                 Button::new(Text::new("Lizenzen"))
-                    .on_press(modal::Nachricht::ZeigeOverlay(AuswahlZustand::ZeigeLizenzen)),
+                    .on_press(NachrichtClone::AuswahlModal(Some(AuswahlZustand::ZeigeLizenzen))),
             )
-            .map(modal::Nachricht::underlay_from::<NachrichtClone<L>>),
+            .map(Nachricht::from),
         )
         .padding(5)
         .spacing(5)
@@ -290,17 +271,13 @@ where
         .height(Length::Shrink)
 }
 
-/// [`Nachricht`] mit der Möglichkeit, das [`Auswahl`](AuswahlZustand)-[`Modal`] und die [`MessageBox`] zu öffnen.
-type MessageBoxNachricht<L, S> =
-    modal::Nachricht<AuswahlZustand<S>, modal::Nachricht<MessageBox, Nachricht<L, S>>>;
-
 /// Erzeuge die Seitenleiste.
 fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S: 'static>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
     gleise: &'t Gleise<L, Nachricht<L, S>>,
-) -> Row<'t, MessageBoxNachricht<L, S>, Thema, Renderer> {
-    let mut scrollable_column: Column<'_, NachrichtClone<_>, Thema, Renderer> = Column::new();
+) -> Row<'t, Nachricht<L, S>, Thema, Renderer> {
+    let mut scrollable_column: Column<'_, NachrichtClone<_, _>, Thema, Renderer> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
 
@@ -310,10 +287,11 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
             fn knöpfe_hinzufügen<'t, L, S, R, T>(
                 spurweite: Spurweite,
                 max_breite: Option<f32>,
-                scrollable_column: &mut Column<'t, NachrichtClone<L>, Thema, Renderer>,
+                scrollable_column: &mut Column<'t, NachrichtClone<L, S>, Thema, Renderer>,
                 buttons: &'t DefinitionMap<T>,
             ) where
                 L: 'static + LeiterAnzeige<'t, S, Thema, R>,
+                S: 'static,
                 T: MitSteuerung,
                 DefinitionId<T>: Into<AnyDefinitionId>,
                 <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
@@ -394,9 +372,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
                         .height(Length::Fill)
                         .style(scrollable_style),
                 )
-                .map(Nachricht::from)
-                .map(modal::Nachricht::Underlay)
-                .map(modal::Nachricht::Underlay),
+                .map(Nachricht::from),
             )
             .width(width)
             .height(Length::Fill),

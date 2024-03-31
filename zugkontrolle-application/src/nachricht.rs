@@ -40,9 +40,9 @@ use crate::{
         AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht, WeicheNachricht,
         WeichenId,
     },
-    bewegen, geschwindigkeit, kontakt, lizenzen, modal, streckenabschnitt,
+    bewegen, geschwindigkeit, kontakt, lizenzen, streckenabschnitt,
     style::Thema,
-    weiche,
+    weiche, MessageBox,
 };
 
 /// Ein beliebiges Gleis ohne Anschlüsse.
@@ -66,9 +66,9 @@ pub enum AnyGleisUnit {
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [`Button`](iced::widget::Button).
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-#[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug)]
-#[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone)]
-pub(crate) enum NachrichtClone<L: Leiter> {
+#[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug, S: Debug)]
+#[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone, S: Clone)]
+pub(crate) enum NachrichtClone<L: Leiter, S> {
     /// Ein neues Gleis hinzufügen.
     Gleis {
         /// Das neue Gleis.
@@ -87,10 +87,14 @@ pub(crate) enum NachrichtClone<L: Leiter> {
     Modus(Modus),
     /// Ändere das aktuelle Anzeige-[`Thema`].
     Thema(Thema),
+    /// Aktualisiere das Auswahl-Modal.
+    AuswahlModal(Option<AuswahlZustand<S>>),
+    /// Aktualisiere die MessageBox.
+    MessageBox(Option<MessageBox>),
 }
 
-impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
-    fn from(nachricht_clone: NachrichtClone<L>) -> Self {
+impl<L: Leiter, S> From<NachrichtClone<L, S>> for Nachricht<L, S> {
+    fn from(nachricht_clone: NachrichtClone<L, S>) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { definition_steuerung, klick_quelle, klick_höhe } => {
                 Nachricht::Gleis { definition_steuerung, klick_quelle, klick_höhe }
@@ -101,16 +105,24 @@ impl<L: Leiter, S> From<NachrichtClone<L>> for Nachricht<L, S> {
             },
             NachrichtClone::Modus(modus) => Nachricht::Modus(modus),
             NachrichtClone::Thema(thema) => Nachricht::Thema(thema),
+            NachrichtClone::AuswahlModal(auswahl_zustand) => {
+                Nachricht::AuswahlFenster(auswahl_zustand)
+            },
+            NachrichtClone::MessageBox(message_box) => Nachricht::MessageBox(message_box),
         }
     }
 }
 
-impl<T, L> knopf::Nachricht<T> for NachrichtClone<L>
+impl<T, L, S> knopf::Nachricht<T> for NachrichtClone<L, S>
 where
     T: Clone + Into<AnyDefinitionId>,
     L: Leiter,
 {
-    fn nachricht(id: &T, klick_quelle: KlickQuelle, klick_position: Vektor) -> NachrichtClone<L> {
+    fn nachricht(
+        id: &T,
+        klick_quelle: KlickQuelle,
+        klick_position: Vektor,
+    ) -> NachrichtClone<L, S> {
         /// Hilfs-Makro für die Verwendung mit [`mit_any_id`].
         macro_rules! erhalte_nachricht {
             ($id: expr) => {
@@ -205,6 +217,10 @@ pub enum Nachricht<L: Leiter, S> {
     GleiseZustandAktualisieren(ZustandAktualisieren),
     /// Ändere das aktuelle Anzeige-[`Thema`].
     Thema(Thema),
+    /// Aktualisiere das Auswahl-Modal.
+    AuswahlFenster(Option<AuswahlZustand<S>>),
+    /// Aktualisiere die MessageBox.
+    MessageBox(Option<MessageBox>),
     /// Dummy-Nachricht, damit die [`view`](Application::view)-Methode erneut aufgerufen wird.
     ///
     /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
@@ -212,87 +228,78 @@ pub enum Nachricht<L: Leiter, S> {
         /// Soll das Canvas der [`Gleise`](crate::gleise::Gleise)-Struktur neu gezeichnet werden.
         gleise_neuzeichnen: bool,
     },
-    /// Behandle einen bei einer asynchronen Aktion aufgetretenen Fehler.
-    AsyncFehler {
-        /// Der Titel der Fehlermeldung.
-        titel: String,
-        /// Die Nachricht der Fehlermeldung.
-        nachricht: String,
-    },
 }
 
-impl<L: Leiter, S> From<GleiseNachricht> for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>> {
+impl<L: Leiter, S> From<GleiseNachricht> for Nachricht<L, S> {
     fn from(nachricht: GleiseNachricht) -> Self {
         match nachricht {
             GleiseNachricht::SetzeStreckenabschnitt(any_id) => {
-                modal::Nachricht::Underlay(Nachricht::SetzeStreckenabschnitt(any_id))
+                Nachricht::SetzeStreckenabschnitt(any_id)
             },
             GleiseNachricht::StreckenabschnittUmschalten(aktion) => {
-                modal::Nachricht::Underlay(Nachricht::StreckenabschnittUmschalten(aktion))
+                Nachricht::StreckenabschnittUmschalten(aktion)
             },
-            GleiseNachricht::WeicheSchalten(aktion) => {
-                modal::Nachricht::Underlay(Nachricht::WeicheSchalten(aktion))
-            },
+            GleiseNachricht::WeicheSchalten(aktion) => Nachricht::WeicheSchalten(aktion),
             GleiseNachricht::AnschlüsseAnpassen(gleis_steuerung) => match gleis_steuerung {
                 AnyIdSteuerungSerialisiert::Gerade(id, startwert) => {
                     let hat_steuerung = startwert.is_some();
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Kontakt(
+                    Nachricht::AuswahlFenster(Some(AuswahlZustand::Kontakt(
                         KontaktId::Gerade(id),
                         startwert,
                         hat_steuerung,
-                    ))
+                    )))
                 },
                 AnyIdSteuerungSerialisiert::Kurve(id, startwert) => {
                     let hat_steuerung = startwert.is_some();
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Kontakt(
+                    Nachricht::AuswahlFenster(Some(AuswahlZustand::Kontakt(
                         KontaktId::Kurve(id),
                         startwert,
                         hat_steuerung,
-                    ))
+                    )))
                 },
                 AnyIdSteuerungSerialisiert::Weiche(id, startwert) => {
                     let hat_steuerung = startwert.is_some();
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                    Nachricht::AuswahlFenster(Some(AuswahlZustand::Weiche(
                         WeichenId::Gerade(id),
                         startwert,
                         hat_steuerung,
-                    ))
+                    )))
                 },
                 AnyIdSteuerungSerialisiert::KurvenWeiche(id, startwert) => {
                     let hat_steuerung = startwert.is_some();
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::KurvenWeiche(
+                    Nachricht::AuswahlFenster(Some(AuswahlZustand::KurvenWeiche(
                         id,
                         startwert,
                         hat_steuerung,
-                    ))
+                    )))
                 },
                 AnyIdSteuerungSerialisiert::DreiwegeWeiche(id, startwert) => {
                     let hat_steuerung = startwert.is_some();
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::DreiwegeWeiche(
+                    Nachricht::AuswahlFenster(Some(AuswahlZustand::DreiwegeWeiche(
                         id,
                         startwert,
                         hat_steuerung,
-                    ))
+                    )))
                 },
                 AnyIdSteuerungSerialisiert::SKurvenWeiche(id, startwert) => {
                     let hat_steuerung = startwert.is_some();
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                    Nachricht::AuswahlFenster(Some(AuswahlZustand::Weiche(
                         WeichenId::SKurve(id),
                         startwert,
                         hat_steuerung,
-                    ))
+                    )))
                 },
                 AnyIdSteuerungSerialisiert::Kreuzung(id, startwert) => {
                     let hat_steuerung = startwert.is_some();
-                    modal::Nachricht::ZeigeOverlay(AuswahlZustand::Weiche(
+                    Nachricht::AuswahlFenster(Some(AuswahlZustand::Weiche(
                         WeichenId::Kreuzung(id),
                         startwert,
                         hat_steuerung,
-                    ))
+                    )))
                 },
             },
             GleiseNachricht::ZustandAktualisieren(nachricht) => {
-                modal::Nachricht::Underlay(Nachricht::GleiseZustandAktualisieren(nachricht))
+                Nachricht::GleiseZustandAktualisieren(nachricht)
             },
         }
     }
@@ -305,7 +312,7 @@ impl<L: Leiter, S> From<AsyncNachricht> for Nachricht<L, S> {
                 Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true }
             },
             AsyncNachricht::Fehler { titel, nachricht } => {
-                Nachricht::AsyncFehler { titel, nachricht }
+                Nachricht::MessageBox(Some(MessageBox { titel, nachricht }))
             },
         }
     }
@@ -317,6 +324,9 @@ impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S>
             streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
                 Nachricht::StreckenabschnittFestlegen(festlegen)
             },
+            streckenabschnitt::AnzeigeNachricht::ZeigeOverlay => {
+                Nachricht::AuswahlFenster(Some(AuswahlZustand::Streckenabschnitt(None)))
+            },
         }
     }
 }
@@ -327,108 +337,88 @@ impl<L: Leiter, S> From<Aktualisieren> for Nachricht<L, S> {
     }
 }
 
-impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht>
-    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht> for Nachricht<L, S> {
     fn from(nachricht: streckenabschnitt::AuswahlNachricht) -> Self {
         use streckenabschnitt::AuswahlNachricht::{Hinzufügen, Lösche, Schließe, Wähle};
         match nachricht {
-            Schließe => modal::Nachricht::VersteckeOverlay,
-            Wähle(wahl) => modal::Nachricht::Underlay(Nachricht::WähleStreckenabschnitt(wahl)),
-            Hinzufügen(geschwindigkeit, name, farbe, output) => modal::Nachricht::Underlay(
-                Nachricht::HinzufügenStreckenabschnitt(geschwindigkeit, name, farbe, output),
-            ),
-            Lösche(name) => modal::Nachricht::Underlay(Nachricht::LöscheStreckenabschnitt(name)),
+            Schließe => Nachricht::AuswahlFenster(None),
+            Wähle(wahl) => Nachricht::WähleStreckenabschnitt(wahl),
+            Hinzufügen(geschwindigkeit, name, farbe, output) => {
+                Nachricht::HinzufügenStreckenabschnitt(geschwindigkeit, name, farbe, output)
+            },
+            Lösche(name) => Nachricht::LöscheStreckenabschnitt(name),
         }
     }
 }
 
-impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>>
-    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>> for Nachricht<L, S> {
     fn from(nachricht: geschwindigkeit::AuswahlNachricht<S>) -> Self {
         use geschwindigkeit::AuswahlNachricht::{Hinzufügen, Löschen, Schließen};
         match nachricht {
-            Schließen => modal::Nachricht::VersteckeOverlay,
-            Hinzufügen(name, geschwindigkeit) => modal::Nachricht::Underlay(
-                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit),
-            ),
-            Löschen(name) => modal::Nachricht::Underlay(Nachricht::LöscheGeschwindigkeit(name)),
+            Schließen => Nachricht::AuswahlFenster(None),
+            Hinzufügen(name, geschwindigkeit) => {
+                Nachricht::HinzufügenGeschwindigkeit(name, geschwindigkeit)
+            },
+            Löschen(name) => Nachricht::LöscheGeschwindigkeit(name),
         }
     }
 }
-impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)>
-    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)> for Nachricht<L, S> {
     fn from((nachricht, weichen_id): (kontakt::Nachricht, KontaktId)) -> Self {
         use kontakt::Nachricht::{Festlegen, Schließen};
         match nachricht {
-            Festlegen(steuerung) => {
-                modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
-                    KontaktId::Gerade(id) => AnyIdSteuerungSerialisiert::Gerade(id, steuerung),
-                    KontaktId::Kurve(id) => AnyIdSteuerungSerialisiert::Kurve(id, steuerung),
-                }))
-            },
-            Schließen => modal::Nachricht::VersteckeOverlay,
+            Festlegen(steuerung) => Nachricht::AnschlüsseAnpassen(match weichen_id {
+                KontaktId::Gerade(id) => AnyIdSteuerungSerialisiert::Gerade(id, steuerung),
+                KontaktId::Kurve(id) => AnyIdSteuerungSerialisiert::Kurve(id, steuerung),
+            }),
+            Schließen => Nachricht::AuswahlFenster(None),
         }
     }
 }
 
-impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)>
-    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)> for Nachricht<L, S> {
     fn from((nachricht, weichen_id): (WeicheNachricht, WeichenId)) -> Self {
         use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
-            Festlegen(steuerung) => {
-                modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(match weichen_id {
-                    WeichenId::Gerade(id) => AnyIdSteuerungSerialisiert::Weiche(id, steuerung),
-                    WeichenId::SKurve(id) => {
-                        AnyIdSteuerungSerialisiert::SKurvenWeiche(id, steuerung)
-                    },
-                    WeichenId::Kreuzung(id) => AnyIdSteuerungSerialisiert::Kreuzung(id, steuerung),
-                }))
-            },
-            Schließen => modal::Nachricht::VersteckeOverlay,
+            Festlegen(steuerung) => Nachricht::AnschlüsseAnpassen(match weichen_id {
+                WeichenId::Gerade(id) => AnyIdSteuerungSerialisiert::Weiche(id, steuerung),
+                WeichenId::SKurve(id) => AnyIdSteuerungSerialisiert::SKurvenWeiche(id, steuerung),
+                WeichenId::Kreuzung(id) => AnyIdSteuerungSerialisiert::Kreuzung(id, steuerung),
+            }),
+            Schließen => Nachricht::AuswahlFenster(None),
         }
     }
 }
 
-impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
-    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)> for Nachricht<L, S> {
     fn from((nachricht, gleis_id): (DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)) -> Self {
         use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
-            Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+            Festlegen(steuerung) => Nachricht::AnschlüsseAnpassen(
                 AnyIdSteuerungSerialisiert::DreiwegeWeiche(gleis_id, steuerung),
-            )),
-            Schließen => modal::Nachricht::VersteckeOverlay,
+            ),
+            Schließen => Nachricht::AuswahlFenster(None),
         }
     }
 }
 
-impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)>
-    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)> for Nachricht<L, S> {
     fn from((nachricht, gleis_id): (KurvenWeicheNachricht, GleisId<KurvenWeiche>)) -> Self {
         use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
-            Festlegen(steuerung) => modal::Nachricht::Underlay(Nachricht::AnschlüsseAnpassen(
+            Festlegen(steuerung) => Nachricht::AnschlüsseAnpassen(
                 AnyIdSteuerungSerialisiert::KurvenWeiche(gleis_id, steuerung),
-            )),
-            Schließen => modal::Nachricht::VersteckeOverlay,
+            ),
+            Schließen => Nachricht::AuswahlFenster(None),
         }
     }
 }
 
-impl<L: Leiter, S> From<lizenzen::Nachricht>
-    for modal::Nachricht<AuswahlZustand<S>, Nachricht<L, S>>
-{
+impl<L: Leiter, S> From<lizenzen::Nachricht> for Nachricht<L, S> {
     fn from(nachricht: lizenzen::Nachricht) -> Self {
         use lizenzen::Nachricht::Schließen;
         match nachricht {
-            Schließen => modal::Nachricht::VersteckeOverlay,
+            Schließen => Nachricht::AuswahlFenster(None),
         }
     }
 }

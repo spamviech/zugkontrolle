@@ -34,7 +34,6 @@ use crate::{
     drehen::Drehen,
     empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
-    modal::Overlay,
     nachricht::Nachricht,
     style::thema::Thema,
 };
@@ -105,9 +104,9 @@ pub struct Zugkontrolle<L: Leiter, S> {
     /// Wie wird der [`Gleise`]-Canvas aktuell bewegt.
     bewegung: Option<Bewegung>,
     /// Der aktuelle Zustand des [`Auswahl-Widgets`](AuswahlZustand).
-    auswahl_zustand: Overlay<AuswahlZustand<S>>,
+    auswahl_zustand: Option<AuswahlZustand<S>>,
     /// Der aktuelle Zustand des [`Mitteilungs-Widgets`](MessageBox).
-    message_box: Overlay<MessageBox>,
+    message_box: Option<MessageBox>,
     /// Sender für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
     sender: Sender<Nachricht<L, S>>,
     /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
@@ -195,8 +194,8 @@ where
             initialer_pfad,
             speichern_gefärbt: None,
             bewegung: None,
-            auswahl_zustand: Overlay::neu(None),
-            message_box: Overlay::neu(None),
+            auswahl_zustand: None,
+            message_box: None,
             sender,
             empfänger: Empfänger::neu(receiver, ()),
         };
@@ -275,12 +274,15 @@ where
                 self.gleise_zustand_aktualisieren(nachricht);
             },
             Nachricht::Thema(thema) => self.setze_thema(thema),
+            Nachricht::AuswahlFenster(auswahl_zustand) => {
+                self.aktualisiere_auswahlzustand(auswahl_zustand)
+            },
+            Nachricht::MessageBox(message_box) => self.aktualisiere_message_box(message_box),
             Nachricht::AsyncAktualisieren { gleise_neuzeichnen } => {
                 if gleise_neuzeichnen {
                     self.gleise_neuzeichnen();
                 }
             },
-            Nachricht::AsyncFehler { titel, nachricht } => self.async_fehler(titel, nachricht),
         }
 
         command

@@ -26,7 +26,7 @@ use crate::{
     geschwindigkeit::{self, LeiterAnzeige},
     lizenzen,
     lizenzen::Lizenzen,
-    modal, streckenabschnitt,
+    streckenabschnitt,
     style::{sammlung::Sammlung, thema::Thema},
     weiche,
 };
@@ -163,11 +163,11 @@ impl<S> AuswahlZustand<S> {
         lager: &'t Lager,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
-    ) -> Element<'t, modal::Nachricht<AuswahlZustand<S>, Nachricht>, Thema, Renderer>
+    ) -> Element<'t, Nachricht, Thema, Renderer>
     where
         L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
         S: 'static + Clone + Default,
-        modal::Nachricht<AuswahlZustand<S>, Nachricht>: From<streckenabschnitt::AuswahlNachricht>
+        Nachricht: From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
             + From<(kontakt::Nachricht, KontaktId)>
             + From<(WeicheNachricht, WeichenId)>
@@ -183,7 +183,7 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(modal::Nachricht::from)
+                .map(Nachricht::from)
             },
             AuswahlZustand::Geschwindigkeit(startwert) => {
                 let geschwindigkeiten =
@@ -196,7 +196,7 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(modal::Nachricht::from)
+                .map(Nachricht::from)
             },
             AuswahlZustand::Kontakt(kontakt_id, kontakt, hat_steuerung) => {
                 let gleis_art = match &kontakt_id {
@@ -212,7 +212,7 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| modal::Nachricht::from((nachricht, kontakt_id_clone.clone())))
+                .map(move |nachricht| Nachricht::from((nachricht, kontakt_id_clone.clone())))
             },
             AuswahlZustand::Weiche(weichen_id, weiche, hat_steuerung) => {
                 let weichen_art = match &weichen_id {
@@ -228,7 +228,7 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| modal::Nachricht::from((nachricht, weichen_id_clone.clone())))
+                .map(move |nachricht| Nachricht::from((nachricht, weichen_id_clone.clone())))
             },
             AuswahlZustand::DreiwegeWeiche(id, dreiwege_weiche, hat_steuerung) => {
                 let id_clone = id.clone();
@@ -239,7 +239,7 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.clone())))
+                .map(move |nachricht| Nachricht::from((nachricht, id_clone.clone())))
             },
             AuswahlZustand::KurvenWeiche(id, kurven_weiche, hat_steuerung) => {
                 let id_clone = id.clone();
@@ -250,11 +250,11 @@ impl<S> AuswahlZustand<S> {
                     scrollable_style,
                     i2c_settings,
                 ))
-                .map(move |nachricht| modal::Nachricht::from((nachricht, id_clone.clone())))
+                .map(move |nachricht| Nachricht::from((nachricht, id_clone.clone())))
             },
             AuswahlZustand::ZeigeLizenzen => {
                 Element::from(Lizenzen::neu_mit_verwendeten_lizenzen(scrollable_style))
-                    .map(modal::Nachricht::from)
+                    .map(Nachricht::from)
             },
         }
     }
