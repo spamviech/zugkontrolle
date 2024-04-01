@@ -70,10 +70,10 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: binary
-        path: target/${{ inputs.target }}/${{ inputs.profile }}/zugkontrolle
+        path: target/${{ inputs.target }}/${{ inputs.profile == 'dev' && 'debug' || inputs.profile }}/zugkontrolle
     - name: Upload artifact (Windows)
       if: ${{ contains( inputs.target , 'windows') }}
       uses: actions/upload-artifact@v4
       with:
         name: binary
-        path: target/${{ inputs.target }}/${{ inputs.profile }}/zugkontrolle.exe
+        path: target/${{ inputs.target }}/${{ inputs.profile == 'dev' && 'debug' || inputs.profile }}/zugkontrolle.exe
