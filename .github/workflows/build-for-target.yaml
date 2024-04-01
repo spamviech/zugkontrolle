@@ -65,15 +65,8 @@ jobs:
         command: build
         use-cross: true
         args: --profile=${{ inputs.profile }} --target=${{ inputs.target }} ${{ inputs.raspi && '--features=raspi' || '' }}
-    - name: Upload artifact (non-windows)
-      if: ${{ !contains( inputs.target , 'windows') }}
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: binary
-        path: target/${{ inputs.target }}/${{ inputs.profile == 'dev' && 'debug' || inputs.profile }}/zugkontrolle
-    - name: Upload artifact (Windows)
-      if: ${{ contains( inputs.target , 'windows') }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: binary
-        path: target/${{ inputs.target }}/${{ inputs.profile == 'dev' && 'debug' || inputs.profile }}/zugkontrolle.exe
+        path: target/${{ inputs.target }}/${{ inputs.profile == 'dev' && 'debug' || inputs.profile }}/zugkontrolle${{ contains( inputs.target , 'windows') && '.exe' || '' }}
