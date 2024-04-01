@@ -136,15 +136,21 @@ impl WichtigeWerte {
     /// Erzeuge alle [`WichtigenPunkte`] innerhalb der gegebenen Bounds.
     #[must_use]
     fn aus_size(size: Size) -> Self {
+        let padding_x = Skalar(0.05 * size.width);
+        let padding_y = Skalar(0.05 * size.height);
         let width = Skalar(size.width);
         let height = Skalar(size.height);
         let half_width = width.halbiert();
         let half_height = height.halbiert();
         // Startpunkte
-        let links = Vektor { x: Skalar(0.), y: half_height };
-        let rechts = Vektor { x: width, y: half_height };
-        let oben = Vektor { x: half_width, y: Skalar(0.) };
-        let unten = Vektor { x: half_width, y: height };
+        let links = Vektor { x: padding_x, y: half_height };
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let rechts = Vektor { x: width - padding_x, y: half_height };
+        let oben = Vektor { x: half_width, y: padding_y };
+        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
+        #[allow(clippy::arithmetic_side_effects)]
+        let unten = Vektor { x: half_width, y: height - padding_y };
         let zentrum = Vektor { x: half_width, y: half_height };
         // relative Bewegung
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
