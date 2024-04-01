@@ -343,7 +343,7 @@ where
         }
 
         let card = Card::new(
-            Text::new("Streckenabschnitt").width(Length::Fill),
+            Text::new("Streckenabschnitt").width(Length::Shrink),
             Scrollable::new(column).height(Length::Fixed(400.)).width(Length::Shrink),
         )
         .on_close(InterneAuswahlNachricht::Schließe)
