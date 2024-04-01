@@ -64,7 +64,7 @@ impl knopf::Thema for Thema {
             Thema::Hell => 0.9,
             Thema::Dunkel if aktiv => 0.5,
             Thema::Dunkel if in_bounds => 0.3,
-            Thema::Dunkel => 0.1,
+            Thema::Dunkel => 0.2,
         };
         Farbe { rot: grey_value, grün: grey_value, blau: grey_value }
     }
