@@ -1273,7 +1273,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.8.0"
-source = "git+https://github.com/iced-rs/iced_aw?rev=7311ccce7d805edfb1ad28f7e4be65c9521bd56f#7311ccce7d805edfb1ad28f7e4be65c9521bd56f"
+source = "git+https://github.com/spamviech/iced_aw?rev=1acccc8f237907a353f45e32e7f44828727ac772#1acccc8f237907a353f45e32e7f44828727ac772"
 dependencies = [
  "cfg-if",
  "iced",
@@ -3720,9 +3720,9 @@ checksum = "054a8e68b76250b253f671d1268cb7f1ae089ec35e195b2efb2a4e9a836d0621"
 
 [[package]]
 name = "xml-rs"
-version = "0.8.19"
+version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fcb9cbac069e033553e8bb871be2fbdffcab578eb25bd0f7c508cedc6dcd75a"
+checksum = "791978798f0597cfc70478424c2b4fdc2b7a8024aaff78497ef00f24ef674193"
 
 [[package]]
 name = "xxhash-rust"
