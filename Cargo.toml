@@ -352,7 +352,7 @@ default-features = false
 features = ["card", "tab_bar", "tabs", "number_input", "icons"]
 # git = "https://github.com/iced-rs/iced_aw"
 git = "https://github.com/spamviech/iced_aw"
-rev = "1acccc8f237907a353f45e32e7f44828727ac772"
+rev = "29903803d5713f0940402a467a51fe7ed39551fa"
 
 [workspace.dependencies.rppal]
 version = "0.17.1"
