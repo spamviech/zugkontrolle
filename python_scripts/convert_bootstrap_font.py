@@ -12,3 +12,4 @@ woff_path: str = os.path.join(woff_dir, "bootstrap-icons.woff")
 otf_path: str = os.path.join(font_dir, "bootstrap-icons.otf")
 
 woff2otf.convert(woff_path, otf_path)
+
