@@ -186,7 +186,7 @@ enum TabId {
 
 /// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [`Geschwindigkeit`].
 #[derive(Debug, Default, PartialEq, Eq)]
-struct AuswahlZustand<S> {
+struct AuswahlZustand {
     /// Der aktuell gewählte Name.
     neu_name: String,
     /// Der aktuell angezeigt Tab.
@@ -199,8 +199,6 @@ struct AuswahlZustand<S> {
     pwm_polarität: Polarität,
     /// Die aktuell gewählten Anschlüsse zur Steuerung über konstante Spannungswerte.
     ks_anschlüsse: NonEmpty<OutputSerialisiert>,
-    /// Bereits existierende Geschwindigkeiten.
-    geschwindigkeiten: BTreeMap<UniCaseOrd<Name>, (String, GeschwindigkeitSerialisiert<S>)>,
 }
 
 /// Der Startwert für ein [`Auswahl`]-Widget.
@@ -225,18 +223,9 @@ pub enum AuswahlStartwert {
     },
 }
 
-impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
+impl AuswahlZustand {
     /// Erstelle einen neuen [`AuswahlZustand`].
-    fn neu<'t>(
-        startwert: Option<(Name, AuswahlStartwert)>,
-        geschwindigkeiten: impl Iterator<
-            Item = (&'t Name, &'t GeschwindigkeitSerialisiert<LeiterSerialisiert>),
-        >,
-    ) -> AuswahlZustand<LeiterSerialisiert>
-    where
-        LeiterSerialisiert: 't + Clone + Display,
-    {
-        let geschwindigkeiten = geschwindigkeiten.map(Self::iter_map).collect();
+    fn neu(startwert: Option<(Name, AuswahlStartwert)>) -> AuswahlZustand {
         let standard_anschluss = OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal };
         let standard_pwm_pin = pwm::Serialisiert(0);
         match startwert {
@@ -249,7 +238,6 @@ impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
                     pwm_pin,
                     pwm_polarität: polarität,
                     ks_anschlüsse: NonEmpty::singleton(standard_anschluss),
-                    geschwindigkeiten,
                 }
             },
             Some((
@@ -266,7 +254,6 @@ impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
                 pwm_pin: standard_pwm_pin,
                 pwm_polarität: Polarität::Normal,
                 ks_anschlüsse: geschwindigkeit_anschlüsse,
-                geschwindigkeiten,
             },
             None => AuswahlZustand {
                 neu_name: String::new(),
@@ -275,19 +262,8 @@ impl<LeiterSerialisiert> AuswahlZustand<LeiterSerialisiert> {
                 pwm_pin: standard_pwm_pin,
                 pwm_polarität: Polarität::Normal,
                 ks_anschlüsse: NonEmpty::singleton(standard_anschluss),
-                geschwindigkeiten,
             },
         }
-    }
-
-    /// Konvertiere Map-Einträge für Geschwindigkeiten in benötigte Informationen zur Darstellung.
-    fn iter_map(
-        (name, geschwindigkeit): (&Name, &GeschwindigkeitSerialisiert<LeiterSerialisiert>),
-    ) -> (UniCaseOrd<Name>, (String, GeschwindigkeitSerialisiert<LeiterSerialisiert>))
-    where
-        LeiterSerialisiert: Clone + Display,
-    {
-        (UniCaseOrd::neu(name.clone()), (geschwindigkeit.to_string(), geschwindigkeit.clone()))
     }
 }
 
@@ -336,7 +312,7 @@ pub enum AuswahlNachricht<LeiterSerialisiert> {
 pub struct Auswahl<'t, LeiterSerialisiert, Thema, R>(
     MapMitZustand<
         't,
-        AuswahlZustand<LeiterSerialisiert>,
+        AuswahlZustand,
         InterneAuswahlNachricht,
         AuswahlNachricht<LeiterSerialisiert>,
         Thema,
@@ -402,10 +378,10 @@ where
                 ),
             )
         });
-        let erzeuge_zustand =
-            move || AuswahlZustand::neu(auswahl_startwert.clone(), geschwindigkeiten.iter());
-        let erzeuge_element = move |zustand: &AuswahlZustand<LeiterSerialisiert>| {
+        let erzeuge_zustand = move || AuswahlZustand::neu(auswahl_startwert.clone());
+        let erzeuge_element = move |zustand: &AuswahlZustand| {
             Self::erzeuge_element::<L>(
+                geschwindigkeiten.iter().map(Self::iter_map).collect(),
                 zustand,
                 fahrtrichtung_anschluss,
                 &fahrtrichtung_beschreibung,
@@ -431,7 +407,7 @@ where
     ) -> impl 't
            + Fn(
         InterneAuswahlNachricht,
-        &mut AuswahlZustand<LeiterSerialisiert>,
+        &mut AuswahlZustand,
         &mut event::Status,
     ) -> Vec<AuswahlNachricht<LeiterSerialisiert>> {
         |interne_nachricht, zustand, status| {
@@ -627,9 +603,23 @@ where
         ks_auswahl.into()
     }
 
+    /// Konvertiere Map-Einträge für Geschwindigkeiten in benötigte Informationen zur Darstellung.
+    fn iter_map(
+        (name, geschwindigkeit): (&Name, &GeschwindigkeitSerialisiert<LeiterSerialisiert>),
+    ) -> (UniCaseOrd<Name>, (String, GeschwindigkeitSerialisiert<LeiterSerialisiert>))
+    where
+        LeiterSerialisiert: Clone + Display,
+    {
+        (UniCaseOrd::neu(name.clone()), (geschwindigkeit.to_string(), geschwindigkeit.clone()))
+    }
+
     /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>(
-        zustand: &AuswahlZustand<LeiterSerialisiert>,
+        geschwindigkeiten: BTreeMap<
+            UniCaseOrd<Name>,
+            (String, GeschwindigkeitSerialisiert<LeiterSerialisiert>),
+        >,
+        zustand: &AuswahlZustand,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: &str,
         scrollable_style: Sammlung,
@@ -642,7 +632,6 @@ where
             pwm_pin,
             pwm_polarität,
             ks_anschlüsse,
-            geschwindigkeiten,
         } = zustand;
         let width = Length::Fixed(950.);
         let mut neuer_anschluss = Column::new().push(

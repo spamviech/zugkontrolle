@@ -121,22 +121,19 @@ impl<'a, Thema, R: 'a + Renderer> From<Anzeige<'a, Thema, R>>
 #[derive(Debug, Default, PartialEq)]
 struct AuswahlZustand {
     /// Der aktuell gewählte Name.
-    neu_name: String,
+    name: String,
     /// Die aktuell gewählte Farbe.
-    neu_farbe: Farbe,
+    farbe: Farbe,
     /// Der aktuell gewählte Anschluss.
-    neu_anschluss: OutputSerialisiert,
-    /// Bekannte Streckenabschnitte.
-    streckenabschnitte: BTreeMap<UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)>,
+    anschluss: OutputSerialisiert,
 }
 
 impl AuswahlZustand {
     /// Erstelle einen neuen [`AuswahlZustand`].
-    fn neu<L: Leiter, AktualisierenNachricht>(
+    fn neu(
         startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
-        gleise: &Gleise<L, AktualisierenNachricht>,
     ) -> AuswahlZustand {
-        let (neu_name, neu_farbe, neu_anschluss) =
+        let (name, farbe, anschluss) =
             if let Some((name, streckenabschnitt, _geschwindigkeit)) = startwert {
                 (name.0, streckenabschnitt.farbe(), streckenabschnitt.anschluss())
             } else {
@@ -146,25 +143,7 @@ impl AuswahlZustand {
                     OutputSerialisiert::Pin { pin: 0, polarität: Polarität::Normal },
                 )
             };
-        AuswahlZustand {
-            neu_name,
-            neu_farbe,
-            neu_anschluss,
-            streckenabschnitte: gleise.aus_allen_streckenabschnitten(|name, streckenabschnitt| {
-                Self::iter_map((name, streckenabschnitt))
-            }),
-        }
-    }
-
-    /// Extrahiere zur Anzeige benötigte Informationen aus einen [`Streckenabschnitt`].
-    fn iter_map(
-        (name, streckenabschnitt): (&Name, &Streckenabschnitt),
-    ) -> (UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)) {
-        let anschluss = &*streckenabschnitt.lock_anschluss();
-        (
-            UniCaseOrd::neu(name.clone()),
-            (anschluss.to_string(), streckenabschnitt.farbe(), anschluss.serialisiere()),
-        )
+        AuswahlZustand { name, farbe, anschluss }
     }
 }
 
@@ -233,9 +212,16 @@ where
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = move || AuswahlZustand::neu(startwert.clone(), gleise);
+        let erzeuge_zustand = move || AuswahlZustand::neu(startwert.clone());
         let erzeuge_element = move |zustand: &AuswahlZustand| {
-            Self::erzeuge_element(zustand, scrollable_style, settings)
+            Self::erzeuge_element(
+                &gleise.aus_allen_streckenabschnitten(|name, streckenabschnitt| {
+                    Self::iter_map((name, streckenabschnitt))
+                }),
+                zustand,
+                scrollable_style,
+                settings,
+            )
         };
         let mapper = |interne_nachricht,
                       zustand: &mut AuswahlZustand,
@@ -249,9 +235,9 @@ where
                 InterneAuswahlNachricht::Hinzufügen => {
                     let nachricht = AuswahlNachricht::Hinzufügen(
                         None,
-                        Name(zustand.neu_name.clone()),
-                        zustand.neu_farbe,
-                        zustand.neu_anschluss.clone(),
+                        Name(zustand.name.clone()),
+                        zustand.farbe,
+                        zustand.anschluss.clone(),
                     );
                     vec![nachricht]
                 },
@@ -259,21 +245,21 @@ where
                     vec![AuswahlNachricht::Lösche(name)]
                 },
                 InterneAuswahlNachricht::Name(name) => {
-                    zustand.neu_name = name;
+                    zustand.name = name;
                     Vec::new()
                 },
                 InterneAuswahlNachricht::FarbeBestimmen(farbe) => {
-                    zustand.neu_farbe = farbe;
+                    zustand.farbe = farbe;
                     Vec::new()
                 },
                 InterneAuswahlNachricht::Anschluss(anschluss) => {
-                    zustand.neu_anschluss = anschluss;
+                    zustand.anschluss = anschluss;
                     Vec::new()
                 },
                 InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
-                    zustand.neu_name = name.0;
-                    zustand.neu_farbe = farbe;
-                    zustand.neu_anschluss = anschluss;
+                    zustand.name = name.0;
+                    zustand.farbe = farbe;
+                    zustand.anschluss = anschluss;
                     Vec::new()
                 },
             }
@@ -281,13 +267,25 @@ where
         Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
     }
 
+    /// Extrahiere zur Anzeige benötigte Informationen aus einen [`Streckenabschnitt`].
+    fn iter_map(
+        (name, streckenabschnitt): (&Name, &Streckenabschnitt),
+    ) -> (UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)) {
+        let anschluss = &*streckenabschnitt.lock_anschluss();
+        (
+            UniCaseOrd::neu(name.clone()),
+            (anschluss.to_string(), streckenabschnitt.farbe(), anschluss.serialisiere()),
+        )
+    }
+
     /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
+        streckenabschnitte: &BTreeMap<UniCaseOrd<Name>, (String, Farbe, OutputSerialisiert)>,
         auswahl_zustand: &AuswahlZustand,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
     ) -> Element<'a, InterneAuswahlNachricht, Thema, R> {
-        let AuswahlZustand { neu_name, neu_farbe, neu_anschluss, streckenabschnitte } =
+        let AuswahlZustand { name: neu_name, farbe: neu_farbe, anschluss: neu_anschluss } =
             auswahl_zustand;
 
         let einstellungen = Row::new()
