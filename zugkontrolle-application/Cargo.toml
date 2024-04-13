@@ -30,13 +30,15 @@ iced_widget.workspace = true
 iced.workspace = true
 int-enum.workspace = true
 itertools.workspace = true
-kommandozeilen_argumente.workspace = true
 log.workspace = true
 nonempty.workspace = true
 once_cell.workspace = true
 parking_lot.workspace = true
 serde.workspace = true
 take_mut.workspace = true
+
+[build-dependencies]
+cargo_metadata.workspace = true
 
 [dev-dependencies]
 zugkontrolle-test-util.workspace = true

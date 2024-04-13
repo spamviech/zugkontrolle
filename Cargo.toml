@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle"
-version = "5.0.0"
+version.workspace = true
 authors.workspace = true
 readme.workspace = true
 edition.workspace = true
@@ -23,12 +23,13 @@ members = [
 resolver = "2"
 
 [workspace.package]
+version = "5.0.0"
 authors = ["spamviech <spamviech@web.de>"]
 readme = "README.md"
 edition = "2021"
 license = "MIT"
 publish = false
-rust-version = "1.75"
+rust-version = "1.77.0"
 repository = "https://github.com/spamviech/zugkontrolle"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

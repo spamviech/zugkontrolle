@@ -3813,6 +3813,7 @@ name = "zugkontrolle-application"
 version = "0.1.0"
 dependencies = [
  "async-io",
+ "cargo_metadata",
  "difference",
  "either",
  "enum-iterator",
@@ -3824,7 +3825,6 @@ dependencies = [
  "iced_widget",
  "int-enum",
  "itertools 0.12.1",
- "kommandozeilen_argumente",
  "log",
  "nonempty 0.9.0",
  "once_cell",

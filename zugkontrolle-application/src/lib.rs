@@ -12,7 +12,6 @@ use std::{
 
 use flexi_logger::FlexiLoggerError;
 use iced::{application::Application, executor, Command, Element, Renderer, Subscription};
-use kommandozeilen_argumente::crate_version;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
@@ -204,8 +203,7 @@ where
     }
 
     fn title(&self) -> String {
-        // FIXME verwendet crate-version, nicht binary-version!
-        format!("Zugkontrolle {}", crate_version!())
+        format!("Zugkontrolle {}", env!("zugkontrolle_version"))
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
