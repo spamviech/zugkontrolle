@@ -18,3 +18,8 @@
     url = git@github.com:hanikesn/woff2otf.git
     branch = master
     shallow = true
+[submodule "python_scripts/nototools"]
+	path = python_scripts/nototools
+	url = git@github.com:notofonts/nototools.git
+    branch = main
+    shallow = true
