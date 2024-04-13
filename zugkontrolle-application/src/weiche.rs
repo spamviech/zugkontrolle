@@ -119,12 +119,11 @@ where
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu(
         weichen_art: &'t str,
-        weiche: Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
+        weiche: &Option<WeicheSerialisiert<RichtungInformation, AnschlüsseSerialisiert>>,
         hat_steuerung: bool,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = move || Zustand::neu(&weiche.clone(), hat_steuerung);
         let erzeuge_element = move |zustand: &_| {
             Self::erzeuge_element(weichen_art, zustand, scrollable_style, settings)
         };
@@ -154,7 +153,7 @@ where
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
-        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(Zustand::neu(weiche, hat_steuerung), erzeuge_element, mapper))
     }
 
     /// Erzeuge die Widget-Hierarchie.

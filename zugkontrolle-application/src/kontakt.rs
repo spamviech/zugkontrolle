@@ -110,13 +110,12 @@ where
     #[must_use]
     pub fn neu(
         gleis_art: &'t str,
-        kontakt: Option<KontaktSerialisiert>,
+        kontakt: &Option<KontaktSerialisiert>,
         hat_steuerung: bool,
         lager: &'t Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = move || Zustand::neu(&kontakt.clone(), hat_steuerung);
         let erzeuge_element = move |zustand: &_| {
             Self::erzeuge_element(gleis_art, zustand, lager, scrollable_style, settings)
         };
@@ -150,7 +149,7 @@ where
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
-        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(Zustand::neu(kontakt, hat_steuerung), erzeuge_element, mapper))
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.

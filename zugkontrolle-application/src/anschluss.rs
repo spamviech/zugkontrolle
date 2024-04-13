@@ -465,7 +465,7 @@ where
             };
             vec![nachricht]
         };
-        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(erzeuge_zustand(), erzeuge_element, mapper))
     }
 }
 
@@ -636,13 +636,13 @@ where
     /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
         let erzeuge_zustand = move || PwmZustand::neu(pin.map(pwm::Pin::pin));
-        Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))
+        Pwm(MapMitZustand::neu(erzeuge_zustand(), Self::erzeuge_element, Self::mapper))
     }
 
     /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu_s(start_pin: Option<pwm::Serialisiert>) -> Self {
         let erzeuge_zustand = move || PwmZustand::neu(start_pin.as_ref().map(|pin| pin.0));
-        Pwm(MapMitZustand::neu(erzeuge_zustand, Self::erzeuge_element, Self::mapper))
+        Pwm(MapMitZustand::neu(erzeuge_zustand(), Self::erzeuge_element, Self::mapper))
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Pwm`]-Widget.

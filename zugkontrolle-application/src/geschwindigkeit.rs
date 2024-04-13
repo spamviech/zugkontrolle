@@ -353,7 +353,7 @@ where
     #[allow(clippy::too_many_arguments)]
     /// Erstelle eine neue [`Auswahl`].
     fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>(
-        startwert: Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
+        startwert: &Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
@@ -370,15 +370,14 @@ where
         settings: I2cSettings,
     ) -> Self {
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
-        let auswahl_startwert = startwert.map(|(name, start_geschwindigkeit)| {
+        let auswahl_startwert = startwert.as_ref().map(|(name, start_geschwindigkeit)| {
             (
-                name,
+                name.clone(),
                 <L as LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>::auswahl_startwert(
                     start_geschwindigkeit,
                 ),
             )
         });
-        let erzeuge_zustand = move || AuswahlZustand::neu(auswahl_startwert.clone());
         let erzeuge_element = move |zustand: &AuswahlZustand| {
             Self::erzeuge_element::<L>(
                 geschwindigkeiten.iter().map(Self::iter_map).collect(),
@@ -390,7 +389,7 @@ where
             )
         };
         let mapper = Self::mapper(pwm_nachricht, ks_nachricht);
-        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(AuswahlZustand::neu(auswahl_startwert), erzeuge_element, mapper))
     }
 
     /// Konvertiere eine [`InterneAuswahlNachricht`] in eine [`AuswahlNachricht`].
@@ -685,7 +684,7 @@ where
                 InterneAuswahlNachricht::Bearbeiten(
                     name.clone().into_inner(),
                     <L as LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>::auswahl_startwert(
-                        anschlüsse.clone(),
+                        &anschlüsse,
                     ),
                 ),
             );
@@ -729,14 +728,14 @@ pub trait LeiterAnzeige<'t, S, Thema, R>: Leiter + Sized {
 
     /// Erstelle eine neue [`Auswahl`].
     fn auswahl_neu(
-        startwert: Option<(Name, GeschwindigkeitSerialisiert<S>)>,
+        startwert: &Option<(Name, GeschwindigkeitSerialisiert<S>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Auswahl<'t, S, Thema, R>;
 
     /// Erzeuge den [Startwert](AuswahlStartwert) für ein [`Auswahl`]-Widget.
-    fn auswahl_startwert(serialisiert: GeschwindigkeitSerialisiert<S>) -> AuswahlStartwert;
+    fn auswahl_startwert(serialisiert: &GeschwindigkeitSerialisiert<S>) -> AuswahlStartwert;
 }
 
 /// Zurücksetzen des Zustands des [`Anzeige`]-Widgets.
@@ -788,7 +787,7 @@ where
     }
 
     fn auswahl_neu(
-        startwert: Option<(Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>)>,
+        startwert: &Option<(Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -809,16 +808,18 @@ where
     }
 
     fn auswahl_startwert(
-        serialisiert: GeschwindigkeitSerialisiert<MittelleiterSerialisiert>,
+        serialisiert: &GeschwindigkeitSerialisiert<MittelleiterSerialisiert>,
     ) -> AuswahlStartwert {
-        match serialisiert.leiter {
-            MittelleiterSerialisiert::Pwm { pin, polarität } => {
-                AuswahlStartwert::Pwm { umdrehen_anschluss: None, pwm_pin: pin, polarität }
+        match &serialisiert.leiter {
+            MittelleiterSerialisiert::Pwm { pin, polarität } => AuswahlStartwert::Pwm {
+                umdrehen_anschluss: None,
+                pwm_pin: pin.clone(),
+                polarität: *polarität,
             },
             MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
                 AuswahlStartwert::KonstanteSpannung {
-                    umdrehen_anschluss: Some(umdrehen),
-                    geschwindigkeit_anschlüsse: geschwindigkeit,
+                    umdrehen_anschluss: Some(umdrehen.clone()),
+                    geschwindigkeit_anschlüsse: geschwindigkeit.clone(),
                 }
             },
         }
@@ -888,7 +889,7 @@ where
     }
 
     fn auswahl_neu(
-        startwert: Option<(Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>)>,
+        startwert: &Option<(Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -913,20 +914,20 @@ where
     }
 
     fn auswahl_startwert(
-        serialisiert: GeschwindigkeitSerialisiert<ZweileiterSerialisiert>,
+        serialisiert: &GeschwindigkeitSerialisiert<ZweileiterSerialisiert>,
     ) -> AuswahlStartwert {
-        match serialisiert.leiter {
+        match &serialisiert.leiter {
             ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 AuswahlStartwert::Pwm {
-                    umdrehen_anschluss: Some(fahrtrichtung),
-                    pwm_pin: geschwindigkeit,
-                    polarität,
+                    umdrehen_anschluss: Some(fahrtrichtung.clone()),
+                    pwm_pin: geschwindigkeit.clone(),
+                    polarität: *polarität,
                 }
             },
             ZweileiterSerialisiert::KonstanteSpannung { geschwindigkeit, fahrtrichtung } => {
                 AuswahlStartwert::KonstanteSpannung {
-                    umdrehen_anschluss: Some(fahrtrichtung),
-                    geschwindigkeit_anschlüsse: geschwindigkeit,
+                    umdrehen_anschluss: Some(fahrtrichtung.clone()),
+                    geschwindigkeit_anschlüsse: geschwindigkeit.clone(),
                 }
             },
         }

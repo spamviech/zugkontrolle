@@ -11,7 +11,7 @@ use iced_core::{
     event::{self},
     renderer::Renderer,
     widget::{self, operation::Operation},
-    Element, Length, Rectangle, Size, Vector,
+    Element, Rectangle, Vector,
 };
 use iced_widget::{component, Component};
 
@@ -20,10 +20,8 @@ use crate::flat_map::FlatMap;
 /// Ein Hilfs-[`Widget`], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
-    /// Das ursprüngliche Widget.
-    element: Element<'a, Intern, Thema, R>,
-    /// Der initiale Zustand, und ob es seit erzeugen des Widgets weiterhin der initiale Zustand gilt.
-    initialer_zustand: (Zustand, bool),
+    /// Der initiale Zustand.
+    initialer_zustand: Option<Zustand>,
     /// Erzeuge die Widget-Hierarchie.
     #[allow(clippy::type_complexity)]
     erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>>,
@@ -38,7 +36,6 @@ impl<Zustand: Debug, Intern, Extern, Thema, R> Debug
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("MapMitZustand")
-            .field("element", &"<Element>")
             .field("initialerZustand", &self.initialer_zustand)
             .field("erzeuge_element", &"<closure>")
             .field("mapper", &"<closure>")
@@ -49,15 +46,12 @@ impl<Zustand: Debug, Intern, Extern, Thema, R> Debug
 impl<'a, Zustand, Intern, Extern, Thema, R> MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Erzeuge einen neuen [`MapMitZustand`].
     pub fn neu(
-        erzeuge_zustand: impl 'a + Fn() -> Zustand,
+        initialer_zustand: Zustand,
         erzeuge_element: impl 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>,
         mapper: impl 'a + Fn(Intern, &mut Zustand, &mut event::Status) -> Vec<Extern>,
     ) -> Self {
-        let zustand = erzeuge_zustand();
-        let element = erzeuge_element(&zustand);
         MapMitZustand {
-            element,
-            initialer_zustand: (zustand, true),
+            initialer_zustand: Some(initialer_zustand),
             erzeuge_element: Box::new(erzeuge_element),
             mapper: Box::new(mapper),
         }
@@ -75,20 +69,15 @@ where
     type Event = Intern;
 
     fn update(&mut self, state: &mut Self::State, event: Self::Event) -> Option<Vec<Extern>> {
+        if let Some(zustand) = self.initialer_zustand.take() {
+            *state = zustand;
+        }
         let mut status = event::Status::Ignored;
         Some((self.mapper)(event, state, &mut status))
     }
 
     fn view(&self, state: &Self::State) -> Element<'_, Self::Event, Thema, R> {
-        (self.erzeuge_element)(state)
-    }
-
-    fn operate(&self, _state: &mut Self::State, _operation: &mut dyn Operation<Vec<Extern>>) {
-        // überlasse operate dem element
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.element.as_widget().size_hint()
+        (self.erzeuge_element)(self.initialer_zustand.as_ref().unwrap_or(state))
     }
 }
 

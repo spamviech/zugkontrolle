@@ -131,11 +131,11 @@ struct AuswahlZustand {
 impl AuswahlZustand {
     /// Erstelle einen neuen [`AuswahlZustand`].
     fn neu(
-        startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
+        startwert: &Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
     ) -> AuswahlZustand {
         let (name, farbe, anschluss) =
             if let Some((name, streckenabschnitt, _geschwindigkeit)) = startwert {
-                (name.0, streckenabschnitt.farbe(), streckenabschnitt.anschluss())
+                (name.0.clone(), streckenabschnitt.farbe(), streckenabschnitt.clone().anschluss())
             } else {
                 (
                     String::new(),
@@ -207,12 +207,11 @@ where
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu<L: Leiter, AktualisierenNachricht>(
-        startwert: Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
+        startwert: &Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
         gleise: &'a Gleise<L, AktualisierenNachricht>,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
     ) -> Self {
-        let erzeuge_zustand = move || AuswahlZustand::neu(startwert.clone());
         let erzeuge_element = move |zustand: &AuswahlZustand| {
             Self::erzeuge_element(
                 &gleise.aus_allen_streckenabschnitten(|name, streckenabschnitt| {
@@ -264,7 +263,7 @@ where
                 },
             }
         };
-        Auswahl(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(AuswahlZustand::neu(startwert), erzeuge_element, mapper))
     }
 
     /// Extrahiere zur Anzeige benötigte Informationen aus einen [`Streckenabschnitt`].

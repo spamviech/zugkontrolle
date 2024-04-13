@@ -121,7 +121,6 @@ where
         ScrollableStyle: 'a + Clone,
         <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
-        let erzeuge_zustand = || Zustand::neu(lizenzen);
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
@@ -135,7 +134,7 @@ where
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
-        Lizenzen(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        Lizenzen(MapMitZustand::neu(Zustand::neu(lizenzen), erzeuge_element, mapper))
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Lizenzen`]-Widget.

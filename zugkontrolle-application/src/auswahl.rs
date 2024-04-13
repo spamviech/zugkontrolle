@@ -176,22 +176,17 @@ impl<S> AuswahlZustand<S> {
             + From<lizenzen::Nachricht>,
     {
         match self {
-            AuswahlZustand::Streckenabschnitt(startwert) => {
-                Element::from(streckenabschnitt::Auswahl::neu(
-                    startwert.clone(),
-                    gleise,
-                    scrollable_style,
-                    i2c_settings,
-                ))
-                .map(Nachricht::from)
-            },
+            AuswahlZustand::Streckenabschnitt(startwert) => Element::from(
+                streckenabschnitt::Auswahl::neu(startwert, gleise, scrollable_style, i2c_settings),
+            )
+            .map(Nachricht::from),
             AuswahlZustand::Geschwindigkeit(startwert) => {
                 let geschwindigkeiten =
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
                         (name.clone(), geschwindigkeit.serialisiere())
                     });
                 Element::from(<L as LeiterAnzeige<S, Thema, Renderer>>::auswahl_neu(
-                    startwert.clone(),
+                    startwert,
                     geschwindigkeiten,
                     scrollable_style,
                     i2c_settings,
@@ -206,7 +201,7 @@ impl<S> AuswahlZustand<S> {
                 let kontakt_id_clone = kontakt_id.clone();
                 Element::from(kontakt::Auswahl::neu(
                     gleis_art,
-                    kontakt.clone(),
+                    kontakt,
                     *hat_steuerung,
                     lager,
                     scrollable_style,
@@ -223,7 +218,7 @@ impl<S> AuswahlZustand<S> {
                 let weichen_id_clone = weichen_id.clone();
                 Element::from(weiche::Auswahl::neu(
                     weichen_art,
-                    weiche.clone(),
+                    weiche,
                     *hat_steuerung,
                     scrollable_style,
                     i2c_settings,
@@ -234,7 +229,7 @@ impl<S> AuswahlZustand<S> {
                 let id_clone = id.clone();
                 Element::from(weiche::Auswahl::neu(
                     "Dreiwege-Weiche",
-                    dreiwege_weiche.clone(),
+                    dreiwege_weiche,
                     *hat_steuerung,
                     scrollable_style,
                     i2c_settings,
@@ -245,7 +240,7 @@ impl<S> AuswahlZustand<S> {
                 let id_clone = id.clone();
                 Element::from(weiche::Auswahl::neu(
                     "Kurven-Weiche",
-                    kurven_weiche.clone(),
+                    kurven_weiche,
                     *hat_steuerung,
                     scrollable_style,
                     i2c_settings,

@@ -64,7 +64,6 @@ where
     /// Erstelle ein [`SpeichernLaden`]-Widget.
     #[must_use]
     pub fn neu(initialer_pfad: &'a str, speichern_gefärbt: Option<bool>) -> Self {
-        let erzeuge_zustand = || Zustand::neu(initialer_pfad.to_owned());
         let erzeuge_element =
             move |zustand: &Zustand| Self::erzeuge_element(zustand, speichern_gefärbt);
         let mapper = |interne_nachricht, zustand: &mut Zustand, status: &mut event::Status| {
@@ -82,7 +81,11 @@ where
                 },
             }
         };
-        SpeichernLaden(MapMitZustand::neu(erzeuge_zustand, erzeuge_element, mapper))
+        SpeichernLaden(MapMitZustand::neu(
+            Zustand::neu(String::from(initialer_pfad)),
+            erzeuge_element,
+            mapper,
+        ))
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`SpeichernLaden`]-Widget.
