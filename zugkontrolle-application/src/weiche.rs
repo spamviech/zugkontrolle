@@ -1,9 +1,6 @@
 //! Einstellen der Steuerung einer [`Weiche`](crate::steuerung::weiche::Weiche).
 
-use std::{
-    fmt::{Debug, Display},
-    ops::DerefMut,
-};
+use std::fmt::{Debug, Display};
 
 use iced_aw::{
     tab_bar,
@@ -132,7 +129,7 @@ where
             Self::erzeuge_element(weichen_art, zustand, scrollable_style, settings)
         };
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
-                      zustand: &mut dyn DerefMut<Target = Zustand<AnschlüsseSerialisiert>>,
+                      zustand: &mut Zustand<AnschlüsseSerialisiert>,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {

@@ -1,6 +1,6 @@
 //! Pfadauswahl mit Speichern und Laden Knopf.
 
-use std::{fmt::Debug, ops::DerefMut};
+use std::fmt::Debug;
 
 use iced_core::{
     event, text as text_core,
@@ -67,9 +67,7 @@ where
         let erzeuge_zustand = || Zustand::neu(initialer_pfad.to_owned());
         let erzeuge_element =
             move |zustand: &Zustand| Self::erzeuge_element(zustand, speichern_gefärbt);
-        let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = Zustand>,
-                      status: &mut event::Status| {
+        let mapper = |interne_nachricht, zustand: &mut Zustand, status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {
                 InterneNachricht::Speichern => {

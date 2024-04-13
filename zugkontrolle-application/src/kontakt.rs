@@ -1,6 +1,6 @@
 //! Einstellen der Steuerung eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
 
-use std::{fmt::Debug, ops::DerefMut};
+use std::fmt::Debug;
 
 use iced_aw::{
     tab_bar,
@@ -121,7 +121,7 @@ where
             Self::erzeuge_element(gleis_art, zustand, lager, scrollable_style, settings)
         };
         let mapper = |interne_nachricht: InterneNachricht,
-                      zustand: &mut dyn DerefMut<Target = Zustand>,
+                      zustand: &mut Zustand,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {

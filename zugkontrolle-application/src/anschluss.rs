@@ -1,7 +1,5 @@
 //! Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 
-use std::ops::DerefMut;
-
 use iced_aw::{
     number_input, style, tab_bar,
     widgets::{NumberInput, TabLabel, Tabs},
@@ -439,7 +437,7 @@ where
             Self::erzeuge_element(zustand, &view_modus, zeige_modus, scrollable_style, settings)
         };
         let mapper = move |interne_nachricht,
-                           zustand: &mut dyn DerefMut<Target = Zustand<Modus>>,
+                           zustand: &mut Zustand<Modus>,
                            status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {
@@ -655,7 +653,7 @@ where
     /// Konvertiere die interne Nachricht für ein [`Pwm`]-Widget.
     fn mapper(
         nachricht: pwm::Serialisiert,
-        zustand: &mut (dyn DerefMut<Target = PwmZustand>),
+        zustand: &mut PwmZustand,
         status: &mut event::Status,
     ) -> Vec<pwm::Serialisiert> {
         *status = event::Status::Captured;

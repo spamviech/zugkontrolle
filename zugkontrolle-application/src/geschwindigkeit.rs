@@ -4,7 +4,6 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::{self, Debug, Display, Formatter},
     num::NonZeroUsize,
-    ops::DerefMut,
     time::Duration,
 };
 
@@ -432,7 +431,7 @@ where
     ) -> impl 't
            + Fn(
         InterneAuswahlNachricht,
-        &mut (dyn DerefMut<Target = AuswahlZustand<LeiterSerialisiert>>),
+        &mut AuswahlZustand<LeiterSerialisiert>,
         &mut event::Status,
     ) -> Vec<AuswahlNachricht<LeiterSerialisiert>> {
         |interne_nachricht, zustand, status| {

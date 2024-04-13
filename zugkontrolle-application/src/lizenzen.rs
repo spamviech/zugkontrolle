@@ -3,7 +3,6 @@
 use std::{
     borrow::Cow,
     collections::{BTreeMap, HashMap},
-    ops::DerefMut,
 };
 
 use iced_core::{
@@ -126,9 +125,7 @@ where
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
-        let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = Zustand>,
-                      status: &mut event::Status| {
+        let mapper = |interne_nachricht, zustand: &mut Zustand, status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {
                 InterneNachricht::Aktuell(name, erzeuge_lizenz_text) => {

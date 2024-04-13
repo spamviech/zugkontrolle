@@ -3,7 +3,6 @@
 use std::{
     collections::BTreeMap,
     fmt::{self, Debug, Formatter},
-    ops::DerefMut,
 };
 
 use iced_aw::{
@@ -239,7 +238,7 @@ where
             Self::erzeuge_element(zustand, scrollable_style, settings)
         };
         let mapper = |interne_nachricht,
-                      zustand: &mut dyn DerefMut<Target = AuswahlZustand>,
+                      zustand: &mut AuswahlZustand,
                       status: &mut event::Status| {
             *status = event::Status::Captured;
             match interne_nachricht {
