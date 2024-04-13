@@ -3,9 +3,6 @@
 use iced_core::{text as text_core, Element, Font};
 use iced_widget::{text, Text};
 
-// TODO replace with bootstrap-feature from iced_aw
-// Wurde aktualisiert -> alle benötigten Symbole enthalten :)
-// Alternativ: Durch kleinere Schriftart mit nur den verwendeten Symbolen ersetzen.
 use crate::fonts::BOOTSTRAP;
 
 /// Icons aus der Schriftart bootstrap-icons <https://icons.getbootstrap.com/>.

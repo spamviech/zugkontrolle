@@ -13,11 +13,6 @@
     url = git@github.com:twbs/icons.git
     branch = main
     shallow = true
-[submodule "fonts/woff2otf"]
-    path = python_scripts/woff2otf
-    url = git@github.com:hanikesn/woff2otf.git
-    branch = master
-    shallow = true
 [submodule "python_scripts/nototools"]
 	path = python_scripts/nototools
 	url = git@github.com:notofonts/nototools.git

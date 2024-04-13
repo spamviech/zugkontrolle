@@ -17,7 +17,7 @@ pub static REGULAR_BYTES: &[u8] =
     include_bytes!("../../fonts/source-serif/TTF/SourceSerif4-Regular.ttf");
 
 /// Die Bytes für die Schriftart [`Bootstrap`], damit sie von iced geladen werden kann.
-pub static BOOTSTRAP_BYTES: &[u8] = include_bytes!("../../fonts/bootstrap-icons.otf");
+pub static BOOTSTRAP_BYTES: &[u8] = include_bytes!("../../fonts/bootstrap-icons.ttf");
 
 /// Schriftart ohne zusätzliche Eigenschaften.
 pub static BOOTSTRAP: Font = Font::with_name("bootstrap-icons");
