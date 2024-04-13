@@ -1,5 +1,7 @@
-//! Verwalten und Anzeige der Gleis-Definitionen auf einem
-//! [`Canvas`](iced::widget::canvas::Canvas).
+//! Verwalten und Anzeige der Gleis-Definitionen auf einem [`Canvas`](iced::widget::canvas::Canvas).
+
+// Zu viele/große dependencies, um das wirklich zu vermeiden.
+#![allow(clippy::multiple_crate_versions)]
 
 use std::{collections::HashMap, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant};
 

@@ -1,5 +1,8 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
+// Zu viele/große dependencies, um das wirklich zu vermeiden.
+#![allow(clippy::multiple_crate_versions)]
+
 use std::{
     any::TypeId,
     fmt::{self, Display, Formatter},

@@ -1,5 +1,8 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
+// Zu viele/große dependencies, um das wirklich zu vermeiden.
+#![allow(clippy::multiple_crate_versions)]
+
 use crate::{
     canvas::{pfad::Pfad, Position},
     farbe::Farbe,

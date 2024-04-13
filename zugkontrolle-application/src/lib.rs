@@ -1,5 +1,7 @@
 //! [`Application`] für die Gleis-Anzeige.
 
+// Zu viele/große dependencies, um das wirklich zu vermeiden.
+#![allow(clippy::multiple_crate_versions)]
 // Erlaube mehr rekursive Aufrufe von Macros.
 #![recursion_limit = "256"]
 
@@ -273,7 +275,7 @@ where
             },
             Nachricht::Thema(thema) => self.setze_thema(thema),
             Nachricht::AuswahlFenster(auswahl_zustand) => {
-                self.aktualisiere_auswahlzustand(auswahl_zustand)
+                self.aktualisiere_auswahlzustand(auswahl_zustand);
             },
             Nachricht::MessageBox(message_box) => self.aktualisiere_message_box(message_box),
             Nachricht::AsyncAktualisieren { gleise_neuzeichnen } => {
