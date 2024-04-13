@@ -21,6 +21,7 @@ workspace = true
 zugkontrolle-macros.workspace = true
 log.workspace = true
 parking_lot.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 zugkontrolle-test-util.workspace = true

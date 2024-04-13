@@ -141,7 +141,7 @@ where
     <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de> + Send,
     <L as Leiter>::Fahrtrichtung:
         Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
-    S: 'static + Debug + Clone + Default + Eq + Hash + Unpin + Send,
+    S: 'static + Debug + Display + Clone + Default + Eq + Hash + Unpin + Send,
     S: Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
         + Serialize
         + for<'de> Deserialize<'de>,

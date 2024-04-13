@@ -18,6 +18,7 @@ use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 
+use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_util::{
     eingeschränkt::{kleiner_128, kleiner_8},
@@ -273,7 +274,8 @@ impl I2cBus {
 }
 
 /// Der [`Port`] wird bereits verwendet.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+#[error("Pcf8574-Port {beschreibung}-{port} wird bereits verwendet!")]
 pub struct InVerwendung {
     /// [Beschreibung] des [`Pcf8574`]s.
     pub beschreibung: Beschreibung,
@@ -884,9 +886,10 @@ impl InputPort {
 }
 
 /// Ein bei Interaktion mit einem [`Pcf8574`] aufgetretener Fehler.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Fehler {
     /// Fehler beim I2C-Channel.
+    #[error("I2C-Fehler bei Interaktion Pcf8574 {beschreibung}: {fehler:?}")]
     I2c {
         /// Beschreibung des [`Pcf8574`].
         beschreibung: Beschreibung,
@@ -894,14 +897,13 @@ pub enum Fehler {
         fehler: i2c::Error,
     },
     /// Ein Fehler bei den assoziierten [`Pin`]s.
+    #[error("Gpio-Fehler bei Interaktion Pcf8574 {beschreibung}: {fehler:?}")]
     Gpio {
         /// Die Beschreibung des [`Pcf8574`].
         beschreibung: Beschreibung,
         /// Der aufgetretene Fehler.
         fehler: gpio::Error,
     },
-    /// Für den [`Pcf8574`] ist kein Interrupt-Pin konfiguriert.
-    KeinInterruptPin(Beschreibung),
 }
 
 #[cfg(test)]

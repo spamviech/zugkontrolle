@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use flexi_logger::{LogSpecBuilder, Logger, LoggerHandle};
 use log::LevelFilter;
 use parking_lot::{const_mutex, Mutex};
+use thiserror::Error;
 
 /// Hilfs-Variable für [`init_test_logging`].
 /// Sorgt dafür, dass nur der erste Aufruf einen Logger registriert.
@@ -60,8 +61,9 @@ pub fn expect_true(wert: bool) -> Result<(), ExpectTrue> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 /// Es wurde die Gleichheit zweier Werte erwartet.
+#[error("Expected {0:?} and {1:?} to be equal!")]
 pub struct ExpectEq(Box<dyn Debug>, Box<dyn Debug>);
 
 #[allow(clippy::missing_errors_doc)]
@@ -71,8 +73,9 @@ pub fn expect_eq<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), Expec
     expect_true(a == b).map_err(|_expect_true| ExpectEq(Box::new(a), Box::new(b)))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 /// Es wurde ein Unterschied zweier Werte erwartet.
+#[error("Expected {0:?} and {1:?} to be different!")]
 pub struct ExpectNe(Box<dyn Debug>, Box<dyn Debug>);
 
 #[allow(clippy::missing_errors_doc)]
@@ -82,8 +85,9 @@ pub fn expect_ne<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), Expec
     expect_true(a != b).map_err(|_expect_true| ExpectNe(Box::new(a), Box::new(b)))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 /// Es wurde er erwartet, dass der erste Wert größer ist.
+#[error("Expected {0:?} to be greater than {1:?}!")]
 pub struct ExpectGt(Box<dyn Debug>, Box<dyn Debug>);
 
 #[allow(clippy::missing_errors_doc)]

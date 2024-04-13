@@ -2,7 +2,7 @@
 
 use std::{
     borrow::Cow,
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
 };
 
 #[cfg(test)]
@@ -185,6 +185,12 @@ pub enum MITZeilenumbruch {
     QuickXml,
     /// Keine Zeilenumbrüche, außer den Leerzeilen.
     Keine,
+}
+
+impl Display for MITZeilenumbruch {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        <Self as Debug>::fmt(self, formatter)
+    }
 }
 
 /// Das Ende einer MIT-Lizenz.

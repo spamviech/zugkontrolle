@@ -166,7 +166,7 @@ pub use ::rppal::gpio::InputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
-pub struct InputPin(Pin, Bias);
+pub struct InputPin(Pin, #[allow(dead_code)] Bias);
 
 #[cfg(not(feature = "raspi"))]
 impl PartialEq for InputPin {

@@ -1,5 +1,9 @@
 //! Test ob die angezeigten Lizenzen mit den wirklichen Lizenzen übereinstimmen.
 
+// False-positive bei UnbekanntesTarget.
+// Aus irgend einem Grund muss es für das gesamte Modul deaktiviert werden...
+#![allow(single_use_lifetimes)]
+
 use std::{
     borrow::Cow,
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
@@ -16,6 +20,7 @@ use itertools::Itertools;
 use log::error;
 use nonempty::NonEmpty;
 
+use thiserror::Error;
 use zugkontrolle_test_util::init_test_logging;
 use zugkontrolle_util::unicase_ord::UniCaseOrd;
 
@@ -39,8 +44,9 @@ impl<T: Display> Display for OptionD<'_, T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 /// Das verwendete Target wird nicht unterstützt.
+#[error("Unbekanntes target: {0}")]
 struct UnbekanntesTarget<'t>(&'t str);
 
 macro_rules! count_literals {
@@ -364,7 +370,7 @@ fn passende_lizenzen() -> Result<(), (BTreeSet<(&'static str, &'static str)>, us
                         if mit_changeset.diffs.iter().any(is_non_whitespace_same) {
                             writeln!(
                                 fehlermeldung,
-                                "\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche:?}\n{}",
+                                "\nNächste MIT-Zeilenumbrüche: {zeilenumbrüche}\n{}",
                                 changeset_als_string(mit_changeset)
                             )
                             .unwrap();

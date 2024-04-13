@@ -309,12 +309,15 @@ where
                 Deserialisieren { fehler, wiederherstellen_fehler } => {
                     let titel = "Anschlüsse anpassen!".to_owned();
                     let mut nachricht = format!("{fehler:?}");
-                    if let Some((w_fehler, anschlüsse)) = wiederherstellen_fehler {
-                        write!(
-                            nachricht,
-                            "\nFehler beim wiederherstellen der Anschlüsse: {w_fehler:?}\n{anschlüsse}"
-                        )
-                        .expect("write! auf einem String fehlgeschlagen!");
+                    if let Some((w_fehler_liste, anschlüsse)) = wiederherstellen_fehler {
+                        writeln!(nachricht, "\nFehler beim wiederherstellen der Anschlüsse:")
+                            .expect("write! auf einem String fehlgeschlagen!");
+                        for w_fehler in w_fehler_liste {
+                            writeln!(nachricht, "- {w_fehler}")
+                                .expect("write! auf einem String fehlgeschlagen!");
+                        }
+                        write!(nachricht, "{anschlüsse}")
+                            .expect("write! auf einem String fehlgeschlagen!");
                     }
                     fehlermeldung = Some((titel, nachricht));
                 },
@@ -354,8 +357,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer> + Display, S> Zugkontrolle<L, 
 
 impl<'t, L, S> Zugkontrolle<L, S>
 where
-    L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S> + Display,
-    S: Debug + Clone + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
+    L: Display + LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
+    S: Display + Clone + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
     /// Füge eine  [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
@@ -385,7 +388,7 @@ where
                         self.aktualisiere_message_box(Some(MessageBox {
                             titel: format!("Geschwindigkeit {} anpassen", name.0),
                             nachricht: format!(
-                                "Geschwindigkeit {} angepasst: {:?}",
+                                "Geschwindigkeit {} angepasst: {}",
                                 name.0, serialisiert
                             ),
                         }));
@@ -424,11 +427,15 @@ where
                     .gleise
                     .geschwindigkeit_hinzufügen(name.clone(), ursprüngliche_geschwindigkeit);
             }
-            if let Some(fehler_wiederherstellen) = fehler_wiederherstellen {
-                write!(
-                    fehlermeldung,
-                    "\nFehler beim Wiederherstellen: {fehler_wiederherstellen:?}\nGeschwindigkeit {serialisiert_clone:?} entfernt."
-                ).expect("write! auf einem String fehlgeschlagen!");
+            if let Some(w_fehler_liste) = fehler_wiederherstellen {
+                writeln!(fehlermeldung, "\nFehler beim Wiederherstellen:")
+                    .expect("write! auf einem String fehlgeschlagen!");
+                for w_fehler in w_fehler_liste {
+                    writeln!(fehlermeldung, "- {w_fehler}")
+                        .expect("write! auf einem String fehlgeschlagen!");
+                }
+                write!(fehlermeldung, "Geschwindigkeit {serialisiert_clone} entfernt.")
+                    .expect("write! auf einem String fehlgeschlagen!");
             }
         }
 

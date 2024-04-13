@@ -225,7 +225,7 @@ unreachable = "allow"                    # unreachable wird verwendet um Invaria
 unseparated_literal_suffix = "allow"     # separated_literal_suffix aktiviert
 unwrap_in_result = "allow"               # führt nur dazu nicht-behandelbare Fehler-Varianten hinzufügen zu müssen
 unwrap_used = "warn"
-use_debug = "allow"                      # TODO wird aktuell für die meisten Fehlermeldungen verwendet. Allow, bis andere Lints adressiert wurden.
+use_debug = "warn"
 verbose_file_reads = "warn"
 wildcard_enum_match_arm = "warn"
 
@@ -295,6 +295,7 @@ proc-macro2 = "1.0.36"
 quote = "1.0.15"
 rstar = "0.12.0"
 take_mut = "0.2.2"
+thiserror = "1.0.58"
 unicase = "2.6.0"
 
 [workspace.dependencies.kommandozeilen_argumente]

@@ -13,6 +13,7 @@ use std::{
 
 use log::{error, trace};
 use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
+use thiserror::Error;
 
 /// Zahlen-typ, der über [`Id::repräsentation`] erhalten werden kann.
 ///
@@ -89,7 +90,8 @@ impl<T> Drop for Id<T> {
 }
 
 /// Alle [`Ids`](Id) wurden bereits verwendet. Es ist aktuell keine eindeutige [`Id`] verfügbar.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Error)]
+#[error("Es ist keine Id für den Typ {type_name} verfügbar!")]
 pub struct KeineIdVerfügbar {
     /// Die [`TypeId`] des Typs für den eine [`Id`] gewünscht wurde.
     #[allow(dead_code)]

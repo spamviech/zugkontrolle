@@ -3,7 +3,7 @@
 use std::{
     any::{type_name, TypeId},
     collections::hash_map::HashMap,
-    fmt::Debug,
+    fmt::{self, Debug, Display, Formatter},
 };
 
 use iced::{
@@ -21,6 +21,7 @@ use rstar::{
     RTree, RTreeObject, SelectionFunction, AABB,
 };
 
+use thiserror::Error;
 use zugkontrolle_anschluss::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     polarität::Fließend,
@@ -822,7 +823,8 @@ impl GleiseDaten {
 }
 
 /// Fehler beim [`entfernen`](crate::gleise::Gleise::entfernen) eines Gleises.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
+#[error("Fehler beim entfernen des Gleises {0:?}!")]
 pub struct EntfernenFehler(AnyId);
 
 impl GleiseDaten {
@@ -853,8 +855,28 @@ impl GleiseDaten {
 }
 
 /// Fehler beim [setzen des Streckenabschnitts](crate::gleise::Gleise::setzte_streckenabschnitt) eines Gleises.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
 pub struct SetzteStreckenabschnittFehler(AnyId, Option<streckenabschnitt::Name>);
+
+impl Display for SetzteStreckenabschnittFehler {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        // Darstellen der Id nur über Debug möglich.
+        #[allow(clippy::use_debug)]
+        match &self.1 {
+            Some(streckenabschnitt) => {
+                write!(formatter,
+                "Fehler beim setzten den Streckenabschnittes {streckenabschnitt} für Gleis {:?}!",self.0)
+            },
+            None => {
+                write!(
+                    formatter,
+                    "Fehler beim entfernen des Streckenabschnittes für Gleis {:?}",
+                    self.0
+                )
+            },
+        }
+    }
+}
 
 impl GleiseDaten {
     /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [`GleisId`].
@@ -931,7 +953,8 @@ pub enum SteuerungAktualisierenFehler {
 }
 
 /// Das Gleis wurde nicht gefunden.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
+#[error("Gleis {0:?} nicht gefunden!")]
 pub struct GleisNichtGefunden(AnyId);
 
 impl GleiseDaten {

@@ -12,6 +12,7 @@
   - Entferne Trigonometrie-Trait. Verwende statt dessen Methoden auf dem `Winkel`-Typ.
   - Entferne Modal-Zustand. Verwende stattdessen Nachrichten & Konstruktor-Parameter.
   - Füge padding beim bewegen-Widget hinzu.
+  - Zugkontrolle-Parameter `S` muss zusätzlich `Display` implementieren.
 - Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
 - Verwende PickList für Modus-Auswahl.
 - Anpassen der Widget-Anordnung der Kopf-Leiste.
@@ -19,6 +20,7 @@
   - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
   - Zeige Gleise direkt nach dem hinzufügen an.
   - Korrigiere Offset bei gedrehtem Canvas.
+- Ersetzte Debug-Ausgaben für Fehler durch Display-Ausgabe über `thiserror::Error`
 - Aktualisiere auf iced v0.12
 
 ## 4.0.3

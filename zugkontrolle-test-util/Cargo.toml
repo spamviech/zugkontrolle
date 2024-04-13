@@ -22,3 +22,4 @@ zugkontrolle-macros.workspace = true
 flexi_logger.workspace = true
 log.workspace = true
 parking_lot.workspace = true
+thiserror.workspace = true

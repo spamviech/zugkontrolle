@@ -11,6 +11,7 @@ use std::{
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
+use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_util::eingeschränkt::kleiner_8;
@@ -664,25 +665,31 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 }
 
 /// Fehler, die beim reservieren eines [`Anschluss`]es auftreten können.
-#[derive(Debug, zugkontrolle_macros::From)]
+#[derive(Debug, Error)]
 #[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     /// Ein Fehler beim reservieren eines [`Pin`]s.
-    Pin(pin::ReservierenFehler),
+    #[error(transparent)]
+    Pin(#[from] pin::ReservierenFehler),
     /// Ein [`Pcf8574-Port`](pcf8574::Port) wird bereits verwendet.
-    Pcf8574(pcf8574::InVerwendung),
+    #[error(transparent)]
+    Pcf8574(#[from] pcf8574::InVerwendung),
 }
 
 /// Fehler, die bei Interaktion mit einem [`Anschluss`] auftreten können.
-#[derive(Debug, zugkontrolle_macros::From)]
+#[derive(Debug, Error)]
 pub enum Fehler {
     /// Ein Fehler mit einem [`Input-Pin`](input::Pin).
-    Input(input::Fehler),
+    #[error(transparent)]
+    Input(#[from] input::Fehler),
     /// Ein Fehler mit einem [`Pcf8574-Port`](pcf8574::Port).
-    Pcf8574(pcf8574::Fehler),
+    #[error(transparent)]
+    Pcf8574(#[from] pcf8574::Fehler),
     /// Ein Fehler beim Reservieren eines [`Anschluss`]es.
-    Reservieren(ReservierenFehler),
+    #[error(transparent)]
+    Reservieren(#[from] ReservierenFehler),
     /// Ein Gleis wurde mit unbekannter [`DefinitionId`] gespeichert.
+    #[error("Die Definition mit der Id {id} für Typ {type_name} ist nicht bekannt!")]
     UnbekannteGespeicherteDefinition {
         /// Die gespeicherte Id.
         id: zugkontrolle_id::Repräsentation,
@@ -693,7 +700,8 @@ pub enum Fehler {
     },
     /// Alle [`Ids`](crate::gleise::id::eindeutig::Id) wurden bereits verwendet.
     /// Es ist aktuell keine eindeutige [`Id`](crate::gleise::id::eindeutig::Id) verfügbar.
-    KeineIdVerfügbar(KeineIdVerfügbar),
+    #[error(transparent)]
+    KeineIdVerfügbar(#[from] KeineIdVerfügbar),
 }
 
 impl From<pin::ReservierenFehler> for Fehler {

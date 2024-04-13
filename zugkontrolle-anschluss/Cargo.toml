@@ -33,6 +33,7 @@ num-traits.workspace = true
 parking_lot.workspace = true
 serde.workspace = true
 take_mut.workspace = true
+thiserror.workspace = true
 
 # can't be used on non-raspi systems
 [dependencies.rppal]

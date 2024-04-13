@@ -1,5 +1,7 @@
 //! Gpio [`Pins`](Pin) konfiguriert für Input.
 
+use thiserror::Error;
+
 use crate::{level::Level, rppal::gpio, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
@@ -68,7 +70,8 @@ impl Pin {
 }
 
 /// Ein Fehler bei Interaktion mit einem Input-[`Pin`].
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("Fehler bei Interaktion mit Input-Pin {pin}: {fehler:?}")]
 pub struct Fehler {
     /// Der betroffene Pin.
     pub pin: u8,

@@ -3801,6 +3801,7 @@ dependencies = [
  "rppal",
  "serde",
  "take_mut",
+ "thiserror",
  "zugkontrolle-argumente",
  "zugkontrolle-id",
  "zugkontrolle-macros",
@@ -3831,6 +3832,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "serde",
  "take_mut",
+ "thiserror",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
@@ -3883,6 +3885,7 @@ dependencies = [
  "once_cell",
  "rstar",
  "serde",
+ "thiserror",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
@@ -3898,6 +3901,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "parking_lot 0.12.1",
+ "thiserror",
  "zugkontrolle-macros",
  "zugkontrolle-test-util",
 ]
@@ -3921,6 +3925,7 @@ dependencies = [
  "flexi_logger",
  "log",
  "parking_lot 0.12.1",
+ "thiserror",
  "zugkontrolle-macros",
 ]
 

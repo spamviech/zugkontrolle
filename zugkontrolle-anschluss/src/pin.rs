@@ -1,5 +1,6 @@
 //! Gpio [`Pin`] in verschiedenen Konfigurationen.
 
+use thiserror::Error;
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{level::Level, pwm::Pwm, rppal};
@@ -36,7 +37,8 @@ impl Lager {
 }
 
 /// Fehler beim reservieren eines [`Pins`](Pin).
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("Fehler beim Reservieren von Pin {pin}: {fehler:?}")]
 pub struct ReservierenFehler {
     /// Der gewünschte [`Pin`].
     pub pin: u8,
