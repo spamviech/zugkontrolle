@@ -15,7 +15,7 @@ use iced_core::{
     Element, Length, Point, Rectangle, Shell, Size, Vector,
 };
 
-use crate::map_mit_zustand::MapOperation;
+use crate::map_operation::MapOperation;
 
 ///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]

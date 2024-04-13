@@ -18,7 +18,7 @@ use iced_core::{
 };
 use iced_widget::container;
 
-use crate::{map_mit_zustand::MapOperation, style};
+use crate::{map_operation::MapOperation, style};
 
 /// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
 pub struct Modal<'a, Nachricht, Thema, R> {
