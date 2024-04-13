@@ -688,7 +688,7 @@ where
                     ),
                 ),
             );
-            let löschen = Button::new(Text::new("X"))
+            let löschen = Button::new(Icon::neu(Bootstrap::Trash))
                 .on_press(InterneAuswahlNachricht::Löschen(name.clone().into_inner()));
             let geschwindigkeit = Column::new()
                 .push(Text::new(name.as_ref().to_owned()))

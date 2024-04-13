@@ -332,7 +332,7 @@ where
                         ),
                     ))
                     .push(
-                        Button::new(Text::new("X"))
+                        Button::new(Icon::neu(Bootstrap::Trash))
                             .on_press(InterneAuswahlNachricht::Lösche(name.clone().into_inner())),
                     ),
             );
