@@ -199,7 +199,7 @@ impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>
     From<Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>>
     for Element<'t, Nachricht<RichtungInformation, AnschlüsseSerialisiert>, Thema, R>
 where
-    AnschlüsseSerialisiert: 'static + Default,
+    AnschlüsseSerialisiert: 'static + Clone,
     Richtung: 't,
     RichtungInformation: 't,
     Thema: 't,

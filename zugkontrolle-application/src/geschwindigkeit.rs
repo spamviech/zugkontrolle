@@ -185,7 +185,7 @@ enum TabId {
 }
 
 /// Zustand für das Auswahl-Fenster zum Erstellen und Anpassen einer [`Geschwindigkeit`].
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct AuswahlZustand {
     /// Der aktuell gewählte Name.
     neu_name: String,

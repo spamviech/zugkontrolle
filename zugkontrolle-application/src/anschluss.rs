@@ -39,7 +39,7 @@ enum TabId {
 }
 
 /// Zustand eines Widgets zur Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Zustand<T> {
     /// Welche Tab-Seite wird angezeigt.
     active_tab: TabId,
@@ -593,7 +593,7 @@ impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>>
     for Element<'a, Serialisiert, Thema, R>
 where
-    Modus: 'static + Default,
+    Modus: 'static + Clone,
     ModusNachricht: 'a,
     Serialisiert: 'a,
     Thema: 'a,
@@ -605,7 +605,7 @@ where
 }
 
 /// Zustand eines Widgets zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct PwmZustand {
     /// Der aktuell gewählte Pin.
     pin: u8,

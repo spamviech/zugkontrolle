@@ -16,7 +16,7 @@ use iced_widget::{
 use crate::{map_mit_zustand::MapMitZustand, style};
 
 /// Zustand von [`SpeichernLaden`].
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Zustand {
     /// Der aktuell gewählte Pfad.
     aktueller_pfad: String,

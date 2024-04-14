@@ -19,7 +19,7 @@ use crate::flat_map::FlatMap;
 /// mit potentieller Mutation eines Zustands erlaubt.
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Der initiale Zustand.
-    initialer_zustand: Option<Zustand>,
+    initialer_zustand: Zustand,
     /// Erzeuge die Widget-Hierarchie.
     #[allow(clippy::type_complexity)]
     erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>>,
@@ -49,7 +49,7 @@ impl<'a, Zustand, Intern, Extern, Thema, R> MapMitZustand<'a, Zustand, Intern, E
         mapper: impl 'a + Fn(Intern, &mut Zustand, &mut event::Status) -> Vec<Extern>,
     ) -> Self {
         MapMitZustand {
-            initialer_zustand: Some(initialer_zustand),
+            initialer_zustand,
             erzeuge_element: Box::new(erzeuge_element),
             mapper: Box::new(mapper),
         }
@@ -59,30 +59,30 @@ impl<'a, Zustand, Intern, Extern, Thema, R> MapMitZustand<'a, Zustand, Intern, E
 impl<Zustand, Intern, Extern, Thema, R> Component<Vec<Extern>, Thema, R>
     for MapMitZustand<'_, Zustand, Intern, Extern, Thema, R>
 where
-    Zustand: Default,
+    Zustand: Clone,
     R: Renderer,
 {
-    type State = Zustand;
+    type State = Option<Zustand>;
 
     type Event = Intern;
 
     fn update(&mut self, state: &mut Self::State, event: Self::Event) -> Option<Vec<Extern>> {
-        if let Some(zustand) = self.initialer_zustand.take() {
-            *state = zustand;
-        }
+        let MapMitZustand { initialer_zustand, erzeuge_element: _, mapper } = self;
+        let zustand = state.get_or_insert(initialer_zustand.clone());
         let mut status = event::Status::Ignored;
-        Some((self.mapper)(event, state, &mut status))
+        Some(mapper(event, zustand, &mut status))
     }
 
     fn view(&self, state: &Self::State) -> Element<'_, Self::Event, Thema, R> {
-        (self.erzeuge_element)(self.initialer_zustand.as_ref().unwrap_or(state))
+        let MapMitZustand { initialer_zustand, erzeuge_element, mapper: _ } = self;
+        erzeuge_element(state.as_ref().unwrap_or(initialer_zustand))
     }
 }
 
 impl<'a, Zustand, Intern, Extern, Thema, R>
     From<MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>> for Element<'a, Extern, Thema, R>
 where
-    Zustand: 'static + Default,
+    Zustand: 'static + Clone,
     Intern: 'a,
     Extern: 'a,
     Thema: 'a,
