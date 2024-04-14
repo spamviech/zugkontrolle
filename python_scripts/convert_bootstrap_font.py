@@ -18,4 +18,4 @@ woff_dir: str = os.path.join(font_dir, "bootstrap-icons/font/fonts")
 woff_path: str = os.path.join(woff_dir, "bootstrap-icons.woff")
 ttf_path: str = os.path.join(font_dir, "bootstrap-icons.ttf")
 
-subset_font(woff_path, ttf_path, include=[0xF7BF, 0xF7BF, 0xF7BF])
+subset_font(woff_path, ttf_path, include=[0xF7BF, 0xf392, 0xf7d8, 0xF7BF, 0xF7BF])

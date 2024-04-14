@@ -2,18 +2,18 @@
 
 use std::fmt::Debug;
 
-use iced_core::{
-    event, text as text_core,
-    widget::text::{self, Text},
-    Alignment, Element, Length,
-};
+use iced_core::{event, text as text_core, widget::text, Alignment, Element, Font, Length};
 use iced_widget::{
     button::{self, Button},
     text_input::{self, TextInput},
     Column, Row,
 };
 
-use crate::{map_mit_zustand::MapMitZustand, style};
+use crate::{
+    bootstrap::{Bootstrap, Icon},
+    map_mit_zustand::MapMitZustand,
+    style,
+};
 
 /// Zustand von [`SpeichernLaden`].
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -60,6 +60,7 @@ where
     R: 'a + text_core::Renderer,
     Thema: 'a + button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
     <Thema as button::StyleSheet>::Style: From<style::Button>,
+    <R as text_core::Renderer>::Font: From<Font>,
 {
     /// Erstelle ein [`SpeichernLaden`]-Widget.
     #[must_use]
@@ -96,7 +97,7 @@ where
         let Zustand { aktueller_pfad } = zustand;
 
         let speichern_ungefärbt =
-            Button::new(Text::new("Speichern")).on_press(InterneNachricht::Speichern);
+            Button::new(Icon::neu(Bootstrap::Floppy)).on_press(InterneNachricht::Speichern);
         let speichern_style = match speichern_gefärbt {
             Some(true) => style::button::GRÜN,
             Some(false) => style::button::ROT,
@@ -107,7 +108,7 @@ where
                 Column::new()
                     .push(speichern_ungefärbt.style(speichern_style))
                     .push(
-                        Button::new(Text::new("Laden"))
+                        Button::new(Icon::neu(Bootstrap::FileEarmark))
                             .style(style::Button::Standard)
                             .on_press(InterneNachricht::Laden),
                     )

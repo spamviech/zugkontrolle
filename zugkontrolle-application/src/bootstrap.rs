@@ -16,6 +16,8 @@ use crate::fonts::BOOTSTRAP;
 #[allow(missing_docs)]
 pub enum Bootstrap {
     Feather,
+    FileEarmark,
+    Floppy,
     ExclamationTriangle,
     Trash,
 }
@@ -25,6 +27,8 @@ impl Bootstrap {
     fn als_str(self) -> &'static str {
         match self {
             Bootstrap::Feather => "\u{F7BF}",
+            Bootstrap::FileEarmark => "\u{f392}",
+            Bootstrap::Floppy => "\u{f7d8}",
             Bootstrap::ExclamationTriangle => "\u{F33B}",
             Bootstrap::Trash => "\u{F5DE}",
         }
