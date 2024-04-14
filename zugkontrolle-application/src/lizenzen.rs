@@ -216,7 +216,7 @@ fn target_crates_und_schriftarten() -> HashMap<&'static str, NonEmpty<&'static s
     let mut crates_und_schriftarten: HashMap<&'static str, NonEmpty<&'static str>> = HashMap::new();
     // Schriftarten
     let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005"));
-    let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.2"));
+    let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.3"));
     // crates
     for (name, version) in zugkontrolle_macros::target_crates!() {
         use std::collections::hash_map::Entry;
