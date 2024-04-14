@@ -16,7 +16,7 @@ use iced_core::{
     },
     Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
-use iced_widget::container;
+use iced_widget::{style::container, Container};
 
 use crate::{map_operation::MapOperation, style};
 
@@ -49,14 +49,19 @@ impl<'a, Nachricht, Thema, R> Modal<'a, Nachricht, Thema, R> {
     pub fn neu(
         underlay: impl 'a + Into<Element<'a, Nachricht, Thema, R>>,
         overlay: Option<impl 'a + Into<Element<'a, Nachricht, Thema, R>>>,
-    ) -> Self {
+    ) -> Self
+    where
+        Nachricht: 'a,
+        Thema: 'a + container::StyleSheet,
+        R: 'a + Renderer,
+    {
         /// Blockiere alle Events, wenn das Overlay angezeigt wird.
         fn kein_passthrough_event(_event: &Event) -> bool {
             false
         }
         Modal {
             underlay: underlay.into(),
-            overlay: overlay.map(Into::into),
+            overlay: overlay.map(|element| Container::new(element).center_x().center_y().into()),
             passthrough_event: Box::new(kein_passthrough_event),
             schließe_bei_esc: None,
         }
@@ -255,7 +260,7 @@ where
 }
 
 /// Dummy-Widget, das nichts anzeigt.
-pub(crate) struct Dummy;
+struct Dummy;
 
 impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Dummy {
     fn size(&self) -> Size<Length> {
