@@ -1,59 +1,64 @@
 //! Pfadauswahl mit Speichern und Laden Knopf.
 
-use std::fmt::Debug;
+use std::{
+    fmt::{self, Debug, Formatter},
+    future::Future,
+    path::Path,
+    pin::Pin,
+};
 
-use iced_core::{event, text as text_core, widget::text, Alignment, Element, Font, Length};
+use iced_core::{text as text_core, widget::text, Alignment, Element, Font, Length};
 use iced_widget::{
     button::{self, Button},
-    text_input::{self, TextInput},
-    Column, Row,
+    text_input::{self},
+    Row,
 };
+use rfd::{AsyncFileDialog, FileHandle};
 
 use crate::{
     bootstrap::{Bootstrap, Icon},
-    map_mit_zustand::MapMitZustand,
     style,
 };
 
-/// Zustand von [`SpeichernLaden`].
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-struct Zustand {
-    /// Der aktuell gewählte Pfad.
-    aktueller_pfad: String,
-}
+/// Wrapper um eine [`Future`] um eine Dummy [`Debug`]-Implementierung anzugeben.
+pub struct ZeigeDateiDialog(pub Pin<Box<dyn Future<Output = Nachricht> + Send>>);
 
-impl Zustand {
-    /// Erstelle einen neuen Zustand von [`SpeichernLaden`].
-    fn neu(aktueller_pfad: String) -> Self {
-        Zustand { aktueller_pfad }
+impl Debug for ZeigeDateiDialog {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.debug_tuple("ZeigeDateiDialog").field(&"<Future>").finish()
     }
 }
 
-/// Die interne Nachricht zur Interaktion mit einem [`SpeichernLaden`]-Widget.
+/// Die interne Nachricht zum Identifizieren des gedrückten [`Button`] in einem [`SpeichernLaden`]-Widget.
 #[derive(Debug, Clone)]
 enum InterneNachricht {
     /// Speichern gewünscht.
     Speichern,
     /// Laden gewünscht.
     Laden,
-    /// Neuer aktuell gewählter Pfad.
-    Pfad(String),
 }
 
 /// Nachricht des [`SpeichernLaden`]-Widgets.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Nachricht {
     /// Speichern im gegebenen Pfad gewünscht.
-    Speichern(String),
+    Speichern(FileHandle),
     /// Laden aus dem gegebenen Pfad gewünscht.
-    Laden(String),
+    Laden(FileHandle),
+    /// Der [`AsyncFileDialog`] wurde beendet, ohne einen Pfad zu wählen.
+    Abgebrochen,
 }
 
 /// Widget mit Pfadauswahl und Knöpfen zum Speichern und Laden.
-#[derive(Debug)]
-pub struct SpeichernLaden<'a, Thema, R>(
-    MapMitZustand<'a, Zustand, InterneNachricht, Nachricht, Thema, R>,
-);
+pub struct SpeichernLaden<'a, Thema, R>(Element<'a, ZeigeDateiDialog, Thema, R>);
+
+impl<Thema: Debug, R: Debug> Debug for SpeichernLaden<'_, Thema, R> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.debug_tuple("SpeichernLaden").field(&"<Element>").finish()
+    }
+}
+
+// Message=Future<Nachricht>
 
 impl<'a, Thema, R> SpeichernLaden<'a, Thema, R>
 where
@@ -64,38 +69,7 @@ where
 {
     /// Erstelle ein [`SpeichernLaden`]-Widget.
     #[must_use]
-    pub fn neu(initialer_pfad: &'a str, speichern_gefärbt: Option<bool>) -> Self {
-        let erzeuge_element =
-            move |zustand: &Zustand| Self::erzeuge_element(zustand, speichern_gefärbt);
-        let mapper = |interne_nachricht, zustand: &mut Zustand, status: &mut event::Status| {
-            *status = event::Status::Captured;
-            match interne_nachricht {
-                InterneNachricht::Speichern => {
-                    vec![Nachricht::Speichern(zustand.aktueller_pfad.clone())]
-                },
-                InterneNachricht::Laden => {
-                    vec![Nachricht::Laden(zustand.aktueller_pfad.clone())]
-                },
-                InterneNachricht::Pfad(pfad) => {
-                    zustand.aktueller_pfad = pfad;
-                    Vec::new()
-                },
-            }
-        };
-        SpeichernLaden(MapMitZustand::neu(
-            Zustand::neu(String::from(initialer_pfad)),
-            erzeuge_element,
-            mapper,
-        ))
-    }
-
-    /// Erzeuge die Widget-Hierarchie für ein [`SpeichernLaden`]-Widget.
-    fn erzeuge_element(
-        zustand: &Zustand,
-        speichern_gefärbt: Option<bool>,
-    ) -> Element<'a, InterneNachricht, Thema, R> {
-        let Zustand { aktueller_pfad } = zustand;
-
+    pub fn neu(aktueller_pfad: &'a str, speichern_gefärbt: Option<bool>) -> Self {
         let speichern_ungefärbt =
             Button::new(Icon::neu(Bootstrap::Floppy)).on_press(InterneNachricht::Speichern);
         let speichern_style = match speichern_gefärbt {
@@ -103,37 +77,48 @@ where
             Some(false) => style::button::ROT,
             None => style::Button::Standard,
         };
+        let laden = Button::new(Icon::neu(Bootstrap::FileEarmark))
+            .style(style::Button::Standard)
+            .on_press(InterneNachricht::Laden);
         let row = Row::new()
-            .push(
-                Column::new()
-                    .push(speichern_ungefärbt.style(speichern_style))
-                    .push(
-                        Button::new(Icon::neu(Bootstrap::FileEarmark))
-                            .style(style::Button::Standard)
-                            .on_press(InterneNachricht::Laden),
-                    )
-                    .align_items(Alignment::End),
-            )
-            .push(
-                TextInput::new("Pfad", aktueller_pfad)
-                    .on_input(InterneNachricht::Pfad)
-                    .width(Length::Fixed(150.))
-                    .padding(1),
-            )
-            .spacing(5)
-            .align_items(Alignment::Center)
+            .push(speichern_ungefärbt.style(speichern_style))
+            .push(laden)
+            .align_items(Alignment::End)
             .width(Length::Shrink);
-        row.into()
+        let pfad = Path::new(aktueller_pfad).canonicalize().unwrap_or_default();
+        let mapped = Element::from(row).map(move |button| {
+            let async_file_dialog = AsyncFileDialog::new()
+                .set_directory(pfad.parent().and_then(Path::to_str).unwrap_or_default())
+                .set_file_name(pfad.to_str().unwrap_or_default())
+                .add_filter(".zug", &["zug"])
+                .add_filter("*", &["*"]);
+            let future = async move {
+                let (file_handle, erzeuge_nachricht): (_, fn(FileHandle) -> Nachricht) =
+                    match button {
+                        InterneNachricht::Speichern => (
+                            async_file_dialog.set_title("Speichern").save_file().await,
+                            Nachricht::Speichern,
+                        ),
+                        InterneNachricht::Laden => (
+                            async_file_dialog.set_title("Laden").pick_file().await,
+                            Nachricht::Laden,
+                        ),
+                    };
+                if let Some(file_handle) = file_handle {
+                    erzeuge_nachricht(file_handle)
+                } else {
+                    Nachricht::Abgebrochen
+                }
+            };
+            let boxed_future: Pin<Box<dyn Future<Output = Nachricht> + Send>> = Box::pin(future);
+            ZeigeDateiDialog(boxed_future)
+        });
+        SpeichernLaden(mapped)
     }
 }
 
-impl<'a, Thema, R> From<SpeichernLaden<'a, Thema, R>> for Element<'a, Nachricht, Thema, R>
-where
-    R: 'a + text_core::Renderer,
-    Thema: 'a + button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
-    <Thema as button::StyleSheet>::Style: From<style::Button>,
-{
+impl<'a, Thema, R> From<SpeichernLaden<'a, Thema, R>> for Element<'a, ZeigeDateiDialog, Thema, R> {
     fn from(auswahl: SpeichernLaden<'a, Thema, R>) -> Self {
-        Element::from(auswahl.0)
+        auswahl.0
     }
 }

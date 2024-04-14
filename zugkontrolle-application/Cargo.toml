@@ -34,6 +34,7 @@ log.workspace = true
 nonempty.workspace = true
 once_cell.workspace = true
 parking_lot.workspace = true
+rfd.workspace = true
 serde.workspace = true
 take_mut.workspace = true
 

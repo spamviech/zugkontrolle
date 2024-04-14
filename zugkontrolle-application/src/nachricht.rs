@@ -40,7 +40,7 @@ use crate::{
         AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht, WeicheNachricht,
         WeichenId,
     },
-    bewegen, geschwindigkeit, kontakt, lizenzen, streckenabschnitt,
+    bewegen, geschwindigkeit, kontakt, lizenzen, speichern_laden, streckenabschnitt,
     style::Thema,
     weiche, MessageBox,
 };
@@ -189,6 +189,8 @@ pub enum Nachricht<L: Leiter, S> {
     /// auf den aktuellen gesetzt werden soll
     /// (beeinflusst Reaktion auf [`SetzeStreckenabschnitt`](Nachricht::SetzeStreckenabschnitt)).
     StreckenabschnittFestlegen(bool),
+    /// Zeige einen Datei-Dialog zum Speichern oder Laden.
+    ZeigeDateiDialog(speichern_laden::ZeigeDateiDialog),
     /// Speichern im übergebenen Pfad.
     Speichern(String),
     /// Setze die Farbe des Speichern-Knopfes zurück,

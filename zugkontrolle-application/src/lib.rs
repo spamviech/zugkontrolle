@@ -6,6 +6,7 @@
 #![recursion_limit = "256"]
 
 use std::{
+    convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
     sync::mpsc::{channel, Sender},
@@ -100,7 +101,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     /// Das aktuelle Anzeige-[`Thema`].
     thema: Thema,
     /// Der initiale Pfad des SpeichernLaden-Widgets.
-    initialer_pfad: String,
+    aktueller_pfad: String,
     /// Zeigt der Speichern-Knopf aktuell an, dass er gedrückt wurde.
     speichern_gefärbt: Option<(bool, Instant)>,
     /// Wie wird der [`Gleise`]-Canvas aktuell bewegt.
@@ -193,7 +194,7 @@ where
             bewegen: Bewegen::neu(),
             drehen: Drehen::neu(),
             thema: thema.into(),
-            initialer_pfad,
+            aktueller_pfad: initialer_pfad,
             speichern_gefärbt: None,
             bewegung: None,
             auswahl_zustand: None,
@@ -251,13 +252,31 @@ where
             Nachricht::StreckenabschnittFestlegen(festlegen) => {
                 self.streckenabschnitt_festlegen(festlegen);
             },
+            Nachricht::ZeigeDateiDialog(zeige_datei_dialog) => {
+                command =
+                    Command::perform(zeige_datei_dialog.0, identity).map(
+                        |nachricht| match nachricht {
+                            speichern_laden::Nachricht::Speichern(file_handle) => {
+                                Nachricht::Speichern(
+                                    file_handle.path().to_str().unwrap_or_default().to_owned(),
+                                )
+                            },
+                            speichern_laden::Nachricht::Laden(file_handle) => Nachricht::Laden(
+                                file_handle.path().to_str().unwrap_or_default().to_owned(),
+                            ),
+                            speichern_laden::Nachricht::Abgebrochen => {
+                                Nachricht::AsyncAktualisieren { gleise_neuzeichnen: false }
+                            },
+                        },
+                    );
+            },
             Nachricht::Speichern(pfad) => {
-                command = self.speichern(&pfad);
+                command = self.speichern(pfad);
             },
             Nachricht::EntferneSpeichernFarbe(nachricht_zeit) => {
                 self.entferne_speichern_farbe(nachricht_zeit);
             },
-            Nachricht::Laden(pfad) => self.laden(&pfad),
+            Nachricht::Laden(pfad) => self.laden(pfad),
             Nachricht::AktionGeschwindigkeit(aktion) => self.async_aktion_ausführen(
                 aktion,
                 Some(Nachricht::AsyncAktualisieren { gleise_neuzeichnen: false }),

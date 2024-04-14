@@ -89,7 +89,7 @@ where
             drehen,
             lager,
             thema,
-            initialer_pfad,
+            aktueller_pfad: initialer_pfad,
             speichern_gefärbt,
             bewegung: _,
             auswahl_zustand,
@@ -254,10 +254,7 @@ where
     }
 
     row.push(Space::new(Length::Fill, Length::Shrink))
-        .push(Element::from(speichern_laden).map(|message| match message {
-            speichern_laden::Nachricht::Speichern(pfad) => Nachricht::Speichern(pfad),
-            speichern_laden::Nachricht::Laden(pfad) => Nachricht::Laden(pfad),
-        }))
+        .push(Element::from(speichern_laden).map(Nachricht::ZeigeDateiDialog))
         .push(
             Element::from(
                 Button::new(Text::new("Lizenzen"))

@@ -497,8 +497,8 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
 {
     /// Speicher den aktuellen Zustand in einer Datei.
-    pub fn speichern(&mut self, pfad: &str) -> Command<Nachricht<L, S>> {
-        let ergebnis = self.gleise.speichern(pfad);
+    pub fn speichern(&mut self, pfad: String) -> Command<Nachricht<L, S>> {
+        let ergebnis = self.gleise.speichern(&pfad);
         let speicher_zeit = Instant::now();
         self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit));
         if let Err(fehler) = ergebnis {
@@ -507,6 +507,7 @@ where
                 nachricht: format!("{fehler:?}"),
             }));
         }
+        self.aktueller_pfad = pfad;
         Nachricht::EntferneSpeichernFarbe(speicher_zeit).als_sleep_command(Duration::from_secs(2))
     }
 }
@@ -518,7 +519,7 @@ where
     S: 'static + Send,
 {
     /// Lade einen neuen Zustand aus einer Datei.
-    pub fn laden(&mut self, pfad: &str)
+    pub fn laden(&mut self, pfad: String)
     where
         L: BekannterLeiter + Serialisiere<S>,
         <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
@@ -535,7 +536,7 @@ where
         S: From<<L as BekannterZugtyp>::V2>,
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
-        let lade_ergebnis = self.gleise.laden(&mut self.lager, pfad);
+        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.aktualisiere_message_box(Some(MessageBox {
@@ -543,5 +544,6 @@ where
                 nachricht: format!("{fehler:?}"),
             }));
         }
+        self.aktueller_pfad = pfad;
     }
 }
