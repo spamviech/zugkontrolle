@@ -163,11 +163,11 @@ where
                 }
             });
         }
-        let buttons = Scrollable::new(buttons).style(scrollable_style);
+        let buttons = Scrollable::new(buttons).height(Length::Fill).style(scrollable_style);
         let column = Column::new()
-            .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
-            .push(Space::with_height(Length::Fixed(PADDING)))
             .push(buttons)
+            .push(Space::with_height(Length::Fixed(PADDING)))
+            .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
             .width(Length::Shrink)
             .height(Length::Fill);
         let mut column_aktuell = Column::new().width(Length::Fill).height(Length::Shrink);
