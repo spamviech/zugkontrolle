@@ -300,14 +300,22 @@ unicase = "2.6.0"
 
 [workspace.dependencies.kommandozeilen_argumente]
 version = "0.2.1"
+default_features = false
 features = ["derive"]
 
 [workspace.dependencies.nonempty]
 version = "0.9.0"
+default_features = false
 features = ["serialize"]
+
+[workspace.dependencies.rfd]
+version = "0.14.1"
+default_features = false
+features = ["xdg-portal", "async-std"]
 
 [workspace.dependencies.serde]
 version = "1.0.136"
+default_features = false
 features = ["derive"]
 
 [workspace.dependencies.flexi_logger]
@@ -317,13 +325,13 @@ features = ["colors"]
 
 [workspace.dependencies.heck]
 version = "0.4.0"
-features = ["unicode"]
 default-features = false
+features = ["unicode"]
 
 [workspace.dependencies.iced]
 version = "0.12.1"
 default-features = false
-features = ["canvas", "lazy"]
+features = ["canvas", "lazy", "async-std"]
 
 [workspace.dependencies.iced_core]
 version = "0.12.3"
@@ -356,12 +364,13 @@ git = "https://github.com/iced-rs/iced_aw"
 rev = "bb7540ff017c18dc1092d7aa11b9106822a9b42b"
 
 [workspace.dependencies.rppal]
+default_features = false
 version = "0.17.1"
 
 [workspace.dependencies.syn]
 version = "2.0.15"
-features = ["parsing", "full", "extra-traits"]
 default_features = false
+features = ["parsing", "full", "extra-traits"]
 
 #[workspace.dependencies.libcamera]
 #version = "0.2.3"
