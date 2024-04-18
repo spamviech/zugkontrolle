@@ -20,7 +20,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    MitName, Transparenz, Zeichnen,
+    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::{
@@ -384,7 +384,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
-    ) -> bool {
+    ) -> Innerhalb {
         // utility sizes
         let Vektor { x: width, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_width = width.halbiert();
@@ -411,21 +411,19 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             gedreht_vector += zentrum - start;
         }
         gerade::innerhalb(spurweite, self.länge, horizontal_vector, ungenauigkeit)
-            || gerade::innerhalb(spurweite, self.länge, gedreht_vector, ungenauigkeit)
-            || (self.variante == Variante::MitKurve
-                && (kurve::innerhalb(
-                    spurweite,
-                    self.radius,
-                    winkel,
-                    horizontal_vector,
-                    ungenauigkeit,
-                ) || kurve::innerhalb(
-                    spurweite,
-                    self.radius,
-                    winkel,
-                    gedreht_vector,
-                    ungenauigkeit,
-                )))
+            .oder(gerade::innerhalb(spurweite, self.länge, gedreht_vector, ungenauigkeit))
+            .oder(if self.variante == Variante::MitKurve {
+                kurve::innerhalb(spurweite, self.radius, winkel, horizontal_vector, ungenauigkeit)
+                    .oder(kurve::innerhalb(
+                        spurweite,
+                        self.radius,
+                        winkel,
+                        gedreht_vector,
+                        ungenauigkeit,
+                    ))
+            } else {
+                Innerhalb::Außerhalb
+            })
     }
 
     fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {

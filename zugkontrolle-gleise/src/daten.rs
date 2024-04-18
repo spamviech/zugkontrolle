@@ -60,7 +60,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::{self, Verbindung},
     winkel::{self, Winkel},
-    Transparenz, Zeichnen,
+    Innerhalb, Transparenz, Zeichnen,
 };
 
 use crate::knopf;
@@ -1510,6 +1510,7 @@ impl GleiseDaten {
         zugtyp: &Zugtyp<L>,
         canvas_pos: Vektor,
     ) -> Option<(AnyIdSteuerung, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
+        let mut ergebnis = None;
         for geom_with_data in self.rstern.locate_all_at_point(&canvas_pos) {
             let (gleis_definition_id, position) = &geom_with_data.data;
             // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
@@ -1523,13 +1524,27 @@ impl GleiseDaten {
                 ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr) => {{
                     let (gleis, _rectangle) = $gleise.get($gleis_id)?;
                     let definition = $definitionen.get($definition_id)?;
-                    if definition.innerhalb(&(), zugtyp.spurweite, rotated_pos, KLICK_GENAUIGKEIT) {
-                        return Some((
+                    let erzeuge_ergebnis_für_gleis = || {
+                        Some((
                             AnyIdSteuerung::from(($gleis_id.clone(), gleis.steuerung.clone())),
                             relative_pos,
                             position.winkel,
                             gleis.streckenabschnitt.clone(),
-                        ));
+                        ))
+                    };
+                    match definition.innerhalb(
+                        &(),
+                        zugtyp.spurweite,
+                        rotated_pos,
+                        KLICK_GENAUIGKEIT,
+                    ) {
+                        Innerhalb::Innerhalb => {
+                            return erzeuge_ergebnis_für_gleis();
+                        },
+                        Innerhalb::Toleranz if ergebnis.is_none() => {
+                            ergebnis = erzeuge_ergebnis_für_gleis();
+                        },
+                        Innerhalb::Toleranz | Innerhalb::Außerhalb => {},
                     }
                 }};
             }
@@ -1539,7 +1554,7 @@ impl GleiseDaten {
                 => gleis_an_position_aux!()
             );
         }
-        None
+        ergebnis
     }
 }
 

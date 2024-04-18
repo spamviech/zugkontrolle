@@ -70,6 +70,43 @@ impl Transparenz {
     }
 }
 
+/// Rückgabewert von [`Zeichnen::innerhalb`].
+#[derive(Debug, Clone, Copy)]
+pub enum Innerhalb {
+    /// Der [`Vektor`] ist innerhalb des Gleises.
+    Innerhalb,
+    /// Der [`Vektor`] ist unter Berücksichtigung der Ungenauigkeit innerhalb des Gleises.
+    Toleranz,
+    /// Der [`Vektor`] ist außerhalb des Gleises.
+    Außerhalb,
+}
+
+impl Innerhalb {
+    /// Kombiniere zwei [`Innerhalb`], wenn beide Bedingungen erfüllt sein müssen.
+    #[must_use]
+    pub fn und(self, anderes: Innerhalb) -> Innerhalb {
+        match (self, anderes) {
+            (Innerhalb::Innerhalb, mit_innerhalb) | (mit_innerhalb, Innerhalb::Innerhalb) => {
+                mit_innerhalb
+            },
+            (Innerhalb::Außerhalb, _) | (_, Innerhalb::Außerhalb) => Innerhalb::Außerhalb,
+            (Innerhalb::Toleranz, Innerhalb::Toleranz) => Innerhalb::Toleranz,
+        }
+    }
+
+    /// Kombiniere zwei [`Innerhalb`], wenn nur eine beliebige der Bedingungen erfüllt sein muss.
+    #[must_use]
+    pub fn oder(self, anderes: Innerhalb) -> Innerhalb {
+        match (self, anderes) {
+            (Innerhalb::Außerhalb, mit_außerhalb) | (mit_außerhalb, Innerhalb::Außerhalb) => {
+                mit_außerhalb
+            },
+            (Innerhalb::Innerhalb, _) | (_, Innerhalb::Innerhalb) => Innerhalb::Innerhalb,
+            (Innerhalb::Toleranz, Innerhalb::Toleranz) => Innerhalb::Toleranz,
+        }
+    }
+}
+
 /// Trait für Typen, die auf einem [`Frame`](crate::typen::canvas::Frame) gezeichnet werden können.
 ///
 /// Die Darstellungs-Reihenfolge ist [fülle](Zeichnen::fülle), [`zeichne`](Zeichnen::zeichne),
@@ -112,7 +149,7 @@ pub trait Zeichnen<T> {
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
-    ) -> bool;
+    ) -> Innerhalb;
 
     /// Identifier for [`Self::Verbindungen`](Zeichnen::Verbindungen).
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.

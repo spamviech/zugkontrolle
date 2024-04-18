@@ -18,7 +18,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    MitName, Transparenz, Zeichnen,
+    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::{
@@ -300,7 +300,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
-    ) -> bool {
+    ) -> Innerhalb {
         // utility sizes
         let Vektor { x: _, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
         let half_height = height.halbiert();
@@ -316,8 +316,20 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         #[allow(clippy::arithmetic_side_effects)]
         let inverted_vector = Vektor { x: relative_vector.x, y: beschränkung - relative_vector.y };
         gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(spurweite, self.radius, self.winkel, inverted_vector, ungenauigkeit)
+            .oder(kurve::innerhalb(
+                spurweite,
+                self.radius,
+                self.winkel,
+                relative_vector,
+                ungenauigkeit,
+            ))
+            .oder(kurve::innerhalb(
+                spurweite,
+                self.radius,
+                self.winkel,
+                inverted_vector,
+                ungenauigkeit,
+            ))
     }
 
     fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {

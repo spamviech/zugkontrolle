@@ -18,7 +18,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    MitName, Transparenz, Zeichnen,
+    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt};
@@ -166,7 +166,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
-    ) -> bool {
+    ) -> Innerhalb {
         innerhalb(spurweite, self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
@@ -595,7 +595,7 @@ pub(crate) fn innerhalb(
     winkel: Winkel,
     relative_position: Vektor,
     ungenauigkeit: Skalar,
-) -> bool {
+) -> Innerhalb {
     let spurweite_skalar = spurweite.als_skalar();
     let abstand = spurweite.abstand();
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
@@ -612,6 +612,7 @@ pub(crate) fn innerhalb(
     #[allow(clippy::arithmetic_side_effects)]
     let radius_vector = bogen_zentrum - relative_position;
     let länge = radius_vector.länge();
+    let mut innerhalb = Innerhalb::Außerhalb;
     // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
     #[allow(clippy::arithmetic_side_effects)]
     if (länge + ungenauigkeit > radius_innen) && (länge - ungenauigkeit < radius_außen) {
@@ -622,8 +623,12 @@ pub(crate) fn innerhalb(
             test_winkel += winkel::TAU;
         }
         if test_winkel < winkel {
-            return true;
+            innerhalb = if (länge > radius_innen) && (länge < radius_außen) {
+                Innerhalb::Innerhalb
+            } else {
+                Innerhalb::Toleranz
+            };
         }
     }
-    false
+    innerhalb
 }

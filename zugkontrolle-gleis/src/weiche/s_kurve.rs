@@ -18,7 +18,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    MitName, Transparenz, Zeichnen,
+    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::{
@@ -318,7 +318,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
-    ) -> bool {
+    ) -> Innerhalb {
         // utility sizes
         let start_height: Skalar;
         let multiplier: Skalar;
@@ -365,14 +365,20 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             s_kurve_vector.y = -s_kurve_vector.y;
         }
         gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(spurweite, self.radius, self.winkel, relative_vector, ungenauigkeit)
-            || kurve::innerhalb(
+            .oder(kurve::innerhalb(
+                spurweite,
+                self.radius,
+                self.winkel,
+                relative_vector,
+                ungenauigkeit,
+            ))
+            .oder(kurve::innerhalb(
                 spurweite,
                 self.radius_kurve_nach_innen,
                 self.winkel_kurve_nach_innen,
                 s_kurve_vector,
                 ungenauigkeit,
-            )
+            ))
     }
 
     fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {

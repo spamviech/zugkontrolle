@@ -19,7 +19,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    MitName, Transparenz, Zeichnen,
+    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt};
@@ -132,7 +132,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
-    ) -> bool {
+    ) -> Innerhalb {
         innerhalb(spurweite, self.länge, relative_position, ungenauigkeit)
     }
 
@@ -383,13 +383,22 @@ pub(crate) fn innerhalb(
     länge: Skalar,
     relative_position: Vektor,
     ungenauigkeit: Skalar,
-) -> bool {
+) -> Innerhalb {
     // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
     #[allow(clippy::arithmetic_side_effects)]
+    if (relative_position.x >= Skalar(0.))
+        && (relative_position.x <= länge)
+        && (relative_position.y >= spurweite.abstand())
+        && (relative_position.y <= spurweite.abstand() + spurweite.als_skalar())
     {
-        (relative_position.x + ungenauigkeit >= Skalar(0.))
-            && (relative_position.x - ungenauigkeit <= länge)
-            && (relative_position.y + ungenauigkeit >= spurweite.abstand())
-            && (relative_position.y - ungenauigkeit <= spurweite.abstand() + spurweite.als_skalar())
+        Innerhalb::Innerhalb
+    } else if (relative_position.x + ungenauigkeit >= Skalar(0.))
+        && (relative_position.x - ungenauigkeit <= länge)
+        && (relative_position.y + ungenauigkeit >= spurweite.abstand())
+        && (relative_position.y - ungenauigkeit <= spurweite.abstand() + spurweite.als_skalar())
+    {
+        Innerhalb::Toleranz
+    } else {
+        Innerhalb::Außerhalb
     }
 }
