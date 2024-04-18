@@ -106,6 +106,8 @@ pub struct Zustand {
     canvas: Cache,
     /// Ist der Cursor aktuell innerhalb des Knopfes.
     in_bounds: bool,
+    /// Wurde ein neues Gleis durch einen Mausklick hinzugefügt, bevor die Maus wieder losgelassen wurde.
+    cursor_grabbed: bool,
 }
 
 impl<Gleis, N, T> Program<N, T, Renderer> for Knopf<'_, Gleis>
@@ -229,13 +231,15 @@ where
         fn pressed<Gleis, N>(
             definition: &GleisId<Gleis>,
             klick_quelle: KlickQuelle,
-            cursor: Cursor,
+            state: &mut Zustand,
             bounds: Rectangle,
+            cursor: Cursor,
         ) -> (event::Status, Option<N>)
         where
             N: Nachricht<GleisId<Gleis>>,
         {
             if let Some(Point { x, y }) = cursor.position_in(bounds) {
+                state.cursor_grabbed = true;
                 (
                     event::Status::Captured,
                     Some(<N as Nachricht<GleisId<Gleis>>>::nachricht(
@@ -256,20 +260,41 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 debug!("{event:?}");
-                pressed(&self.definition, KlickQuelle::Maus, cursor, bounds)
+                pressed(&self.definition, KlickQuelle::Maus, state, bounds, cursor)
             },
             Event::Touch(touch::Event::FingerPressed { id, position }) => {
                 debug!("{event:?}");
                 pressed(
                     &self.definition,
                     KlickQuelle::Touch(id),
-                    Cursor::Available(position),
+                    state,
                     bounds,
+                    Cursor::Available(position),
                 )
+            },
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                debug!("{event:?}");
+                state.cursor_grabbed = false;
+                (event::Status::Ignored, None)
             },
             Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {
                 (event::Status::Ignored, None)
             },
+        }
+    }
+
+    fn mouse_interaction(
+        &self,
+        state: &Self::State,
+        _bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> mouse::Interaction {
+        if state.cursor_grabbed {
+            mouse::Interaction::Grabbing
+        } else if state.in_bounds {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
         }
     }
 }
