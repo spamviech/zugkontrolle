@@ -42,6 +42,7 @@ pub mod hinzufügen_entfernen;
 pub mod knopf;
 pub mod nachricht;
 pub mod update;
+pub(crate) mod util;
 
 #[zugkontrolle_macros::erstelle_enum(pub, Modus)]
 /// Aktueller Modus von [`Gleise`].
@@ -432,6 +433,9 @@ where
             ModusDaten::Bauen { gehalten, .. }
                 if gehalten.contains_key(&KlickQuelle::Maus) && cursor.is_over(bounds) =>
             {
+                mouse::Interaction::Grabbing
+            },
+            ModusDaten::Bauen { .. } | ModusDaten::Fahren if cursor.is_over(bounds) => {
                 mouse::Interaction::Pointer
             },
             ModusDaten::Bauen { .. } | ModusDaten::Fahren => mouse::Interaction::default(),
