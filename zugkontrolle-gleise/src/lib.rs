@@ -33,6 +33,7 @@ use zugkontrolle_typen::{
 use crate::{
     daten::{GeschwindigkeitEntferntFehler, StreckenabschnittEntferntFehler, Zustand},
     nachricht::{Gehalten, Nachricht},
+    util::berechne_canvas_position,
 };
 
 pub mod daten;
@@ -435,10 +436,22 @@ where
             {
                 mouse::Interaction::Grabbing
             },
-            ModusDaten::Bauen { .. } | ModusDaten::Fahren if cursor.is_over(bounds) => {
-                mouse::Interaction::Pointer
+            ModusDaten::Bauen { .. } | ModusDaten::Fahren => {
+                let mut interaction = mouse::Interaction::default();
+                if cursor.is_over(bounds) {
+                    if let Some(canvas_pos) =
+                        berechne_canvas_position(&bounds, &cursor, &self.pivot, self.skalieren)
+                    {
+                        if self.zustand.gleis_an_position(canvas_pos).is_some() {
+                            interaction = match &self.modus {
+                                ModusDaten::Bauen { .. } => mouse::Interaction::Grab,
+                                ModusDaten::Fahren => mouse::Interaction::Pointer,
+                            };
+                        }
+                    }
+                }
+                interaction
             },
-            ModusDaten::Bauen { .. } | ModusDaten::Fahren => mouse::Interaction::default(),
         }
     }
 }

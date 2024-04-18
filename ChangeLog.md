@@ -23,6 +23,7 @@
   - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
   - Zeige Gleise direkt nach dem hinzufügen an.
   - Korrigiere Offset bei gedrehtem Canvas.
+  - Anpassen des Mauszeigers, wenn er über einem Gleis ist.
 - Ersetzte Debug-Ausgaben für Fehler durch Display-Ausgabe über `thiserror::Error`
 - Aktualisiere auf iced v0.12
 
