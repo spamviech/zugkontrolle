@@ -3,7 +3,7 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, punctuated::Punctuated};
 
-pub(crate) mod utils;
+pub(crate) mod util;
 
 mod debug;
 #[proc_macro_derive(Debug, attributes(zugkontrolle_debug))]

@@ -89,7 +89,7 @@ pub(crate) fn parse_attributes_fn(
 /// Helper für [`parse_attributes_fn`]: Match das [Result] und gebe bei [`Err`] direkt `quote!(compile_error(#fehler));` zurück.
 macro_rules! parse_attributes {
     ($attrs:expr, $name:expr) => {
-        match crate::utils::parse_attributes_fn($attrs, $name) {
+        match $crate::util::parse_attributes_fn($attrs, $name) {
             Ok(vec) => vec,
             Err(parse_error) => {
                 let error =
