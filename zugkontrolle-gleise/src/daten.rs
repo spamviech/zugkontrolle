@@ -943,7 +943,7 @@ pub enum SteuerungAktualisierenFehler {
     /// Das Gleis wurde nicht gefunden.
     GleisNichtGefunden(AnyId),
     /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [`Anschlüsse`](anschluss::Anschluss).
-    Deserialisieren {
+    Reservieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
         fehler: NonEmpty<Fehler>,
         /// Ein Fehler beim Wiederherstellen der ursprünglichen Anschlüsse,
@@ -1018,7 +1018,7 @@ impl GleiseDaten {
                         },
                     }
                 }
-                Err(Box::new(SteuerungAktualisierenFehler::Deserialisieren {
+                Err(Box::new(SteuerungAktualisierenFehler::Reservieren {
                     fehler,
                     wiederherstellen_fehler,
                 }))

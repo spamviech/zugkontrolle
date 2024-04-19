@@ -301,7 +301,7 @@ where
 
     /// Passe die Anschlüsse für ein Gleis an.
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
-        use SteuerungAktualisierenFehler::{Deserialisieren, GleisNichtGefunden};
+        use SteuerungAktualisierenFehler::{GleisNichtGefunden, Reservieren};
         let mut fehlermeldung = None;
         let mut auswahlzustand_verstecken = false;
         match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
@@ -309,7 +309,7 @@ where
                 auswahlzustand_verstecken = true;
             },
             Err(aktualisieren_fehler) => match *aktualisieren_fehler {
-                Deserialisieren { fehler, wiederherstellen_fehler } => {
+                Reservieren { fehler, wiederherstellen_fehler } => {
                     let titel = "Anschlüsse anpassen!".to_owned();
                     let mut nachricht = format!("{fehler:?}");
                     if let Some((w_fehler_liste, anschlüsse)) = wiederherstellen_fehler {

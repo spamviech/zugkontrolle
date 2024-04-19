@@ -14,6 +14,7 @@
   - Füge padding beim bewegen-Widget hinzu.
   - Zugkontrolle-Parameter `S` muss zusätzlich `Display` implementieren.
   - Anpassen der `Nachricht`-Typen.
+  - Umbenennen `SteuerungAktualisierenFehler::Deserialisieren` -> `Reservieren`.
 - Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
 - Verwende PickList für Modus-Auswahl.
 - Verwende `rfd` zur Datei-Auswahl beim Speichern und Laden.
