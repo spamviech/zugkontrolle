@@ -1,19 +1,11 @@
-//! Build-Script für zugkontrolle: erzeuge raspi cfg und setze windows binary icon
+//! Build-Script für zugkontrolle-application: Query die workspace version
 
 use std::env;
 
 use cargo_metadata::{Metadata, MetadataCommand};
 
 fn main() {
-    // Make the current target available in normal modules.
-    let zugkontrolle_target = env::var("TARGET").unwrap_or_else(|error| {
-        println!("cargo::warning=Error reading TARGET environment variable:\n{error}");
-        String::from("zugkontrolle-unbekanntes-target")
-    });
-    println!("cargo::rustc-cfg=zugkontrolle_target=\"{zugkontrolle_target}\"");
-    println!("cargo::rerun-if-env-changed=TARGET");
     // Make the current workspace version available in normal modules.
-
     let (zugkontrolle_version, workspace_root) = match MetadataCommand::new().exec() {
         Ok(Metadata { packages, workspace_root, .. }) => {
             let zugkontrolle_version =

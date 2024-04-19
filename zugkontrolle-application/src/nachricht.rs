@@ -34,16 +34,17 @@ use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{
     farbe::Farbe, klick_quelle::KlickQuelle, skalar::Skalar, vektor::Vektor, winkel::Winkel,
 };
-
-use crate::{
+use zugkontrolle_widget::{
     auswahl::{
         AuswahlZustand, DreiwegeWeicheNachricht, KontaktId, KurvenWeicheNachricht, WeicheNachricht,
         WeichenId,
     },
     bewegen, geschwindigkeit, kontakt, lizenzen, speichern_laden, streckenabschnitt,
     style::Thema,
-    weiche, MessageBox,
+    weiche,
 };
+
+use crate::MessageBox;
 
 /// Ein beliebiges Gleis ohne Anschlüsse.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]

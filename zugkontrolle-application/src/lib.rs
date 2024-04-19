@@ -2,8 +2,6 @@
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
 #![allow(clippy::multiple_crate_versions)]
-// Erlaube mehr rekursive Aufrufe von Macros.
-#![recursion_limit = "256"]
 
 use std::{
     convert::identity,
@@ -29,41 +27,24 @@ use zugkontrolle_gleis::steuerung::{
 use zugkontrolle_gleis::zugtyp::Zugtyp;
 use zugkontrolle_gleise::{daten::v2::geschwindigkeit::BekannterZugtyp, Gleise};
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
-
-use crate::{
+use zugkontrolle_widget::{
     auswahl::AuswahlZustand,
+    bewegen,
     bewegen::{Bewegen, Bewegung},
     drehen::Drehen,
-    empfänger::Empfänger,
     geschwindigkeit::LeiterAnzeige,
-    nachricht::Nachricht,
-    style::thema::Thema,
+    speichern_laden,
+    style::{self, thema::Thema},
 };
 
-pub mod anschluss;
-pub mod auswahl;
-pub mod bewegen;
-pub mod bootstrap;
-pub mod drehen;
+use crate::{empfänger::Empfänger, nachricht::Nachricht};
+
 #[path = "empfänger.rs"]
 pub mod empfänger;
-pub mod farbwahl;
-pub mod flat_map;
-pub mod fonts;
-pub mod geschwindigkeit;
 pub mod icon;
-pub mod kontakt;
-pub mod lizenzen;
-pub mod map_mit_zustand;
-pub mod map_operation;
-pub mod modal;
 pub mod nachricht;
-pub mod speichern_laden;
-pub mod streckenabschnitt;
-pub mod style;
 pub mod update;
 pub mod view;
-pub mod weiche;
 
 /// Anzeige einer Meldung.
 #[derive(Debug, Clone, PartialEq, Eq)]

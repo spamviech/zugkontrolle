@@ -24,14 +24,12 @@ use zugkontrolle_id::GleisId;
 
 use crate::{
     geschwindigkeit::{self, LeiterAnzeige},
-    lizenzen,
+    kontakt, lizenzen,
     lizenzen::Lizenzen,
     streckenabschnitt,
     style::{sammlung::Sammlung, thema::Thema},
     weiche,
 };
-
-use super::kontakt;
 
 /// Die Id eines Gleises mit einem [`Kontakt`](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, zugkontrolle_macros::From)]
@@ -136,21 +134,21 @@ impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
 
 #[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// `AuswahlNachricht` für die Steuerung einer [Weiche], [Kreuzung] und [`SKurvenWeiche`].
-pub(crate) type WeicheNachricht = weiche::Nachricht<
+pub type WeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::gerade::Richtung,
     zugkontrolle_gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
 #[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// `AuswahlNachricht` für die Steuerung einer [`DreiwegeWeiche`].
-pub(crate) type DreiwegeWeicheNachricht = weiche::Nachricht<
+pub type DreiwegeWeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::dreiwege::RichtungInformation,
     zugkontrolle_gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
 #[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// `AuswahlNachricht` für die Steuerung einer [`KurvenWeiche`].
-pub(crate) type KurvenWeicheNachricht = weiche::Nachricht<
+pub type KurvenWeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::kurve::Richtung,
     zugkontrolle_gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;

@@ -32,17 +32,19 @@ use zugkontrolle_gleise::{knopf::Knopf, Gleise, Modus};
 use zugkontrolle_typen::{
     farbe::Farbe, klick_quelle::KlickQuelle, mm::Spurweite, skalar::Skalar, Zeichnen,
 };
-
-use crate::{
+use zugkontrolle_widget::{
     auswahl::AuswahlZustand,
     bewegen::Bewegen,
     drehen::Drehen,
     flat_map::FlatMap,
     geschwindigkeit::LeiterAnzeige,
     modal::Modal,
-    nachricht::{Nachricht, NachrichtClone},
     speichern_laden, streckenabschnitt,
     style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
+};
+
+use crate::{
+    nachricht::{Nachricht, NachrichtClone},
     MessageBox, Zugkontrolle,
 };
 

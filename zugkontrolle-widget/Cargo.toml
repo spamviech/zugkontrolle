@@ -1,5 +1,5 @@
 [package]
-name = "zugkontrolle-application"
+name = "zugkontrolle-widget"
 version = "0.1.0"
 authors.workspace = true
 readme.workspace = true
@@ -19,24 +19,24 @@ zugkontrolle-gleise.workspace = true
 zugkontrolle-id.workspace = true
 zugkontrolle-macros.workspace = true
 zugkontrolle-typen.workspace = true
-zugkontrolle-widget.workspace = true
-async-io.workspace = true
+zugkontrolle-util.workspace = true
 enum-iterator.workspace = true
-flexi_logger.workspace = true
 iced_aw.workspace = true
 iced_core.workspace = true
-iced_futures.workspace = true
 iced_widget.workspace = true
 iced.workspace = true
+int-enum.workspace = true
 itertools.workspace = true
 log.workspace = true
 nonempty.workspace = true
-parking_lot.workspace = true
-serde.workspace = true
-take_mut.workspace = true
+once_cell.workspace = true
+rfd.workspace = true
 
-[build-dependencies]
-cargo_metadata.workspace = true
+[dev-dependencies]
+zugkontrolle-test-util.workspace = true
+difference.workspace = true
+either.workspace = true
+thiserror.workspace = true
 
 [lints]
 workspace = true

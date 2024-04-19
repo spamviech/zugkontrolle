@@ -8,9 +8,10 @@ use iced::{window, Application, Settings, Size};
 use log::LevelFilter;
 
 use zugkontrolle_anschluss::Lager;
-use zugkontrolle_application::{fonts, icon::icon, Fehler, Flags, Zugkontrolle};
+use zugkontrolle_application::{icon::icon, Fehler, Flags, Zugkontrolle};
 use zugkontrolle_argumente::{Argumente, ZugtypArgument};
 use zugkontrolle_gleis::{steuerung::geschwindigkeit::Leiter, zugtyp::Zugtyp};
+use zugkontrolle_widget::fonts;
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
 ///

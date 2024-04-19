@@ -33,11 +33,11 @@ use zugkontrolle_gleise::{
     nachricht::ZustandAktualisieren,
 };
 use zugkontrolle_typen::{farbe::Farbe, klick_quelle::KlickQuelle, skalar::Skalar, vektor::Vektor};
-
-use crate::{
-    auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige,
-    style::thema::Thema, MessageBox, Nachricht, Zugkontrolle,
+use zugkontrolle_widget::{
+    auswahl::AuswahlZustand, bewegen::Bewegung, geschwindigkeit::LeiterAnzeige, style::thema::Thema,
 };
+
+use crate::{MessageBox, Nachricht, Zugkontrolle};
 
 impl<L, S> Nachricht<L, S>
 where

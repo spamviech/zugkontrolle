@@ -4613,6 +4613,7 @@ dependencies = [
  "zugkontrolle-application",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
+ "zugkontrolle-widget",
 ]
 
 [[package]]
@@ -4643,8 +4644,6 @@ version = "0.1.0"
 dependencies = [
  "async-io 2.3.2",
  "cargo_metadata",
- "difference",
- "either",
  "enum-iterator",
  "flexi_logger",
  "iced",
@@ -4652,25 +4651,20 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "iced_widget",
- "int-enum",
  "itertools 0.12.1",
  "log",
  "nonempty 0.9.0",
- "once_cell",
  "parking_lot 0.12.1",
- "rfd",
  "serde",
  "take_mut",
- "thiserror",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
  "zugkontrolle-gleise",
  "zugkontrolle-id",
  "zugkontrolle-macros",
- "zugkontrolle-test-util",
  "zugkontrolle-typen",
- "zugkontrolle-util",
+ "zugkontrolle-widget",
 ]
 
 [[package]]
@@ -4779,6 +4773,35 @@ dependencies = [
  "num-traits",
  "serde",
  "unicase",
+]
+
+[[package]]
+name = "zugkontrolle-widget"
+version = "0.1.0"
+dependencies = [
+ "difference",
+ "either",
+ "enum-iterator",
+ "iced",
+ "iced_aw",
+ "iced_core",
+ "iced_widget",
+ "int-enum",
+ "itertools 0.12.1",
+ "log",
+ "nonempty 0.9.0",
+ "once_cell",
+ "rfd",
+ "thiserror",
+ "zugkontrolle-anschluss",
+ "zugkontrolle-argumente",
+ "zugkontrolle-gleis",
+ "zugkontrolle-gleise",
+ "zugkontrolle-id",
+ "zugkontrolle-macros",
+ "zugkontrolle-test-util",
+ "zugkontrolle-typen",
+ "zugkontrolle-util",
 ]
 
 [[package]]

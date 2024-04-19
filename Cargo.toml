@@ -18,6 +18,7 @@ members = [
     "zugkontrolle-typen",
     "zugkontrolle-gleis",
     "zugkontrolle-gleise",
+    "zugkontrolle-widget",
     "zugkontrolle-application",
 ]
 resolver = "2"
@@ -55,8 +56,9 @@ workspace = true
 [dependencies]
 zugkontrolle-anschluss.workspace = true
 zugkontrolle-application.workspace = true
-zugkontrolle-argumente.workspace = true
+zugkontrolle-widget.workspace = true
 zugkontrolle-gleis.workspace = true
+zugkontrolle-argumente.workspace = true
 flexi_logger.workspace = true
 iced.workspace = true
 log.workspace = true
@@ -264,6 +266,10 @@ version = "0.1.0"
 
 [workspace.dependencies.zugkontrolle-gleise]
 path = "zugkontrolle-gleise"
+version = "0.1.0"
+
+[workspace.dependencies.zugkontrolle-widget]
+path = "zugkontrolle-widget"
 version = "0.1.0"
 
 [workspace.dependencies.zugkontrolle-application]
