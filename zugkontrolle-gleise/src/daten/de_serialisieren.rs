@@ -176,7 +176,7 @@ where
     AnyDefinitionId: From<DefinitionId<T>>,
     AnyGleisDefinitionId: From<(GleisId<T>, DefinitionId<T>)>,
 {
-    use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+    use Ergebnis::{Fehler, Wert, WertMitWarnungen};
     serialisiert.into_iter().fold(
         (GleisMap::new(), Vec::new(), anschlüsse),
         // `anschlüsse` über Argument->Rückgabewert zusammenhängend.
@@ -200,7 +200,7 @@ where
                 &mut (),
             ) {
                 Wert { anschluss, anschlüsse } => (anschluss, anschlüsse),
-                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     laden_fehler.extend(fehler.into_iter().map(LadenFehler::from));
                     (anschluss, anschlüsse)
                 },
@@ -670,7 +670,7 @@ where
                             Ergebnis::Wert { anschluss, anschlüsse } => {
                                 (Some(anschluss), None, anschlüsse)
                             },
-                            Ergebnis::FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                            Ergebnis::WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                                 (Some(anschluss), Some(fehler), anschlüsse)
                             },
                             Ergebnis::Fehler { fehler, anschlüsse } => {

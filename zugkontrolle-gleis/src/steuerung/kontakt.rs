@@ -260,13 +260,13 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
-        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         // anschlüsse ist die selbe Struktur nach ausführen von `reserviere`.
         #[allow(clippy::shadow_unrelated)]
         let (mut anschluss, fehler, mut anschlüsse) =
             match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
-                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     (anschluss, Some(fehler), anschlüsse)
                 },
                 Fehler { fehler, anschlüsse } => return Fehler { fehler, anschlüsse },
@@ -283,7 +283,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
             fehler,
         ) {
             (Ok(anschluss), None) => Wert { anschluss, anschlüsse },
-            (Ok(anschluss), Some(fehler)) => FehlerMitErsatzwert { anschluss, fehler, anschlüsse },
+            (Ok(anschluss), Some(fehler)) => WertMitWarnungen { anschluss, fehler, anschlüsse },
             (Err((kontakt_fehler, anschluss)), fehler) => {
                 anschlüsse.input_anschlüsse.push(anschluss);
                 let fehler = if let Some(mut fehler) = fehler {

@@ -122,7 +122,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
         farbe: Farbe,
         anschluss_definition: OutputSerialisiert,
     ) {
-        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         self.aktualisiere_auswahlzustand(Some(AuswahlZustand::Streckenabschnitt(Some((
             name.clone(),
             Streckenabschnitt::neu_serialisiert(farbe, anschluss_definition.clone()),
@@ -157,7 +157,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
             &mut (),
         ) {
             Wert { anschluss, .. } => (Some(anschluss), None),
-            FehlerMitErsatzwert { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
+            WertMitWarnungen { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
             Fehler { fehler, .. } => (None, Some(fehler)),
         };
 
@@ -370,7 +370,7 @@ where
         name: geschwindigkeit::Name,
         geschwindigkeit: GeschwindigkeitSerialisiert<S>,
     ) {
-        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         self.aktualisiere_auswahlzustand(Some(AuswahlZustand::Geschwindigkeit(Some((
             name.clone(),
             geschwindigkeit.clone(),
@@ -404,7 +404,7 @@ where
                     }
                     return;
                 },
-                FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
+                WertMitWarnungen { anschluss, fehler, mut anschlüsse } => {
                     anschlüsse.anhängen(anschluss.anschlüsse());
                     (fehler, anschlüsse)
                 },
@@ -417,7 +417,7 @@ where
             let (ursprüngliche_geschwindigkeit, fehler_wiederherstellen) =
                 match serialisiert.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
                     Wert { anschluss, .. } => (Some(anschluss), None),
-                    FehlerMitErsatzwert { anschluss, fehler: fehler_wiederherstellen, .. } => {
+                    WertMitWarnungen { anschluss, fehler: fehler_wiederherstellen, .. } => {
                         (Some(anschluss), Some(fehler_wiederherstellen))
                     },
                     Fehler { fehler: fehler_wiederherstellen, .. } => {

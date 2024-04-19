@@ -996,7 +996,7 @@ impl GleiseDaten {
                             let _ = steuerung.insert(anschluss);
                             return Ok(());
                         },
-                        Ergebnis::FehlerMitErsatzwert { anschluss, fehler, anschlüsse: _ } => {
+                        Ergebnis::WertMitWarnungen { anschluss, fehler, anschlüsse: _ } => {
                             let _ = steuerung.insert(anschluss);
                             return Err(Box::new(SteuerungAktualisierenFehler::ReservierenWarnung(fehler)));
                         },
@@ -1009,7 +1009,7 @@ impl GleiseDaten {
                         Ergebnis::Wert { anschluss, .. } => {
                             let _ = steuerung.insert(anschluss);
                         },
-                        Ergebnis::FehlerMitErsatzwert { anschluss, fehler, .. } => {
+                        Ergebnis::WertMitWarnungen { anschluss, fehler, .. } => {
                             let _ = steuerung.insert(anschluss);
                             wiederherstellen_fehler = Some((fehler, serialisiert_string));
                         },

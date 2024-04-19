@@ -368,7 +368,7 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
                 Ok(anschluss) => {
                     let (output_anschluss, fehler) = anschluss.als_output(polarität);
                     if let Some(fehler) = fehler {
-                        Ergebnis::FehlerMitErsatzwert {
+                        Ergebnis::WertMitWarnungen {
                             anschluss: output_anschluss,
                             fehler: NonEmpty::singleton(fehler),
                             anschlüsse,
@@ -593,7 +593,7 @@ fn reserviere_input_port(
                 .chain(fehler_interrupt.map(Fehler::from))
                 .collect();
             if let Ok(non_empty) = NonEmpty::try_from(fehler_vec) {
-                Ergebnis::FehlerMitErsatzwert {
+                Ergebnis::WertMitWarnungen {
                     anschluss: input_anschluss,
                     fehler: non_empty,
                     anschlüsse,

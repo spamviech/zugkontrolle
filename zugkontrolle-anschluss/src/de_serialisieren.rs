@@ -77,9 +77,9 @@ pub enum Ergebnis<R> {
         /// Nicht verwendete anschlüsse.
         anschlüsse: Anschlüsse,
     },
-    /// Es sind Probleme aufgetreten, aber es kann ein Ersatzwert bereitgestellt werden.
-    FehlerMitErsatzwert {
-        /// Der Ersatzwert
+    /// Es sind Probleme aufgetreten, aber es kann ein valider Wert bereitgestellt werden.
+    WertMitWarnungen {
+        /// Das Ergebnis.
         anschluss: R,
         /// Beim reservieren aufgetretene Fehler.
         fehler: NonEmpty<Fehler>,
@@ -98,13 +98,13 @@ pub enum Ergebnis<R> {
 impl<R> Ergebnis<R> {
     /// Konvertiere den `anschluss` mit der übergebenen Funktion.
     pub fn konvertiere<T>(self, formatter: impl FnOnce(R) -> T) -> Ergebnis<T> {
-        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         match self {
             Wert { anschluss, anschlüsse } => {
                 Wert { anschluss: formatter(anschluss), anschlüsse }
             },
-            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
-                FehlerMitErsatzwert { anschluss: formatter(anschluss), fehler, anschlüsse }
+            WertMitWarnungen { anschluss, fehler, anschlüsse } => {
+                WertMitWarnungen { anschluss: formatter(anschluss), fehler, anschlüsse }
             },
             Fehler { fehler, anschlüsse } => Fehler { fehler, anschlüsse },
         }
@@ -194,12 +194,12 @@ impl<T> Ergebnis<T> {
         kombiniere: impl FnOnce(T, R) -> U,
         fehlerbehandlung: impl FnOnce(Either<Option<T>, R>) -> Option<U>,
     ) -> Ergebnis<U> {
-        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         // t: T
         #[allow(clippy::min_ident_chars)]
         let (t, fehler_t, anschlüsse) = match self {
             Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
-            FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+            WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                 (Some(anschluss), Some(fehler), anschlüsse)
             },
             Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
@@ -212,7 +212,7 @@ impl<T> Ergebnis<T> {
                 #[allow(clippy::shadow_unrelated)]
                 Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
                 #[allow(clippy::shadow_unrelated)]
-                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
+                WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     (Some(anschluss), Some(fehler), anschlüsse)
                 },
                 #[allow(clippy::shadow_unrelated)]
@@ -237,9 +237,7 @@ impl<T> Ergebnis<T> {
             (None, None) => unreachable!("Wert und Fehler können nicht gleichzeitig None sein!"),
             (None, Some(fehler)) => Fehler { fehler, anschlüsse },
             (Some(anschluss), None) => Wert { anschluss, anschlüsse },
-            (Some(anschluss), Some(fehler)) => {
-                FehlerMitErsatzwert { anschluss, fehler, anschlüsse }
-            },
+            (Some(anschluss), Some(fehler)) => WertMitWarnungen { anschluss, fehler, anschlüsse },
         }
     }
 }
@@ -278,19 +276,19 @@ where
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Option<R>> {
-        use Ergebnis::{Fehler, FehlerMitErsatzwert, Wert};
+        use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         if let Some(serialisiert) = self {
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
                 // false positive, anschlüsse transformiert durch den Funktionsaufruf
                 #[allow(clippy::shadow_unrelated)]
                 Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
                 #[allow(clippy::shadow_unrelated)]
-                FehlerMitErsatzwert { anschluss, fehler, anschlüsse } => {
-                    FehlerMitErsatzwert { anschluss: Some(anschluss), fehler, anschlüsse }
+                WertMitWarnungen { anschluss, fehler, anschlüsse } => {
+                    WertMitWarnungen { anschluss: Some(anschluss), fehler, anschlüsse }
                 },
                 #[allow(clippy::shadow_unrelated)]
                 Fehler { fehler, anschlüsse } => {
-                    FehlerMitErsatzwert { anschluss: None, fehler, anschlüsse }
+                    WertMitWarnungen { anschluss: None, fehler, anschlüsse }
                 },
             }
         } else {
