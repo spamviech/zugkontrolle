@@ -303,8 +303,11 @@ where
     pub fn anschlüsse_anpassen(&mut self, anschlüsse_anpassen: AnyIdSteuerungSerialisiert) {
         use SteuerungAktualisierenFehler::{Deserialisieren, GleisNichtGefunden};
         let mut fehlermeldung = None;
-        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen.clone()) {
-            Ok(()) => {},
+        let mut auswahlzustand_verstecken = false;
+        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
+            Ok(()) => {
+                auswahlzustand_verstecken = true;
+            },
             Err(aktualisieren_fehler) => match *aktualisieren_fehler {
                 Deserialisieren { fehler, wiederherstellen_fehler } => {
                     let titel = "Anschlüsse anpassen!".to_owned();
@@ -327,17 +330,18 @@ where
                         format!("Anschlüsse anpassen für ein entferntes Gleis: {id:?}"),
                     ));
                 },
+                SteuerungAktualisierenFehler::ReservierenWarnung(fehler) => {
+                    auswahlzustand_verstecken = true;
+                    let titel = "Anschlüsse anpassen!".to_owned();
+                    let nachricht = format!("{fehler:?}");
+                    fehlermeldung = Some((titel, nachricht));
+                },
             },
         }
         if let Some((titel, nachricht)) = fehlermeldung {
             self.aktualisiere_message_box(Some(MessageBox { titel, nachricht }));
-            let hat_steuerung =
-                self.gleise.hat_steuerung(anschlüsse_anpassen.id()).unwrap_or(false);
-            self.aktualisiere_auswahlzustand(Some(AuswahlZustand::from((
-                anschlüsse_anpassen,
-                hat_steuerung,
-            ))));
-        } else {
+        }
+        if auswahlzustand_verstecken {
             self.aktualisiere_auswahlzustand(None);
         }
     }

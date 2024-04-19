@@ -14,7 +14,7 @@ use log::error;
 
 use zugkontrolle_anschluss::{
     level::Level,
-    pcf8574::{self, Beschreibung, I2cBus, Lager, Variante},
+    pcf8574::{self, Beschreibung, I2cBus, Variante},
     pin::pwm,
     polarität::Polarität,
     InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
@@ -80,13 +80,13 @@ enum InterneNachricht<T> {
 #[derive(Debug, Clone, Copy)]
 pub struct InputNachricht {
     /// Neuer aktuell gewählter Interrupt-Pin.
-    interrupt: u8,
+    interrupt_pin: u8,
 }
 
 impl InputNachricht {
     /// Erstelle eine neue Nachricht mit dem gewählten Interrupt-Pin.
-    fn interrupt(interrupt: u8) -> Self {
-        InputNachricht { interrupt }
+    fn interrupt(interrupt_pin: u8) -> Self {
+        InputNachricht { interrupt_pin }
     }
 }
 
@@ -128,7 +128,6 @@ where
     #[must_use]
     pub fn neu_input(
         start_wert: Option<&'a InputAnschluss>,
-        lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
@@ -143,23 +142,13 @@ where
             ),
             None => (TabId::Pin, None, None, None, None),
         };
-        Self::neu_input_aux(
-            active_tab,
-            pin,
-            beschreibung,
-            port,
-            modus,
-            lager,
-            scrollable_style,
-            settings,
-        )
+        Self::neu_input_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     #[must_use]
     pub fn neu_input_s(
         start_wert: Option<&InputSerialisiert>,
-        lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
@@ -176,7 +165,6 @@ where
             beschreibung.copied(),
             port.copied(),
             modus.copied(),
-            lager,
             scrollable_style,
             settings,
         )
@@ -191,21 +179,14 @@ where
         start_beschreibung: Option<Beschreibung>,
         start_port: Option<kleiner_8>,
         start_modus: Option<u8>,
-        lager: &'a Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         Auswahl::neu_mit_modus_view(
             ZeigeModus::Pcf8574,
-            |pin, beschreibung| {
-                let interrupt_pin = lager.interrupt_pin(&beschreibung).map_or(
-                    Element::from(
-                        NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
-                    ),
-                    |interrupt_pin| {
-                        let text: Text<'_, Thema, R> = Text::new(interrupt_pin.to_string());
-                        Element::from(text)
-                    },
+            |pin, _beschreibung| {
+                let interrupt_pin_auswahl = Element::from(
+                    NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
                 );
                 Element::from(
                     Column::new()
@@ -214,20 +195,16 @@ where
                                 .width(Length::Fill)
                                 .center_x(),
                         )
-                        .push(interrupt_pin)
+                        .push(interrupt_pin_auswahl)
                         .width(Length::Fixed(100.)),
                 )
             },
-            &|modus: &mut u8, InputNachricht { interrupt: pin }| *modus = pin,
+            &|modus: &mut u8, InputNachricht { interrupt_pin: interrupt }| *modus = interrupt,
             &|pin, _input| InputSerialisiert::Pin { pin },
-            |beschreibung, port, pin| InputSerialisiert::Pcf8574Port {
+            |beschreibung, port, interrupt_pin| InputSerialisiert::Pcf8574Port {
                 beschreibung,
                 port,
-                interrupt: if lager.interrupt_pin(&beschreibung).is_some() {
-                    None
-                } else {
-                    Some(*pin)
-                },
+                interrupt: Some(*interrupt_pin),
             },
             move || Zustand {
                 active_tab,

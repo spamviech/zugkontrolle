@@ -19,6 +19,7 @@
 - Verwende `rfd` zur Datei-Auswahl beim Speichern und Laden.
 - Zeige Schließen-Knopf wieder am Ende im Lizenzen-Widget an.
 - Anpassen der Widget-Anordnung der Kopf-Leiste.
+- Erlaube (nachträgliches) Anpassen des Interrupt-Pins eines Pcf8574.
 - Verbesserungen im `Gleise`-canvas:
   - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
   - Zeige Gleise direkt nach dem hinzufügen an.

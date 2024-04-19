@@ -21,7 +21,7 @@ use iced_widget::{
     Column, Row,
 };
 
-use zugkontrolle_anschluss::{pcf8574::Lager, trigger::Trigger, InputSerialisiert};
+use zugkontrolle_anschluss::{trigger::Trigger, InputSerialisiert};
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::kontakt::{KontaktSerialisiert, Name};
 
@@ -112,12 +112,11 @@ where
         gleis_art: &'t str,
         kontakt: &Option<KontaktSerialisiert>,
         hat_steuerung: bool,
-        lager: &'t Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Self {
         let erzeuge_element = move |zustand: &_| {
-            Self::erzeuge_element(gleis_art, zustand, lager, scrollable_style, settings)
+            Self::erzeuge_element(gleis_art, zustand, scrollable_style, settings)
         };
         let mapper = |interne_nachricht: InterneNachricht,
                       zustand: &mut Zustand,
@@ -156,7 +155,6 @@ where
     fn erzeuge_element(
         weichen_art: &'t str,
         zustand: &Zustand,
-        lager: &'t Lager,
         scrollable_style: Sammlung,
         settings: I2cSettings,
     ) -> Element<'t, InterneNachricht, Thema, R> {
@@ -168,7 +166,6 @@ where
         column = column.push(text_input);
         let anschluss_auswahl = Element::from(anschluss::Auswahl::neu_input_s(
             Some(anschluss),
-            lager,
             scrollable_style,
             settings,
         ))

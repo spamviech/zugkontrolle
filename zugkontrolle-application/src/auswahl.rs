@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use iced::{Element, Renderer};
 
-use zugkontrolle_anschluss::{de_serialisieren::Serialisiere, pcf8574::Lager};
+use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::id::AnyIdSteuerungSerialisiert;
 use zugkontrolle_gleis::{
@@ -160,7 +160,6 @@ impl<S> AuswahlZustand<S> {
     pub fn view<'t, L, Nachricht: 't, AktualisierenNachricht>(
         &self,
         gleise: &'t Gleise<L, AktualisierenNachricht>,
-        lager: &'t Lager,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
     ) -> Element<'t, Nachricht, Thema, Renderer>
@@ -203,7 +202,6 @@ impl<S> AuswahlZustand<S> {
                     gleis_art,
                     kontakt,
                     *hat_steuerung,
-                    lager,
                     scrollable_style,
                     i2c_settings,
                 ))

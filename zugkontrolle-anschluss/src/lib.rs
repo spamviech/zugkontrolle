@@ -551,6 +551,61 @@ impl Serialisiere<InputSerialisiert> for InputAnschluss {
     }
 }
 
+/// Reserviere den übergebenen [`input::Pin`].
+fn reserviere_input_pin(
+    lager: &mut Lager,
+    anschlüsse: Anschlüsse,
+    pin: u8,
+) -> Ergebnis<InputAnschluss> {
+    match lager.pin.reserviere_pin(pin) {
+        Ok(pin) => Ergebnis::Wert { anschluss: InputAnschluss::Pin(pin.als_input()), anschlüsse },
+        Err(fehler) => Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse },
+    }
+}
+
+/// Reserviere den gewünschten [`pcf8574::InputPort`].
+fn reserviere_input_port(
+    lager: &mut Lager,
+    anschlüsse: Anschlüsse,
+    beschreibung: pcf8574::Beschreibung,
+    port: kleiner_8,
+    neuer_interrupt: Option<u8>,
+    interrupt_konfigurieren: impl FnOnce(&mut Lager, &mut pcf8574::InputPort) -> Result<(), Fehler>,
+) -> Ergebnis<InputAnschluss> {
+    match lager.pcf8574.reserviere_pcf8574_port(beschreibung, port) {
+        Ok(port) => {
+            let bisheriger_interrupt_pin = lager.pcf8574.interrupt_pin(&beschreibung);
+            let (mut input_port, fehler) = port.als_input();
+            let fehler_interrupt = interrupt_konfigurieren(lager, &mut input_port).err();
+            let input_anschluss = InputAnschluss::Pcf8574Port(input_port);
+            let fehler_vec: Vec<_> = fehler
+                .into_iter()
+                .map(Fehler::from)
+                .chain(
+                    bisheriger_interrupt_pin
+                        .map(|von| ReservierenFehler::Pcf8574InterruptPinGeändert {
+                            beschreibung,
+                            von,
+                            zu: neuer_interrupt,
+                        })
+                        .map(Fehler::from),
+                )
+                .chain(fehler_interrupt.map(Fehler::from))
+                .collect();
+            if let Ok(non_empty) = NonEmpty::try_from(fehler_vec) {
+                Ergebnis::FehlerMitErsatzwert {
+                    anschluss: input_anschluss,
+                    fehler: non_empty,
+                    anschlüsse,
+                }
+            } else {
+                Ergebnis::Wert { anschluss: input_anschluss, anschlüsse }
+            }
+        },
+        Err(fehler) => Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse },
+    }
+}
+
 impl Reserviere<InputAnschluss> for InputSerialisiert {
     type MoveArg = ();
     type RefArg = ();
@@ -566,9 +621,9 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
         let mut gesuchter_anschluss = None;
         let mut gesuchter_interrupt = None;
         let mut verbleibende_input_anschlüsse = Vec::with_capacity(input_anschlüsse.len());
-        let self_interrupt = self.interrupt();
+        let gesuchter_interrupt_serialisiert = self.interrupt();
         let mut anschluss_suchen: Box<dyn FnMut(InputAnschluss)> = if let Some(interrupt) =
-            &self_interrupt
+            &gesuchter_interrupt_serialisiert
         {
             Box::new(|anschluss| {
                 if gesuchter_anschluss.is_none() && self.selber_anschluss(&anschluss.serialisiere())
@@ -601,19 +656,20 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             anschluss_suchen(anschluss);
         }
         drop(anschluss_suchen);
-        let interrupt_konfigurieren = |port: &mut pcf8574::InputPort| -> Result<(), Fehler> {
-            if let Some(interrupt) = gesuchter_interrupt {
-                let _ = port.setze_interrupt_pin(interrupt)?;
-            } else if let Some(pin) = self_interrupt {
-                if Some(pin) != port.interrupt_pin() {
-                    let interrupt = lager.pin.reserviere_pin(pin)?.als_input();
+        let interrupt_konfigurieren =
+            |lager_arg: &mut Lager, port: &mut pcf8574::InputPort| -> Result<(), Fehler> {
+                if let Some(interrupt) = gesuchter_interrupt {
                     let _ = port.setze_interrupt_pin(interrupt)?;
+                } else if let Some(pin) = gesuchter_interrupt_serialisiert {
+                    if Some(pin) != port.interrupt_pin() {
+                        let interrupt = lager_arg.pin.reserviere_pin(pin)?.als_input();
+                        let _ = port.setze_interrupt_pin(interrupt)?;
+                    }
+                } else {
+                    // Kein konfigurierter Interrupt-Pin.
                 }
-            } else {
-                // Kein konfigurierter Interrupt-Pin.
-            }
-            Ok(())
-        };
+                Ok(())
+            };
         let anschlüsse = Anschlüsse {
             output_anschlüsse,
             input_anschlüsse: verbleibende_input_anschlüsse,
@@ -623,41 +679,16 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
             Ergebnis::Wert { anschluss, anschlüsse }
         } else {
             match self {
-                InputSerialisiert::Pin { pin } => match lager.pin.reserviere_pin(pin) {
-                    Ok(pin) => Ergebnis::Wert {
-                        anschluss: InputAnschluss::Pin(pin.als_input()),
-                        anschlüsse,
-                    },
-                    Err(fehler) => {
-                        Ergebnis::Fehler { fehler: NonEmpty::singleton(fehler.into()), anschlüsse }
-                    },
-                },
+                InputSerialisiert::Pin { pin } => reserviere_input_pin(lager, anschlüsse, pin),
                 InputSerialisiert::Pcf8574Port { beschreibung, port, interrupt: _ } => {
-                    match lager.pcf8574.reserviere_pcf8574_port(beschreibung, port) {
-                        Ok(port) => {
-                            let (mut input_port, fehler) = port.als_input();
-                            let fehler2 = interrupt_konfigurieren(&mut input_port).err();
-                            let input_anschluss = InputAnschluss::Pcf8574Port(input_port);
-                            let fehler_vec: Vec<_> = fehler
-                                .into_iter()
-                                .map(Fehler::from)
-                                .chain(fehler2.map(Fehler::from))
-                                .collect();
-                            if let Ok(non_empty) = NonEmpty::try_from(fehler_vec) {
-                                Ergebnis::FehlerMitErsatzwert {
-                                    anschluss: input_anschluss,
-                                    fehler: non_empty,
-                                    anschlüsse,
-                                }
-                            } else {
-                                Ergebnis::Wert { anschluss: input_anschluss, anschlüsse }
-                            }
-                        },
-                        Err(fehler) => Ergebnis::Fehler {
-                            fehler: NonEmpty::singleton(fehler.into()),
-                            anschlüsse,
-                        },
-                    }
+                    reserviere_input_port(
+                        lager,
+                        anschlüsse,
+                        beschreibung,
+                        port,
+                        gesuchter_interrupt_serialisiert,
+                        interrupt_konfigurieren,
+                    )
                 },
             }
         }
@@ -674,6 +705,16 @@ pub enum ReservierenFehler {
     /// Ein [`Pcf8574-Port`](pcf8574::Port) wird bereits verwendet.
     #[error(transparent)]
     Pcf8574(#[from] pcf8574::InVerwendung),
+    /// Der Interrupt-Pin für einen [`Pcf8574`](pcf8574::Pcf8574) wurde angepasst.
+    #[error("Interrupt-Pin für Pcf8574 {beschreibung} von {von} zu {zu:?} geändert.")]
+    Pcf8574InterruptPinGeändert {
+        /// Der [`Pcf8574`](pcf8574::Pcf8574), dessen Interrupt-Pin angepasst wurde.
+        beschreibung: pcf8574::Beschreibung,
+        /// Der bisherige Interrupt-Pin.
+        von: u8,
+        /// Der neue Interrupt-Pin.
+        zu: Option<u8>,
+    },
 }
 
 /// Fehler, die bei Interaktion mit einem [`Anschluss`] auftreten können.

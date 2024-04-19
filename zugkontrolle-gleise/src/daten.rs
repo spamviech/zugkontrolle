@@ -950,6 +950,8 @@ pub enum SteuerungAktualisierenFehler {
         /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
         wiederherstellen_fehler: Option<(NonEmpty<Fehler>, String)>,
     },
+    /// Warnungen beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [`Anschlüsse`](anschluss::Anschluss).
+    ReservierenWarnung(NonEmpty<Fehler>),
 }
 
 /// Das Gleis wurde nicht gefunden.
@@ -994,9 +996,9 @@ impl GleiseDaten {
                             let _ = steuerung.insert(anschluss);
                             return Ok(());
                         },
-                        Ergebnis::FehlerMitErsatzwert { anschluss, fehler, mut anschlüsse } => {
-                            anschlüsse.anhängen(anschluss.anschlüsse());
-                            (fehler, anschlüsse)
+                        Ergebnis::FehlerMitErsatzwert { anschluss, fehler, anschlüsse: _ } => {
+                            let _ = steuerung.insert(anschluss);
+                            return Err(Box::new(SteuerungAktualisierenFehler::ReservierenWarnung(fehler)));
                         },
                         Ergebnis::Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
                     };

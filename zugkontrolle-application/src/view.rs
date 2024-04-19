@@ -87,7 +87,7 @@ where
             streckenabschnitt_aktuell_festlegen,
             bewegen,
             drehen,
-            lager,
+            lager: _,
             thema,
             aktueller_pfad: initialer_pfad,
             speichern_gefärbt,
@@ -127,7 +127,7 @@ where
         );
 
         let zeige_auswahlzustand = |modal: &AuswahlZustand<S>| {
-            AuswahlZustand::view(modal, gleise, &lager.pcf8574, *scrollable_style, *i2c_settings)
+            AuswahlZustand::view(modal, gleise, *scrollable_style, *i2c_settings)
         };
         let passthrough_event = |event: &Event| {
             let klick_quelle = match event {
