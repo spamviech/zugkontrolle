@@ -11,6 +11,7 @@ use std::{
 use async_io::Timer;
 use iced::{Command, Renderer};
 use log::error;
+use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
@@ -309,14 +310,18 @@ where
                 auswahlzustand_verstecken = true;
             },
             Err(aktualisieren_fehler) => match *aktualisieren_fehler {
-                Reservieren { fehler, wiederherstellen_fehler } => {
+                Reservieren { fehler: NonEmpty { head, tail }, wiederherstellen_fehler } => {
                     let titel = "Anschlüsse anpassen!".to_owned();
-                    let mut nachricht = format!("{fehler:?}");
-                    if let Some((w_fehler_liste, anschlüsse)) = wiederherstellen_fehler {
+                    let mut nachricht = format!("{head}\n");
+                    for fehler in tail {
+                        writeln!(nachricht, "- {fehler}")
+                            .expect("write! auf einem String fehlgeschlagen!");
+                    }
+                    if let Some((w_fehler, anschlüsse)) = wiederherstellen_fehler {
                         writeln!(nachricht, "\nFehler beim wiederherstellen der Anschlüsse:")
                             .expect("write! auf einem String fehlgeschlagen!");
-                        for w_fehler in w_fehler_liste {
-                            writeln!(nachricht, "- {w_fehler}")
+                        for fehler in w_fehler {
+                            writeln!(nachricht, "- {fehler}")
                                 .expect("write! auf einem String fehlgeschlagen!");
                         }
                         write!(nachricht, "{anschlüsse}")
@@ -330,10 +335,14 @@ where
                         format!("Anschlüsse anpassen für ein entferntes Gleis: {id:?}"),
                     ));
                 },
-                SteuerungAktualisierenFehler::ReservierenWarnung(fehler) => {
+                SteuerungAktualisierenFehler::ReservierenWarnung(NonEmpty { head, tail }) => {
                     auswahlzustand_verstecken = true;
                     let titel = "Anschlüsse anpassen!".to_owned();
-                    let nachricht = format!("{fehler:?}");
+                    let mut nachricht = format!("{head}\n");
+                    for fehler in tail {
+                        writeln!(nachricht, "- {fehler}")
+                            .expect("write! auf einem String fehlgeschlagen!");
+                    }
                     fehlermeldung = Some((titel, nachricht));
                 },
             },
