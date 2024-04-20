@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle-test-util"
-version = "0.1.0"
+version = "1.0.0"
 authors.workspace = true
 readme.workspace = true
 edition.workspace = true

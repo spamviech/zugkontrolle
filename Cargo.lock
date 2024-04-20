@@ -4618,7 +4618,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-anschluss"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "either",
  "enum-iterator",
@@ -4640,7 +4640,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-application"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-io 2.3.2",
  "cargo_metadata",
@@ -4669,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-argumente"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "kommandozeilen_argumente",
  "zugkontrolle-typen",
@@ -4677,7 +4677,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-gleis"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "dyn-clonable",
  "either",
@@ -4695,7 +4695,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-gleise"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "associated_list",
  "bincode",
@@ -4720,7 +4720,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-id"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "log",
  "parking_lot 0.12.1",
@@ -4743,7 +4743,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-test-util"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "flexi_logger",
  "log",
@@ -4754,7 +4754,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-typen"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "iced_core",
  "iced_graphics",
@@ -4768,7 +4768,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-util"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "num-traits",
  "serde",
@@ -4777,7 +4777,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-widget"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "cargo_metadata",
  "difference",
