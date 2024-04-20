@@ -273,10 +273,7 @@ fn finde_unterschiede<'t, 'f>(
     let mut unterschiede = BTreeMap::new();
     let is_diff = |diff: &Difference| !matches!(diff, Difference::Same(_));
     for ((name, version), funktion) in lizenzen {
-        let manifest_pfad = env!("CARGO_MANIFEST_DIR");
-        // Es gibt aktuell keine env-variable für das workspace-root.
-        // https://github.com/rust-lang/cargo/issues/3946
-        let repo_pfad = format!("{manifest_pfad}/..");
+        let repo_pfad = env!("zugkontrolle_workspace_root");
         let ordner_pfad = format!("{repo_pfad}/licenses/{name}-{version}");
         let standard_lizenz_pfad: &str = standard_lizenz_pfade
             .iter()

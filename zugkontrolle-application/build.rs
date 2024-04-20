@@ -17,7 +17,9 @@ fn main() {
         },
         Err(error) => {
             println!("cargo::warning=Error reading workspace_root metadata entry:\n{error}");
-            (String::from(env!("CARGO_PKG_VERSION")), String::from(".."))
+            let mut workspace_root = String::from(env!("CARGO_MANIFEST_DIR"));
+            workspace_root.push_str("/..");
+            (String::from(env!("CARGO_PKG_VERSION")), workspace_root)
         },
     };
     println!("cargo::rustc-env=zugkontrolle_version={zugkontrolle_version}");

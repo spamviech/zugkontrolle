@@ -4779,6 +4779,7 @@ dependencies = [
 name = "zugkontrolle-widget"
 version = "0.1.0"
 dependencies = [
+ "cargo_metadata",
  "difference",
  "either",
  "enum-iterator",
