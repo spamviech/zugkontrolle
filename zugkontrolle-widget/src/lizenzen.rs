@@ -23,7 +23,13 @@ use once_cell::sync::Lazy;
 use zugkontrolle_util::unicase_ord::UniCaseOrd;
 
 use crate::{
-    lizenzen::texte::OflCopyright,
+    lizenzen::texte::{
+        apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_0, bsd_2, bsd_3,
+        bsl_1_0, cc_0, isc, mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11,
+        ofl_1_1, servo_fontconfig_sys, zlib, ApacheCopyright, ApacheEinrückung, BSD3Copyright,
+        BSD3Darstellung, BSD3Zeilenumbruch, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde,
+        MITInfix, MITPräfix, MITZeilenumbruch, OflCopyright,
+    },
     map_mit_zustand::MapMitZustand,
     style::{
         self,
@@ -31,15 +37,9 @@ use crate::{
     },
 };
 
+#[cfg(test)]
+mod test;
 pub mod texte;
-
-use texte::{
-    apache_2_0, apache_2_0_eingerückt, apache_2_0_standard_eingerückt, bsd_0, bsd_2, bsd_3,
-    bsl_1_0, cc_0, isc, mit, mit_missing_note, mit_ohne_copyright, mit_ohne_copyright_x11, ofl_1_1,
-    servo_fontconfig_sys, zlib, ApacheCopyright, ApacheEinrückung, BSD3Copyright, BSD3Darstellung,
-    BSD3Zeilenumbruch, ISCZeilenumbruch, MITCopyright, MITEinrückung, MITEnde, MITInfix, MITPräfix,
-    MITZeilenumbruch,
-};
 
 /// Interne Nachricht zur Interaktion mit einem [`Lizenzen`]-Widget.
 #[derive(Debug, Clone)]
@@ -3217,6 +3217,3 @@ fn verwendete_lizenzen(
         UniCaseOrd::neu(format!("{name}-{version}"))
     })
 }
-
-#[cfg(test)]
-mod test;
