@@ -41,6 +41,10 @@ fn lizenz_dateien() -> BTreeMap<&'static str, (&'static str, HashMap<&'static st
         ("gpu-alloc-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("d3d12", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
         ("allocator-api2", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("naga", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("ouroboros", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("ouroboros_macro", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
+        ("iced_aw", ("9ed46bf/LICENSE", HashMap::new())),
     ]
     .into_iter()
     .collect()
