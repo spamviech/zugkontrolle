@@ -209,9 +209,6 @@ static TARGET_CRATE_LIZENZEN: &[(&str, &str, &str)] = zugkontrolle_macros::targe
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken für das aktuelle target.
 #[must_use]
 fn verwendete_lizenzen() -> LizenzenMap {
-    // TODO Schriftarten
-    // let _ = crates_und_schriftarten.insert("SourceSerif4-Regular", NonEmpty::singleton("4.005"));
-    // let _ = crates_und_schriftarten.insert("Bootstrap Icons", NonEmpty::singleton("v1.11.3"));
     TARGET_CRATE_LIZENZEN
         .iter()
         .map(|(name, version, lizenz)| (UniCaseOrd::neu(format!("{name}-{version}")), *lizenz))

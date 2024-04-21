@@ -57,7 +57,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
         Err(fehlermeldung) => return (quote!([]), vec![fehlermeldung]),
     };
     let target_crates =
-        verwendete_crates.into_iter().map(|package| (package.name, package.version));
+        verwendete_crates.into_iter().map(|package| (package.name, package.version.to_string()));
     let lizenz_dateien = lizenz_dateien();
     let standard_lizenz_pfade: Vec<_> = [
         "LICENSE",
@@ -84,7 +84,13 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     let mut versionen = Vec::new();
     let mut lizenz_pfade = Vec::new();
     let mut fehlermeldungen = Vec::new();
-    for (name, version) in [].into_iter().chain(target_crates) {
+    for (name, version) in [
+        (String::from("SourceSerif4-Regular"), String::from("4.005")),
+        (String::from("Bootstrap Icons"), String::from("v1.11.3")),
+    ]
+    .into_iter()
+    .chain(target_crates)
+    {
         if name.starts_with("zugkontrolle") {
             continue;
         }
@@ -102,7 +108,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
             fehlermeldungen.push(fehlermeldung);
             continue;
         };
-        let datei = version_spezifisch.get(version.to_string().as_str()).unwrap_or(pfad);
+        let datei = version_spezifisch.get(version.as_str()).unwrap_or(pfad);
         let lizenz_pfad = format!("{repo_pfad}/licenses/{name}-{version}/{datei}");
         namen.push(name);
         versionen.push(version.to_string());
