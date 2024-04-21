@@ -47,10 +47,10 @@ fn lizenz_dateien() -> BTreeMap<&'static str, (&'static str, HashMap<&'static st
 }
 
 /// [`crate::target_crate_lizenzen`]
-pub(crate) fn target_crate_lizenzen_impl(target: &str) -> TokenStream {
+pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<String>) {
     let verwendete_crates = match verwendete_crates_impl(String::from(target)) {
         Ok(crates) => crates,
-        Err(fehlermeldung) => return quote!(compile_error!(#fehlermeldung);),
+        Err(fehlermeldung) => return (quote!([]), vec![fehlermeldung]),
     };
     let target_crates =
         verwendete_crates.into_iter().map(|package| (package.name, package.version));
@@ -80,50 +80,55 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> TokenStream {
     let mut versionen = Vec::new();
     let mut lizenz_pfade = Vec::new();
     let mut fehlermeldungen = Vec::new();
-    for (name, version) in target_crates {
+    for (name, version) in [].into_iter().chain(target_crates) {
         if name.starts_with("zugkontrolle") {
             continue;
         }
         let repo_pfad = env!("zugkontrolle_workspace_root");
         let ordner_pfad = format!("{repo_pfad}/licenses/{name}-{version}");
-        let Some(standard_lizenz_pfad) = standard_lizenz_pfade
+        let standard_lizenz_pfad = standard_lizenz_pfade
             .iter()
-            .find(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file())
+            .find(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file());
+        let standard_lizenz_pfad_mit_map =
+            standard_lizenz_pfad.map(|pfad| (pfad.as_str(), HashMap::new()));
+        let Some((pfad, version_spezifisch)) =
+            lizenz_dateien.get(name.as_str()).or(standard_lizenz_pfad_mit_map.as_ref())
         else {
-            if false {
-                let fehlermeldung = format!("Lizenz-Datei für {name}-{version} nicht gefunden!");
-                fehlermeldungen.push(fehlermeldung);
-            }
+            let fehlermeldung = format!("Lizenz-Datei für {name}-{version} nicht gefunden!");
+            fehlermeldungen.push(fehlermeldung);
             continue;
         };
-        let standard_lizenz_pfad_mit_map = (standard_lizenz_pfad.as_str(), HashMap::new());
-        let (pfad, version_spezifisch) =
-            lizenz_dateien.get(name.as_str()).unwrap_or(&standard_lizenz_pfad_mit_map);
         let datei = version_spezifisch.get(version.to_string().as_str()).unwrap_or(pfad);
         let lizenz_pfad = format!("{repo_pfad}/licenses/{name}-{version}/{datei}");
         namen.push(name);
         versionen.push(version.to_string());
         lizenz_pfade.push(lizenz_pfad);
     }
-    quote! {
+    let token_stream = quote! {
         &[#((#namen, #versionen, include_str!{#lizenz_pfade})),*]
-        #(compile_error!(#fehlermeldungen);)*
-    }
+    };
+    (token_stream, fehlermeldungen)
 }
 
 /// [`crate::target_crate_lizenzen`]
 pub(crate) fn target_crate_lizenzen(input: &TokenStream) -> TokenStream {
     if !input.is_empty() {
         let fehlermeldung = format!("No argument supported, but \"{input}\" was given.");
-        return quote!(compile_error!(#fehlermeldung););
+        return quote! {{
+            compile_error!(#fehlermeldung);
+            []
+        }};
     }
     match bekannte_targets() {
         Ok(targets) => {
             let mut output = quote!();
             for target in targets {
-                let crate_lizenzen = target_crate_lizenzen_impl(&target);
+                let (crate_lizenzen, fehlermeldungen) = target_crate_lizenzen_impl(&target);
+                let compile_error = quote!(#(compile_error!(#fehlermeldungen);)*);
                 output = quote!(
                     #output
+                    #[cfg(zugkontrolle_target = #target)]
+                    {#compile_error}
                     #[cfg(zugkontrolle_target = #target)]
                     {#crate_lizenzen}
                 );
@@ -131,7 +136,10 @@ pub(crate) fn target_crate_lizenzen(input: &TokenStream) -> TokenStream {
             quote!({#output})
         },
         Err(fehlermeldung) => {
-            quote!(compile_error!(#fehlermeldung);)
+            quote! {{
+                compile_error!(#fehlermeldung);
+                []
+            }}
         },
     }
 }
