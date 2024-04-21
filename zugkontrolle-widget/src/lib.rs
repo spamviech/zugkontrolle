@@ -2,8 +2,6 @@
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
 #![allow(clippy::multiple_crate_versions)]
-// Erlaube mehr rekursive Aufrufe von Macros.
-#![recursion_limit = "256"]
 
 pub mod anschluss;
 pub mod auswahl;
