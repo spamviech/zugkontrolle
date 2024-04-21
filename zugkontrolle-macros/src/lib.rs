@@ -29,6 +29,15 @@ pub fn clone_derive(input: TokenStream) -> TokenStream {
     clone::impl_clone(&ast).into()
 }
 
+mod from;
+#[proc_macro_derive(From)]
+/// Erzeuge [`From`]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
+pub fn from_derive(from_derive: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(from_derive);
+
+    from::impl_from(ast).into()
+}
+
 mod nachschlagen;
 #[proc_macro_attribute]
 /// Erzeuge eine Struktur und zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Implementierung für das Enum.
@@ -84,35 +93,6 @@ pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStr
     let ast = parse_macro_input!(item);
 
     alias::alias_serialisiert_unit(&attr.into(), &ast).into()
-}
-
-mod daten;
-#[proc_macro_attribute]
-#[deprecated]
-/// Erstelle spezialisierte Methoden für alle Gleis-Typen mit entsprechendem Suffix.
-/// Notwendig, damit `DatenAuswahl` kein Teil des APIs wird.
-///
-/// Internes Macro mit sehr spezifischen Voraussetzungen.
-///
-/// Die Funktion muss einen generic Typ mit DatenAuswahl-Constraint haben;
-/// das Constraint darf nicht in der `where`-Klausel stehen.
-/// Das erste Argument muss `&mut self`, oder `&'t mut self` und
-/// alle anderen Argumente reine Namen-Pattern sein.
-/// Die `where`-Klausel wird nicht inspiziert oder kopiert.
-/// Für assoziierte Typen wird eine vollständig qualifizierte Form `<T as Trait>::Typ` empfohlen.
-pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(item);
-
-    daten::erstelle_methoden(&attr.into(), &ast).into()
-}
-
-mod sum_type_from;
-#[proc_macro_derive(From)]
-/// Erzeuge [`From`]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
-pub fn derive_from(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input);
-
-    sum_type_from::impl_from(ast).into()
 }
 
 mod metadata;
