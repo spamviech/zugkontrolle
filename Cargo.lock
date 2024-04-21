@@ -924,12 +924,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "difference"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4780,8 +4774,6 @@ name = "zugkontrolle-widget"
 version = "1.0.0"
 dependencies = [
  "cargo_metadata",
- "difference",
- "either",
  "enum-iterator",
  "iced",
  "iced_aw",
@@ -4793,14 +4785,12 @@ dependencies = [
  "nonempty 0.9.0",
  "once_cell",
  "rfd",
- "thiserror",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
  "zugkontrolle-gleise",
  "zugkontrolle-id",
  "zugkontrolle-macros",
- "zugkontrolle-test-util",
  "zugkontrolle-typen",
  "zugkontrolle-util",
 ]

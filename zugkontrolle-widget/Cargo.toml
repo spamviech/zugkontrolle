@@ -32,11 +32,6 @@ nonempty.workspace = true
 once_cell.workspace = true
 rfd.workspace = true
 
-[dev-dependencies]
-zugkontrolle-test-util.workspace = true
-difference.workspace = true
-either.workspace = true
-thiserror.workspace = true
 
 [build-dependencies]
 cargo_metadata.workspace = true

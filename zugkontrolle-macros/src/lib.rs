@@ -111,3 +111,13 @@ pub fn verwendete_crates(input: TokenStream) -> TokenStream {
 pub fn target_crates(input: TokenStream) -> TokenStream {
     metadata::target_crates(&input.into()).into()
 }
+
+mod lizenzen;
+#[proc_macro]
+/// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten
+/// und füge die Lizenz hinzu.
+/// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
+/// Die targets werden über `rustc --print target-list` ausgelesen.
+pub fn target_crate_lizenzen(input: TokenStream) -> TokenStream {
+    lizenzen::target_crate_lizenzen(&input.into()).into()
+}
