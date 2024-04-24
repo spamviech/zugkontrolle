@@ -1,9 +1,6 @@
 //!
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    path::Path,
-};
+use std::{collections::BTreeMap, path::Path};
 
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -11,40 +8,40 @@ use quote::quote;
 use crate::metadata::{bekannte_targets, verwendete_crates_impl};
 
 /// Lizenz-Dateien, die keinen Standard-Dateipfad verwenden.
-fn lizenz_dateien() -> BTreeMap<&'static str, (&'static str, HashMap<&'static str, &'static str>)> {
+fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
     // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
     // alternative direkt in rust, z.B. mit dependency
     // cargo-lock = "8.0.1"
     // Nachteil: fetch dauert eine Weile
 
     [
-        ("SourceSerif4-Regular", ("../../../fonts/source-serif/LICENSE.md", HashMap::new())),
-        ("Bootstrap Icons", ("../../../fonts/bootstrap-icons/LICENSE", HashMap::new())),
-        ("windows_aarch64_msvc", ("../windows-0.44.0/license-mit", HashMap::new())),
-        ("windows_i686_aarch64", ("../windows-0.44.0/license-mit", HashMap::new())),
-        ("windows_i686_gnu", ("../windows-0.44.0/license-mit", HashMap::new())),
-        ("windows_i686_msvc", ("../windows-0.44.0/license-mit", HashMap::new())),
-        ("windows_x86_64_gnu", ("../windows-0.44.0/license-mit", HashMap::new())),
-        ("windows_x86_64_msvc", ("../windows-0.44.0/license-mit", HashMap::new())),
-        ("widestring", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("wgpu", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("wgpu-core", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("wgpu-hal", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("wgpu-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("range-alloc", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("nu-ansi-term", ("LICENCE", HashMap::new())),
-        ("hexf-parse", ("../CC0.txt", HashMap::new())),
-        ("half", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("gpu-descriptor", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("gpu-descriptor-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("gpu-alloc", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("gpu-alloc-types", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("d3d12", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("allocator-api2", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("naga", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("ouroboros", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("ouroboros_macro", ("../LICENSE-APACHE-2.0.txt", HashMap::new())),
-        ("iced_aw", ("9ed46bf/LICENSE", HashMap::new())),
+        ("SourceSerif4-Regular", "../../../fonts/source-serif/LICENSE.md"),
+        ("Bootstrap Icons", "../../../fonts/bootstrap-icons/LICENSE"),
+        ("windows_aarch64_msvc", "../windows-0.44.0/license-mit"),
+        ("windows_i686_aarch64", "../windows-0.44.0/license-mit"),
+        ("windows_i686_gnu", "../windows-0.44.0/license-mit"),
+        ("windows_i686_msvc", "../windows-0.44.0/license-mit"),
+        ("windows_x86_64_gnu", "../windows-0.44.0/license-mit"),
+        ("windows_x86_64_msvc", "../windows-0.44.0/license-mit"),
+        ("widestring", "../LICENSE-APACHE-2.0.txt"),
+        ("wgpu", "../LICENSE-APACHE-2.0.txt"),
+        ("wgpu-core", "../LICENSE-APACHE-2.0.txt"),
+        ("wgpu-hal", "../LICENSE-APACHE-2.0.txt"),
+        ("wgpu-types", "../LICENSE-APACHE-2.0.txt"),
+        ("range-alloc", "../LICENSE-APACHE-2.0.txt"),
+        ("nu-ansi-term", "LICENCE"),
+        ("hexf-parse", "../CC0.txt"),
+        ("half", "../LICENSE-APACHE-2.0.txt"),
+        ("gpu-descriptor", "../LICENSE-APACHE-2.0.txt"),
+        ("gpu-descriptor-types", "../LICENSE-APACHE-2.0.txt"),
+        ("gpu-alloc", "../LICENSE-APACHE-2.0.txt"),
+        ("gpu-alloc-types", "../LICENSE-APACHE-2.0.txt"),
+        ("d3d12", "../LICENSE-APACHE-2.0.txt"),
+        ("allocator-api2", "../LICENSE-APACHE-2.0.txt"),
+        ("naga", "../LICENSE-APACHE-2.0.txt"),
+        ("ouroboros", "../LICENSE-APACHE-2.0.txt"),
+        ("ouroboros_macro", "../LICENSE-APACHE-2.0.txt"),
+        ("iced_aw", "9ed46bf/LICENSE"),
     ]
     .into_iter()
     .collect()
@@ -99,18 +96,17 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
         let standard_lizenz_pfad = standard_lizenz_pfade
             .iter()
             .find(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file());
-        let standard_lizenz_pfad_mit_map =
-            standard_lizenz_pfad.map(|pfad| (pfad.as_str(), HashMap::new()));
-        let Some((pfad, version_spezifisch)) =
-            lizenz_dateien.get(name.as_str()).or(standard_lizenz_pfad_mit_map.as_ref())
+        let Some(pfad) = lizenz_dateien
+            .get(name.as_str())
+            .copied()
+            .or(standard_lizenz_pfad.as_ref().map(|string| string.as_str()))
         else {
             let fehlermeldung =
                 format!("Lizenz-Datei für {name}-{version} nicht in \"{ordner_pfad}\" gefunden!");
             fehlermeldungen.push(fehlermeldung);
             continue;
         };
-        let datei = version_spezifisch.get(version.as_str()).unwrap_or(pfad);
-        let lizenz_pfad = format!("{ordner_pfad}/{datei}");
+        let lizenz_pfad = format!("{ordner_pfad}/{pfad}");
         namen.push(name);
         versionen.push(version);
         lizenz_pfade.push(lizenz_pfad);
