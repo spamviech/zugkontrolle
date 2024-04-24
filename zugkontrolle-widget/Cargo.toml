@@ -17,6 +17,7 @@ zugkontrolle-argumente.workspace = true
 zugkontrolle-gleis.workspace = true
 zugkontrolle-gleise.workspace = true
 zugkontrolle-id.workspace = true
+zugkontrolle-lizenzen.workspace = true
 zugkontrolle-macros.workspace = true
 zugkontrolle-typen.workspace = true
 zugkontrolle-util.workspace = true
@@ -29,7 +30,6 @@ int-enum.workspace = true
 itertools.workspace = true
 log.workspace = true
 nonempty.workspace = true
-once_cell.workspace = true
 rfd.workspace = true
 
 

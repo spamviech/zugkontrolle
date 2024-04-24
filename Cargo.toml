@@ -11,15 +11,16 @@ repository.workspace = true
 
 [workspace]
 members = [
-    "zugkontrolle-macros",
     "zugkontrolle-anschluss",
-    "zugkontrolle-util",
+    "zugkontrolle-application",
     "zugkontrolle-argumente",
-    "zugkontrolle-typen",
     "zugkontrolle-gleis",
     "zugkontrolle-gleise",
+    "zugkontrolle-lizenzen",
+    "zugkontrolle-macros",
+    "zugkontrolle-typen",
+    "zugkontrolle-util",
     "zugkontrolle-widget",
-    "zugkontrolle-application",
 ]
 resolver = "2"
 
@@ -254,6 +255,10 @@ version = "1.0.0"
 
 [workspace.dependencies.zugkontrolle-id]
 path = "zugkontrolle-id"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-lizenzen]
+path = "zugkontrolle-lizenzen"
 version = "1.0.0"
 
 [workspace.dependencies.zugkontrolle-steuerung]

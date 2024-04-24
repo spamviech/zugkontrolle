@@ -111,7 +111,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
         let datei = version_spezifisch.get(version.as_str()).unwrap_or(pfad);
         let lizenz_pfad = format!("{repo_pfad}/licenses/{name}-{version}/{datei}");
         namen.push(name);
-        versionen.push(version.to_string());
+        versionen.push(version);
         lizenz_pfade.push(lizenz_pfad);
     }
     let token_stream = quote! {

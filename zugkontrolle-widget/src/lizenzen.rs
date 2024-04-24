@@ -1,6 +1,6 @@
 //! Zeige alle Lizenzen verwendeter Open-Source Bibliotheken.
 
-use std::{borrow::Cow, collections::BTreeMap};
+use std::borrow::Cow;
 
 use iced_core::{
     event, text as text_core,
@@ -14,8 +14,8 @@ use iced_widget::{
     scrollable::{self, Scrollable},
     Column, Row, Space,
 };
-use once_cell::sync::Lazy;
 
+use zugkontrolle_lizenzen::{LizenzenMap, TARGET_LIZENZEN};
 use zugkontrolle_util::unicase_ord::UniCaseOrd;
 
 use crate::{
@@ -52,11 +52,6 @@ struct Zustand {
     /// Die aktuell gezeigte Lizenz.
     aktuell: Option<(UniCaseOrd<String>, Cow<'static, str>)>,
 }
-
-/// Eine Map von Namen auf eine Funktion, die den Lizenztext erzeugt.
-///
-/// Die Namen werden mit [`UniCaseOrd`] geordnet.
-type LizenzenMap = BTreeMap<UniCaseOrd<String>, &'static str>;
 
 impl Zustand {
     /// Erstellen einen neuen [Zustand] eines [`Lizenzen`]-Widgets.
@@ -198,19 +193,4 @@ where
     fn from(lizenzen: Lizenzen<'a, Thema, R>) -> Self {
         Element::from(lizenzen.0)
     }
-}
-
-/// Alle Lizenzen für die aktuelle target-Platform.
-static TARGET_LIZENZEN: Lazy<LizenzenMap> = Lazy::new(verwendete_lizenzen);
-
-/// Alle Lizenzen für die aktuelle target-Platform.
-static TARGET_CRATE_LIZENZEN: &[(&str, &str, &str)] = zugkontrolle_macros::target_crate_lizenzen!();
-
-/// Die Lizenzen der verwendeter Open-Source Bibliotheken für das aktuelle target.
-#[must_use]
-fn verwendete_lizenzen() -> LizenzenMap {
-    TARGET_CRATE_LIZENZEN
-        .iter()
-        .map(|(name, version, lizenz)| (UniCaseOrd::neu(format!("{name}-{version}")), *lizenz))
-        .collect()
 }
