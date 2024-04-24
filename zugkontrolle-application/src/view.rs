@@ -232,12 +232,9 @@ where
                 .mit_teil_nachricht(Nachricht::from),
         ))
         .push(Element::from(
-            Column::new()
-                .push(
-                    Row::new()
-                        .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
-                        .push(drehen.mit_teil_nachricht(Nachricht::Winkel)),
-                )
+            Row::new()
+                .push(bewegen.mit_teil_nachricht(Nachricht::Bewegen))
+                .push(drehen.mit_teil_nachricht(Nachricht::Winkel))
                 .push(Element::from(skalieren_slider).map(Nachricht::from)),
         ));
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
