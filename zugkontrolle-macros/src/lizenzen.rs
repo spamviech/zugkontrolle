@@ -1,11 +1,56 @@
 //!
 
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, iter, path::Path, process::Command, str};
 
+use cargo_metadata::{MetadataCommand, Package};
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::metadata::{bekannte_targets, verwendete_crates_impl};
+/// [`crate::verwendete_crates`]
+pub(crate) fn verwendete_crates(target: String) -> Result<Vec<Package>, String> {
+    let metadata_res = MetadataCommand::new()
+        .other_options([String::from("--filter-platform"), target, String::from("--all-features")])
+        .exec();
+    let metadata = match metadata_res {
+        Ok(metadata) => metadata,
+        Err(fehler) => {
+            let fehlermeldung = fehler.to_string();
+            return Err(fehlermeldung);
+        },
+    };
+    Ok(metadata.packages)
+}
+
+/// [`crate::target_crates`]
+pub(crate) fn bekannte_targets() -> Result<Vec<String>, String> {
+    let stdout = match Command::new("rustc").args(["--print", "target-list"]).output() {
+        Ok(output) if output.status.success() => output.stdout,
+        Ok(output) => {
+            let fehlermeldung =
+                format!("`rustc --print target-list` returned a non-zero exit code:\n{output:?}");
+            return Err(fehlermeldung);
+        },
+        Err(fehler) => {
+            let fehlermeldung = format!("Failed to execute `rustc --print target-list`:\n{fehler}");
+            return Err(fehlermeldung);
+        },
+    };
+    let stdout_string = match str::from_utf8(&stdout) {
+        Ok(stdout_string) => stdout_string,
+        Err(fehler) => {
+            let fehlermeldung =
+                format!("`rustc --print target-list` printed non-utf8 to stdout:\n{fehler}");
+            return Err(fehlermeldung);
+        },
+    };
+
+    let crates = stdout_string
+        .lines()
+        .map(String::from)
+        .chain(iter::once(String::from("zugkontrolle-unbekanntes-target")))
+        .collect();
+    Ok(crates)
+}
 
 /// Lizenz-Dateien, die keinen Standard-Dateipfad verwenden.
 fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
@@ -49,7 +94,7 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
 
 /// [`crate::target_crate_lizenzen`]
 pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<String>) {
-    let verwendete_crates = match verwendete_crates_impl(String::from(target)) {
+    let verwendete_crates = match verwendete_crates(String::from(target)) {
         Ok(crates) => crates,
         Err(fehlermeldung) => return (quote!([]), vec![fehlermeldung]),
     };

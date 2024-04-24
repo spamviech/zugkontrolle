@@ -95,23 +95,6 @@ pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStr
     alias::alias_serialisiert_unit(&attr.into(), &ast).into()
 }
 
-mod metadata;
-#[proc_macro]
-/// Parse `cargo metadata` um verwendete crates für ein target zu erhalten.
-pub fn verwendete_crates(input: TokenStream) -> TokenStream {
-    let target = parse_macro_input!(input);
-
-    metadata::verwendete_crates(&target).into()
-}
-
-#[proc_macro]
-/// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten.
-/// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
-/// Die targets werden über `rustc --print target-list` ausgelesen.
-pub fn target_crates(input: TokenStream) -> TokenStream {
-    metadata::target_crates(&input.into()).into()
-}
-
 mod lizenzen;
 #[proc_macro]
 /// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten
