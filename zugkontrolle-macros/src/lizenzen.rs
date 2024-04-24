@@ -18,8 +18,8 @@ fn lizenz_dateien() -> BTreeMap<&'static str, (&'static str, HashMap<&'static st
     // Nachteil: fetch dauert eine Weile
 
     [
-        ("SourceSerif4-Regular", ("../../fonts/source-serif/LICENSE.md", HashMap::new())),
-        ("Bootstrap Icons", ("../../fonts/bootstrap-icons/LICENSE", HashMap::new())),
+        ("SourceSerif4-Regular", ("../../../fonts/source-serif/LICENSE.md", HashMap::new())),
+        ("Bootstrap Icons", ("../../../fonts/bootstrap-icons/LICENSE", HashMap::new())),
         ("windows_aarch64_msvc", ("../windows-0.44.0/license-mit", HashMap::new())),
         ("windows_i686_aarch64", ("../windows-0.44.0/license-mit", HashMap::new())),
         ("windows_i686_gnu", ("../windows-0.44.0/license-mit", HashMap::new())),
@@ -94,8 +94,8 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
         if name.starts_with("zugkontrolle") {
             continue;
         }
-        let repo_pfad = env!("zugkontrolle_workspace_root");
-        let ordner_pfad = format!("{repo_pfad}/licenses/{name}-{version}");
+        let crate_pfad = env!("CARGO_MANIFEST_DIR");
+        let ordner_pfad = format!("{crate_pfad}/lizenzen/{name}-{version}");
         let standard_lizenz_pfad = standard_lizenz_pfade
             .iter()
             .find(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file());
@@ -104,12 +104,13 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
         let Some((pfad, version_spezifisch)) =
             lizenz_dateien.get(name.as_str()).or(standard_lizenz_pfad_mit_map.as_ref())
         else {
-            let fehlermeldung = format!("Lizenz-Datei für {name}-{version} nicht gefunden!");
+            let fehlermeldung =
+                format!("Lizenz-Datei für {name}-{version} nicht in \"{ordner_pfad}\" gefunden!");
             fehlermeldungen.push(fehlermeldung);
             continue;
         };
         let datei = version_spezifisch.get(version.as_str()).unwrap_or(pfad);
-        let lizenz_pfad = format!("{repo_pfad}/licenses/{name}-{version}/{datei}");
+        let lizenz_pfad = format!("{ordner_pfad}/{datei}");
         namen.push(name);
         versionen.push(version);
         lizenz_pfade.push(lizenz_pfad);
