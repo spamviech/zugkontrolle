@@ -2,6 +2,8 @@
 
 ## Unreleased changes
 
+## 5.0.0
+
 - Aufteilen in mehrere crates. Dazu waren ein paar Anpassungen notwendig:
   - Neuer `KnopfThema`-trait um Canvas-basierte Darstellungen über das `Thema` zu parametrisieren.
   - Invertiere parameter + implementierender Typ für den `KnopfNachricht`-Trait.
