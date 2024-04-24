@@ -32,7 +32,7 @@
   - Anpassen des Mauszeigers, wenn er über einem Gleis ist.
   - Anpassen des Mauszeigers, wenn er über einem `Knopf` ist und dadurch ein Gleis hinzugefügt wurde.
   - Bevorzuge genau angeklickte Gleise, bevor der Toleranz-Bereich berücksichtigt wird.
-- Ersetzte Debug-Ausgaben für Fehler durch Display-Ausgabe über `thiserror::Error`
+- Ersetzte Debug-Ausgaben (die durch clippy erkannt werden) für Fehler durch Display-Ausgabe über `thiserror::Error`
 - Aktualisiere auf iced v0.12
 
 ## 4.0.3
