@@ -24,6 +24,7 @@
 - Zeige Schließen-Knopf wieder am Ende im Lizenzen-Widget an.
 - Anpassen der Widget-Anordnung der Kopf-Leiste.
 - Erlaube (nachträgliches) Anpassen des Interrupt-Pins eines Pcf8574.
+- Verwende Slider auch für KonstanteSpannung-Geschwindigkeiten.
 - Lizenzen werden direkte über `include_str` eingebunden.
 - Verbesserungen im `Gleise`-canvas:
   - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.

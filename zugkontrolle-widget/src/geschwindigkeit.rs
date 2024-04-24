@@ -134,30 +134,19 @@ where
         let aktuelle_geschwindigkeit = geschwindigkeit.aktuelle_geschwindigkeit();
         let aktuelle_fahrtrichtung = geschwindigkeit.aktuelle_fahrtrichtung();
         let mut column = Column::new().spacing(1).push(Text::new(name.0.clone()));
-        column = if let Some(länge) = ks_länge(geschwindigkeit) {
-            if länge > u8::MAX.into() {
-                error!("Zu viele Anschlüsse mit Konstanter Spannung bei einer Geschwindigkeit: {länge}");
-            }
-            column.push(
-                Row::with_children((0..=länge).map(|i| {
-                    let i_u8 = u8::try_from(i).unwrap_or(u8::MAX);
-                    Radio::new(
-                        i_u8.to_string(),
-                        i_u8,
-                        Some(aktuelle_geschwindigkeit),
-                        geschwindigkeit_nachricht.clone(),
-                    )
-                    .spacing(0)
-                    .into()
-                }))
-                .spacing(0),
-            )
-        } else {
-            column.push(
-                Slider::new(0..=u8::MAX, aktuelle_geschwindigkeit, geschwindigkeit_nachricht)
-                    .width(Length::Fixed(100.)),
-            )
-        };
+        column = column.push({
+            let max = if let Some(länge) = ks_länge(geschwindigkeit) {
+                u8::try_from(länge).unwrap_or_else(|_else| {
+                    error!("Zu viele Anschlüsse mit Konstanter Spannung bei einer Geschwindigkeit: {länge}");
+                    u8::MAX
+                })
+            } else {
+                u8::MAX
+            };
+            Slider::new(0..=max, aktuelle_geschwindigkeit, geschwindigkeit_nachricht)
+                .width(Length::Fixed(100.))
+        });
+
         column = column.push(zeige_fahrtrichtung(aktuelle_fahrtrichtung));
         Anzeige { element: column.into() }
     }
