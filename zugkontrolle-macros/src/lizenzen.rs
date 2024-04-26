@@ -62,12 +62,6 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
     [
         ("SourceSerif4-Regular", "../../../fonts/source-serif/LICENSE.md"),
         ("Bootstrap Icons", "../../../fonts/bootstrap-icons/LICENSE"),
-        ("windows_aarch64_msvc", "../windows-0.44.0/license-mit"),
-        ("windows_i686_aarch64", "../windows-0.44.0/license-mit"),
-        ("windows_i686_gnu", "../windows-0.44.0/license-mit"),
-        ("windows_i686_msvc", "../windows-0.44.0/license-mit"),
-        ("windows_x86_64_gnu", "../windows-0.44.0/license-mit"),
-        ("windows_x86_64_msvc", "../windows-0.44.0/license-mit"),
         ("widestring", "../LICENSE-APACHE-2.0.txt"),
         ("wgpu", "../LICENSE-APACHE-2.0.txt"),
         ("wgpu-core", "../LICENSE-APACHE-2.0.txt"),
