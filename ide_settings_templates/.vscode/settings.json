@@ -14,7 +14,7 @@
         }
     },
     "todo-tree.filtering.excludeGlobs": [
-        "licenses/",
+        "zugkontrolle-macros/licenses/",
         "fonts/"
     ],
     "rust-analyzer.imports.prefix": "crate",
