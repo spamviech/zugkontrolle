@@ -67,7 +67,7 @@ def collect_cargo_lock_packages():
 
     packages = []
     current = Package()
-    with open(os.path.join(licenses_dir, "..", "Cargo.lock"), 'r') as cargo_lock:
+    with open(os.path.join(licenses_dir, "../..", "Cargo.lock"), 'r') as cargo_lock:
         found_package = False
         for line in cargo_lock:
             line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
