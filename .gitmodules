@@ -1,12 +1,20 @@
 [submodule "fonts/source-serif"]
-	path = fonts/source-serif
-	url = git@github.com:adobe-fonts/source-serif.git
+    path = fonts/source-serif
+    url = git@github.com:adobe-fonts/source-serif.git
+    branch = release
+    shallow = true
 [submodule "dockerfiles/docker"]
-	path = dockerfiles/docker
-	url = git@github.com:iced-rs/docker.git
+    path = dockerfiles/docker
+    url = git@github.com:iced-rs/docker.git
+    branch = master
+    shallow = true
 [submodule "fonts/bootstrap-icons"]
-	path = fonts/bootstrap-icons
-	url = git@github.com:twbs/icons.git
-[submodule "fonts/woff2otf"]
-	path = python_scripts/woff2otf
-	url = git@github.com:hanikesn/woff2otf.git
+    path = fonts/bootstrap-icons
+    url = git@github.com:twbs/icons.git
+    branch = main
+    shallow = true
+[submodule "python_scripts/nototools"]
+	path = python_scripts/nototools
+	url = git@github.com:notofonts/nototools.git
+    branch = main
+    shallow = true

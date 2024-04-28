@@ -9,7 +9,7 @@ use syn::{
     Index, Token, Variant, WhereClause,
 };
 
-use crate::utils::{
+use crate::util::{
     mark_fields_generic, parse_attributes, partitioniere_generics, PartitionierteGenericParameter,
 };
 

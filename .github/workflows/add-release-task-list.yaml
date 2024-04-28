@@ -16,10 +16,10 @@ jobs:
           message: |
             Please complete the following tasks before merging this PR:
             - [ ] update dependencies (`cargo update` + check `cargo outdated`)
-            - [ ] update `licenses` folder
+            - [ ] update `zugkontrolle-macros/lizenzen` folder
               - clean current licenses
               - run `fetch_licenses.py`
+              - check if everything still compiles (e.g. `.gitkeep`-files for fonts were not deleted)
               - commit result
-              - check test output if licenses are up to date
             - [ ] update `Changelog.md`, so all included changes appear under the <version> section
             - [ ] update `zugkontrolle.desktop`

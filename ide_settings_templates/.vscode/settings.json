@@ -14,9 +14,15 @@
         }
     },
     "todo-tree.filtering.excludeGlobs": [
-        "licenses/",
+        "zugkontrolle-macros/licenses/",
         "fonts/"
     ],
     "rust-analyzer.imports.prefix": "crate",
-    "rust-analyzer.check.command": "clippy"
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.lens.enable": false,
+    "rust-analyzer.assist.emitMustUse": true,
+    "rust-analyzer.check.targets": "aarch64-unknown-linux-gnu",
+    "rust-analyzer.cargo.features": [
+        "raspi",
+    ],
 }

@@ -1,0 +1,42 @@
+[package]
+name = "zugkontrolle-application"
+version = "1.0.0"
+authors.workspace = true
+readme.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+zugkontrolle-anschluss.workspace = true
+zugkontrolle-argumente.workspace = true
+zugkontrolle-gleis.workspace = true
+zugkontrolle-gleise.workspace = true
+zugkontrolle-id.workspace = true
+zugkontrolle-macros.workspace = true
+zugkontrolle-typen.workspace = true
+zugkontrolle-widget.workspace = true
+async-io.workspace = true
+enum-iterator.workspace = true
+flexi_logger.workspace = true
+iced_aw.workspace = true
+iced_core.workspace = true
+iced_futures.workspace = true
+iced_widget.workspace = true
+iced.workspace = true
+itertools.workspace = true
+log.workspace = true
+nonempty.workspace = true
+parking_lot.workspace = true
+serde.workspace = true
+take_mut.workspace = true
+
+[build-dependencies]
+cargo_metadata.workspace = true
+
+[lints]
+workspace = true

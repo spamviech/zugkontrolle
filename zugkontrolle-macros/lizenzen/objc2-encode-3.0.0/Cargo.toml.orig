@@ -1,0 +1,47 @@
+[package]
+name = "objc2-encode"
+# Remember to update html_root_url in lib.rs
+version = "3.0.0"
+authors = ["Steven Sheldon", "Mads Marquart <mads@marquart.dk>"]
+edition = "2021"
+rust-version = "1.60"
+
+description = "Objective-C type-encoding representation and parsing"
+keywords = ["objective-c", "macos", "ios", "encode"]
+categories = [
+    "development-tools::ffi",
+    "encoding",
+    "no-std",
+    "os::macos-apis",
+]
+readme = "README.md"
+repository = "https://github.com/madsmtm/objc2"
+documentation = "https://docs.rs/objc2-encode/"
+license = "MIT"
+
+[features]
+default = ["std"]
+
+std = ["alloc"]
+# Currently not possible to turn off, put here for forwards compatibility
+alloc = []
+
+[package.metadata.docs.rs]
+default-target = "x86_64-apple-darwin"
+
+targets = [
+    # MacOS
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    # "i686-apple-darwin",
+    # iOS
+    "aarch64-apple-ios",
+    "x86_64-apple-ios",
+    # "armv7-apple-ios",
+    # "i386-apple-ios",
+    # GNUStep
+    "x86_64-unknown-linux-gnu",
+    "i686-unknown-linux-gnu",
+    # Windows
+    "x86_64-pc-windows-msvc",
+]

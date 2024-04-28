@@ -3,7 +3,7 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, punctuated::Punctuated};
 
-pub(crate) mod utils;
+pub(crate) mod util;
 
 mod debug;
 #[proc_macro_derive(Debug, attributes(zugkontrolle_debug))]
@@ -27,6 +27,15 @@ pub fn clone_derive(input: TokenStream) -> TokenStream {
 
     // Build the trait implementation
     clone::impl_clone(&ast).into()
+}
+
+mod from;
+#[proc_macro_derive(From)]
+/// Erzeuge [`From`]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
+pub fn from_derive(from_derive: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(from_derive);
+
+    from::impl_from(ast).into()
 }
 
 mod nachschlagen;
@@ -86,48 +95,12 @@ pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStr
     alias::alias_serialisiert_unit(&attr.into(), &ast).into()
 }
 
-mod daten;
-#[proc_macro_attribute]
-#[deprecated]
-/// Erstelle spezialisierte Methoden für alle Gleis-Typen mit entsprechendem Suffix.
-/// Notwendig, damit `DatenAuswahl` kein Teil des APIs wird.
-///
-/// Internes Macro mit sehr spezifischen Voraussetzungen.
-///
-/// Die Funktion muss einen generic Typ mit DatenAuswahl-Constraint haben;
-/// das Constraint darf nicht in der `where`-Klausel stehen.
-/// Das erste Argument muss `&mut self`, oder `&'t mut self` und
-/// alle anderen Argumente reine Namen-Pattern sein.
-/// Die `where`-Klausel wird nicht inspiziert oder kopiert.
-/// Für assoziierte Typen wird eine vollständig qualifizierte Form `<T as Trait>::Typ` empfohlen.
-pub fn erstelle_daten_methoden(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(item);
-
-    daten::erstelle_methoden(&attr.into(), &ast).into()
-}
-
-mod sum_type_from;
-#[proc_macro_derive(From)]
-/// Erzeuge [`From`]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
-pub fn derive_from(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input);
-
-    sum_type_from::impl_from(ast).into()
-}
-
-mod metadata;
+mod lizenzen;
 #[proc_macro]
-/// Parse `cargo metadata` um verwendete crates für ein target zu erhalten.
-pub fn verwendete_crates(input: TokenStream) -> TokenStream {
-    let target = parse_macro_input!(input);
-
-    metadata::verwendete_crates(&target).into()
-}
-
-#[proc_macro]
-/// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten.
+/// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten
+/// und füge die Lizenz hinzu.
 /// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
 /// Die targets werden über `rustc --print target-list` ausgelesen.
-pub fn target_crates(input: TokenStream) -> TokenStream {
-    metadata::target_crates(&input.into()).into()
+pub fn target_crate_lizenzen(input: TokenStream) -> TokenStream {
+    lizenzen::target_crate_lizenzen(&input.into()).into()
 }

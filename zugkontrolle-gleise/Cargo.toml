@@ -1,0 +1,36 @@
+[package]
+name = "zugkontrolle-gleise"
+version = "1.0.0"
+authors.workspace = true
+readme.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+zugkontrolle-anschluss.workspace = true
+zugkontrolle-argumente.workspace = true
+zugkontrolle-gleis.workspace = true
+zugkontrolle-id.workspace = true
+zugkontrolle-macros.workspace = true
+zugkontrolle-typen.workspace = true
+zugkontrolle-util.workspace = true
+associated_list.workspace = true
+bincode.workspace = true
+either.workspace = true
+enum-iterator.workspace = true
+iced.workspace = true
+kommandozeilen_argumente.workspace = true
+log.workspace = true
+nonempty.workspace = true
+once_cell.workspace = true
+rstar.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

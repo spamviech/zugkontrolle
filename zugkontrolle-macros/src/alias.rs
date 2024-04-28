@@ -48,7 +48,7 @@ fn erzeuge_typ_definitionen(
         /// Eine Variante ohne Anschlüsse.
         #vis type #unit_ident<#(#params),*> = #ident<#params_start ()>;
 
-        impl<#(#params),*> #crate_ident::anschluss::de_serialisieren::Serialisiere<
+        impl<#(#params),*> #crate_ident::de_serialisieren::Serialisiere<
             #serialisiert_ident<#(#params),*>
         > for #ident<#(#params),*>
         {
@@ -58,13 +58,13 @@ fn erzeuge_typ_definitionen(
                     #(#other_fields: #other_fields.clone()),*,
                     #(
                         #param_fields: #param_fields.as_ref().map(
-                            #crate_ident::anschluss::de_serialisieren::Serialisiere::serialisiere
+                            #crate_ident::de_serialisieren::Serialisiere::serialisiere
                         )
                     ),*
                 }
             }
-            fn anschlüsse(self) -> #crate_ident::anschluss::de_serialisieren::Anschlüsse {
-                let mut anschlüsse = #crate_ident::anschluss::de_serialisieren::Anschlüsse::default();
+            fn anschlüsse(self) -> #crate_ident::de_serialisieren::Anschlüsse {
+                let mut anschlüsse = #crate_ident::de_serialisieren::Anschlüsse::default();
                 #(
                     if let Some(steuerung) = self.#param_fields {
                         anschlüsse.anhängen(steuerung.anschlüsse());
@@ -74,20 +74,20 @@ fn erzeuge_typ_definitionen(
             }
         }
 
-        impl<#(#params),*> #crate_ident::anschluss::de_serialisieren::Reserviere<#ident<#(#params),*>> for #serialisiert_ident<#(#params),*> {
+        impl<#(#params),*> #crate_ident::de_serialisieren::Reserviere<#ident<#(#params),*>> for #serialisiert_ident<#(#params),*> {
             #[allow(unused_qualifications)]
-            type MoveArg = <Option<#arg> as #crate_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::MoveArg;
-            type RefArg = <Option<#arg> as #crate_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::RefArg;
-            type MutRefArg = <Option<#arg> as #crate_ident::anschluss::de_serialisieren::Reserviere<#default_type>>::MutRefArg;
+            type MoveArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::MoveArg;
+            type RefArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::RefArg;
+            type MutRefArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::MutRefArg;
 
             fn reserviere(
                 self,
-                lager: &mut #crate_ident::anschluss::Lager,
-                anschlüsse: #crate_ident::anschluss::de_serialisieren::Anschlüsse,
+                lager: &mut #crate_ident::Lager,
+                anschlüsse: #crate_ident::de_serialisieren::Anschlüsse,
                 move_arg: Self::MoveArg,
                 ref_arg: &Self::RefArg,
                 mut_ref_arg: &mut Self::MutRefArg,
-            ) -> #crate_ident::anschluss::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
+            ) -> #crate_ident::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
                 let #ident { #(#other_fields),*, #(#param_fields),* } = self;
                 // #param_fields related über reserviere/konvertiere
                 #[allow(clippy::shadow_unrelated)]
@@ -131,8 +131,8 @@ pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> T
     let ItemStruct { vis, ident, fields, generics, .. } = &item;
     let mut type_definitionen = None;
 
-    if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
-        let crate_ident: Ident = match zugkontrolle {
+    if let Ok(zugkontrolle_anschluss) = crate_name("zugkontrolle-anschluss") {
+        let crate_ident: Ident = match zugkontrolle_anschluss {
             FoundCrate::Itself => format_ident!("{}", "crate"),
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
@@ -170,7 +170,7 @@ pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> T
             errors.push(String::from("Missing generics!"));
         }
     } else {
-        errors.push(String::from("`zugkontrolle` missing in `Cargo.toml`"));
+        errors.push(String::from("`zugkontrolle_anschluss` missing in `Cargo.toml`"));
     }
 
     if !errors.is_empty() {

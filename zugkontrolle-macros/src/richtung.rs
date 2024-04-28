@@ -17,8 +17,8 @@ fn erzeuge_enum_definition(
 ) -> TokenStream {
     let enum_variants_str = enum_variants.iter().map(ToString::to_string);
     quote! {
-        #[zugkontrolle_macros::impl_nachschlagen(#crate_ident::anschluss::OutputAnschluss, RichtungAnschlüsse, Debug)]
-        #[zugkontrolle_macros::impl_nachschlagen(#crate_ident::anschluss::OutputSerialisiert, RichtungAnschlüsseSerialisiert, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[zugkontrolle_macros::impl_nachschlagen(#crate_ident::OutputAnschluss, RichtungAnschlüsse, Debug)]
+        #[zugkontrolle_macros::impl_nachschlagen(#crate_ident::OutputSerialisiert, RichtungAnschlüsseSerialisiert, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
         /// Mögliche Richtungen zum Schalten.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
         #vis enum Richtung {
@@ -47,32 +47,32 @@ fn erzeuge_enum_definition(
                 Some(*self)
             }
         }
-        impl #crate_ident::anschluss::de_serialisieren::Serialisiere<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsse {
+        impl #crate_ident::de_serialisieren::Serialisiere<RichtungAnschlüsseSerialisiert> for RichtungAnschlüsse {
             fn serialisiere(&self) -> RichtungAnschlüsseSerialisiert {
                 let RichtungAnschlüsse { #(#struct_fields),* } = self;
                 RichtungAnschlüsseSerialisiert { #(#struct_fields: #struct_fields.serialisiere()),* }
             }
-            fn anschlüsse(self) -> #crate_ident::anschluss::de_serialisieren::Anschlüsse {
-                let mut anschlüsse = #crate_ident::anschluss::de_serialisieren::Anschlüsse::default();
+            fn anschlüsse(self) -> #crate_ident::de_serialisieren::Anschlüsse {
+                let mut anschlüsse = #crate_ident::de_serialisieren::Anschlüsse::default();
                 #(
                     anschlüsse.anhängen(self.#struct_fields.anschlüsse());
                 )*
                 anschlüsse
             }
         }
-        impl #crate_ident::anschluss::de_serialisieren::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSerialisiert {
+        impl #crate_ident::de_serialisieren::Reserviere<RichtungAnschlüsse> for RichtungAnschlüsseSerialisiert {
             type MoveArg = ();
             type RefArg = ();
             type MutRefArg = ();
 
             fn reserviere(
                 self,
-                lager: &mut #crate_ident::anschluss::Lager,
-                anschlüsse: #crate_ident::anschluss::de_serialisieren::Anschlüsse,
+                lager: &mut #crate_ident::Lager,
+                anschlüsse: #crate_ident::de_serialisieren::Anschlüsse,
                 _move_arg: Self::MoveArg,
                 _ref_arg: &Self::RefArg,
                 _mut_ref_arg: &mut Self::MutRefArg,
-            ) -> #crate_ident::anschluss::de_serialisieren::Ergebnis<RichtungAnschlüsse> {
+            ) -> #crate_ident::de_serialisieren::Ergebnis<RichtungAnschlüsse> {
                 let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
                 #[allow(unused_parens)]
                 (#(#struct_fields),*)
@@ -83,7 +83,7 @@ fn erzeuge_enum_definition(
         impl Default for RichtungAnschlüsseSerialisiert {
             fn default() -> Self {
                 RichtungAnschlüsseSerialisiert {
-                    #(#struct_fields: #crate_ident::anschluss::OutputSerialisiert::Pin {pin:0, polarität: #crate_ident::anschluss::polarität::Polarität::Normal}),*
+                    #(#struct_fields: #crate_ident::OutputSerialisiert::Pin {pin:0, polarität: #crate_ident::polarität::Polarität::Normal}),*
                 }
             }
         }
@@ -100,8 +100,8 @@ pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStr
     }
 
     let mut enum_definition = None;
-    if let Ok(zugkontrolle) = crate_name("zugkontrolle") {
-        let crate_ident: Ident = match zugkontrolle {
+    if let Ok(zugkontrolle_anschluss) = crate_name("zugkontrolle-anschluss") {
+        let crate_ident: Ident = match zugkontrolle_anschluss {
             FoundCrate::Itself => format_ident!("{}", "crate"),
             FoundCrate::Name(name) => format_ident!("{}", name),
         };

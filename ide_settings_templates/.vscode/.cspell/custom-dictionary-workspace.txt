@@ -31,6 +31,7 @@ autocfg
 Bartłomiej
 bedingung
 begrenzung
+bein
 Bekkers
 Benitez
 beschränkung
@@ -56,6 +57,7 @@ chibisov
 Chibisov
 Chiovoloni
 chrono
+cleancss
 clippy
 clonable
 consts
@@ -107,6 +109,7 @@ exts
 Eyal
 Fackler
 faktor
+fantasticon
 farbe
 fdeflate
 fehler
@@ -121,6 +124,7 @@ frequenz
 Froelich
 Frommi
 funktion
+fusv
 gedroppt
 Gedroppte
 gematchten
@@ -150,6 +154,7 @@ Gpio
 GPIO
 gradmaß
 grey
+Grießhammer
 größe
 guillotiere
 Harf
@@ -162,6 +167,7 @@ Hedvall
 hexf
 hilfe
 höhe
+hugo
 iana
 idents
 Ilya
@@ -202,6 +208,7 @@ Kurdekar
 länge
 lato
 Lato
+lavapipe
 lego
 leiter
 Levien
@@ -234,6 +241,7 @@ memoffset
 methode
 methoden
 miniz
+minmax
 mitte
 moduswechsel
 Monoid
@@ -249,6 +257,7 @@ naga
 namen
 nanos
 NANOS
+netlify
 newtype
 Newtype
 Newtypes
@@ -262,22 +271,28 @@ nwin
 objc
 objekt
 Okushi
+opencollective
 Oppermann
 Ordian
 ordner
+ordnung
 orientierung
 osmesa
 Osspial
+ouroboros
 Overby
 palettef
 pfad
 pfade
 Phantomtyp
+picocolors
 pläne
 podman
 polarität
 Pournader
+powf
 präfix
+proto
 pullup
 Pulsweite
 punct
@@ -317,6 +332,7 @@ rppal
 rstar
 rstern
 rustc
+rustfmt
 rustix
 rustup
 rustversion
@@ -341,6 +357,7 @@ serialisierbare
 Serialisierbare
 serialisierbaren
 Sgeo
+signum
 simd
 siphasher
 skalarprodukt
@@ -361,8 +378,12 @@ steuerungen
 strom
 strsim
 structs
+stylelint
+stylelintcache
 sublicensable
 Sverdrup
+svgs
+Swatinem
 syscall
 Tangren
 termcolor
@@ -376,6 +397,7 @@ toleranz
 transformation
 transformationen
 transparenz
+twbs
 twox
 typen
 Ulrik
@@ -403,6 +425,7 @@ vorkompilierte
 Vost
 vswhom
 vswwhom
+vulkan
 wahl
 wasi
 wayland
@@ -417,6 +440,7 @@ wsapoll
 xcursor
 xkeysym
 xorg
+yansi
 yazi
 Yevhenii
 Yuki

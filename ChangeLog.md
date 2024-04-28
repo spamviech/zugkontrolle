@@ -2,7 +2,41 @@
 
 ## Unreleased changes
 
-# 4.0.3
+## 5.0.0
+
+- Aufteilen in mehrere crates. Dazu waren ein paar Anpassungen notwendig:
+  - Neuer `KnopfThema`-trait um Canvas-basierte Darstellungen über das `Thema` zu parametrisieren.
+  - Invertiere parameter + implementierender Typ für den `KnopfNachricht`-Trait.
+- Weitere breaking API Änderungen:
+  - Entferne verbleibende 2-suffixe.
+  - Behebe clippy-lints, die eine public API-Anpassung benötigen (z.B. needless_pass_by_value).
+  - Entferne `WinkelGradmaß`. Ein Konstruktor für `Winkel` ist ausreichend.
+  - Entferne Trigonometrie-Trait. Verwende statt dessen Methoden auf dem `Winkel`-Typ.
+  - Entferne Modal-Zustand. Verwende stattdessen Nachrichten & Konstruktor-Parameter.
+  - Füge padding beim bewegen-Widget hinzu.
+  - Zugkontrolle-Parameter `S` muss zusätzlich `Display` implementieren.
+  - Anpassen der `Nachricht`-Typen.
+  - Umbenennen `SteuerungAktualisierenFehler::Deserialisieren` -> `Reservieren`.
+  - Umbenennen `Ergebnis::FehlerMitErsatzwert` -> `WertMitWarnungen`.
+- Dunkles Thema. Dazu wurden u.a. die `zeichnen` Methode des `Cache` angepasst.
+- Verwende PickList für Modus-Auswahl.
+- Verwende `rfd` zur Datei-Auswahl beim Speichern und Laden.
+- Zeige Schließen-Knopf wieder am Ende im Lizenzen-Widget an.
+- Anpassen der Widget-Anordnung der Kopf-Leiste.
+- Erlaube (nachträgliches) Anpassen des Interrupt-Pins eines Pcf8574.
+- Verwende Slider auch für KonstanteSpannung-Geschwindigkeiten.
+- Lizenzen werden direkte über `include_str` eingebunden.
+- Verbesserungen im `Gleise`-canvas:
+  - Touch-Bewegungen aktualisieren nicht mehr die gespeicherte Maus-Position.
+  - Zeige Gleise direkt nach dem hinzufügen an.
+  - Korrigiere Offset bei gedrehtem Canvas.
+  - Anpassen des Mauszeigers, wenn er über einem Gleis ist.
+  - Anpassen des Mauszeigers, wenn er über einem `Knopf` ist und dadurch ein Gleis hinzugefügt wurde.
+  - Bevorzuge genau angeklickte Gleise, bevor der Toleranz-Bereich berücksichtigt wird.
+- Ersetzte Debug-Ausgaben (die durch clippy erkannt werden) für Fehler durch Display-Ausgabe über `thiserror::Error`
+- Aktualisiere auf iced v0.12
+
+## 4.0.3
 
 - Knöpfe zeigen wieder an, wenn sich der Mauszeiger über ihnen befindet.
 - Bewegen- und Drehen-Widgets reagieren auf Touch-Events.

@@ -1,7 +1,8 @@
 [package]
 name = "zugkontrolle"
-version = "4.0.3"
+version.workspace = true
 authors.workspace = true
+readme.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
@@ -9,15 +10,28 @@ rust-version.workspace = true
 repository.workspace = true
 
 [workspace]
-members = ["zugkontrolle-macros"]
+members = [
+    "zugkontrolle-anschluss",
+    "zugkontrolle-application",
+    "zugkontrolle-argumente",
+    "zugkontrolle-gleis",
+    "zugkontrolle-gleise",
+    "zugkontrolle-lizenzen",
+    "zugkontrolle-macros",
+    "zugkontrolle-typen",
+    "zugkontrolle-util",
+    "zugkontrolle-widget",
+]
 resolver = "2"
 
 [workspace.package]
+version = "5.0.0"
 authors = ["spamviech <spamviech@web.de>"]
+readme = "README.md"
 edition = "2021"
 license = "MIT"
 publish = false
-rust-version = "1.75"
+rust-version = "1.77.0"
 repository = "https://github.com/spamviech/zugkontrolle"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -34,10 +48,33 @@ panic = "abort"
 [features]
 default = []
 # Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
-raspi = ["rppal"]
+raspi = ["zugkontrolle-anschluss/raspi"]
 
 [lints]
 workspace = true
+
+# dependencies
+[dependencies]
+zugkontrolle-anschluss.workspace = true
+zugkontrolle-application.workspace = true
+zugkontrolle-widget.workspace = true
+zugkontrolle-gleis.workspace = true
+zugkontrolle-argumente.workspace = true
+flexi_logger.workspace = true
+iced.workspace = true
+log.workspace = true
+
+# can't be used on non-raspi systems
+[dependencies.rppal]
+workspace = true
+optional = true
+
+#[dependencies.libcamera]
+#workspace = true
+#optional = true
+
+[build-dependencies]
+embed-resource.workspace = true
 
 [workspace.lints.rust]
 # Aktiviere alle Warnungen/Lints, außer: box_pointers, non_ascii_idents, unstable_features
@@ -191,81 +228,159 @@ unreachable = "allow"                    # unreachable wird verwendet um Invaria
 unseparated_literal_suffix = "allow"     # separated_literal_suffix aktiviert
 unwrap_in_result = "allow"               # führt nur dazu nicht-behandelbare Fehler-Varianten hinzufügen zu müssen
 unwrap_used = "warn"
-use_debug = "allow"                      # TODO wird aktuell für die meisten Fehlermeldungen verwendet. Allow, bis andere Lints adressiert wurden.
+use_debug = "warn"
 verbose_file_reads = "warn"
 wildcard_enum_match_arm = "warn"
 
-# dependencies
-[dependencies.zugkontrolle-macros]
+# workspace dependencies
+[workspace.dependencies.zugkontrolle-macros]
 path = "zugkontrolle-macros"
-version = "4.0.2"
+version = "5.0.0"
 
-[dependencies]
+[workspace.dependencies.zugkontrolle-anschluss]
+path = "zugkontrolle-anschluss"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-util]
+path = "zugkontrolle-util"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-argumente]
+path = "zugkontrolle-argumente"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-typen]
+path = "zugkontrolle-typen"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-id]
+path = "zugkontrolle-id"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-lizenzen]
+path = "zugkontrolle-lizenzen"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-steuerung]
+path = "zugkontrolle-steuerung"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-gleis]
+path = "zugkontrolle-gleis"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-gleise]
+path = "zugkontrolle-gleise"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-widget]
+path = "zugkontrolle-widget"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-application]
+path = "zugkontrolle-application"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-test-util]
+path = "zugkontrolle-test-util"
+version = "1.0.0"
+
+[workspace.dependencies]
 associated_list = "0.2.0"
 async-io = "2.3.0"
 bincode = "1.3.3"
+cargo_metadata = "0.18.1"
 dyn-clonable = "0.9.0"
 either = "1.6.1"
+embed-resource = "2.1.1"
+enum-iterator = "1.4.1"
+int-enum = "1.0.0"
 itertools = "0.12.0"
 log = "0.4.14"
+num-traits = "0.2.14"
 once_cell = "1.17.1"
 parking_lot = "0.12.0"
+proc-macro-crate = "3.1.0"
+proc-macro2 = "1.0.36"
+quote = "1.0.15"
 rstar = "0.12.0"
 take_mut = "0.2.2"
+thiserror = "1.0.58"
 unicase = "2.6.0"
-num-traits = "0.2.14"
 
-[dependencies.kommandozeilen_argumente]
+[workspace.dependencies.kommandozeilen_argumente]
 version = "0.2.1"
+default_features = false
 features = ["derive"]
 
-[dependencies.nonempty]
+[workspace.dependencies.nonempty]
 version = "0.9.0"
+default_features = false
 features = ["serialize"]
 
-[dependencies.serde]
+[workspace.dependencies.rfd]
+version = "0.14.1"
+default_features = false
+features = ["xdg-portal", "async-std"]
+
+[workspace.dependencies.serde]
 version = "1.0.136"
+default_features = false
 features = ["derive"]
 
-[dependencies.flexi_logger]
+[workspace.dependencies.flexi_logger]
 version = "0.27.3"
 default_features = false
 features = ["colors"]
 
-[dependencies.iced]
-version = "0.10.0"
+[workspace.dependencies.heck]
+version = "0.4.0"
 default-features = false
-features = ["canvas", "wgpu"]
+features = ["unicode"]
 
-[dependencies.iced_core]
-version = "0.10.0"
+[workspace.dependencies.iced]
+version = "0.12.1"
 default-features = false
+features = ["canvas", "lazy", "async-std"]
 
-[dependencies.iced_futures]
-version = "0.7.0"
-default-features = false
-
-[dependencies.iced_widget]
-version = "0.1.3"
+[workspace.dependencies.iced_core]
+version = "0.12.3"
 default-features = false
 
-[dependencies.iced_aw]
-version = "0.7.0"
+[workspace.dependencies.iced_futures]
+version = "0.12.0"
 default-features = false
-features = ["card", "tab_bar", "tabs", "number_input"]
 
-# can't be used on non-raspi systems
-[dependencies.rppal]
+[workspace.dependencies.iced_widget]
+version = "0.12.3"
+default-features = false
+features = ["lazy"]
+
+[workspace.dependencies.iced_graphics]
+version = "0.12.1"
+default-features = false
+features = ["geometry"]
+
+[workspace.dependencies.iced_renderer]
+version = "0.12.1"
+default-features = false
+features = ["geometry"]
+
+[workspace.dependencies.iced_aw]
+version = "0.8.0"
+default-features = false
+features = ["card", "tab_bar", "tabs", "number_input", "icons"]
+git = "https://github.com/iced-rs/iced_aw"
+rev = "9ed46bffd0d819f22e07db6c282fbef733007df5"
+
+[workspace.dependencies.rppal]
+default_features = false
 version = "0.17.1"
-optional = true
 
-#[dependencies.libcamera]
-#version = "0.2.2"
-#optional = true
+[workspace.dependencies.syn]
+version = "2.0.15"
+default_features = false
+features = ["parsing", "full", "extra-traits"]
 
-[build-dependencies]
-embed-resource = "2.1.1"
-
-[dev-dependencies]
-difference = "2.0.0"
-enum-iterator = "1.4.1"
+#[workspace.dependencies.libcamera]
+#version = "0.2.3"

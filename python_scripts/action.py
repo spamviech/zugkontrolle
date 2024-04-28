@@ -16,7 +16,7 @@ def check_docker_podman(exit: bool = True) -> bool:
     container_engines = ["docker", "podman"]
     for engine in container_engines:
         running, output = execute(
-            [engine, "run", "hello-world"], exit=False)
+            [engine, "run", "--rm", "hello-world"], exit=False)
         if running:
             return True
     # if we reach here, we didn't find a running container engine
