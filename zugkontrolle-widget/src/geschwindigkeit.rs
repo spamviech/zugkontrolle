@@ -26,7 +26,7 @@ use iced_widget::{
     scrollable::{self, Scrollable},
     slider::{self, Slider},
     text_input::{self, TextInput},
-    Column, Row, Space,
+    Column, Container, Row, Space,
 };
 use log::error;
 use nonempty::NonEmpty;
@@ -320,6 +320,11 @@ pub enum FahrtrichtungAnschluss {
     /// Bei allen [`Geschwindigkeiten`](Geschwindigkeit), unabhängig davon wie sie gesteuert werden.
     Immer,
 }
+
+/// Höhe für die Auswahl einer neuen Geschwindigkeit.
+const NEUE_GESCHWINDIGKEIT_TAB_HEIGHT: Length = Length::Fixed(100.);
+/// Höhe für die Anzeige der aktuellen Geschwindigkeiten.
+const AKTUELLE_GESCHWINDIGKEITEN_SCROLLABLE_HEIGHT: Length = Length::Fixed(200.);
 
 impl<'t, LeiterSerialisiert, Thema, R> Auswahl<'t, LeiterSerialisiert, Thema, R>
 where
@@ -622,7 +627,8 @@ where
             ks_anschlüsse,
         } = zustand;
         let width = Length::Fixed(950.);
-        let mut neuer_anschluss = Column::new().push(
+
+        let mut neue_geschwindigkeit = Column::new().push(
             TextInput::new("<Name>", neu_name).on_input(InterneAuswahlNachricht::Name).width(width),
         );
         let erzeuge_umdrehen_auswahl = || {
@@ -634,7 +640,7 @@ where
             )
         };
         if let FahrtrichtungAnschluss::Immer = fahrtrichtung_anschluss {
-            neuer_anschluss = neuer_anschluss.push(erzeuge_umdrehen_auswahl());
+            neue_geschwindigkeit = neue_geschwindigkeit.push(erzeuge_umdrehen_auswahl());
         }
         let pwm_auswahl = Self::pwm_auswahl(
             fahrtrichtung_anschluss,
@@ -651,11 +657,15 @@ where
         );
         let tabs = Tabs::new_with_tabs(
             vec![
-                (TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl),
+                (
+                    TabId::Pwm,
+                    TabLabel::Text("Pwm".to_owned()),
+                    Container::new(pwm_auswahl).height(NEUE_GESCHWINDIGKEIT_TAB_HEIGHT).into(),
+                ),
                 (
                     TabId::KonstanteSpannung,
                     TabLabel::Text("Konstante Spannung".to_owned()),
-                    Scrollable::new(ks_auswahl).height(Length::Fixed(150.)).into(),
+                    Scrollable::new(ks_auswahl).height(NEUE_GESCHWINDIGKEIT_TAB_HEIGHT).into(),
                 ),
             ],
             InterneAuswahlNachricht::WähleTab,
@@ -664,10 +674,12 @@ where
         .width(width)
         .height(Length::Shrink)
         .tab_bar_style(TabBar.into());
-        let neuer_anschluss = neuer_anschluss.push(tabs);
-        let mut column = Column::new().push(neuer_anschluss).push(
-            Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),
-        );
+        let hinzufügen =
+            Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen);
+        neue_geschwindigkeit = neue_geschwindigkeit.push(tabs).push(hinzufügen);
+        let neue_geschwindigkeit = neue_geschwindigkeit;
+
+        let mut aktuelle_geschwindigkeiten = Column::new();
         for (name, (anschlüsse_str, anschlüsse)) in geschwindigkeiten {
             let bearbeiten = Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                 InterneAuswahlNachricht::Bearbeiten(
@@ -680,14 +692,23 @@ where
             let löschen = Button::new(Icon::neu(Bootstrap::Trash))
                 .on_press(InterneAuswahlNachricht::Löschen(name.clone().into_inner()));
             let geschwindigkeit = Column::new()
-                .push(Text::new(name.as_ref().to_owned()))
-                .push(Text::new(anschlüsse_str.clone()))
-                .push(Row::new().push(bearbeiten).push(löschen));
-            column = column.push(geschwindigkeit);
+                .push(
+                    Row::new()
+                        .push(Text::new(String::from(name.as_ref())))
+                        .push(Space::with_width(Length::Fixed(2.)))
+                        .push(bearbeiten)
+                        .push(löschen),
+                )
+                .push(Text::new(anschlüsse_str.clone()));
+            aktuelle_geschwindigkeiten = aktuelle_geschwindigkeiten.push(geschwindigkeit);
         }
+        let aktuelle_geschwindigkeiten = Scrollable::new(aktuelle_geschwindigkeiten)
+            .height(AKTUELLE_GESCHWINDIGKEITEN_SCROLLABLE_HEIGHT)
+            .width(Length::Shrink);
+
         let card = Card::new(
             Text::new("Geschwindigkeit"),
-            Scrollable::new(column).height(Length::Fixed(400.)).width(Length::Shrink),
+            Column::new().push(neue_geschwindigkeit).push(aktuelle_geschwindigkeiten),
         )
         .on_close(InterneAuswahlNachricht::Schließen)
         .width(Length::Shrink);

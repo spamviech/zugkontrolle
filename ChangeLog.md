@@ -3,6 +3,7 @@
 ## Unreleased changes
 
 - Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.
+- Zeige bei Geschwindigkeitsauswahl immer die Widgets für eine neue Geschwindigkeit an.
 
 ## 5.0.0
 
