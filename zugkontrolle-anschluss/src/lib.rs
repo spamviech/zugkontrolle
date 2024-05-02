@@ -167,7 +167,7 @@ impl Display for OutputAnschluss {
                 write!(formatter, "Pin({}, {polarität})", pin.pin())
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                write!(formatter, "Pcf8574Port({port}, {polarität}")
+                write!(formatter, "Pcf8574Port({port}, {polarität})")
             },
         }
     }
@@ -272,7 +272,7 @@ impl Display for OutputSerialisiert {
                 write!(formatter, "Pin({pin}, {polarität})")
             },
             OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
-                write!(formatter, "Pcf8574Port({beschreibung}-{port}, {polarität}")
+                write!(formatter, "Pcf8574Port({beschreibung}-{port}, {polarität})")
             },
         }
     }

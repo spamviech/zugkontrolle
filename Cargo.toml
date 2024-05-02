@@ -238,7 +238,7 @@ version = "5.0.0"
 
 [workspace.dependencies.zugkontrolle-anschluss]
 path = "zugkontrolle-anschluss"
-version = "1.0.0"
+version = "1.0.1"
 
 [workspace.dependencies.zugkontrolle-util]
 path = "zugkontrolle-util"

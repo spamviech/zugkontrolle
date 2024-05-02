@@ -2,6 +2,8 @@
 
 ## Unreleased changes
 
+- Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.
+
 ## 5.0.0
 
 - Aufteilen in mehrere crates. Dazu waren ein paar Anpassungen notwendig:
