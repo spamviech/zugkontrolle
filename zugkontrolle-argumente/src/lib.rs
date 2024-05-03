@@ -51,7 +51,7 @@ pub struct Argumente {
     #[kommandozeilen_argumente(standard: Winkel(0.), meta_var: WINKEL)]
     pub winkel: Winkel,
 
-    /// I2CSettings für die Programmdauer.
+    /// [`I2CSettings`] für die Programmdauer.
     #[kommandozeilen_argumente(glätten)]
     pub i2c_settings: I2cSettings,
 

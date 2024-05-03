@@ -23,11 +23,11 @@ pub struct KurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert
     pub radius: Skalar,
     /// Der Winkel der Kurven.
     pub winkel: Winkel,
-    /// Die Orientierung der KurvenWeiche.
+    /// Die Orientierung der [`KurvenWeiche`].
     pub orientierung: Orientierung,
-    /// Eine allgemeine Beschreibung der KurvenWeiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der [`KurvenWeiche`], z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der KurvenWeiche.
+    /// Die Anschlüsse zum Schalten der [`KurvenWeiche`].
     pub steuerung: Anschlüsse,
 }
 

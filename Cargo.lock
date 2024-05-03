@@ -4633,7 +4633,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-application"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-io 2.3.2",
  "cargo_metadata",
@@ -4662,7 +4662,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-argumente"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "kommandozeilen_argumente",
  "zugkontrolle-typen",
@@ -4670,7 +4670,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-gleis"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "dyn-clonable",
  "either",
@@ -4688,7 +4688,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-gleise"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "associated_list",
  "bincode",
@@ -4713,7 +4713,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-id"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "log",
  "parking_lot 0.12.2",
@@ -4734,7 +4734,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-macros"
-version = "5.0.0"
+version = "5.0.1"
 dependencies = [
  "cargo_metadata",
  "heck",
@@ -4757,7 +4757,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-typen"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "iced_core",
  "iced_graphics",

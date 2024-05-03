@@ -161,7 +161,7 @@ where
 pub struct Erbauer<V, B> {
     /// Der Builder.
     builder: path::Builder,
-    /// [PhantomData] um [Vektor] und [Bogen] unter Berücksichtigung von [`Invertiert`] zu verwenden.
+    /// [`PhantomData`] um [`Vektor`] und [`Bogen`] unter Berücksichtigung von [`Invertiert`] zu verwenden.
     phantom_data: PhantomData<fn() -> (V, B)>,
 }
 

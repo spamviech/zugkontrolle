@@ -18,7 +18,7 @@ use log::error;
 use nonempty::{nonempty, NonEmpty};
 use rstar::{
     primitives::{GeomWithData, Rectangle},
-    RTree, RTreeObject, SelectionFunction, AABB,
+    RTree, RTreeObject,
 };
 
 use thiserror::Error;
@@ -438,23 +438,15 @@ impl<L: Leiter> Zustand<L> {
 
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt
     /// des Gleises an der gesuchten Position.
-    pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_, L>> {
+    pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_>> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
             self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
         // streckenabschnitt_id, geschwindigkeit_id related über `and_then`
         #[allow(clippy::shadow_unrelated)]
         let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_name| {
-            self.streckenabschnitte.get(&streckenabschnitt_name).map(
-                |(streckenabschnitt, geschwindigkeit_name)| AssoziierterStreckenabschnitt {
-                    name: streckenabschnitt_name,
-                    streckenabschnitt,
-                    geschwindigkeit: geschwindigkeit_name.as_ref().and_then(|geschwindigkeit_id| {
-                        self.geschwindigkeiten
-                            .get(geschwindigkeit_id)
-                            .map(|geschwindigkeit| (geschwindigkeit_id.clone(), geschwindigkeit))
-                    }),
-                },
-            )
+            self.streckenabschnitte
+                .get(&streckenabschnitt_name)
+                .map(|(streckenabschnitt, _geschwindigkeit_name)| streckenabschnitt)
         });
         Some(GleisAnPosition { id_steuerung, position, winkel, streckenabschnitt })
     }
@@ -462,29 +454,15 @@ impl<L: Leiter> Zustand<L> {
 
 /// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
 /// Informationen über das Gleis an der gesuchten Position.
-pub(crate) struct GleisAnPosition<'t, L> {
+pub(crate) struct GleisAnPosition<'t> {
     /// Id, Steuerung
     pub(crate) id_steuerung: AnyIdSteuerung,
-    /// relative Klick-Position
+    /// Relative Klick-Position
     pub(crate) position: Vektor,
     /// Winkel
     pub(crate) winkel: Winkel,
     /// Streckenabschnitt
-    pub(crate) streckenabschnitt: Option<AssoziierterStreckenabschnitt<'t, L>>,
-}
-
-/// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
-/// Informationen über den [Streckenabschnitt] des Gleises an der gesuchten Position.
-pub(crate) struct AssoziierterStreckenabschnitt<'t, L> {
-    // TODO Methoden/Datentyp public machen?
-    #[allow(dead_code)]
-    /// Der Name des Streckenabschnittes.
-    pub(crate) name: streckenabschnitt::Name,
-    /// Der Streckenabschnitt.
-    pub(crate) streckenabschnitt: &'t Streckenabschnitt,
-    #[allow(dead_code)]
-    /// Die assoziierte [Geschwindigkeit].
-    pub(crate) geschwindigkeit: Option<(geschwindigkeit::Name, &'t Geschwindigkeit<L>)>,
+    pub(crate) streckenabschnitt: Option<&'t Streckenabschnitt>,
 }
 
 /// Alle Gleise, sowie das Rechteck zum speichern im [`RStern`] mit ihrer Id.
@@ -500,19 +478,19 @@ pub(crate) type RStern = RTree<RSternEintrag>;
 /// Alle aktuell bekannten Gleise.
 #[derive(Debug)]
 pub(crate) struct GleiseDaten {
-    /// Alle bekannten Geraden.
+    /// Alle bekannten [`Geraden`](Gerade).
     geraden: GleisMap<Gerade>,
-    /// Alle bekannten Kurven.
+    /// Alle bekannten [`Kurven`](Kurve).
     kurven: GleisMap<Kurve>,
-    /// Alle bekannten Weichen.
+    /// Alle bekannten [`Weichen`](Weiche).
     weichen: GleisMap<Weiche>,
-    /// Alle bekannten DreiwegeWeichen.
+    /// Alle bekannten [`DreiwegeWeichen`](DreiwegeWeiche).
     dreiwege_weichen: GleisMap<DreiwegeWeiche>,
-    /// Alle bekannten KurvenWeichen.
+    /// Alle bekannten [`KurvenWeichen`](KurvenWeiche).
     kurven_weichen: GleisMap<KurvenWeiche>,
-    /// Alle bekannten SKurvenWeichen.
+    /// Alle bekannten [`SKurvenWeichen`](SKurvenWeiche).
     s_kurven_weichen: GleisMap<SKurvenWeiche>,
-    /// Alle bekannten Kreuzungen.
+    /// Alle bekannten [`Kreuzungen`](Kreuzung).
     kreuzungen: GleisMap<Kreuzung>,
     /// Alle Gleise/GleisIds, optimiert für die örtliche Suche,
     /// z.B. alle Einträge innerhalb eines Rechtecks.
@@ -1557,39 +1535,5 @@ impl GleiseDaten {
             );
         }
         ergebnis
-    }
-}
-
-/// [`SelectionFunction`], die jedes Element akzeptiert.
-/// Haupt-Nutzen ist das vollständiges Leeren eines [`RTree`] (siehe [`GleiseDaten::verschmelze`]).
-struct SelectAll;
-
-impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
-    fn should_unpack_parent(&self, _envelope: &T::Envelope) -> bool {
-        true
-    }
-}
-
-/// [`SelectionFunction`], die einen bestimmten Envelope sucht.
-pub(crate) struct SelectEnvelope(pub(crate) AABB<Vektor>);
-
-impl<T> SelectionFunction<T> for SelectEnvelope
-where
-    T: RTreeObject<Envelope = AABB<Vektor>>,
-{
-    fn should_unpack_parent(&self, envelope: &AABB<Vektor>) -> bool {
-        let self_upper = self.0.upper();
-        let self_lower = self.0.lower();
-        let upper = envelope.upper();
-        let lower = envelope.lower();
-        // der gesuchte Envelope muss komplett in den parent passen
-        lower.x <= self_lower.x
-            && lower.y <= self_lower.y
-            && upper.x >= self_upper.x
-            && upper.y >= self_upper.y
-    }
-
-    fn should_unpack_leaf(&self, leaf: &T) -> bool {
-        self.0 == leaf.envelope()
     }
 }

@@ -155,7 +155,7 @@ pub type KurvenWeicheNachricht = weiche::Nachricht<
 
 impl<S> AuswahlZustand<S> {
     /// Anzeige des Auswahlfensters
-    pub fn view<'t, L, Nachricht: 't, AktualisierenNachricht>(
+    pub fn view<'t, L, Nachricht, AktualisierenNachricht>(
         &self,
         gleise: &'t Gleise<L, AktualisierenNachricht>,
         scrollable_style: Sammlung,
@@ -164,7 +164,8 @@ impl<S> AuswahlZustand<S> {
     where
         L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
         S: 'static + Clone + Default,
-        Nachricht: From<streckenabschnitt::AuswahlNachricht>
+        Nachricht: 't
+            + From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
             + From<(kontakt::Nachricht, KontaktId)>
             + From<(WeicheNachricht, WeichenId)>

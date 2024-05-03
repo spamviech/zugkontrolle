@@ -3,11 +3,9 @@
 use std::collections::HashMap;
 
 use syn::{
-    parse::Parser,
-    punctuated::{self, Punctuated},
-    token::Plus,
-    Attribute, Error, Field, GenericParam, Generics, Ident, LifetimeParam, Meta, MetaList, Path,
-    PathSegment, Token, Type, TypeParamBound, TypePath, WherePredicate,
+    parse::Parser, punctuated::Punctuated, token::Plus, Attribute, Error, Field, GenericParam,
+    Generics, Ident, LifetimeParam, Meta, MetaList, Path, PathSegment, Token, Type, TypeParamBound,
+    TypePath, WherePredicate,
 };
 
 /// Markiere die generischen Typen mit `true`, die im `fields`-Iterator vorkommen.
@@ -76,14 +74,14 @@ pub(crate) fn parse_attributes_fn(
                     meta: Meta::List(MetaList { path: Path { segments, .. }, tokens, .. }),
                     ..
                 } if segments.len() == 1 && segments[0].ident == name => {
-                    let parser = punctuated::Punctuated::parse_terminated;
+                    let parser = Punctuated::parse_terminated;
                     Some(parser.parse2(tokens.clone()))
                 },
                 _ => None,
             }
         })
         .collect::<Result<_, _>>()?;
-    Ok(intermediate.into_iter().flat_map(punctuated::Punctuated::into_iter))
+    Ok(intermediate.into_iter().flat_map(Punctuated::into_iter))
 }
 
 /// Helper für [`parse_attributes_fn`]: Match das [Result] und gebe bei [`Err`] direkt `quote!(compile_error(#fehler));` zurück.

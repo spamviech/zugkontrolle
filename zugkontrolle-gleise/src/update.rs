@@ -30,9 +30,7 @@ use zugkontrolle_typen::{
 };
 
 use crate::{
-    daten::{
-        AssoziierterStreckenabschnitt, BewegenFehler, EntfernenFehler, GleisAnPosition, Zustand,
-    },
+    daten::{BewegenFehler, EntfernenFehler, GleisAnPosition, Zustand},
     nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
     util::berechne_canvas_position,
     Gleise, KlickQuelle, ModusDaten,
@@ -240,19 +238,8 @@ where
                         streckenabschnitt,
                     }) = gleis_an_position
                     {
-                        let nachricht = aktion_fahren(
-                            id_steuerung,
-                            // streckenabschnitt related über `map`
-                            #[allow(clippy::shadow_unrelated)]
-                            streckenabschnitt.map(
-                                |AssoziierterStreckenabschnitt {
-                                     name: _,
-                                     streckenabschnitt,
-                                     geschwindigkeit: _,
-                                 }| streckenabschnitt,
-                            ),
-                            sender.clone(),
-                        );
+                        let nachricht =
+                            aktion_fahren(id_steuerung, streckenabschnitt, sender.clone());
 
                         if let Some(nachricht) = nachricht {
                             nachrichten.push(nachricht);

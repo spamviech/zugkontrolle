@@ -49,9 +49,9 @@ pub mod view;
 /// Anzeige einer Meldung.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MessageBox {
-    /// Titel der MessageBox.
+    /// Titel der [`MessageBox`].
     titel: String,
-    /// Nachricht der MessageBox.
+    /// Nachricht der [`MessageBox`].
     nachricht: String,
 }
 

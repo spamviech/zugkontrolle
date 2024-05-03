@@ -352,7 +352,7 @@ pub struct Pcf8574 {
 /// Enthält Anschluss-Details notwendig zur Adressierung.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Beschreibung {
-    /// I2CBus, über den das [`Pcf8574`] angeschlossen ist.
+    /// [`I2cBus`], über den das [`Pcf8574`] angeschlossen ist.
     pub i2c_bus: I2cBus,
     /// Anliegendes [`Level`] an das `A0` Adress-Bit.
     pub a0: Level,

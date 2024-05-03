@@ -23,17 +23,14 @@ use zugkontrolle_typen::{
 
 use crate::{
     gerade, kurve,
-    steuerung::{
-        self,
-        weiche::{self, MitRichtung},
-    },
+    steuerung::weiche::{MitRichtung, Steuerung, Weiche, WeicheSerialisiert},
 };
 
 /// Die Steuerung einer [`DreiwegeWeiche`].
-type Steuerung = steuerung::weiche::Weiche<RichtungInformation, RichtungAnschlüsse>;
+type Anschlüsse = Weiche<RichtungInformation, RichtungAnschlüsse>;
 /// Serialisierbare Darstellung der Steuerung einer [`DreiwegeWeiche`].
 type AnschlüsseSerialisiert =
-    steuerung::weiche::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
+    WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
 // Soll unqualifiziert verwendet werden.
 #[allow(clippy::module_name_repetitions)]
@@ -42,7 +39,7 @@ type AnschlüsseSerialisiert =
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DreiwegeWeiche<Anschlüsse = Option<Steuerung>> {
+pub struct DreiwegeWeiche<Steuerung = Option<Anschlüsse>> {
     /// Die Länge der Gerade.
     pub länge: Skalar,
     /// Der Radius der Kurven.
@@ -52,7 +49,7 @@ pub struct DreiwegeWeiche<Anschlüsse = Option<Steuerung>> {
     /// Eine allgemeine Beschreibung der DreiwegeWeiche, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
     /// Die Anschlüsse zum Schalten der DreiwegeWeiche.
-    pub steuerung: Anschlüsse,
+    pub steuerung: Steuerung,
 }
 
 impl DreiwegeWeicheUnit {
@@ -125,7 +122,7 @@ impl MitRichtung<Richtung> for RichtungInformation {
     }
 }
 
-impl weiche::Steuerung<Richtung> for RichtungInformation {
+impl Steuerung<Richtung> for RichtungInformation {
     type Zurücksetzen = Richtung;
 
     fn einstellen(&mut self, neue_richtung: Richtung) -> Self::Zurücksetzen {

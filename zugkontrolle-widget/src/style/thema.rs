@@ -59,10 +59,9 @@ impl knopf::Thema for Thema {
 
     fn hintergrund(&self, aktiv: bool, in_bounds: bool) -> Farbe {
         let grey_value = match self {
-            Thema::Hell if aktiv => 0.5,
+            Thema::Hell | Thema::Dunkel if aktiv => 0.5,
             Thema::Hell if in_bounds => 0.7,
             Thema::Hell => 0.9,
-            Thema::Dunkel if aktiv => 0.5,
             Thema::Dunkel if in_bounds => 0.3,
             Thema::Dunkel => 0.2,
         };

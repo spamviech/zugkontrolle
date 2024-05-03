@@ -90,7 +90,7 @@ pub(crate) enum NachrichtClone<L: Leiter, S> {
     Thema(Thema),
     /// Aktualisiere das Auswahl-Modal.
     AuswahlModal(Option<AuswahlZustand<S>>),
-    /// Aktualisiere die MessageBox.
+    /// Aktualisiere die [`MessageBox`].
     MessageBox(Option<MessageBox>),
 }
 
@@ -222,13 +222,13 @@ pub enum Nachricht<L: Leiter, S> {
     Thema(Thema),
     /// Aktualisiere das Auswahl-Modal.
     AuswahlFenster(Option<AuswahlZustand<S>>),
-    /// Aktualisiere die MessageBox.
+    /// Aktualisiere die [`MessageBox`].
     MessageBox(Option<MessageBox>),
-    /// Dummy-Nachricht, damit die [`view`](Application::view)-Methode erneut aufgerufen wird.
+    /// Dummy-Nachricht, damit die [`view`](iced::Application::view)-Methode erneut aufgerufen wird.
     ///
     /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
     AsyncAktualisieren {
-        /// Soll das Canvas der [`Gleise`](crate::gleise::Gleise)-Struktur neu gezeichnet werden.
+        /// Soll das Canvas der [`Gleise`](zugkontrolle_gleise::Gleise)-Struktur neu gezeichnet werden.
         gleise_neuzeichnen: bool,
     },
 }

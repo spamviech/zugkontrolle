@@ -1,4 +1,5 @@
-//!
+//! Parse den output von `cargo metadata` um die crates für das aktuelle `TARGET` zu erhalten
+//! und erzeuge eine Map mit den zugehörigen Lizenzen, eingebunden über [`include_str!`].
 
 use std::{collections::BTreeMap, iter, path::Path, process::Command, str};
 

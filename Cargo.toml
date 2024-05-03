@@ -236,57 +236,53 @@ integer_division_remainder_used = "allow"  # gedacht für Kryptographischen Kont
 iter_over_hash_type = "allow"              # Reihenfolge nicht relevant, wenn HashMap/Set verwendet wird
 
 # workspace dependencies
-[workspace.dependencies.zugkontrolle-macros]
-path = "zugkontrolle-macros"
-version = "5.0.0"
-
 [workspace.dependencies.zugkontrolle-anschluss]
 path = "zugkontrolle-anschluss"
+version = "1.0.1"
+
+[workspace.dependencies.zugkontrolle-application]
+path = "zugkontrolle-application"
+version = "1.0.1"
+
+[workspace.dependencies.zugkontrolle-argumente]
+path = "zugkontrolle-argumente"
+version = "1.0.1"
+
+[workspace.dependencies.zugkontrolle-gleis]
+path = "zugkontrolle-gleis"
+version = "1.0.1"
+
+[workspace.dependencies.zugkontrolle-gleise]
+path = "zugkontrolle-gleise"
+version = "1.0.1"
+
+[workspace.dependencies.zugkontrolle-id]
+path = "zugkontrolle-id"
+version = "1.0.1"
+
+[workspace.dependencies.zugkontrolle-lizenzen]
+path = "zugkontrolle-lizenzen"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-macros]
+path = "zugkontrolle-macros"
+version = "5.0.1"
+
+[workspace.dependencies.zugkontrolle-test-util]
+path = "zugkontrolle-test-util"
+version = "1.0.0"
+
+[workspace.dependencies.zugkontrolle-typen]
+path = "zugkontrolle-typen"
 version = "1.0.1"
 
 [workspace.dependencies.zugkontrolle-util]
 path = "zugkontrolle-util"
 version = "1.0.0"
 
-[workspace.dependencies.zugkontrolle-argumente]
-path = "zugkontrolle-argumente"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-typen]
-path = "zugkontrolle-typen"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-id]
-path = "zugkontrolle-id"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-lizenzen]
-path = "zugkontrolle-lizenzen"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-steuerung]
-path = "zugkontrolle-steuerung"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-gleis]
-path = "zugkontrolle-gleis"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-gleise]
-path = "zugkontrolle-gleise"
-version = "1.0.0"
-
 [workspace.dependencies.zugkontrolle-widget]
 path = "zugkontrolle-widget"
 version = "1.0.1"
-
-[workspace.dependencies.zugkontrolle-application]
-path = "zugkontrolle-application"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-test-util]
-path = "zugkontrolle-test-util"
-version = "1.0.0"
 
 [workspace.dependencies]
 associated_list = "0.2.0"

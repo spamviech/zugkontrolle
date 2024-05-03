@@ -42,7 +42,7 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<Repräsentation>>
 pub struct Id<T: 'static> {
     /// Der Zahlenwert für die Unterscheidung unterschiedlicher [`Ids`](Id).
     id: Repräsentation,
-    /// PhantomData
+    /// [`PhantomData`]
     phantom: PhantomData<fn() -> T>,
 }
 

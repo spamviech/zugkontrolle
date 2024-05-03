@@ -14,7 +14,7 @@ use log::error;
 
 use zugkontrolle_anschluss::{
     level::Level,
-    pcf8574::{self, Beschreibung, I2cBus, Variante},
+    pcf8574::{Beschreibung, I2cBus, Variante},
     pin::pwm,
     polarität::Polarität,
     InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
@@ -60,7 +60,7 @@ enum InterneNachricht<T> {
     TabSelected(TabId),
     /// Neuer aktuell gewählter Pin.
     Pin(u8),
-    /// Neuer aktuell gewählter I2cBus für einen Pcf8574.
+    /// Neuer aktuell gewählter [`I2cBus`] für einen Pcf8574.
     I2cBus(I2cBus),
     /// Neues aktuell gewähltes A0-Level für einen Pcf8574.
     A0(Level),
@@ -210,7 +210,7 @@ where
                 active_tab,
                 pin: start_pin.unwrap_or(0),
                 beschreibung: start_beschreibung.unwrap_or(Beschreibung {
-                    i2c_bus: pcf8574::I2cBus::I2c0_1,
+                    i2c_bus: I2cBus::I2c0_1,
                     a0: Level::Low,
                     a1: Level::Low,
                     a2: Level::Low,
@@ -328,7 +328,7 @@ where
                 active_tab,
                 pin: start_pin.unwrap_or(0),
                 beschreibung: start_beschreibung.unwrap_or(Beschreibung {
-                    i2c_bus: pcf8574::I2cBus::I2c0_1,
+                    i2c_bus: I2cBus::I2c0_1,
                     a0: Level::Low,
                     a1: Level::Low,
                     a2: Level::Low,
