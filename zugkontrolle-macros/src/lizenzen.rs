@@ -81,7 +81,6 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
         ("naga", "../LICENSE-APACHE-2.0.txt"),
         ("ouroboros", "../LICENSE-APACHE-2.0.txt"),
         ("ouroboros_macro", "../LICENSE-APACHE-2.0.txt"),
-        ("iced_aw", "9ed46bf/LICENSE"),
     ]
     .into_iter()
     .collect()

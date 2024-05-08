@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle"
-version = "5.0.1"
+version = "5.0.2"
 authors.workspace = true
 readme.workspace = true
 edition.workspace = true
@@ -266,7 +266,7 @@ version = "1.0.0"
 
 [workspace.dependencies.zugkontrolle-macros]
 path = "zugkontrolle-macros"
-version = "5.0.1"
+version = "5.0.2"
 
 [workspace.dependencies.zugkontrolle-test-util]
 path = "zugkontrolle-test-util"
@@ -366,11 +366,9 @@ default-features = false
 features = ["geometry"]
 
 [workspace.dependencies.iced_aw]
-version = "0.8.0"
+version = "0.9.1"
 default-features = false
 features = ["card", "tab_bar", "tabs", "number_input", "icons"]
-git = "https://github.com/iced-rs/iced_aw"
-rev = "9ed46bffd0d819f22e07db6c282fbef733007df5"
 
 [workspace.dependencies.rppal]
 default_features = false

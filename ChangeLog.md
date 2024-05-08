@@ -4,6 +4,7 @@
 
 - Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.
 - Zeige bei Geschwindigkeitsauswahl immer die Widgets für eine neue Geschwindigkeit an.
+- Aktualisiere `iced_aw` auf crates.io-Version `0.9.1`.
 
 ## 5.0.0
 

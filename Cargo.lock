@@ -1714,8 +1714,9 @@ dependencies = [
 
 [[package]]
 name = "iced_aw"
-version = "0.8.0"
-source = "git+https://github.com/iced-rs/iced_aw?rev=9ed46bffd0d819f22e07db6c282fbef733007df5#9ed46bffd0d819f22e07db6c282fbef733007df5"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3f4f23ba46df60d48557621bf9467596831d18e295dc2abe105ed0b63afa8"
 dependencies = [
  "cfg-if",
  "iced",
@@ -4595,7 +4596,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle"
-version = "5.0.1"
+version = "5.0.2"
 dependencies = [
  "embed-resource",
  "flexi_logger",
@@ -4734,7 +4735,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-macros"
-version = "5.0.1"
+version = "5.0.2"
 dependencies = [
  "cargo_metadata",
  "heck",
