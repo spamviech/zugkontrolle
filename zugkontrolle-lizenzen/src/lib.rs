@@ -20,7 +20,7 @@ pub static TARGET_LIZENZEN: Lazy<LizenzenMap> = Lazy::new(verwendete_lizenzen);
 
 /// Alle Lizenzen für die aktuelle target-Platform.
 static TARGET_NAME_VERSION_LIZENZ: &[(&str, &str, &str)] =
-    zugkontrolle_macros::target_crate_lizenzen!();
+    zugkontrolle_lizenzen_macros::target_crate_lizenzen!();
 
 /// Die Lizenzen der verwendeter Open-Source Bibliotheken für das aktuelle target.
 #[must_use]

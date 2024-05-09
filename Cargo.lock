@@ -4685,8 +4685,17 @@ version = "1.0.0"
 dependencies = [
  "cargo_metadata",
  "once_cell",
- "zugkontrolle-macros",
+ "zugkontrolle-lizenzen-macros",
  "zugkontrolle-util",
+]
+
+[[package]]
+name = "zugkontrolle-lizenzen-macros"
+version = "1.0.0"
+dependencies = [
+ "cargo_metadata",
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]

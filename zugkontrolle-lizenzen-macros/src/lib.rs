@@ -140,15 +140,23 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
             .copied()
             .or(standard_lizenz_pfad.as_ref().map(|string| string.as_str()))
         else {
-            let fehlermeldung =
-                format!("Lizenz-Datei für {name}-{version} nicht in \"{ordner_pfad}\" gefunden!");
+            let fehlermeldung = format!(
+                "Lizenz-Datei für {name}-{version} nicht im Ordner \"{ordner_pfad}\" gefunden!"
+            );
             fehlermeldungen.push(fehlermeldung);
             continue;
         };
         let lizenz_pfad = format!("{ordner_pfad}/{pfad}");
-        namen.push(name);
-        versionen.push(version);
-        lizenz_pfade.push(lizenz_pfad);
+        if Path::new(&lizenz_pfad).is_file() {
+            namen.push(name);
+            versionen.push(version);
+            lizenz_pfade.push(lizenz_pfad);
+        } else {
+            let fehlermeldung = format!(
+                "Lizenz-Datei für {name}-{version} nicht im Pfad  \"{lizenz_pfad}\" gefunden!"
+            );
+            fehlermeldungen.push(fehlermeldung);
+        }
     }
     let token_stream = quote! {
         &[#((#namen, #versionen, include_str!{#lizenz_pfade})),*]
@@ -157,7 +165,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
 }
 
 /// [`crate::target_crate_lizenzen`]
-pub(crate) fn target_crate_lizenzen(input: &TokenStream) -> TokenStream {
+pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> TokenStream {
     if !input.is_empty() {
         let fehlermeldung = format!("No argument supported, but \"{input}\" was given.");
         return quote! {{
@@ -188,4 +196,13 @@ pub(crate) fn target_crate_lizenzen(input: &TokenStream) -> TokenStream {
             }}
         },
     }
+}
+
+#[proc_macro]
+/// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten
+/// und füge die Lizenz hinzu.
+/// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
+/// Die targets werden über `rustc --print target-list` ausgelesen.
+pub fn target_crate_lizenzen(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    target_crate_lizenzen_oder_compile_error(&input.into()).into()
 }
