@@ -31,7 +31,7 @@ readme = "README.md"
 edition = "2021"
 license = "MIT"
 publish = false
-rust-version = "1.77.0"
+rust-version = "1.79"
 repository = "https://github.com/spamviech/zugkontrolle"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -314,27 +314,27 @@ unicase = "2.6.0"
 
 [workspace.dependencies.kommandozeilen_argumente]
 version = "0.2.1"
-default_features = false
+default-features = false
 features = ["derive"]
 
 [workspace.dependencies.nonempty]
 version = "0.9.0"
-default_features = false
+default-features = false
 features = ["serialize"]
 
 [workspace.dependencies.rfd]
 version = "0.14.1"
-default_features = false
+default-features = false
 features = ["xdg-portal", "async-std"]
 
 [workspace.dependencies.serde]
 version = "1.0.136"
-default_features = false
+default-features = false
 features = ["derive"]
 
 [workspace.dependencies.flexi_logger]
 version = "0.27.3"
-default_features = false
+default-features = false
 features = ["colors"]
 
 [workspace.dependencies.heck]
@@ -376,12 +376,12 @@ default-features = false
 features = ["card", "tab_bar", "tabs", "number_input", "icons"]
 
 [workspace.dependencies.rppal]
-default_features = false
+default-features = false
 version = "0.17.1"
 
 [workspace.dependencies.syn]
 version = "2.0.15"
-default_features = false
+default-features = false
 features = ["parsing", "full", "extra-traits"]
 
 #[workspace.dependencies.libcamera]
