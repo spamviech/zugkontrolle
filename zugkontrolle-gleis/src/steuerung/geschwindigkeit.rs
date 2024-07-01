@@ -8,7 +8,6 @@ use std::{
     sync::{mpsc::Sender, Arc},
     thread::{sleep, JoinHandle},
     time::Duration,
-    usize,
 };
 
 use log::{debug, error};
