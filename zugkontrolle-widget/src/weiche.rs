@@ -10,15 +10,14 @@ use iced_aw::{
     },
 };
 use iced_core::{
-    event, text as text_core,
+    Element, Font, Length, Renderer, event, text as text_core,
     widget::text::{self, Text},
-    Element, Font, Length, Renderer,
 };
 use iced_widget::{
+    Column, Row,
     button::{self, Button},
     container, radio, scrollable,
     text_input::{self, TextInput},
-    Column, Row,
 };
 
 use zugkontrolle_anschluss::OutputSerialisiert;
@@ -104,17 +103,15 @@ where
     RichtungInformation: 't + Clone + Default,
     R: 't + Renderer + text_core::Renderer<Font = Font>,
     Thema: 't
-        + button::StyleSheet
-        + card::StyleSheet
-        + container::StyleSheet
-        + number_input::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + tab_bar::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
+        + button::Catalog
+        + card::Catalog
+        + container::Catalog
+        + number_input::Catalog
+        + radio::Catalog
+        + scrollable::Catalog
+        + tab_bar::Catalog
+        + text::Catalog
+        + text_input::Catalog,
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu(

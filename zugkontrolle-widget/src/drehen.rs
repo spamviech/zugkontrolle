@@ -1,22 +1,21 @@
 //! Widget zum Einstellen des Anzeigewinkels.
 
 use iced::{
+    Point, Rectangle, Renderer,
     mouse::{self, Cursor},
     touch,
     widget::canvas::{
-        event,
+        Event, Geometry, Program, event,
         fill::{self, Fill},
         stroke::{self, Stroke},
-        Event, Geometry, Program,
     },
-    Point, Rectangle, Renderer,
 };
 
 use zugkontrolle_gleise::knopf::Thema as _;
 use zugkontrolle_typen::{
     canvas::{
-        pfad::{self, Bogen},
         Cache,
+        pfad::{self, Bogen},
     },
     klick_quelle::KlickQuelle,
     skalar::Skalar,
@@ -239,7 +238,11 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             Event::Touch(touch::Event::FingerMoved { id, position }) => {
                 winkel = moved(state, &self.0, bounds, position, KlickQuelle::Touch(id));
             },
-            Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {},
+            Event::Mouse(_)
+            | Event::Touch(_)
+            | Event::Keyboard(_)
+            | Event::Window(_)
+            | Event::InputMethod(_) => {},
         }
         (status, winkel)
     }

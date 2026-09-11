@@ -1,6 +1,7 @@
 //! Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 
 use iced_core::{
+    Element, Length, Point, Rectangle, Shell, Size, Vector,
     clipboard::Clipboard,
     event::{self, Event},
     layout::{self, Layout},
@@ -8,14 +9,10 @@ use iced_core::{
     overlay::{self, Overlay},
     renderer::{self, Renderer},
     widget::{
-        self,
+        self, Widget, operation,
         tree::{self, Tree},
-        Widget,
     },
-    Element, Length, Point, Rectangle, Shell, Size, Vector,
 };
-
-use crate::map_operation::MapOperation;
 
 ///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]
@@ -74,24 +71,24 @@ where
         renderer: &R,
         operation: &mut dyn widget::Operation<B>,
     ) {
-        self.element.as_widget().operate(tree, layout, renderer, &mut MapOperation { operation });
+        self.element.as_widget().operate(tree, layout, renderer, operation.black_box(operation));
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
-        renderer: &R,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, B>,
+        shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let status = self.element.as_widget_mut().on_event(
+        self.element.as_widget_mut().on_event(
             tree,
             event,
             layout,
@@ -102,9 +99,8 @@ where
             viewport,
         );
 
-        if let Some(at) = local_shell.redraw_request() {
-            shell.request_redraw(at);
-        }
+        let redraw_request = local_shell.redraw_request();
+        shell.request_redraw_at(redraw_request);
 
         if local_shell.is_layout_invalid() {
             shell.invalidate_layout();
@@ -117,8 +113,6 @@ where
         for message in local_messages.drain(..).flat_map(&self.mapper) {
             shell.publish(message);
         }
-
-        status
     }
 
     fn draw(
@@ -164,10 +158,11 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &R,
+        viewport: &Rectangle<f32>,
         translation: Vector,
     ) -> Option<overlay::Element<'b, B, Thema, R>> {
         let mapper = &self.mapper;
-        self.element.as_widget_mut().overlay(tree, layout, renderer, translation).map(
+        self.element.as_widget_mut().overlay(tree, layout, renderer, viewport, translation).map(
             move |overlay| overlay::Element::new(Box::new(OverlayFlatMap::neu(overlay, mapper))),
         )
     }
@@ -221,18 +216,20 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<B>,
     ) {
-        self.content.operate(layout, renderer, &mut MapOperation { operation });
+        self.content.operate(layout, renderer, operation::black_box(operation));
     }
 
-    fn on_event(
+    fn update(
         &mut self,
-        event: Event,
-        layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
-        renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, B>,
-    ) -> event::Status {
+        _tree: &mut Tree,
+        _event: &Event,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
+        _renderer: &Renderer,
+        _clipboard: &mut dyn Clipboard,
+        _shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
@@ -245,9 +242,8 @@ where
             &mut local_shell,
         );
 
-        if let Some(at) = local_shell.redraw_request() {
-            shell.request_redraw(at);
-        }
+        let redraw_request = local_shell.redraw_request();
+        shell.request_redraw_at(redraw_request);
 
         if local_shell.is_layout_invalid() {
             shell.invalidate_layout();
@@ -283,9 +279,5 @@ where
         cursor_position: mouse::Cursor,
     ) {
         self.content.draw(renderer, theme, style, layout, cursor_position);
-    }
-
-    fn is_over(&self, layout: Layout<'_>, renderer: &Renderer, cursor_position: Point) -> bool {
-        self.content.is_over(layout, renderer, cursor_position)
     }
 }

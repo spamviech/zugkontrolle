@@ -2,6 +2,8 @@
 
 use std::env;
 
+use embed_resource::CompilationResult;
+
 fn main() {
     // cfg is for the build script, but we can use the env variables set by cargo
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts
@@ -9,6 +11,12 @@ fn main() {
     let is_windows = env::var("CARGO_CFG_WINDOWS").is_ok();
     if is_windows {
         // Setup windows binary icon
-        embed_resource::compile("resources.rc", embed_resource::NONE);
+        let result = embed_resource::compile("resources.rc", embed_resource::NONE);
+        if !matches!(result, CompilationResult::Ok) {
+            #[allow(clippy::use_debug, reason = "Report diagnostics in build script.")]
+            {
+                println!("cargo::error={result:?}");
+            }
+        }
     }
 }

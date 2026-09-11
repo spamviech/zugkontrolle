@@ -3,16 +3,15 @@
 use std::borrow::Cow;
 
 use iced_core::{
-    event, text as text_core,
+    Element, Length, event, text as text_core,
     widget::text::{self, Text},
-    Element, Length,
 };
 use iced_widget::{
+    Column, Row, Space,
     button::{self, Button},
     container::{self, Container},
     rule::{self, Rule},
     scrollable::{self, Scrollable},
-    Column, Row, Space,
 };
 
 use zugkontrolle_lizenzen::{LizenzenMap, TARGET_LIZENZEN};
@@ -79,19 +78,16 @@ impl<'a, Thema, R> Lizenzen<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
     Thema: 'a
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + rule::StyleSheet
-        + text::StyleSheet,
-    <Thema as rule::StyleSheet>::Style: From<Linie>,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
+        + container::Catalog
+        + button::Catalog
+        + scrollable::Catalog
+        + rule::Catalog
+        + text::Catalog,
 {
     /// Erstelle ein neues [`Lizenzen`]-Widget mit den verwendeten Lizenzen.
     pub fn neu_mit_verwendeten_lizenzen<ScrollableStyle>(scrollable_style: ScrollableStyle) -> Self
     where
         ScrollableStyle: 'a + Clone,
-        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
         Self::neu(&TARGET_LIZENZEN, scrollable_style)
     }
@@ -103,7 +99,6 @@ where
     ) -> Self
     where
         ScrollableStyle: 'a + Clone,
-        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
     {
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
@@ -126,10 +121,7 @@ where
         zustand: &Zustand,
         lizenzen: &'a LizenzenMap,
         scrollable_style: ScrollableStyle,
-    ) -> Element<'a, InterneNachricht, Thema, R>
-    where
-        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
-    {
+    ) -> Element<'a, InterneNachricht, Thema, R> {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Shrink);
         let (aktuell_name, aktuell_text) = if let Some((name, text)) = aktuell {
@@ -182,13 +174,11 @@ impl<'a, Thema, R> From<Lizenzen<'a, Thema, R>> for Element<'a, Nachricht, Thema
 where
     R: 'a + text_core::Renderer,
     Thema: 'a
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + rule::StyleSheet
-        + text::StyleSheet,
-    <Thema as rule::StyleSheet>::Style: From<Linie>,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
+        + container::Catalog
+        + button::Catalog
+        + scrollable::Catalog
+        + rule::Catalog
+        + text::Catalog,
 {
     fn from(lizenzen: Lizenzen<'a, Thema, R>) -> Self {
         Element::from(lizenzen.0)

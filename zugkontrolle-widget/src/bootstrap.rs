@@ -1,7 +1,7 @@
 //! Icons aus der Schriftart bootstrap-icons <https://icons.getbootstrap.com/>.
 
-use iced_core::{text as text_core, Element, Font};
-use iced_widget::{text, Text};
+use iced_core::{Element, Font, text as text_core};
+use iced_widget::{Text, text};
 
 use crate::fonts::BOOTSTRAP;
 
@@ -42,12 +42,12 @@ impl Bootstrap {
 pub struct Icon<'a, Thema, R>(Text<'a, Thema, R>)
 where
     R: text_core::Renderer,
-    Thema: text::StyleSheet;
+    Thema: text::Catalog;
 
 impl<'a, Thema, R> Icon<'_, Thema, R>
 where
     R: text_core::Renderer,
-    Thema: text::StyleSheet,
+    Thema: text::Catalog,
     <R as text_core::Renderer>::Font: From<Font>,
 {
     /// Erzeuge ein neues Widget, dass das gewählte [`Bootstrap`]-Icon anzeigt.
@@ -60,7 +60,7 @@ where
 impl<'a, M, Thema, R> From<Icon<'a, Thema, R>> for Element<'a, M, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    Thema: 'a + text::StyleSheet,
+    Thema: 'a + text::Catalog,
 {
     fn from(icon: Icon<'a, Thema, R>) -> Self {
         Element::new(icon.0)

@@ -10,22 +10,21 @@ use iced_aw::{
     widgets::card::{self, Card},
 };
 use iced_core::{
-    event, text as text_core,
+    Alignment, Element, Font, Length, Renderer, event, text as text_core,
     widget::text::{self, Text},
-    Alignment, Element, Font, Length, Renderer,
 };
 use iced_widget::{
+    Column, Row,
     button::{self, Button},
     checkbox::{self, Checkbox},
     container::{self, Container},
     radio,
     scrollable::{self, Scrollable},
     text_input::{self, TextInput},
-    Column, Row,
 };
 
 use zugkontrolle_anschluss::{
-    de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert,
+    OutputSerialisiert, de_serialisieren::Serialisiere, polarität::Polarität,
 };
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::{
@@ -70,9 +69,7 @@ impl<Thema, R> Debug for Anzeige<'_, Thema, R> {
 impl<'a, Thema, R> Anzeige<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    Thema:
-        'a + container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
+    Thema: 'a + container::Catalog + button::Catalog + checkbox::Catalog + text::Catalog,
 {
     /// Erstelle eine neue [`Anzeige`].
     #[must_use]
@@ -93,7 +90,8 @@ where
             Row::new()
                 .push(Button::new(Text::new("Auswählen")).on_press(AnzeigeNachricht::ZeigeOverlay))
                 .push(
-                    Checkbox::new("Festlegen", festlegen)
+                    Checkbox::new(festlegen)
+                        .label("Festlegen")
                         .on_toggle(AnzeigeNachricht::Festlegen)
                         .spacing(0),
                 )
@@ -191,19 +189,15 @@ impl<'a, Thema, R> Auswahl<'a, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + card::StyleSheet
-        + text::StyleSheet
-        + scrollable::StyleSheet
-        + container::StyleSheet
-        + button::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + radio::StyleSheet,
-    <Thema as button::StyleSheet>::Style: From<style::Button>,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
-    <Thema as scrollable::StyleSheet>::Style: From<style::Sammlung>,
-    <Thema as tab_bar::StyleSheet>::Style: From<style::TabBar>,
+        + card::Catalog
+        + text::Catalog
+        + scrollable::Catalog
+        + container::Catalog
+        + button::Catalog
+        + text_input::Catalog
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + radio::Catalog,
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu<L: Leiter, AktualisierenNachricht>(

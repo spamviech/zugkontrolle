@@ -3,6 +3,7 @@
 use std::fmt::{self, Debug, Formatter};
 
 use iced_core::{
+    Background, Clipboard, Color, Element, Length, Rectangle, Shadow, Shell, Size, Vector, Widget,
     border::{self, Border},
     event::{self, Event},
     layout::{self, Layout},
@@ -10,7 +11,6 @@ use iced_core::{
     renderer::{Quad, Renderer, Style},
     touch,
     widget::tree::Tree,
-    Background, Clipboard, Color, Element, Length, Rectangle, Shadow, Shell, Size, Vector, Widget,
 };
 
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel};
@@ -158,6 +158,7 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
                             offset: Vector::default(),
                             blur_radius: 0.,
                         },
+                        snap: false,
                     };
                     let background = Background::Color(farbe.into());
                     renderer.fill_quad(quad, background);
@@ -166,25 +167,25 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         }
     }
 
-    fn on_event(
+    fn update(
         &mut self,
-        _state: &mut Tree,
-        event: Event,
+        tree: &mut Tree,
+        event: &Event,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
-        _renderer: &R,
-        _clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, M>,
-        _viewport: &Rectangle,
-    ) -> event::Status {
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
         let mut status = event::Status::Ignored;
         let bounds = layout.bounds();
         let position = match (event, cursor_position) {
             (
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
                 mouse::Cursor::Available(position),
-            )
-            | (Event::Touch(touch::Event::FingerPressed { id: _, position }), _) => Some(position),
+            ) => Some(position),
+            (Event::Touch(touch::Event::FingerPressed { id: _, position }), _) => Some(*position),
             _ => None,
         };
         if let Some(position) = position {
@@ -197,7 +198,6 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
                 status = event::Status::Captured;
             }
         }
-        status
     }
 }
 

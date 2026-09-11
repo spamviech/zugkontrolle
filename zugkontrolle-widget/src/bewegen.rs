@@ -1,18 +1,18 @@
 //! Widget zum Anpassen des Pivot Punktes.
 
 use iced::{
+    Point, Rectangle, Renderer, Size,
     mouse::{self, Cursor},
     touch,
-    widget::canvas::{event, Event, Geometry, Program, Stroke, Style},
-    Point, Rectangle, Renderer, Size,
+    widget::canvas::{Event, Geometry, Program, Stroke, Style, event},
 };
 use itertools::{Itertools, MinMaxResult};
 
 use zugkontrolle_gleise::knopf::Thema as _;
 use zugkontrolle_typen::{
     canvas::{
-        pfad::{self, Bogen},
         Cache,
+        pfad::{self, Bogen},
     },
     klick_quelle::KlickQuelle,
     skalar::Skalar,
@@ -504,7 +504,11 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
                 *state = None;
                 nachricht = Some(Nachricht::BeendeBewegung);
             },
-            Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {},
+            Event::Mouse(_)
+            | Event::Touch(_)
+            | Event::Keyboard(_)
+            | Event::Window(_)
+            | Event::InputMethod(_) => {},
         }
 
         let status =

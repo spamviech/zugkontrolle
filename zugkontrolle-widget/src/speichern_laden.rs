@@ -7,11 +7,11 @@ use std::{
     pin::Pin,
 };
 
-use iced_core::{text as text_core, widget::text, Alignment, Element, Font, Length};
+use iced_core::{Alignment, Element, Font, Length, text as text_core, widget::text};
 use iced_widget::{
+    Row,
     button::{self, Button},
     text_input::{self},
-    Row,
 };
 use rfd::{AsyncFileDialog, FileHandle};
 
@@ -63,8 +63,7 @@ impl<Thema: Debug, R: Debug> Debug for SpeichernLaden<'_, Thema, R> {
 impl<'a, Thema, R> SpeichernLaden<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    Thema: 'a + button::StyleSheet + text::StyleSheet + text_input::StyleSheet,
-    <Thema as button::StyleSheet>::Style: From<style::Button>,
+    Thema: 'a + button::Catalog + text::Catalog + text_input::Catalog,
     <R as text_core::Renderer>::Font: From<Font>,
 {
     /// Erstelle ein [`SpeichernLaden`]-Widget.

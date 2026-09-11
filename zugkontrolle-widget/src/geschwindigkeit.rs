@@ -10,28 +10,27 @@ use std::{
 use iced_aw::{
     style::{number_input, tab_bar},
     widgets::{
-        card::{self, Card},
         TabLabel, Tabs,
+        card::{self, Card},
     },
 };
 use iced_core::{
-    event, text as text_core,
+    Element, Font, Length, Renderer, event, text as text_core,
     widget::text::{self, Text},
-    Element, Font, Length, Renderer,
 };
 use iced_widget::{
+    Column, Container, Row, Space,
     button::{self, Button},
     container,
     radio::{self, Radio},
     scrollable::{self, Scrollable},
     slider::{self, Slider},
     text_input::{self, TextInput},
-    Column, Container, Row, Space,
 };
 use log::error;
 use nonempty::NonEmpty;
 
-use zugkontrolle_anschluss::{pin::pwm, polarität::Polarität, OutputSerialisiert};
+use zugkontrolle_anschluss::{OutputSerialisiert, pin::pwm, polarität::Polarität};
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::{
     geschwindigkeit::{
@@ -119,7 +118,7 @@ impl<'t, M, Thema, R> Anzeige<'t, M, Thema, R>
 where
     M: 't + Clone,
     R: 't + text_core::Renderer,
-    Thema: 't + radio::StyleSheet + slider::StyleSheet + text::StyleSheet,
+    Thema: 't + radio::Catalog + slider::Catalog + text::Catalog,
 {
     /// Erstelle eine neue [Anzeige] für einen [`Leiter`].
     pub fn neu<'s, L: Leiter>(
@@ -331,17 +330,15 @@ where
     LeiterSerialisiert: 't + Display + Clone,
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + radio::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + card::StyleSheet,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+        + container::Catalog
+        + button::Catalog
+        + scrollable::Catalog
+        + radio::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + card::Catalog,
 {
     // Alle Argumente benötigt.
     #[allow(clippy::too_many_arguments)]
@@ -398,7 +395,7 @@ where
             NonEmpty<OutputSerialisiert>,
         ) -> LeiterSerialisiert,
     ) -> impl 't
-           + Fn(
+    + Fn(
         InterneAuswahlNachricht,
         &mut AuswahlZustand,
         &mut event::Status,
@@ -590,7 +587,7 @@ where
                         .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
                 )
             });
-            row = row.push(Space::new(Length::Fixed(7.5), Length::Shrink));
+            row = row.push(Space::new().height(Length::Fixed(7.5)));
             ks_auswahl = ks_auswahl.push(row);
         }
         ks_auswahl.into()
@@ -759,18 +756,16 @@ impl<'t, Thema, R> LeiterAnzeige<'t, MittelleiterSerialisiert, Thema, R> for Mit
 where
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + radio::StyleSheet
-        + slider::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + card::StyleSheet,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+        + container::Catalog
+        + button::Catalog
+        + scrollable::Catalog
+        + radio::Catalog
+        + slider::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + card::Catalog,
 {
     fn anzeige_neu(
         name: &Name,
@@ -849,18 +844,16 @@ impl<'t, Thema, R> LeiterAnzeige<'t, ZweileiterSerialisiert, Thema, R> for Zweil
 where
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + radio::StyleSheet
-        + slider::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + card::StyleSheet,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+        + container::Catalog
+        + button::Catalog
+        + scrollable::Catalog
+        + radio::Catalog
+        + slider::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + card::Catalog,
 {
     fn anzeige_neu(
         name: &Name,

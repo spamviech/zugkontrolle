@@ -15,7 +15,6 @@ pub mod geschwindigkeit;
 pub mod kontakt;
 pub mod lizenzen;
 pub mod map_mit_zustand;
-pub mod map_operation;
 pub mod modal;
 pub mod speichern_laden;
 pub mod streckenabschnitt;
