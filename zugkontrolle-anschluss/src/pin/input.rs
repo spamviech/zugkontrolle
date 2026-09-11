@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::{level::Level, rppal::gpio, trigger::Trigger};
+use crate::{event::Event, level::Level, rppal::gpio, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
 #[derive(Debug, PartialEq)]
@@ -49,11 +49,11 @@ impl Pin {
     pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
-        mut callback: impl FnMut(Level) + Send + 'static,
+        mut callback: impl FnMut(Event) + Send + 'static,
     ) -> Result<(), Fehler> {
         let pin = self.pin();
         self.0
-            .set_async_interrupt(trigger.into(), move |level| callback(level.into()))
+            .set_async_interrupt(trigger.into(), None, move |event| callback(event.into()))
             .map_err(|fehler| Fehler { pin, fehler })?;
         Ok(())
     }

@@ -9,9 +9,10 @@ use serde::{Deserialize, Serialize};
 
 use zugkontrolle_macros::{alias_serialisiert_unit, impl_nachschlagen};
 use zugkontrolle_typen::{
+    Innerhalb, MitName, Transparenz, Zeichnen,
     canvas::{
-        pfad::{self, Pfad, Transformation},
         Position,
+        pfad::{self, Pfad, Transformation},
     },
     farbe::Farbe,
     mm::{Länge, Radius, Spurweite},
@@ -20,7 +21,6 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::{
@@ -142,14 +142,10 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         let gerade_zentrum = Skalar(0.5) * rechteck_gerade.ecke_max();
+        #[allow(clippy::arithmetic_side_effects)]
+        let negierte_gerade_zentrum = -gerade_zentrum;
         let rechteck_gerade_gedreht = rechteck_gerade
-            .verschiebe_chain(
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
-                {
-                    &-gerade_zentrum
-                },
-            )
+            .verschiebe_chain(&negierte_gerade_zentrum)
             .respektiere_rotation_chain(&winkel)
             .verschiebe_chain(&gerade_zentrum);
         let rechteck_geraden = rechteck_gerade_verschoben.einschließend(&rechteck_gerade_gedreht);

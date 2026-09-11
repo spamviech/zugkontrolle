@@ -7,10 +7,7 @@ use std::{
 
 use iced_core::Size;
 use iced_graphics::geometry::{fill::Fill, stroke::Stroke, Text};
-use iced_renderer::{
-    geometry::{self, Geometry},
-    Renderer,
-};
+use iced_renderer::{geometry, Renderer};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -31,7 +28,7 @@ pub mod pfad;
 /// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [`Frame`](iced_renderer::Frame) liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
-pub struct Frame<'t>(&'t mut geometry::Frame);
+pub struct Frame<'t>(&'t mut geometry::Frame<Renderer>);
 
 impl Debug for Frame<'_> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
@@ -41,7 +38,7 @@ impl Debug for Frame<'_> {
 
 impl<'t> Frame<'t> {
     /// Erzeuge einen neuen [`Frame`].
-    pub fn neu(frame: &'t mut geometry::Frame) -> Self {
+    pub fn neu(frame: &'t mut geometry::Frame<Renderer>) -> Self {
         Frame(frame)
     }
 
@@ -76,7 +73,6 @@ impl<'t> Frame<'t> {
     ///
     /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [`iced::widget::canvas::Frame`]
     /// treten hier ebenfalls auf!
-
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text);
     }
@@ -117,7 +113,7 @@ impl<'t> Frame<'t> {
 #[derive(Debug, Default)]
 pub struct Cache {
     /// Der Cache mit der gespeicherten Geometrie.
-    cache: geometry::Cache,
+    cache: geometry::Cache<Renderer>,
     /// Die [`u8`]-Repräsentation des Themas beim letzten
     /// [`zeichnen_skaliert_von_pivot`](Cache::zeichnen_skaliert_von_pivot)-Aufruf.
     thema: AtomicU8,
@@ -133,7 +129,6 @@ impl Cache {
     }
 
     /// Leere den [`Cache`], so dass er neu gezeichnet wird.
-
     pub fn leeren(&self) {
         self.cache.clear();
     }
@@ -148,7 +143,7 @@ impl Cache {
         pivot: &Position,
         skalieren: Skalar,
         draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> Geometry
+    ) -> <Renderer as geometry::Renderer>::Geometry
     where
         Thema: Clone + Into<u8> + PartialEq,
         u8: TryInto<Thema>,
@@ -183,7 +178,7 @@ impl Cache {
         thema: &Thema,
         bounds: Size<f32>,
         draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> Geometry
+    ) -> <Renderer as geometry::Renderer>::Geometry
     where
         Thema: Clone + Into<u8> + PartialEq,
         u8: TryInto<Thema>,

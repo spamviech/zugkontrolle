@@ -137,7 +137,11 @@ pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> T
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
         if let Some((
-            GenericParam::Type(TypeParam { ident: generic, default: Some(default_type), .. }),
+            GenericParam::Type(TypeParam {
+                ident: generic,
+                default: Some((_eq, default_type)),
+                ..
+            }),
             params,
         )) = generics.params.iter().collect::<Vec<_>>().split_last()
         {

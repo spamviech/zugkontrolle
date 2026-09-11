@@ -4,20 +4,23 @@ use std::{
     collections::HashMap, fs, hash::Hash, io, marker::PhantomData, path::Path, sync::mpsc::Sender,
 };
 
-use bincode::config::{
-    DefaultOptions, FixintEncoding, Options, RejectTrailing, WithOtherIntEncoding,
-    WithOtherTrailing,
+use bincode_next::{
+    self,
+    config::{
+        BincodeLegacyFormat, Configuration, FingerprintDisabled, Fixint, LittleEndian, LsbFirst,
+        NoLimit, SkipBitPacking,
+    },
+    serde::{decode_from_slice, encode_into_std_write},
 };
 use nonempty::NonEmpty;
-use once_cell::sync::Lazy;
 use rstar::primitives::{GeomWithData, Rectangle};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use zugkontrolle_anschluss::{
+    Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     pcf8574,
     pin::{self, input},
-    Lager,
 };
 use zugkontrolle_gleis::{
     gerade::Gerade,
@@ -34,26 +37,48 @@ use zugkontrolle_gleis::{
     },
     zugtyp::{DefinitionMap, Zugtyp},
 };
-use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
-use zugkontrolle_typen::{mm::Spurweite, Zeichnen};
+use zugkontrolle_id::{GleisId, eindeutig::KeineIdVerfügbar};
+use zugkontrolle_typen::{Zeichnen, mm::Spurweite};
 
 use crate::{
+    Fehler, Gleise,
     daten::{
+        GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
         v2::{self, geschwindigkeit::BekannterZugtyp},
         v3::{self},
         v4::{GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert, ZustandSerialisiert},
-        GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
     },
-    Fehler, Gleise,
 };
 
 /// [`bincode`]-Optionen, bei denen trailing bytes abgelehnt werden.
 ///
 /// Im Gegensatz zu [`DefaultOptions`] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
 /// <https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions>
-static BINCODE_OPTIONS: Lazy<
-    WithOtherTrailing<WithOtherIntEncoding<DefaultOptions, FixintEncoding>, RejectTrailing>,
-> = Lazy::new(|| DefaultOptions::new().with_fixint_encoding().reject_trailing_bytes());
+// TODO: .reject_trailing_bytes()
+const BINCODE_OPTIONS: Configuration<
+    LittleEndian,
+    Fixint,
+    NoLimit,
+    SkipBitPacking,
+    LsbFirst,
+    FingerprintDisabled,
+    BincodeLegacyFormat,
+> = bincode_next::config::legacy().with_fixed_int_encoding();
+
+/// Fehler beim deserialisieren mit bincode.
+#[derive(Debug)]
+pub enum DecodeError {
+    /// Fehler beim deserialisieren.
+    Decode(bincode_next::error::DecodeError),
+    /// Nicht alle Bytes wurden gelesen.
+    TrailingBytes(usize),
+}
+
+impl From<bincode_next::error::DecodeError> for DecodeError {
+    fn from(value: bincode_next::error::DecodeError) -> Self {
+        DecodeError::Decode(value)
+    }
+}
 
 /// Fehler der beim [`Laden`](Gleise::laden) auftreten kann.
 #[derive(Debug, zugkontrolle_macros::From)]
@@ -67,11 +92,11 @@ pub enum LadenFehler<S> {
     /// Fehler beim Deserialisieren (laden) gespeicherter Daten.
     BincodeDeserialisieren {
         /// Fehler beim Deserialisieren nach aktuellem Speicherformat.
-        aktuell: bincode::Error,
+        aktuell: DecodeError,
         /// Fehler beim Deserialisieren nach Version-3 Speicherformat.
-        v3: bincode::Error,
+        v3: DecodeError,
         /// Fehler beim Deserialisieren nach Version-2 Speicherformat.
-        v2: bincode::Error,
+        v2: DecodeError,
     },
     /// Unbekannte Anschlüsse sollen in einem [`Plan`](plan::Plan) verwendet werden.
     UnbekannteAnschlüsse {
@@ -747,8 +772,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         S: Serialize,
     {
         let serialisiert: ZustandSerialisiert<L, S> = self.zustand.serialisiere();
-        let file = fs::File::create(pfad)?;
-        BINCODE_OPTIONS.serialize_into(file, &serialisiert).map_err(Fehler::BincodeSerialisieren)
+        let mut file = fs::File::create(pfad)?;
+        let _bytes = encode_into_std_write(serialisiert, &mut file, BINCODE_OPTIONS)?;
+        Ok(())
     }
 
     /// Lade Gleise, [`Streckenabschnitte`](streckenabschnitt::Streckenabschnitt),
@@ -781,6 +807,20 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
+        fn deserialize<T: DeserializeOwned>(slice: &[u8]) -> Result<T, DecodeError> {
+            let (decoded, bytes): (T, usize) = decode_from_slice(slice, BINCODE_OPTIONS)?;
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "bytes at maximum length of the slice"
+            )]
+            let trailing_bytes = slice.len() - bytes;
+            if trailing_bytes == 0 {
+                Err(DecodeError::TrailingBytes(trailing_bytes))
+            } else {
+                Ok(decoded)
+            }
+        }
+
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.erzwinge_neuzeichnen();
         let anschlüsse = self.zustand.anschlüsse_ausgeben();
@@ -791,23 +831,16 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let content = fs::read(pfad).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
         let mut id_fehler = Vec::new();
-        let zustand_serialisiert: ZustandSerialisiert<L, S> = BINCODE_OPTIONS
-            .deserialize(slice)
-            .or_else(|aktuell| {
-                match BINCODE_OPTIONS.deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
-                    Ok(v3) => Ok(v3.v4(&mut id_fehler)),
-                    Err(v3) => {
-                        match BINCODE_OPTIONS
-                            .deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice)
-                        {
-                            Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
-                                Ok(v3_from_v2) => Ok(v3_from_v2.v4(&mut id_fehler)),
-                                Err(fehler) => Err(fehler),
-                            },
-                            Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
-                        }
+        let zustand_serialisiert: ZustandSerialisiert<L, S> = deserialize(slice)
+            .or_else(|aktuell| match deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
+                Ok(v3) => Ok(v3.v4(&mut id_fehler)),
+                Err(v3) => match deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
+                    Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
+                        Ok(v3_from_v2) => Ok(v3_from_v2.v4(&mut id_fehler)),
+                        Err(fehler) => Err(fehler),
                     },
-                }
+                    Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
+                },
             })
             .map_err(NonEmpty::singleton)?;
 

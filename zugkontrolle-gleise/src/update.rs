@@ -7,13 +7,16 @@ use std::{
 
 use either::Either;
 use iced::{
+    Point, Rectangle, Renderer,
     mouse::{self, Cursor},
     touch::{self, Finger},
-    widget::canvas::{event, Event, Program},
-    Point, Rectangle, Renderer,
+    widget::{
+        Action,
+        canvas::{Event, Program},
+    },
 };
 use log::{debug, error, info, trace, warn};
-use nonempty::{nonempty, NonEmpty};
+use nonempty::{NonEmpty, nonempty};
 
 use zugkontrolle_gleis::{
     id::AnyIdSteuerung,
@@ -26,14 +29,14 @@ use zugkontrolle_gleis::{
     weiche,
 };
 use zugkontrolle_typen::{
-    canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel, MitName,
+    MitName, canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel,
 };
 
 use crate::{
+    Gleise, KlickQuelle, ModusDaten,
     daten::{BewegenFehler, EntfernenFehler, GleisAnPosition, Zustand},
     nachricht::{Gehalten, Nachricht, ZustandAktualisieren, ZustandAktualisierenEnum},
     util::berechne_canvas_position,
-    Gleise, KlickQuelle, ModusDaten,
 };
 
 /// Maximale Zeit, innerhalb der ein zweiter Klick als Doppelklick gewertet wird.
@@ -57,11 +60,7 @@ fn aktion_bauen(
                 (KlickQuelle::Maus, KlickQuelle::Maus)
                     | (KlickQuelle::Touch(_), KlickQuelle::Touch(_))
             );
-            if selbe_klick_art {
-                now.checked_duration_since(*letzte_zeit)
-            } else {
-                None
-            }
+            if selbe_klick_art { now.checked_duration_since(*letzte_zeit) } else { None }
         })
         .unwrap_or(Duration::MAX);
     let gleis_steuerung_serialisiert = gleis_steuerung.serialisiere();
@@ -179,6 +178,12 @@ where
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum EventStatus {
+    Captured,
+    Ignored,
+}
+
 /// Führe die Aktion für das Gleis an der Position des `cursor_oder_finger` aus.
 fn aktion_gleis_an_position<L, AktualisierenNachricht>(
     bounds: Rectangle,
@@ -188,13 +193,13 @@ fn aktion_gleis_an_position<L, AktualisierenNachricht>(
     pivot: &Position,
     skalieren: Skalar,
     sender: &Sender<AktualisierenNachricht>,
-) -> (event::Status, Vec<Nachricht>)
+) -> (EventStatus, Vec<Nachricht>)
 where
     L: Leiter,
     AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
 {
     let mut nachrichten = Vec::new();
-    let mut status = event::Status::Ignored;
+    let mut status = EventStatus::Ignored;
     let (cursor, aktueller_klick) = match cursor_or_finger {
         Either::Left(cursor) => (cursor, KlickQuelle::Maus),
         Either::Right((finger, position)) => {
@@ -227,7 +232,7 @@ where
                             halte_position,
                             winkel,
                         );
-                        status = event::Status::Captured;
+                        status = EventStatus::Captured;
                     }
                 },
                 ModusDaten::Fahren => {
@@ -243,7 +248,7 @@ where
 
                         if let Some(nachricht) = nachricht {
                             nachrichten.push(nachricht);
-                            status = event::Status::Captured;
+                            status = EventStatus::Captured;
                         }
                     }
                 },
@@ -259,7 +264,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &self,
         cursor_oder_finger: Either<Cursor, (Finger, Point)>,
         bounds: Rectangle,
-        event_status: &mut event::Status,
+        event_status: &mut EventStatus,
         messages: &mut NonEmpty<Nachricht>,
     ) where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
@@ -284,7 +289,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &self,
         cursor_oder_finger: Either<Cursor, (Finger, Point)>,
         bounds: Rectangle,
-        event_status: &mut event::Status,
+        event_status: &mut EventStatus,
         messages: &mut NonEmpty<Nachricht>,
     ) {
         let (cursor, quelle) = match cursor_oder_finger {
@@ -309,7 +314,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(
                     quelle, None,
                 )));
-                *event_status = event::Status::Captured;
+                *event_status = EventStatus::Captured;
             }
         }
     }
@@ -319,7 +324,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &self,
         cursor_oder_finger: Either<Point, (Finger, Point)>,
         bounds: Rectangle,
-        event_status: &mut event::Status,
+        event_status: &mut EventStatus,
         messages: &mut NonEmpty<Nachricht>,
     ) {
         let (position, quelle) = match cursor_oder_finger {
@@ -344,7 +349,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     )));
                 }
             }
-            *event_status = event::Status::Captured;
+            *event_status = EventStatus::Captured;
         }
     }
 
@@ -354,15 +359,15 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub(crate) fn update_impl<Thema>(
         &self,
         _state: &mut <Self as Program<NonEmpty<Nachricht>, Thema, Renderer>>::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<NonEmpty<Nachricht>>)
+    ) -> Option<Action<NonEmpty<Nachricht>>>
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
         Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
     {
-        let mut event_status = event::Status::Ignored;
+        let mut event_status = EventStatus::Ignored;
         let mut messages =
             nonempty![Nachricht::from(ZustandAktualisierenEnum::LetzteCanvasGröße(Vektor {
                 x: Skalar(bounds.width),
@@ -370,7 +375,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             }))];
         match &event {
             Event::Mouse(_) | Event::Touch(_) => trace!("{event:?}"),
-            Event::Keyboard(_) => {},
+            Event::Keyboard(_) | Event::Window(_) | Event::InputMethod(_) => {},
         }
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => self
@@ -382,7 +387,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 ),
             Event::Touch(touch::Event::FingerPressed { id, position }) => self
                 .maus_oder_touch_pressed(
-                    Either::Right((id, position)),
+                    Either::Right((*id, *position)),
                     bounds,
                     &mut event_status,
                     &mut messages,
@@ -398,29 +403,31 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 touch::Event::FingerLifted { id, position }
                 | touch::Event::FingerLost { id, position },
             ) => self.maus_oder_touch_released(
-                Either::Right((id, position)),
+                Either::Right((*id, *position)),
                 bounds,
                 &mut event_status,
                 &mut messages,
             ),
             Event::Mouse(mouse::Event::CursorMoved { position }) => self.maus_oder_touch_moved(
-                Either::Left(position),
+                Either::Left(*position),
                 bounds,
                 &mut event_status,
                 &mut messages,
             ),
             Event::Touch(touch::Event::FingerMoved { id, position }) => self.maus_oder_touch_moved(
-                Either::Right((id, position)),
+                Either::Right((*id, *position)),
                 bounds,
                 &mut event_status,
                 &mut messages,
             ),
-            Event::Mouse(_) | Event::Keyboard(_) => {},
+            Event::Mouse(_) | Event::Keyboard(_) | Event::Window(_) | Event::InputMethod(_) => {},
         };
-        if event_status == event::Status::Captured {
+        let mut action = Action::publish(messages);
+        if event_status == EventStatus::Captured {
             self.canvas.leeren();
+            action = action.and_capture();
         }
-        (event_status, Some(messages))
+        Some(action)
     }
 }
 
@@ -475,7 +482,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                         if bisher.is_some() {
                             info!("Gehaltenes Gleis für {quelle:?} entfernt.");
                         } else {
-                            warn!("Gehaltenes Gleis für {quelle:?} soll entfernt werden, aber ist nicht vorhanden!");
+                            warn!(
+                                "Gehaltenes Gleis für {quelle:?} soll entfernt werden, aber ist nicht vorhanden!"
+                            );
                         }
                     }
                 } else {

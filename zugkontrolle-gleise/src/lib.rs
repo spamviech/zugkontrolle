@@ -6,9 +6,12 @@
 use std::{collections::HashMap, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant};
 
 use iced::{
-    mouse::{self, Cursor},
-    widget::canvas::{event, Event, Geometry, Program},
     Rectangle, Renderer,
+    mouse::{self, Cursor},
+    widget::{
+        Action,
+        canvas::{Event, Geometry, Program},
+    },
 };
 use nonempty::NonEmpty;
 
@@ -417,10 +420,10 @@ where
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<NonEmpty<Nachricht>>) {
+    ) -> Option<Action<NonEmpty<Nachricht>>> {
         self.update_impl(state, event, bounds, cursor)
     }
 
@@ -457,24 +460,12 @@ where
 }
 
 /// Fehler, die bei Interaktion mit den [`Gleisen`](Gleise) auftreten können.
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
     /// Ein IO-Fehler.
     IO(io::Error),
     /// Fehler beim Serialisieren (speichern) der Gleise.
-    BincodeSerialisieren(bincode::Error),
+    BincodeSerialisieren(bincode_next::error::EncodeError),
     /// Ein Fehler bei Interaktion mit einem [`Anschluss`](anschluss::Anschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),
-}
-
-impl From<io::Error> for Fehler {
-    fn from(error: io::Error) -> Self {
-        Fehler::IO(error)
-    }
-}
-
-impl From<zugkontrolle_anschluss::Fehler> for Fehler {
-    fn from(error: zugkontrolle_anschluss::Fehler) -> Self {
-        Fehler::Anschluss(error)
-    }
 }

@@ -3,7 +3,7 @@
 
 use std::{collections::BTreeMap, iter, path::Path, process::Command, str};
 
-use cargo_metadata::{MetadataCommand, Package};
+use cargo_metadata::{MetadataCommand, Package, PackageName};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -94,6 +94,13 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     };
     let target_crates =
         verwendete_crates.into_iter().map(|package| (package.name, package.version.to_string()));
+    let dependencies = [
+        (PackageName::new(String::from("SourceSerif4-Regular")), String::from("4.005")),
+        (PackageName::new(String::from("Bootstrap Icons")), String::from("v1.11.3")),
+    ]
+    .into_iter()
+    .chain(target_crates);
+
     let lizenz_dateien = lizenz_dateien();
     let standard_lizenz_pfade: Vec<_> = [
         "LICENSE",
@@ -120,13 +127,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     let mut versionen = Vec::new();
     let mut lizenz_pfade = Vec::new();
     let mut fehlermeldungen = Vec::new();
-    for (name, version) in [
-        (String::from("SourceSerif4-Regular"), String::from("4.005")),
-        (String::from("Bootstrap Icons"), String::from("v1.11.3")),
-    ]
-    .into_iter()
-    .chain(target_crates)
-    {
+    for (name, version) in dependencies {
         if name.starts_with("zugkontrolle") {
             continue;
         }
@@ -136,7 +137,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
             .iter()
             .find(|pfad| Path::new(&format!("{ordner_pfad}/{pfad}")).is_file());
         let Some(pfad) = lizenz_dateien
-            .get(name.as_str())
+            .get(name.as_ref())
             .copied()
             .or(standard_lizenz_pfad.as_ref().map(|string| string.as_str()))
         else {
@@ -148,7 +149,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
         };
         let lizenz_pfad = format!("{ordner_pfad}/{pfad}");
         if Path::new(&lizenz_pfad).is_file() {
-            namen.push(name);
+            namen.push(String::from(name.as_ref()));
             versionen.push(version);
             lizenz_pfade.push(lizenz_pfad);
         } else {

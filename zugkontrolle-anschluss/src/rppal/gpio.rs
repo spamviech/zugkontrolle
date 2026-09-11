@@ -212,13 +212,23 @@ impl InputPin {
     /// Configures an asynchronous interrupt trigger, which executes the callback on a
     /// separate thread when the interrupt is triggered.
     ///
-    /// The callback closure or function pointer is called with a single [`Level`] argument.
+    /// An optional debounce duration can be specified to filter unwanted input noise.
+    ///
+    /// The callback closure or function pointer is called with a single [`Event`] argument.
     ///
     /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared
     /// when `set_async_interrupt` is called, or when `InputPin` goes out of scope.
-    pub fn set_async_interrupt<C>(&mut self, trigger: Trigger, _callback: C) -> Result<()>
+    ///
+    /// [`clear_async_interrupt`]: #method.clear_async_interrupt
+    /// [`Event`]: struct.Event.html
+    pub fn set_async_interrupt<C>(
+        &mut self,
+        trigger: Trigger,
+        debounce: Option<Duration>,
+        callback: C,
+    ) -> Result<()>
     where
-        C: FnMut(Level) + Send + 'static,
+        C: FnMut(Event) + Send + 'static,
     {
         debug!("{:?}.set_async_interrupt({:?}, <callback>)", self, trigger);
         Ok(())
@@ -341,6 +351,28 @@ pub enum Trigger {
     RisingEdge,
     FallingEdge,
     Both,
+}
+
+#[cfg(feature = "raspi")]
+#[doc(inline)]
+pub use ::rppal::gpio::Event;
+#[cfg(not(feature = "raspi"))]
+/// Interrupt trigger event.
+#[derive(Debug, Copy, Clone)]
+pub struct Event {
+    /// Best estimate of time of event occurrence, measured in elapsed time since the system was booted.
+    pub timestamp: Duration,
+    /// Sequence number for this event in the sequence of interrupt trigger events for this pin.
+    pub seqno: u32,
+    /// Interrupt trigger. This will contain either [Trigger::RisingEdge] or [Trigger::FallingEdge].
+    pub trigger: Trigger,
+}
+
+#[cfg(not(feature = "raspi"))]
+impl Default for Event {
+    fn default() -> Self {
+        Self { timestamp: Duration::default(), seqno: 0, trigger: Trigger::Both }
+    }
 }
 
 // disambiguate mit self::Result

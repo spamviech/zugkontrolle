@@ -3,8 +3,8 @@
 use std::{
     fmt::Debug,
     sync::{
-        mpsc::{channel, Receiver, RecvError, SendError, Sender},
         Arc,
+        mpsc::{Receiver, RecvError, SendError, Sender, channel},
     },
 };
 
@@ -15,10 +15,10 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    Fehler, InputAnschluss, InputSerialisiert, Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     level::Level,
     trigger::Trigger,
-    Fehler, InputAnschluss, InputSerialisiert, Lager,
 };
 use zugkontrolle_typen::MitName;
 use zugkontrolle_util::erstelle_sender_trait_existential;
@@ -113,16 +113,15 @@ impl Kontakt {
         let letztes_level_clone = Arc::clone(&letztes_level);
         let aktualisieren_sender = Mutex::new(aktualisieren_sender);
         let set_async_interrupt_result =
-            anschluss.setze_async_interrupt(Trigger::Both, move |level| {
-                let callback_aufrufen = {
+            anschluss.setze_async_interrupt(Trigger::Both, move |event| {
+                let neues_level = event.trigger.neues_level()
+                    .expect("Unexpected Trigger value.");
+                {
                     let mut guard = letztes_level_clone.lock();
                     let letztes_level_mut = guard.as_mut();
-                    let callback_aufrufen = letztes_level_mut
-                        .map(|bisher| trigger_copy.callback_aufrufen(level, bisher))
-                        .unwrap_or(true);
-                    *letztes_level_mut = Some(level);
-                    callback_aufrufen
-                };
+                    *letztes_level_mut = Some(neues_level);
+                }
+                let callback_aufrufen = (trigger_copy & event.trigger) != Trigger::Disabled;
                 if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren) {
                     log::error!(
                         "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
@@ -138,7 +137,7 @@ impl Kontakt {
                         // 0 <= index < senders.len()
                         // range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.
                         #[allow(clippy::indexing_slicing)]
-                        match aktuelle_senders[index].send(level) {
+                        match aktuelle_senders[index].send(neues_level) {
                             Ok(()) => next = index.checked_sub(1),
                             Err(SendError(_level)) => {
                                 // channel was disconnected, so no need to send to it anymore.

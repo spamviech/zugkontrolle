@@ -1,26 +1,27 @@
 //! Knopf mit dem jeweiligen Gleis.
 
 use iced::{
+    Element, Length, Point, Rectangle, Renderer, event,
     mouse::{self, Cursor},
     touch,
     widget::{
+        Action,
         canvas::{
-            event,
+            Canvas, Event, Geometry, Program, Text,
             fill::{self, Fill},
             stroke::{self, Stroke},
-            Canvas, Event, Geometry, Program, Text,
         },
         container::{self, Container},
     },
-    Element, Length, Point, Rectangle, Renderer,
 };
 use log::debug;
 
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{
+    Zeichnen,
     canvas::{
-        pfad::{Pfad, Transformation},
         Cache,
+        pfad::{Pfad, Transformation},
     },
     farbe::Farbe,
     klick_quelle::KlickQuelle,
@@ -28,7 +29,6 @@ use zugkontrolle_typen::{
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,
-    Zeichnen,
 };
 
 use crate::draw::bewege_an_position;
@@ -81,7 +81,7 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
     ) -> impl Into<Element<'t, Nachricht, Thema, Renderer>>
     where
         Nachricht: 'static,
-        Thema: 't + container::StyleSheet,
+        Thema: 't + container::Catalog,
         Knopf<'t, T>: Program<Nachricht, Thema, Renderer>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
@@ -223,10 +223,10 @@ where
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<N>) {
+    ) -> Option<Action<N>> {
         /// Reagiere darauf, dass der [`Knopf`] angeklickt wurde.
         fn pressed<Gleis, N>(
             definition: &GleisId<Gleis>,
@@ -234,22 +234,22 @@ where
             state: &mut Zustand,
             bounds: Rectangle,
             cursor: Cursor,
-        ) -> (event::Status, Option<N>)
+        ) -> Option<Action<N>>
         where
             N: Nachricht<GleisId<Gleis>>,
         {
             if let Some(Point { x, y }) = cursor.position_in(bounds) {
                 state.cursor_grabbed = true;
-                (
-                    event::Status::Captured,
-                    Some(<N as Nachricht<GleisId<Gleis>>>::nachricht(
+                Some(
+                    Action::publish(<N as Nachricht<GleisId<Gleis>>>::nachricht(
                         definition,
                         klick_quelle,
                         Vektor { x: Skalar(x), y: Skalar(y) },
-                    )),
+                    ))
+                    .and_capture(),
                 )
             } else {
-                (event::Status::Ignored, None)
+                None
             }
         }
         let in_bounds = cursor.is_over(bounds);
@@ -266,20 +266,22 @@ where
                 debug!("{event:?}");
                 pressed(
                     &self.definition,
-                    KlickQuelle::Touch(id),
+                    KlickQuelle::Touch(id.clone()),
                     state,
                     bounds,
-                    Cursor::Available(position),
+                    Cursor::Available(position.clone()),
                 )
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 debug!("{event:?}");
                 state.cursor_grabbed = false;
-                (event::Status::Ignored, None)
+                None
             },
-            Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {
-                (event::Status::Ignored, None)
-            },
+            Event::Mouse(_)
+            | Event::Touch(_)
+            | Event::Keyboard(_)
+            | Event::Window(_)
+            | Event::InputMethod(_) => None,
         }
     }
 

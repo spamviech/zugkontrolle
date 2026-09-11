@@ -1,37 +1,37 @@
 //! Struktur zum Speichern aller Gleise.
 
 use std::{
-    any::{type_name, TypeId},
+    any::{TypeId, type_name},
     collections::hash_map::HashMap,
     fmt::{self, Debug, Display, Formatter},
 };
 
 use iced::{
+    Color,
     widget::canvas::{
+        Text,
         fill::{self, Fill},
         stroke::{self, Stroke},
-        Text,
     },
-    Color,
 };
 use log::error;
-use nonempty::{nonempty, NonEmpty};
+use nonempty::{NonEmpty, nonempty};
 use rstar::{
-    primitives::{GeomWithData, Rectangle},
     RTree, RTreeObject,
+    primitives::{GeomWithData, Rectangle},
 };
 
 use thiserror::Error;
 use zugkontrolle_anschluss::{
+    Fehler, Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     polarität::Fließend,
-    Fehler, Lager,
 };
 use zugkontrolle_gleis::{
     gerade::Gerade,
     id::{
-        erzeuge_any_enum, mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung,
-        AnyGleisDefinitionId, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert, DefinitionId,
+        AnyDefinitionId, AnyDefinitionIdSteuerung, AnyGleisDefinitionId, AnyId, AnyIdSteuerung,
+        AnyIdSteuerungSerialisiert, DefinitionId, erzeuge_any_enum, mit_any_id,
     },
     kreuzung::Kreuzung,
     kurve::Kurve,
@@ -46,11 +46,12 @@ use zugkontrolle_gleis::{
     },
     zugtyp::Zugtyp,
 };
-use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
+use zugkontrolle_id::{GleisId, eindeutig::KeineIdVerfügbar};
 use zugkontrolle_typen::{
+    Innerhalb, Transparenz, Zeichnen,
     canvas::{
-        pfad::{self, Transformation},
         Frame, Position,
+        pfad::{self, Transformation},
     },
     farbe::Farbe,
     mm::Spurweite,
@@ -60,7 +61,6 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::{self, Verbindung},
     winkel::{self, Winkel},
-    Innerhalb, Transparenz, Zeichnen,
 };
 
 use crate::knopf;
@@ -538,7 +538,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         ecke_b: verbindung.position - vektor_genauigkeit,
     };
     let kandidaten =
-        rstern.locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
+        rstern.locate_in_envelope_intersecting(Rectangle::from(kandidaten_rechteck).envelope());
     let mut gehalten = false;
     let überlappend = kandidaten.flat_map(|kandidat| {
         /// Erhalte alle Verbindungen für eine Definition.
@@ -765,7 +765,7 @@ impl GleiseDaten {
                     None => {
                         return Err(BewegenFehler::DefinitionNichtGefunden(AnyDefinitionId::from(
                             gleis.definition.clone(),
-                        )))
+                        )));
                     },
                 };
                 // Entferne alten Eintrag aus RStern.
@@ -842,8 +842,11 @@ impl Display for SetzteStreckenabschnittFehler {
         #[allow(clippy::use_debug)]
         match &self.1 {
             Some(streckenabschnitt) => {
-                write!(formatter,
-                "Fehler beim setzten den Streckenabschnittes {streckenabschnitt} für Gleis {:?}!",self.0)
+                write!(
+                    formatter,
+                    "Fehler beim setzten den Streckenabschnittes {streckenabschnitt} für Gleis {:?}!",
+                    self.0
+                )
             },
             None => {
                 write!(
@@ -1491,7 +1494,7 @@ impl GleiseDaten {
         canvas_pos: Vektor,
     ) -> Option<(AnyIdSteuerung, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
         let mut ergebnis = None;
-        for geom_with_data in self.rstern.locate_all_at_point(&canvas_pos) {
+        for geom_with_data in self.rstern.locate_all_at_point(canvas_pos) {
             let (gleis_definition_id, position) = &geom_with_data.data;
             // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
             #[allow(clippy::arithmetic_side_effects)]

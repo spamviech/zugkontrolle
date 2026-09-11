@@ -18,13 +18,15 @@ use zugkontrolle_util::eingeschränkt::kleiner_8;
 
 use crate::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    event::Event,
     level::Level,
-    pin::{input, output, pwm, Pin},
+    pin::{Pin, input, output, pwm},
     polarität::{Fließend, Polarität},
     trigger::Trigger,
 };
 
 pub mod de_serialisieren;
+pub mod event;
 pub mod level;
 pub mod pcf8574;
 pub mod pin;
@@ -194,11 +196,7 @@ impl OutputAnschluss {
     /// Aktuelle Einstellung des [`OutputAnschlusses`](OutputAnschluss).
     #[must_use]
     pub fn fließend(&self) -> Fließend {
-        if self.ist_fließend() {
-            Fließend::Fließend
-        } else {
-            Fließend::Gesperrt
-        }
+        if self.ist_fließend() { Fließend::Fließend } else { Fließend::Gesperrt }
     }
 
     /// Ist der [`OutputAnschluss`] aktuell [`fließend`](Fließend::Fließend).
@@ -439,7 +437,7 @@ impl InputAnschluss {
     }
 
     match_method! {
-        setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static),
+        setze_async_interrupt(trigger: Trigger, callback: impl Fn(Event) + Send + Sync + 'static),
         "Konfiguriere einen asynchronen Interrupt Trigger.",
         "Bei auftreten wird der callback in einem separaten Thread ausgeführt.",
         "",
@@ -521,11 +519,7 @@ impl InputSerialisiert {
     /// sofern es sich um einen handelt und einer konfiguriert ist.
     #[must_use]
     pub fn interrupt(&self) -> Option<u8> {
-        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self {
-            *interrupt
-        } else {
-            None
-        }
+        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self { *interrupt } else { None }
     }
 }
 

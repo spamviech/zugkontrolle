@@ -12,7 +12,7 @@ use std::{
     sync::Arc,
 };
 
-use enum_iterator::{all, Sequence};
+use enum_iterator::{Sequence, all};
 use itertools::iproduct;
 use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
@@ -21,17 +21,17 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_util::{
-    eingeschränkt::{kleiner_128, kleiner_8},
+    eingeschränkt::{kleiner_8, kleiner_128},
     enumerate_checked::EnumerateCheckedExt,
 };
 
 use crate::{
-    pin::{self, input, Pin},
+    pin::{self, Pin, input},
     rppal::{
         gpio,
         i2c::{self, I2c},
     },
-    {level::Level, trigger::Trigger},
+    {event::Event, level::Level, trigger::Trigger},
 };
 
 /// Zugriff auf I2C-Kommunikation, inklusive der dafür notwendigen Pins.
@@ -290,7 +290,7 @@ pub(super) enum Modus {
         /// Wann soll der `callback` ausgelöst werden.
         trigger: Trigger,
         /// Reaktion auf ein [`Trigger`]-Event.
-        callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>>,
+        callback: Option<Arc<dyn Fn(Event) + Send + Sync + 'static>>,
     },
     /// Der Port ist im Output-Modus und erzeugt ein `High` Signal.
     High,
@@ -501,7 +501,7 @@ impl Pcf8574 {
     }
 
     /// Konvertiere einen Port als Input.
-    fn port_als_input<C: Fn(Level) + Send + Sync + 'static>(
+    fn port_als_input<C: Fn(Event) + Send + Sync + 'static>(
         &mut self,
         port: kleiner_8,
         trigger: Trigger,
@@ -509,7 +509,7 @@ impl Pcf8574 {
     ) -> Result<(), Fehler> {
         self.schreibe_port(port, Level::High)?;
         // type annotations need, so extra let binding required
-        let callback: Option<Arc<dyn Fn(Level) + Send + Sync + 'static>> = match callback {
+        let callback: Option<Arc<dyn Fn(Event) + Send + Sync + 'static>> = match callback {
             Some(callback) => Some(Arc::new(callback)),
             None => None,
         };
@@ -655,7 +655,7 @@ impl Port {
         let fehler = self
             .pcf8574
             .lock()
-            .port_als_input::<fn(Level)>(self.port, Trigger::Disabled, None)
+            .port_als_input::<fn(Event)>(self.port, Trigger::Disabled, None)
             .err();
         (InputPort(self), fehler)
     }
@@ -774,7 +774,7 @@ impl InputPort {
         } else {
             error!("{:?} war nicht als input korrigiert!", self);
             // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
-            self.0.pcf8574.lock().port_als_input::<fn(Level)>(
+            self.0.pcf8574.lock().port_als_input::<fn(Event)>(
                 self.0.port,
                 Trigger::Disabled,
                 None,
@@ -804,14 +804,15 @@ impl InputPort {
             let pcf8574 = &mut *self.0.pcf8574.lock();
             let mut last = pcf8574.lese()?;
             let arc_clone = Arc::clone(&self.0.pcf8574);
-            let interrupt_callback = move |_level| {
+            let interrupt_callback = move |event| {
+                let Event { timestamp, seqno, trigger: _ } = event;
                 // neuer Zugriff auf die selbe Mutex
                 #[allow(clippy::shadow_unrelated)]
                 let mut pcf8574 = arc_clone.lock();
                 let current = match pcf8574.lese() {
                     Ok(current) => current,
                     Err(fehler) => {
-                        error!("Lese-Fehler bei Pcf8574 als Interrupt-Reaktion: {:?}", fehler);
+                        error!("Lese-Fehler bei Pcf8574 als Interrupt-Reaktion: {fehler:?}");
                         return;
                     },
                 };
@@ -823,8 +824,10 @@ impl InputPort {
                             Modus::Input { trigger, callback: Some(callback) },
                             Some(aktueller_port_wert),
                             Some(letzter_port_wert),
-                        ) if trigger.callback_aufrufen(aktueller_port_wert, *letzter_port_wert) => {
-                            callback(aktueller_port_wert);
+                        ) if let Some(trigger) =
+                            trigger.callback_aufrufen(aktueller_port_wert, *letzter_port_wert) =>
+                        {
+                            callback(Event { timestamp, seqno, trigger });
                         },
                         _ => {},
                     }
@@ -868,7 +871,7 @@ impl InputPort {
     pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
-        callback: impl Fn(Level) + Send + Sync + 'static,
+        callback: impl Fn(Event) + Send + Sync + 'static,
     ) -> Result<(), Fehler> {
         let port = self.port();
         self.0.pcf8574.lock().port_als_input(port, trigger, Some(callback))
@@ -881,7 +884,7 @@ impl InputPort {
     /// Fehler beim entfernen des async interrupts.
     pub fn lösche_async_interrupt(&mut self) -> Result<(), Fehler> {
         let port = self.port();
-        self.0.pcf8574.lock().port_als_input::<fn(Level)>(port, Trigger::Disabled, None)
+        self.0.pcf8574.lock().port_als_input::<fn(Event)>(port, Trigger::Disabled, None)
     }
 }
 
