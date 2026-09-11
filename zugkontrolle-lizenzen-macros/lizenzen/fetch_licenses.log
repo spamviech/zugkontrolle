@@ -1,86 +1,42 @@
-Fetch 472 licenses...
-23 / 472: async-global-executor-2.4.1
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\block-0.1.6
-	Repository: http://github.com/SSheldon/rust-block
-	Announced License: MIT
-46 / 472: block2-0.3.0
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\cesu8-1.1.0
-	Repository: https://github.com/emk/cesu8-rs
-	Announced License: Apache-2.0/MIT
-69 / 472: cocoa-0.25.0
-Non-GitHub-Repository: None
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\crunchy-0.2.2
-	Repository: None
-	Announced License: MIT
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\d3d12-0.19.0
-	Repository: https://github.com/gfx-rs/wgpu/tree/trunk/d3d12
-	Announced License: MIT OR Apache-2.0
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\dispatch-0.2.0
+Fetch 399 licenses...
+19 / 399: async-signal-0.2.14
+38 / 399: calloop-wayland-source-0.3.0
+57 / 399: core-graphics-types-0.1.3
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\lizenzen\dispatch-0.2.0
 	Repository: http://github.com/SSheldon/rust-dispatch
 	Announced License: MIT
-92 / 472: dlib-0.5.2
-115 / 472: event-listener-4.0.3
-138 / 472: futures-lite-1.13.0
-161 / 472: hash32-0.3.1
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\hexf-parse-0.2.1
-	Repository: https://github.com/lifthrasiir/hexf
-	Announced License: CC0-1.0
-184 / 472: idna-0.5.0
-207 / 472: libm-0.2.8
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\naga-0.19.2
-	Repository: https://github.com/gfx-rs/wgpu/tree/trunk/naga
-	Announced License: MIT OR Apache-2.0
-230 / 472: ndk-sys-0.5.0+25.2.9519653
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\objc-foundation-0.1.1
-	Repository: http://github.com/SSheldon/rust-objc-foundation
+76 / 399: embed-resource-3.0.11
+95 / 399: foreign-types-0.5.0
+114 / 399: harfrust-0.3.2
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\lizenzen\iced_fonts_macros-0.3.0
+	Repository: https://github.com/Redhawk18/iced_fonts
 	Announced License: MIT
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\objc_exception-0.1.2
-	Repository: http://github.com/SSheldon/rust-objc-exception
-	Announced License: MIT
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\objc_id-0.1.1
-	Repository: http://github.com/SSheldon/rust-objc-id
-	Announced License: MIT
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\ouroboros-0.18.3
-	Repository: https://github.com/someguynamedjosh/ouroboros
-	Announced License: MIT OR Apache-2.0
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\ouroboros_macro-0.18.3
-	Repository: https://github.com/someguynamedjosh/ouroboros
-	Announced License: MIT OR Apache-2.0
-253 / 472: palette_derive-0.7.6
-276 / 472: proc-macro2-1.0.82
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\range-alloc-0.1.3
-	Repository: https://github.com/gfx-rs/range-alloc
-	Announced License: MIT OR Apache-2.0
-299 / 472: rustix-0.37.27
-322 / 472: smithay-clipboard-0.7.1
-345 / 472: toml-0.8.12
-368 / 472: url-2.5.0
-391 / 472: wayland-protocols-wlr-0.2.0
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\wgpu-0.19.4
-	Repository: https://github.com/gfx-rs/wgpu
-	Announced License: MIT OR Apache-2.0
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\wgpu-core-0.19.4
-	Repository: https://github.com/gfx-rs/wgpu
-	Announced License: MIT OR Apache-2.0
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\wgpu-hal-0.19.4
-	Repository: https://github.com/gfx-rs/wgpu
-	Announced License: MIT OR Apache-2.0
-Missing License: C:\Users\spamv\Desktop\zugkontrolle\zugkontrolle-macros\lizenzen\wgpu-types-0.19.2
-	Repository: https://github.com/gfx-rs/wgpu
-	Announced License: MIT OR Apache-2.0
-414 / 472: windows_aarch64_gnullvm-0.42.2
-437 / 472: winnow-0.5.40
-Skip zugkontrolle-5.0.2
-Skip zugkontrolle-anschluss-1.0.1
-Skip zugkontrolle-application-1.0.1
-Skip zugkontrolle-argumente-1.0.1
-460 / 472: zugkontrolle-argumente-1.0.1
-Skip zugkontrolle-gleis-1.0.1
-Skip zugkontrolle-gleise-1.0.1
-Skip zugkontrolle-id-1.0.1
-Skip zugkontrolle-lizenzen-1.0.0
-Skip zugkontrolle-macros-5.0.2
-Skip zugkontrolle-test-util-1.0.0
-Skip zugkontrolle-typen-1.0.1
-Skip zugkontrolle-util-1.0.0
-Skip zugkontrolle-widget-1.0.1
+133 / 399: iced_program-0.14.0
+152 / 399: kommandozeilen_argumente-0.2.1
+171 / 399: lyon_tessellation-1.0.22
+190 / 399: objc2-cloud-kit-0.2.2
+209 / 399: once_cell-1.21.4
+228 / 399: portable-atomic-1.15.0
+247 / 399: rfd-0.17.2
+266 / 399: serde_json-1.0.151
+285 / 399: strict-num-0.1.1
+304 / 399: toml_edit-0.25.15+spec-1.1.0
+323 / 399: vswhom-sys-0.1.3
+342 / 399: wayland-sys-0.31.11
+361 / 399: windows-targets-0.52.6
+380 / 399: yansi-1.0.1
+Skip zugkontrolle-5.1.0
+Skip zugkontrolle-anschluss-1.1.0
+Skip zugkontrolle-application-1.1.0
+Skip zugkontrolle-argumente-1.1.0
+Skip zugkontrolle-gleis-1.1.0
+Skip zugkontrolle-gleise-1.1.0
+Skip zugkontrolle-id-1.1.0
+Skip zugkontrolle-lizenzen-1.1.0
+Skip zugkontrolle-lizenzen-macros-1.0.0
+Skip zugkontrolle-macros-5.1.0
+Skip zugkontrolle-test-util-1.1.0
+Skip zugkontrolle-typen-1.1.0
+Skip zugkontrolle-util-1.1.0
+Skip zugkontrolle-widget-1.1.0
+399 / 399: zugkontrolle-widget-1.1.0

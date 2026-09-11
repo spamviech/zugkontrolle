@@ -12,7 +12,7 @@ licenses_dir=os.path.dirname(os.path.abspath(__file__))
 cargo_dir = os.path.join(os.path.expanduser("~"), ".cargo")
 # hash(probably) at the end might change, possibly with cargo update
 # crate-name followed by a `-` and the crate-version, e.g. "ab_glyph_rasterizer-0.1.5"
-crates_io_dir = os.path.join(cargo_dir, "registry", "src", "index.crates.io-6f17d22bba15001f")
+crates_io_dir = os.path.join(cargo_dir, "registry", "src", "index.crates.io-1949cf8c6b5b557f")
 # crate-name followed by a `-` and some hash(probably), inside folder with the commit-hash (abbreviated)
 git_dir = os.path.join(cargo_dir, "git", "checkouts")
 
@@ -20,8 +20,12 @@ license_roots = {
     "LICENSE",
     "LICENCE",
     "LICENSE-MIT",
+    "LICENSE_MIT",
+    "LICENSE.MIT",
     "LICENSE-Apache-2.0_WITH_LLVM-exception",
     "LICENSE-APACHE",
+    "LICENSE_APACHE",
+    "LICENSE.APACHE",
     "LICENSE-ZLIB"
     "UNLICENSE",
     "COPYING",
@@ -35,6 +39,7 @@ license_roots = {
     "unlicense",
     "copying",
     "notice",
+    "AUTHORS",
 }
 license_exts = {"", ".md", ".txt"}
 license_files = {root + ext for root in license_roots for ext in license_exts}
@@ -138,7 +143,7 @@ def download_licenses(repository, dst_dir, log_file):
         else:
             base_repository = https_repository
         raw_repository = raw_prefix + base_repository.removeprefix(github_prefix)
-        for branch in ["master", "main"]:
+        for branch in ["master", "main", "trunk"]:
             branch_url = f"{base_repository}/tree/{branch}"
             try:
                 urllib.request.urlopen(branch_url)

@@ -63,24 +63,7 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
     [
         ("SourceSerif4-Regular", "../../../fonts/source-serif/LICENSE.md"),
         ("Bootstrap Icons", "../../../fonts/bootstrap-icons/LICENSE"),
-        ("widestring", "../LICENSE-APACHE-2.0.txt"),
-        ("wgpu", "../LICENSE-APACHE-2.0.txt"),
-        ("wgpu-core", "../LICENSE-APACHE-2.0.txt"),
-        ("wgpu-hal", "../LICENSE-APACHE-2.0.txt"),
-        ("wgpu-types", "../LICENSE-APACHE-2.0.txt"),
-        ("range-alloc", "../LICENSE-APACHE-2.0.txt"),
-        ("nu-ansi-term", "LICENCE"),
-        ("hexf-parse", "../CC0.txt"),
-        ("half", "../LICENSE-APACHE-2.0.txt"),
-        ("gpu-descriptor", "../LICENSE-APACHE-2.0.txt"),
-        ("gpu-descriptor-types", "../LICENSE-APACHE-2.0.txt"),
-        ("gpu-alloc", "../LICENSE-APACHE-2.0.txt"),
-        ("gpu-alloc-types", "../LICENSE-APACHE-2.0.txt"),
-        ("d3d12", "../LICENSE-APACHE-2.0.txt"),
-        ("allocator-api2", "../LICENSE-APACHE-2.0.txt"),
-        ("naga", "../LICENSE-APACHE-2.0.txt"),
-        ("ouroboros", "../LICENSE-APACHE-2.0.txt"),
-        ("ouroboros_macro", "../LICENSE-APACHE-2.0.txt"),
+        ("iced_fonts_macros", "../iced_fonts-0.3.0/license"),
     ]
     .into_iter()
     .collect()
@@ -105,12 +88,17 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     let standard_lizenz_pfade: Vec<_> = [
         "LICENSE",
         "LICENSE-MIT",
+        "LICENSE_MIT",
+        "LICENSE.MIT",
         "LICENSE-APACHE",
+        "LICENSE_APACHE",
+        "LICENSE.APACHE",
         "COPYING",
         "license",
         "license-mit",
         "license-apache",
         "copying",
+        "AUTHORS",
     ]
     .into_iter()
     .flat_map(|pfad| {
