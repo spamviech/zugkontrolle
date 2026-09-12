@@ -5,6 +5,9 @@ use iced_widget::rule;
 
 use crate::style::thema::Thema;
 
+#[doc(inline)]
+pub use rule::{Style, StyleFn};
+
 /// Style-Struktur für eine Trennlinie.
 pub const TRENNLINIE: Linie = Linie { farbe: None, breite: 1, radius: 0. };
 
@@ -19,16 +22,23 @@ pub struct Linie {
     pub radius: f32,
 }
 
-impl Linie {
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: rule::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
     #[must_use]
-    pub fn style(&self) -> rule::StyleFn<'_, Thema> {
+    fn style_fn(self) -> StyleFn<'static, Thema>;
+}
+
+impl StyleProvider<'_, Thema> for Linie {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
         Box::new(|thema| {
             let default_style = <Thema as rule::Catalog>::default()(thema);
             let color = match thema {
                 Thema::Hell => Color::BLACK,
                 Thema::Dunkel => Color::WHITE,
             };
-            rule::Style { color, ..default_style }
+            Style { color, ..default_style }
         })
     }
 }

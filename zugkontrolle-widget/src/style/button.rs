@@ -5,6 +5,9 @@ use iced_widget::button;
 
 use crate::style::thema::Thema;
 
+#[doc(inline)]
+pub use button::{Style, StyleFn};
+
 /// Weißer Hintergrund.
 pub const WEIẞ: Button = Button::hintergrund_grau(1.);
 /// Schwarzer Hintergrund.
@@ -59,13 +62,22 @@ impl Button {
     pub const fn hintergrund_grau_transparent(grau: f32, alpha: f32) -> Button {
         Button::Hintergrund { farbe: Color::from_rgba(grau, grau, grau, alpha) }
     }
+}
 
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: button::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
     #[must_use]
-    pub fn style(&self) -> button::StyleFn<'_, Thema> {
+    fn style_fn(self) -> StyleFn<'static, Thema>;
+}
+
+impl StyleProvider<'_, Thema> for Button {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
         Box::new(move |thema, status| {
             let default_style = <Thema as button::Catalog>::default()(thema, status);
             if let Button::Hintergrund { farbe } = self {
-                default_style.with_background(Background::Color(*farbe))
+                default_style.with_background(Background::Color(farbe))
             } else {
                 default_style
             }

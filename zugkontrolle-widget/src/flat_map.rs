@@ -62,7 +62,7 @@ where
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.element.as_widget().layout(tree, renderer, limits)
+        self.element.as_widget_mut().layout(tree, renderer, limits)
     }
 
     fn operate(
@@ -72,7 +72,7 @@ where
         renderer: &R,
         operation: &mut dyn widget::Operation,
     ) {
-        self.element.as_widget().operate(tree, layout, renderer, operation);
+        self.element.as_widget_mut().operate(tree, layout, renderer, operation);
     }
 
     fn update(
@@ -157,7 +157,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &R,
         viewport: &Rectangle<f32>,
         translation: Vector,
@@ -208,7 +208,7 @@ where
     Renderer: self::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.content.layout(renderer, bounds)
+        self.content.as_overlay_mut().layout(renderer, bounds)
     }
 
     fn operate(
@@ -217,7 +217,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.operate(layout, renderer, operation);
+        self.content.as_overlay_mut().operate(layout, renderer, operation);
     }
 
     fn update(
@@ -232,8 +232,14 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status =
-            self.content.on_event(event, layout, cursor, renderer, clipboard, &mut local_shell);
+        let event_status = self.content.as_overlay_mut().update(
+            event,
+            layout,
+            cursor,
+            renderer,
+            clipboard,
+            &mut local_shell,
+        );
 
         let redraw_request = local_shell.redraw_request();
         shell.request_redraw_at(redraw_request);
@@ -259,7 +265,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.mouse_interaction(layout, cursor, renderer)
+        self.content.as_overlay().mouse_interaction(layout, cursor, renderer)
     }
 
     fn draw(
@@ -270,6 +276,6 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        self.content.draw(renderer, theme, style, layout, cursor_position);
+        self.content.as_overlay().draw(renderer, theme, style, layout, cursor_position);
     }
 }

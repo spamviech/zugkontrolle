@@ -8,6 +8,9 @@ use iced_widget::container;
 
 use crate::style::thema::Thema;
 
+#[doc(inline)]
+pub use container::{Style, StyleFn};
+
 /// Weißer Hintergrund.
 pub const WEIẞ: Container = Container::hintergrund_grau(1.);
 /// Schwarzer Hintergrund.
@@ -73,18 +76,27 @@ impl Container {
     pub const fn hintergrund_grau_transparent(grau: f32, alpha: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgba(grau, grau, grau, alpha) }
     }
+}
 
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: container::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
     #[must_use]
-    pub fn style(&self) -> container::StyleFn<'_, Thema> {
-        Box::new(|thema| {
+    fn style_fn(self) -> container::StyleFn<'static, Thema>;
+}
+
+impl StyleProvider<'_, Thema> for Container {
+    fn style_fn(self) -> container::StyleFn<'static, Thema> {
+        Box::new(move |thema| {
             let default_style = <Thema as container::Catalog>::default()(thema);
             match self {
                 Container::Standard => default_style,
                 Container::Hintergrund { farbe } => {
-                    default_style.background(Background::Color(*farbe))
+                    default_style.background(Background::Color(farbe))
                 },
                 Container::Rand { farbe, breite, radius } => {
-                    default_style.border(Border { color: *farbe, width: *breite, radius: *radius })
+                    default_style.border(Border { color: farbe, width: breite, radius })
                 },
                 Container::Pcf8574Beschreibung => {
                     let pcf8474_text_farbe = match thema {

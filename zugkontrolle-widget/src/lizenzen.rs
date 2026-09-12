@@ -2,7 +2,6 @@
 
 use std::borrow::Cow;
 
-use iced::Pixels;
 use iced_core::{
     Element, Length, event, text as text_core,
     widget::text::{self, Text},
@@ -11,7 +10,7 @@ use iced_widget::{
     Column, Row, Space,
     button::{self, Button},
     container::{self, Container},
-    rule::{self, Rule},
+    rule,
     scrollable::{self, Scrollable},
 };
 
@@ -21,8 +20,10 @@ use zugkontrolle_util::unicase_ord::UniCaseOrd;
 use crate::{
     map_mit_zustand::MapMitZustand,
     style::{
-        self, Sammlung,
-        linie::{Linie, TRENNLINIE},
+        self,
+        container::StyleProvider as _,
+        linie::{StyleProvider as _, TRENNLINIE},
+        sammlung,
     },
 };
 
@@ -79,19 +80,30 @@ impl<'a, Thema, R> Lizenzen<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
     Thema: 'a
-        + container::Catalog
+        + container::Catalog<Class<'a> = style::container::StyleFn<'a, Thema>>
         + button::Catalog
-        + scrollable::Catalog
-        + rule::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
+        + rule::Catalog<Class<'a> = style::linie::StyleFn<'a, Thema>>
         + text::Catalog,
+    style::container::Container: style::container::StyleProvider<'a, Thema>,
+    style::linie::Linie: style::linie::StyleProvider<'a, Thema>,
 {
     /// Erstelle ein neues [`Lizenzen`]-Widget mit den verwendeten Lizenzen.
-    pub fn neu_mit_verwendeten_lizenzen(scrollable_style: Sammlung) -> Self {
+    pub fn neu_mit_verwendeten_lizenzen<ScrollableStyle>(scrollable_style: ScrollableStyle) -> Self
+    where
+        ScrollableStyle: 'a + Clone + sammlung::StyleProvider<'a, Thema>,
+    {
         Self::neu(&TARGET_LIZENZEN, scrollable_style)
     }
 
     /// Erstelle ein neues [`Lizenzen`]-Widget.
-    pub fn neu(lizenzen: &'a LizenzenMap, scrollable_style: Sammlung) -> Self {
+    pub fn neu<ScrollableStyle>(
+        lizenzen: &'a LizenzenMap,
+        scrollable_style: ScrollableStyle,
+    ) -> Self
+    where
+        ScrollableStyle: 'a + Clone + sammlung::StyleProvider<'a, Thema>,
+    {
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
@@ -109,11 +121,14 @@ where
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Lizenzen`]-Widget.
-    fn erzeuge_element(
+    fn erzeuge_element<ScrollableStyle>(
         zustand: &Zustand,
         lizenzen: &'a LizenzenMap,
-        scrollable_style: Sammlung,
-    ) -> Element<'a, InterneNachricht, Thema, R> {
+        scrollable_style: ScrollableStyle,
+    ) -> Element<'a, InterneNachricht, Thema, R>
+    where
+        ScrollableStyle: 'a + Clone + sammlung::StyleProvider<'a, Thema>,
+    {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Shrink);
         let (aktuell_name, aktuell_text) = if let Some((name, text)) = aktuell {
@@ -131,7 +146,8 @@ where
                 }
             });
         }
-        let buttons = Scrollable::new(buttons).height(Length::Fill).style(scrollable_style.style());
+        let buttons =
+            Scrollable::new(buttons).height(Length::Fill).style(scrollable_style.style_fn());
         let column = Column::new()
             .push(buttons)
             .push(Space::new().height(Length::Fixed(PADDING)))
@@ -154,11 +170,11 @@ where
         let container = Container::new(
             Row::new()
                 .push(column)
-                .push(rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE.style()))
+                .push(rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE.style_fn()))
                 .push(Scrollable::new(column_aktuell)),
         )
-        .style(style::container::WEIẞ.style());
-        Element::<'a, InterneNachricht, Thema, R>::from(container)
+        .style(style::container::WEIẞ.style_fn());
+        container.into()
     }
 }
 

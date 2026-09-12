@@ -25,7 +25,10 @@ use zugkontrolle_util::eingeschränkt::{InvaliderWert, kleiner_8};
 use crate::{
     bootstrap::{Bootstrap, Icon},
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{
+        sammlung::{self, Sammlung, StyleProvider as _},
+        tab_bar::{StyleProvider as _, TabBar},
+    },
 };
 
 /// Welche Tab-Seite wird angezeigt.
@@ -115,13 +118,15 @@ where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
         + number_input::Catalog
-        + tab_bar::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
         + container::Catalog
         + radio::Catalog
-        + scrollable::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
         + style::number_input::ExtendedCatalog,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     #[must_use]
@@ -227,13 +232,15 @@ where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
         + number_input::Catalog
-        + tab_bar::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
         + container::Catalog
         + radio::Catalog
-        + scrollable::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
         + style::number_input::ExtendedCatalog,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
@@ -384,13 +391,15 @@ where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
         + number_input::Catalog
-        + tab_bar::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
         + container::Catalog
         + radio::Catalog
-        + scrollable::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
         + style::number_input::ExtendedCatalog,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
     // Alle Argumente werden benötigt.
     #[allow(clippy::too_many_arguments)]
@@ -451,14 +460,15 @@ where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
         + number_input::Catalog
-        + tab_bar::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
         + container::Catalog
         + radio::Catalog
-        + scrollable::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
-        + tab_bar::Catalog
         + style::number_input::ExtendedCatalog,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erzeuge die interne Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
@@ -477,6 +487,8 @@ where
                 make_radios(level, [("H", Level::High), ("L", Level::Low)], als_nachricht)
             };
         let port_label = Text::new("Port");
+        let port_label_width =
+            Widget::<InterneNachricht<ModusNachricht>, Thema, R>::size(&port_label).width;
         let pcf8574_row = Row::new()
             .push(
                 Scrollable::new(
@@ -499,7 +511,7 @@ where
                         .push(Space::new().width(Length::Fixed(scrollable_style.breite()))),
                 )
                 .height(Length::Fixed(55.))
-                .style(scrollable_style.style()),
+                .style(scrollable_style.style_fn()),
             )
             .push(high_low_column(a0, InterneNachricht::A0))
             .push(high_low_column(a1, InterneNachricht::A1))
@@ -511,11 +523,7 @@ where
             ))
             .push(
                 Column::new()
-                    .push(
-                        Container::new(port_label)
-                            .width(Length::Fill)
-                            .center_x(Widget::size(&port_label).width),
-                    )
+                    .push(Container::new(port_label).width(Length::Fill).center_x(port_label_width))
                     .push(NumberInput::new(
                         &u8::from(*port),
                         (u8::from(kleiner_8::MIN))..=u8::from(kleiner_8::MAX),
@@ -533,13 +541,12 @@ where
                         NumberInput::new(pin, 0..=32, InterneNachricht::Pin).into(),
                     ),
                     (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
-                        // FIXME typevar Thema != enum Thema
                         pcf8574_row.push(view_modus_mapped).into()
                     }),
                 ];
                 let tabs = Tabs::new_with_tabs(tabs, InterneNachricht::TabSelected)
                     .set_active_tab(active_tab)
-                    .tab_bar_style(TabBar.into())
+                    .tab_bar_style(TabBar.style_fn())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
@@ -549,7 +556,7 @@ where
                     (
                         TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
-                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 0..=32, InterneNachricht::Pin).into(),
                     ),
                     (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
                         pcf8574_row.into()
@@ -557,7 +564,7 @@ where
                 ];
                 let tabs = Tabs::new_with_tabs(tabs, InterneNachricht::TabSelected)
                     .set_active_tab(active_tab)
-                    .tab_bar_style(TabBar.into())
+                    .tab_bar_style(TabBar.style_fn())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)

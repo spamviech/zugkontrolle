@@ -8,6 +8,9 @@ use iced_widget::scrollable::{self, Rail, Scroller};
 
 use crate::style::thema::Thema;
 
+#[doc(inline)]
+pub use scrollable::{Style, StyleFn};
+
 /// Style-Struktur für ein [`iced::widget::Scrollable`]
 /// mit fester [`Scroller-Breite`](iced_native::widget::scrollable::Properties::scroller_width).
 #[derive(Debug, Clone, Copy)]
@@ -34,10 +37,19 @@ impl Sammlung {
     pub fn breite(&self) -> f32 {
         self.breite
     }
+}
 
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: scrollable::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
     #[must_use]
-    pub fn style(&self) -> scrollable::StyleFn<'_, Thema> {
-        Box::new(|thema, status| {
+    fn style_fn(self) -> StyleFn<'static, Thema>;
+}
+
+impl StyleProvider<'_, Thema> for Sammlung {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
+        Box::new(move |thema, status| {
             let mut style = <Thema as scrollable::Catalog>::default()(thema, status);
             let (grey_border, grey_background) = match thema {
                 Thema::Hell => (0.7, 0.6),

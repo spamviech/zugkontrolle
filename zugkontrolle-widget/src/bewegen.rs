@@ -20,7 +20,6 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     winkel,
 };
-use zugkontrolle_util::event_status::EventStatus;
 
 use crate::style::thema::Thema;
 
@@ -479,7 +478,7 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
         state: &mut Self::State,
         event: &Event,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        cursor: Cursor,
     ) -> Option<Action<Nachricht>> {
         let mut nachricht = None;
         match event {
