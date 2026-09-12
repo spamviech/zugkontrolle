@@ -1,9 +1,8 @@
 //! Style Strukturen für eine [`iced::widget::Rule`].
 
 use iced::{
-    border,
-    widget::rule::{Appearance, FillMode, StyleSheet},
-    Color,
+    Color, border,
+    widget::rule::{self, FillMode},
 };
 
 use crate::style::thema::Thema;
@@ -22,15 +21,12 @@ pub struct Linie {
     pub radius: f32,
 }
 
-impl StyleSheet for Thema {
-    type Style = Linie;
-
-    fn appearance(&self, style: &Self::Style) -> Appearance {
-        let Linie { farbe, breite: width, radius } = *style;
-        let color = farbe.unwrap_or(match self {
-            Thema::Hell => Color::BLACK,
-            Thema::Dunkel => Color::WHITE,
-        });
-        Appearance { color, radius: border::Radius::from(radius), width, fill_mode: FillMode::Full }
+impl From<Linie> for rule::Style {
+    fn from(value: Linie) -> Self {
+        // TODO: Re-introduce Theme handling
+        // Thema::Hell => Color::BLACK,
+        // Thema::Dunkel => Color::WHITE,
+        let color = Color::BLACK;
+        rule::Style { color, ..Default::default() }
     }
 }

@@ -19,6 +19,9 @@ pub static REGULAR_BYTES: &[u8] =
 /// Die Bytes für die Schriftart [`Bootstrap`], damit sie von iced geladen werden kann.
 pub static BOOTSTRAP_ICONS_BYTES: &[u8] = include_bytes!("../../fonts/bootstrap-icons.ttf");
 
+/// Schriftart ohne zusätzliche Eigenschaften.
+pub static BOOTSTRAP: Font = Font::with_name("bootstrap-icons");
+
 /// Bytes von Schriftarten, die von iced geladen werden müssen ([`iced::Settings`].font).
 ///
 /// Werden sie nicht geladen kann es zu Darstellungsfehlern kommen.

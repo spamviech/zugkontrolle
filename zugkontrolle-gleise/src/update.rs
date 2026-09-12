@@ -31,6 +31,7 @@ use zugkontrolle_gleis::{
 use zugkontrolle_typen::{
     MitName, canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel,
 };
+use zugkontrolle_util::event_status::EventStatus;
 
 use crate::{
     Gleise, KlickQuelle, ModusDaten,
@@ -176,12 +177,6 @@ where
             }))
         }),
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum EventStatus {
-    Captured,
-    Ignored,
 }
 
 /// Führe die Aktion für das Gleis an der Position des `cursor_oder_finger` aus.

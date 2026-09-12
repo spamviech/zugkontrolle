@@ -4,23 +4,23 @@ use iced_aw::{
     number_input, style, tab_bar,
     widgets::{NumberInput, TabLabel, Tabs},
 };
-use iced_core::{event, text as text_core, widget::Text, Element, Font, Length, Renderer};
+use iced_core::{Element, Font, Length, Renderer, Widget, event, text as text_core, widget::Text};
 use iced_widget::{
-    container, radio,
+    Column, Container, Radio, Row, Space, container, radio,
     scrollable::{self, Scrollable},
-    text, text_input, Column, Container, Radio, Row, Space,
+    text, text_input,
 };
 use log::error;
 
 use zugkontrolle_anschluss::{
+    InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     level::Level,
     pcf8574::{Beschreibung, I2cBus, Variante},
     pin::pwm,
     polarität::Polarität,
-    InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
 };
 use zugkontrolle_argumente::I2cSettings;
-use zugkontrolle_util::eingeschränkt::{kleiner_8, InvaliderWert};
+use zugkontrolle_util::eingeschränkt::{InvaliderWert, kleiner_8};
 
 use crate::{
     bootstrap::{Bootstrap, Icon},
@@ -114,15 +114,14 @@ impl<'a, Thema, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + container::Catalog
+        + radio::Catalog
+        + scrollable::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
 {
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     #[must_use]
@@ -186,15 +185,13 @@ where
             ZeigeModus::Pcf8574,
             |pin, _beschreibung| {
                 let interrupt_pin_auswahl = Element::from(
-                    NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
+                    NumberInput::new(pin, 0..32, InputNachricht::interrupt).width(Length::Fill),
                 );
+                let interrupt_label = Text::new("Interrupt-Pin");
+                let width = Widget::<InputNachricht, Thema, R>::size(&interrupt_label).width;
                 Element::from(
                     Column::new()
-                        .push(
-                            Container::new(Text::new("Interrupt-Pin"))
-                                .width(Length::Fill)
-                                .center_x(),
-                        )
+                        .push(Container::new(interrupt_label).width(Length::Fill).center_x(width))
                         .push(interrupt_pin_auswahl)
                         .width(Length::Fixed(100.)),
                 )
@@ -229,15 +226,13 @@ impl<'a, Thema, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, 
 where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + container::Catalog
+        + radio::Catalog
+        + scrollable::Catalog
+        + text::Catalog
+        + text_input::Catalog,
 {
     /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
@@ -364,7 +359,7 @@ where
     T: Eq + Copy,
     M: 'a + Clone,
     R: 'a + text_core::Renderer,
-    Thema: 'a + radio::StyleSheet + text::StyleSheet,
+    Thema: 'a + radio::Catalog + text::Catalog,
     <R as text_core::Renderer>::Font: From<Font>,
 {
     let mut column = Column::new();
@@ -387,15 +382,13 @@ where
     ModusNachricht: 'static + Clone,
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + container::Catalog
+        + radio::Catalog
+        + scrollable::Catalog
+        + text::Catalog
+        + text_input::Catalog,
 {
     // Alle Argumente werden benötigt.
     #[allow(clippy::too_many_arguments)]
@@ -455,15 +448,14 @@ where
     ModusNachricht: 'static + Clone,
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog
+        + container::Catalog
+        + radio::Catalog
+        + scrollable::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
 {
     /// Erzeuge die interne Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
@@ -481,12 +473,13 @@ where
             |level: &Level, als_nachricht: fn(Level) -> InterneNachricht<ModusNachricht>| {
                 make_radios(level, [("H", Level::High), ("L", Level::Low)], als_nachricht)
             };
+        let port_label = Text::new("Port");
         let pcf8574_row = Row::new()
             .push(
                 Scrollable::new(
                     Row::new()
                         .push(Text::new("I2C"))
-                        .push(Space::with_width(Length::Fixed(PADDING)))
+                        .push(Space::new().width(Length::Fixed(PADDING)))
                         .push(make_radios(
                             i2c_bus,
                             [
@@ -500,10 +493,10 @@ where
                             .filter(|(_label, kandidat)| kandidat.aktiviert(settings)),
                             InterneNachricht::I2cBus,
                         ))
-                        .push(Space::with_width(Length::Fixed(scrollable_style.breite()))),
+                        .push(Space::new().width(Length::Fixed(scrollable_style.breite()))),
                 )
                 .height(Length::Fixed(55.))
-                .style(<Thema as scrollable::StyleSheet>::Style::from(scrollable_style)),
+                .style(scrollable::Style::from(scrollable_style)),
             )
             .push(high_low_column(a0, InterneNachricht::A0))
             .push(high_low_column(a1, InterneNachricht::A1))
@@ -515,9 +508,13 @@ where
             ))
             .push(
                 Column::new()
-                    .push(Container::new(Text::new("Port")).width(Length::Fill).center_x())
+                    .push(
+                        Container::new(port_label)
+                            .width(Length::Fill)
+                            .center_x(Widget::size(&port_label).width),
+                    )
                     .push(NumberInput::new(
-                        u8::from(*port),
+                        &u8::from(*port),
                         u8::from(kleiner_8::MAX),
                         InterneNachricht::Port,
                     ))
@@ -530,7 +527,7 @@ where
                     (
                         TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
-                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
                     ),
                     (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
                         pcf8574_row.push(view_modus_mapped).into()
@@ -548,7 +545,7 @@ where
                     (
                         TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
-                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
                     ),
                     (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
                         pcf8574_row.into()
@@ -604,11 +601,7 @@ pub struct Pwm<'a, Thema, R>(
 impl<'a, Thema, R> Pwm<'a, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
-    Thema: 'a
-        + number_input::StyleSheet
-        + text::StyleSheet
-        + container::StyleSheet
-        + text_input::StyleSheet,
+    Thema: 'a + number_input::Catalog + text::Catalog + container::Catalog + text_input::Catalog,
 {
     /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
@@ -624,7 +617,7 @@ where
 
     /// Erzeuge die Widget-Hierarchie für ein [`Pwm`]-Widget.
     fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, Thema, R> {
-        NumberInput::new(zustand.pin, 32, pwm::Serialisiert).into()
+        NumberInput::new(&zustand.pin, 32, pwm::Serialisiert).into()
     }
 
     /// Konvertiere die interne Nachricht für ein [`Pwm`]-Widget.

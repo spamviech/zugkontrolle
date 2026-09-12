@@ -5,12 +5,13 @@ use iced::{
     mouse::{self, Cursor},
     touch,
     widget::canvas::{
-        Event, Geometry, Program, event,
+        Event, Geometry, Program,
         fill::{self, Fill},
         stroke::{self, Stroke},
     },
 };
 
+use iced_widget::Action;
 use zugkontrolle_gleise::knopf::Thema as _;
 use zugkontrolle_typen::{
     canvas::{
@@ -22,6 +23,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     winkel::{self, Winkel},
 };
+use zugkontrolle_util::event_status::EventStatus;
 
 use crate::style::thema::Thema;
 
@@ -128,17 +130,17 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
-        cursor: Cursor,
-    ) -> (event::Status, Option<Winkel>) {
+        cursor: mouse::Cursor,
+    ) -> Option<Action<Winkel>> {
         /// Reagiere auf einen Maus- oder Touch-Klick.
         fn pressed(
             state: &mut Zustand,
             bounds: Rectangle,
             position: Point,
             klick_quelle: KlickQuelle,
-        ) -> event::Status {
+        ) -> EventStatus {
             let relative_position = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
             let size = bounds.size();
             let min_width_height = Skalar(size.width.min(size.height));
@@ -158,9 +160,9 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             #[allow(clippy::arithmetic_side_effects)]
             if (relative_position - knopf_zentrum).länge() < knopf_radius {
                 state.grabbed = Some(klick_quelle);
-                event::Status::Captured
+                EventStatus::Captured
             } else {
-                event::Status::Ignored
+                EventStatus::Ignored
             }
         }
         /// Reagiere auf einen Maus- oder Touch-Bewegung.
@@ -206,7 +208,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
                 None
             }
         }
-        let mut status = event::Status::Ignored;
+        let mut status = EventStatus::Ignored;
         let mut winkel = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -215,28 +217,28 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
                 }
             },
             Event::Touch(touch::Event::FingerPressed { id, position }) => {
-                status = pressed(state, bounds, position, KlickQuelle::Touch(id));
+                status = pressed(state, bounds, *position, KlickQuelle::Touch(*id));
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
                 if state.grabbed == Some(KlickQuelle::Maus) =>
             {
                 self.0.leeren();
                 state.grabbed = None;
-                status = event::Status::Captured;
+                status = EventStatus::Captured;
             },
             Event::Touch(
                 touch::Event::FingerLifted { id, position: _ }
                 | touch::Event::FingerLost { id, position: _ },
-            ) if state.grabbed == Some(KlickQuelle::Touch(id)) => {
+            ) if state.grabbed == Some(KlickQuelle::Touch(*id)) => {
                 self.0.leeren();
                 state.grabbed = None;
-                status = event::Status::Captured;
+                status = EventStatus::Captured;
             },
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                winkel = moved(state, &self.0, bounds, position, KlickQuelle::Maus);
+                winkel = moved(state, &self.0, bounds, *position, KlickQuelle::Maus);
             },
             Event::Touch(touch::Event::FingerMoved { id, position }) => {
-                winkel = moved(state, &self.0, bounds, position, KlickQuelle::Touch(id));
+                winkel = moved(state, &self.0, bounds, *position, KlickQuelle::Touch(*id));
             },
             Event::Mouse(_)
             | Event::Touch(_)
@@ -244,7 +246,15 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             | Event::Window(_)
             | Event::InputMethod(_) => {},
         }
-        (status, winkel)
+        let mut action = if let Some(winkel) = winkel {
+            Action::publish(winkel)
+        } else {
+            Action::request_redraw()
+        };
+        if (status == EventStatus::Captured) {
+            action = action.and_capture();
+        }
+        Some(action)
     }
 
     fn mouse_interaction(

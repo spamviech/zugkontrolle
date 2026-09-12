@@ -4,8 +4,9 @@ use iced::{
     Point, Rectangle, Renderer, Size,
     mouse::{self, Cursor},
     touch,
-    widget::canvas::{Event, Geometry, Program, Stroke, Style, event},
+    widget::canvas::{Event, Geometry, Program, Stroke, Style},
 };
+use iced_widget::Action;
 use itertools::{Itertools, MinMaxResult};
 
 use zugkontrolle_gleise::knopf::Thema as _;
@@ -19,6 +20,7 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     winkel,
 };
+use zugkontrolle_util::event_status::EventStatus;
 
 use crate::style::thema::Thema;
 
@@ -475,10 +477,10 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
-        cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht>) {
+        cursor: mouse::Cursor,
+    ) -> Option<Action<Nachricht>> {
         let mut nachricht = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -487,7 +489,7 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
                 }
             },
             Event::Touch(touch::Event::FingerPressed { id, position }) => {
-                nachricht = pressed(state, bounds, position, KlickQuelle::Touch(id));
+                nachricht = pressed(state, bounds, *position, KlickQuelle::Touch(*id));
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
                 if *state == Some(KlickQuelle::Maus) =>
@@ -499,7 +501,7 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
             Event::Touch(
                 touch::Event::FingerLifted { id, position: _ }
                 | touch::Event::FingerLost { id, position: _ },
-            ) if *state == Some(KlickQuelle::Touch(id)) => {
+            ) if *state == Some(KlickQuelle::Touch(*id)) => {
                 // Beende nur mit dem selben Finger gestartete Bewegungen
                 *state = None;
                 nachricht = Some(Nachricht::BeendeBewegung);
@@ -511,10 +513,7 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
             | Event::InputMethod(_) => {},
         }
 
-        let status =
-            if nachricht.is_some() { event::Status::Captured } else { event::Status::Ignored };
-
-        (status, nachricht)
+        nachricht.map(Action::publish)
     }
 
     fn mouse_interaction(

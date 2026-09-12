@@ -13,6 +13,7 @@ use iced_core::{
         tree::{self, Tree},
     },
 };
+use zugkontrolle_gleise::knopf::Nachricht;
 
 ///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]
@@ -60,18 +61,18 @@ where
         self.element.as_widget().size_hint()
     }
 
-    fn layout(&self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
         self.element.as_widget().layout(tree, renderer, limits)
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &R,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn widget::Operation,
     ) {
-        self.element.as_widget().operate(tree, layout, renderer, operation.black_box(operation));
+        self.element.as_widget().operate(tree, layout, renderer, operation);
     }
 
     fn update(
@@ -80,19 +81,19 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        renderer: &Renderer,
+        renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
+        shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
     ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        self.element.as_widget_mut().on_event(
+        self.element.as_widget_mut().update(
             tree,
             event,
             layout,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             &mut local_shell,
@@ -214,33 +215,25 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn widget::Operation,
     ) {
-        self.content.operate(layout, renderer, operation::black_box(operation));
+        self.content.operate(layout, renderer, operation);
     }
 
     fn update(
         &mut self,
-        _tree: &mut Tree,
-        _event: &Event,
-        _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
-        _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
-        _shell: &mut Shell<'_, Message>,
-        _viewport: &Rectangle,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, B>,
     ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self.content.on_event(
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            &mut local_shell,
-        );
+        let event_status =
+            self.content.on_event(event, layout, cursor, renderer, clipboard, &mut local_shell);
 
         let redraw_request = local_shell.redraw_request();
         shell.request_redraw_at(redraw_request);
@@ -263,11 +256,10 @@ where
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
-        viewport: &Rectangle,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.mouse_interaction(layout, cursor_position, viewport, renderer)
+        self.content.mouse_interaction(layout, cursor, renderer)
     }
 
     fn draw(

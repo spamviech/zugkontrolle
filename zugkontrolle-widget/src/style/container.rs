@@ -1,17 +1,16 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Container`].
 
 use iced::{
+    Background, Color, Theme,
     border::{self, Border},
     theme,
     widget::container,
-    Background, Color, Theme,
 };
 
 use crate::style::thema::Thema;
 
 /// Weißer Hintergrund.
-#[allow(non_upper_case_globals)]
-pub const WEIß: Container = Container::hintergrund_grau(1.);
+pub const WEIẞ: Container = Container::hintergrund_grau(1.);
 /// Schwarzer Hintergrund.
 pub const SCHWARZ: Container = Container::hintergrund_grau(0.);
 /// Roter Hintergrund.
@@ -77,37 +76,22 @@ impl Container {
     }
 }
 
-impl container::StyleSheet for Thema {
-    type Style = Container;
-
-    fn appearance(&self, style: &Self::Style) -> container::Appearance {
-        match (self, style) {
-            (Thema::Hell, Container::Standard) => {
-                container::StyleSheet::appearance(&Theme::Light, &theme::Container::default())
-            },
-            (Thema::Dunkel, Container::Standard) => {
-                container::StyleSheet::appearance(&Theme::Dark, &theme::Container::default())
-            },
-            (Thema::Hell | Thema::Dunkel, Container::Hintergrund { farbe }) => {
-                container::Appearance {
-                    background: Some(Background::Color(*farbe)),
-                    ..container::Appearance::default()
-                }
-            },
-            (Thema::Hell | Thema::Dunkel, Container::Rand { farbe, breite, radius }) => {
-                container::Appearance {
-                    border: Border { color: *farbe, width: *breite, radius: *radius },
-                    ..container::Appearance::default()
-                }
-            },
-            (Thema::Hell, Container::Pcf8574Beschreibung) => container::Appearance {
-                text_color: Some(Color::BLACK),
-                ..container::Appearance::default()
-            },
-            (Thema::Dunkel, Container::Pcf8574Beschreibung) => container::Appearance {
-                text_color: Some(Color::WHITE),
-                ..container::Appearance::default()
-            },
+impl From<Container> for container::Style {
+    fn from(value: Container) -> Self {
+        // TODO: Re-introduce Theme handling
+        // Thema::Hell      => Some(Color::BLACK),
+        // Thema::Dunkel    => Some(Color::WHITE),
+        let pcf8474_text_farbe = Color::BLACK;
+        let mut style = container::Style::default();
+        if let Container::Hintergrund { farbe } = value {
+            style = style.background(Background::Color(farbe))
         }
+        if let Container::Rand { farbe, breite, radius } = value {
+            style = style.border(Border { color: farbe, width: breite, radius });
+        }
+        if let Container::Pcf8574Beschreibung = value {
+            style = style.color(pcf8474_text_farbe);
+        }
+        style
     }
 }

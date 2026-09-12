@@ -116,7 +116,12 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         }
     }
 
-    fn layout(&self, _tree: &mut Tree, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
+    fn layout(
+        &mut self,
+        _tree: &mut Tree,
+        _renderer: &R,
+        _limits: &layout::Limits,
+    ) -> layout::Node {
         let durchmesser = f32::from(self.durchmesser);
         layout::Node::new(Size { width: durchmesser, height: durchmesser })
     }
@@ -173,14 +178,14 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        renderer: &Renderer,
+        renderer: &R,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
+        shell: &mut Shell<'_, M>,
         viewport: &Rectangle,
     ) {
         let mut status = event::Status::Ignored;
         let bounds = layout.bounds();
-        let position = match (event, cursor_position) {
+        let position = match (event, cursor) {
             (
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
                 mouse::Cursor::Available(position),

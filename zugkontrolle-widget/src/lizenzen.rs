@@ -165,7 +165,7 @@ where
                 .push(Rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE))
                 .push(Scrollable::new(column_aktuell)),
         )
-        .style(style::container::WEIß);
+        .style(style::container::WEIẞ);
         container.into()
     }
 }
