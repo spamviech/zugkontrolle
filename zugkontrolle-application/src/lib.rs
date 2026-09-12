@@ -7,17 +7,17 @@ use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
-    sync::mpsc::{channel, Sender},
+    sync::mpsc::{Sender, channel},
     time::Instant,
 };
 
 use flexi_logger::FlexiLoggerError;
-use iced::{application::Application, executor, Command, Element, Renderer, Subscription};
+use iced::{Element, Renderer, Subscription, Task, application::Application, executor};
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
-    de_serialisieren::{Reserviere, Serialisiere},
     InitFehler, Lager,
+    de_serialisieren::{Reserviere, Serialisiere},
 };
 use zugkontrolle_argumente::{Argumente, I2cSettings};
 use zugkontrolle_gleis::steuerung::{
@@ -25,7 +25,7 @@ use zugkontrolle_gleis::steuerung::{
     streckenabschnitt::Name as StreckenabschnittName,
 };
 use zugkontrolle_gleis::zugtyp::Zugtyp;
-use zugkontrolle_gleise::{daten::v2::geschwindigkeit::BekannterZugtyp, Gleise};
+use zugkontrolle_gleise::{Gleise, daten::v2::geschwindigkeit::BekannterZugtyp};
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
 use zugkontrolle_widget::{
     auswahl::AuswahlZustand,
@@ -138,16 +138,16 @@ where
     type Message = Nachricht<L, S>;
     type Theme = Thema;
 
-    fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
+    fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Task<Self::Message>) {
         let Argumente { pfad, modus, thema, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
-        let lade_zustand: Command<Self::Message>;
+        let lade_zustand: Task<Self::Message>;
         let initialer_pfad: String;
         if let Some(pfad) = pfad {
-            lade_zustand = Nachricht::Laden(pfad.clone()).als_command();
+            lade_zustand = Nachricht::Laden(pfad.clone()).als_task();
             initialer_pfad = pfad.clone();
         } else {
-            lade_zustand = Command::none();
+            lade_zustand = Task::none();
             initialer_pfad = {
                 let mut standard_pfad = zugtyp.name.clone();
                 standard_pfad.push_str(".zug");
@@ -191,8 +191,8 @@ where
         format!("Zugkontrolle {}", env!("zugkontrolle_version"))
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        let mut command = Command::none();
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
+        let mut command = Task::none();
 
         match message {
             Nachricht::Gleis { definition_steuerung, klick_quelle, klick_höhe } => {
@@ -235,7 +235,7 @@ where
             },
             Nachricht::ZeigeDateiDialog(zeige_datei_dialog) => {
                 command =
-                    Command::perform(zeige_datei_dialog.0, identity).map(
+                    Task::perform(zeige_datei_dialog.0, identity).map(
                         |nachricht| match nachricht {
                             speichern_laden::Nachricht::Speichern(file_handle) => {
                                 Nachricht::Speichern(

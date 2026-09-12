@@ -4,14 +4,13 @@ use std::fmt::Debug;
 
 use enum_iterator::all;
 use iced::{
-    mouse, touch,
+    Alignment, Element, Event, Length, Renderer, mouse, touch,
     widget::{
-        scrollable::{self, Scrollable},
         Button, Canvas, Column, Container, Row, Rule, Slider, Space, Text,
+        scrollable::{self, Scrollable},
     },
-    Alignment, Element, Event, Length, Renderer,
 };
-use iced_widget::PickList;
+use iced_widget::{PickList, scrollable::Scrollbar};
 use itertools::Itertools;
 use log::debug;
 
@@ -28,9 +27,9 @@ use zugkontrolle_gleis::{
     },
     zugtyp::DefinitionMap,
 };
-use zugkontrolle_gleise::{knopf::Knopf, Gleise, Modus};
+use zugkontrolle_gleise::{Gleise, Modus, knopf::Knopf};
 use zugkontrolle_typen::{
-    farbe::Farbe, klick_quelle::KlickQuelle, mm::Spurweite, skalar::Skalar, Zeichnen,
+    Zeichnen, farbe::Farbe, klick_quelle::KlickQuelle, mm::Spurweite, skalar::Skalar,
 };
 use zugkontrolle_widget::{
     auswahl::AuswahlZustand,
@@ -44,8 +43,8 @@ use zugkontrolle_widget::{
 };
 
 use crate::{
-    nachricht::{Nachricht, NachrichtClone},
     MessageBox, Zugkontrolle,
+    nachricht::{Nachricht, NachrichtClone},
 };
 
 /// Ein Widget, dessen Nachricht sich in einen [`Nachricht`] konvertieren lässt.
@@ -140,8 +139,12 @@ where
                     touch::Event::FingerLifted { id, position: _ }
                     | touch::Event::FingerLost { id, position: _ },
                 ) => KlickQuelle::Touch(*id),
-                Event::Keyboard(_) | Event::Mouse(_) | Event::Window(_, _) | Event::Touch(_) => {
-                    return false
+                Event::Keyboard(_)
+                | Event::Mouse(_)
+                | Event::Window(_)
+                | Event::Touch(_)
+                | Event::InputMethod(_) => {
+                    return false;
                 },
             };
             let gehalten = gleise.hat_gehaltenes_gleis(klick_quelle);
@@ -252,7 +255,7 @@ where
         row = row.push(Column::new().push(geschwindigkeit).push(streckenabschnitt).spacing(1));
     }
 
-    row.push(Space::new(Length::Fill, Length::Shrink))
+    row.push(Space::new().width(Length::Fill).height(Length::Shrink))
         .push(Element::from(speichern_laden).map(Nachricht::ZeigeDateiDialog))
         .push(
             Element::from(
@@ -363,7 +366,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
                 Element::new(
                     scrollable
                         .direction(scrollable::Direction::Vertical(
-                            scrollable::Properties::default().scroller_width(scroller_width),
+                            Scrollbar::new().scroller_width(scroller_width),
                         ))
                         .height(Length::Fill)
                         .style(scrollable_style),

@@ -9,15 +9,15 @@ use std::{
 };
 
 use async_io::Timer;
-use iced::{Command, Renderer};
+use iced::{Renderer, Task};
 use log::error;
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    OutputSerialisiert,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     polarität::Fließend,
-    OutputSerialisiert,
 };
 use zugkontrolle_gleis::{
     id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
@@ -29,7 +29,7 @@ use zugkontrolle_gleis::{
 };
 use zugkontrolle_gleise::{
     self,
-    daten::{v2::geschwindigkeit::BekannterZugtyp, SteuerungAktualisierenFehler},
+    daten::{SteuerungAktualisierenFehler, v2::geschwindigkeit::BekannterZugtyp},
     nachricht::ZustandAktualisieren,
 };
 use zugkontrolle_typen::{farbe::Farbe, klick_quelle::KlickQuelle, skalar::Skalar, vektor::Vektor};
@@ -51,9 +51,9 @@ where
         self
     }
 
-    /// Erzeuge ein [`Command`], dass die Nachricht nach erst weitergibt, wenn mindestens `dauer` vergangen ist.
-    fn als_sleep_command(self, dauer: Duration) -> Command<Nachricht<L, S>> {
-        Command::perform(self.nach_sleep(dauer), identity)
+    /// Erzeuge ein [`Task`], dass die Nachricht nach erst weitergibt, wenn mindestens `dauer` vergangen ist.
+    fn als_sleep_task(self, dauer: Duration) -> Task<Nachricht<L, S>> {
+        Task::perform(self.nach_sleep(dauer), identity)
     }
 }
 
@@ -186,7 +186,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
                     };
                     fehlermeldung = Some((
                         format!("Streckenabschnitt {name:?} anpassen"),
-                        format!("{bisherige_nachricht}Streckenabschnitt {name:?} angepasst: {ersetzt:?}"),
+                        format!(
+                            "{bisherige_nachricht}Streckenabschnitt {name:?} angepasst: {ersetzt:?}"
+                        ),
                     ));
                 }
             }
@@ -466,13 +468,13 @@ where
     S: 'static + Send,
 {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Command<Nachricht<L, S>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Task<Nachricht<L, S>> {
         self.bewegung = Some(bewegung);
-        Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20))
+        Nachricht::BewegungAusführen.als_sleep_task(Duration::from_millis(20))
     }
 
     /// Tick für eine Bewegung des Pivot-Punktes.
-    pub fn bewegung_ausführen(&mut self) -> Option<Command<Nachricht<L, S>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<Task<Nachricht<L, S>>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -482,7 +484,7 @@ where
                     .vektor(Skalar(1.) / self.gleise.skalierfaktor())
                     .rotiert(&(-self.gleise.pivot().winkel)),
             );
-            Some(Nachricht::BewegungAusführen.als_sleep_command(Duration::from_millis(20)))
+            Some(Nachricht::BewegungAusführen.als_sleep_task(Duration::from_millis(20)))
         } else {
             None
         }
@@ -510,7 +512,7 @@ where
     <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
 {
     /// Speicher den aktuellen Zustand in einer Datei.
-    pub fn speichern(&mut self, pfad: String) -> Command<Nachricht<L, S>> {
+    pub fn speichern(&mut self, pfad: String) -> Task<Nachricht<L, S>> {
         let ergebnis = self.gleise.speichern(&pfad);
         let speicher_zeit = Instant::now();
         self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit));
@@ -521,7 +523,7 @@ where
             }));
         }
         self.aktueller_pfad = pfad;
-        Nachricht::EntferneSpeichernFarbe(speicher_zeit).als_sleep_command(Duration::from_secs(2))
+        Nachricht::EntferneSpeichernFarbe(speicher_zeit).als_sleep_task(Duration::from_secs(2))
     }
 }
 

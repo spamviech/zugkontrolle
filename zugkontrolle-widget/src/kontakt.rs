@@ -27,7 +27,7 @@ use zugkontrolle_gleis::steuerung::kontakt::{KontaktSerialisiert, Name};
 use crate::{
     anschluss::{self, make_radios},
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{self, sammlung::Sammlung, tab_bar::TabBar},
 };
 
 /// Zustand eines Widgets zur [`Auswahl`] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
@@ -93,15 +93,19 @@ impl<'t, Thema, R> Auswahl<'t, Thema, R>
 where
     R: 't + Renderer + text_core::Renderer<Font = Font>,
     Thema: 't
-        + button::Catalog
-        + card::Catalog
         + container::Catalog
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
         + number_input::Catalog
+        + iced_aw::style::number_input::ExtendedCatalog
         + radio::Catalog
         + scrollable::Catalog
-        + tab_bar::Catalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
         + text::Catalog
-        + text_input::Catalog,
+        + text_input::Catalog
+        + card::Catalog,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
     /// Erstelle eine neue [`Auswahl`].
     #[must_use]

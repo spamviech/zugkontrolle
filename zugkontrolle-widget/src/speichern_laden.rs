@@ -17,7 +17,7 @@ use rfd::{AsyncFileDialog, FileHandle};
 
 use crate::{
     bootstrap::{Bootstrap, Icon},
-    style,
+    style::{self, button::StyleProvider as _},
 };
 
 /// Wrapper um eine [`Future`] um eine Dummy [`Debug`]-Implementierung anzugeben.
@@ -63,7 +63,11 @@ impl<Thema: Debug, R: Debug> Debug for SpeichernLaden<'_, Thema, R> {
 impl<'a, Thema, R> SpeichernLaden<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    Thema: 'a + button::Catalog + text::Catalog + text_input::Catalog,
+    Thema: 'a
+        + button::Catalog<Class<'a> = style::button::StyleFn<'a, Thema>>
+        + text::Catalog
+        + text_input::Catalog,
+    style::button::Button: style::button::StyleProvider<'a, Thema>,
     <R as text_core::Renderer>::Font: From<Font>,
 {
     /// Erstelle ein [`SpeichernLaden`]-Widget.
@@ -77,12 +81,12 @@ where
             None => style::Button::Standard,
         };
         let laden = Button::new(Icon::neu(Bootstrap::FileEarmark))
-            .style(style::Button::Standard)
+            .style(style::Button::Standard.style_fn())
             .on_press(InterneNachricht::Laden);
         let row = Row::new()
-            .push(speichern_ungefärbt.style(speichern_style))
+            .push(speichern_ungefärbt.style(speichern_style.style_fn()))
             .push(laden)
-            .align_items(Alignment::End)
+            .align_y(Alignment::End)
             .width(Length::Shrink);
         let pfad = Path::new(aktueller_pfad).canonicalize().unwrap_or_default();
         let mapped = Element::from(row).map(move |button| {

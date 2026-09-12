@@ -3,11 +3,9 @@
 use std::fmt::{Debug, Display};
 
 use iced_aw::{
+    style::number_input,
     tab_bar,
-    widgets::{
-        card::{self, Card},
-        number_input,
-    },
+    widgets::card::{self, Card},
 };
 use iced_core::{
     Element, Font, Length, Renderer, event, text as text_core,
@@ -28,7 +26,7 @@ use zugkontrolle_typen::nachschlagen::Nachschlagen;
 use crate::{
     anschluss,
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{self, sammlung::Sammlung, tab_bar::TabBar},
 };
 
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
@@ -103,15 +101,18 @@ where
     RichtungInformation: 't + Clone + Default,
     R: 't + Renderer + text_core::Renderer<Font = Font>,
     Thema: 't
-        + button::Catalog
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
         + card::Catalog
         + container::Catalog
         + number_input::Catalog
+        + number_input::ExtendedCatalog
         + radio::Catalog
-        + scrollable::Catalog
-        + tab_bar::Catalog
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
         + text::Catalog
         + text_input::Catalog,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
+    style::tab_bar::TabBar: style::tab_bar::StyleProvider<'t, Thema>,
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu(

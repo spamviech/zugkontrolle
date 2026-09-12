@@ -2,13 +2,13 @@
 
 use std::{convert::identity, fmt::Debug, time::Instant};
 
-use iced::Command;
+use iced::Task;
 
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_gleis::{
     gerade::GeradeUnit,
     id::{
-        mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert,
+        AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert, mit_any_id,
     },
     kreuzung::KreuzungUnit,
     kurve::KurveUnit,
@@ -26,9 +26,8 @@ use zugkontrolle_gleis::{
     },
 };
 use zugkontrolle_gleise::{
-    self, knopf,
+    self, Modus, knopf,
     nachricht::{Nachricht as GleiseNachricht, ZustandAktualisieren},
-    Modus,
 };
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{
@@ -432,8 +431,8 @@ where
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
-    /// Konvertiere eine Nachricht in ein [`Command`].
-    pub(crate) fn als_command(self) -> Command<Nachricht<L, S>> {
-        Command::perform(async { identity(self) }, identity)
+    /// Konvertiere eine Nachricht in ein [`Task`].
+    pub(crate) fn als_task(self) -> Task<Nachricht<L, S>> {
+        Task::perform(async { identity(self) }, identity)
     }
 }

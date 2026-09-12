@@ -45,7 +45,11 @@ use crate::{
     anschluss,
     bootstrap::{Bootstrap, Icon},
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{
+        self,
+        sammlung::Sammlung,
+        tab_bar::{StyleProvider as _, TabBar},
+    },
 };
 
 /// Versuche ein Element vom [`NonEmpty::tail`] zu entfernen.
@@ -330,15 +334,19 @@ where
     LeiterSerialisiert: 't + Display + Clone,
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::Catalog
-        + button::Catalog
-        + scrollable::Catalog
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
         + radio::Catalog
         + text::Catalog
         + text_input::Catalog
         + number_input::Catalog
-        + tab_bar::Catalog
+        + number_input::ExtendedCatalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
         + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
     // Alle Argumente benötigt.
     #[allow(clippy::too_many_arguments)]
@@ -563,7 +571,7 @@ where
             ks_auswahl = ks_auswahl.push(umdrehen_auswahl());
         }
         ks_auswahl = ks_auswahl
-            .push(Space::with_height(Length::Fixed(1.)))
+            .push(Space::new().height(Length::Fixed(1.)))
             .push(Text::new("Geschwindigkeit"));
         for (i, ks_anschluss) in ks_anschlüsse.iter().enumerate() {
             let mut row = Row::new().height(Length::Shrink).push(
@@ -670,7 +678,7 @@ where
         .set_active_tab(aktueller_tab)
         .width(width)
         .height(Length::Shrink)
-        .tab_bar_style(TabBar.into());
+        .tab_bar_style(TabBar.style_fn());
         let hinzufügen =
             Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen);
         neue_geschwindigkeit = neue_geschwindigkeit.push(tabs).push(hinzufügen);
@@ -692,7 +700,7 @@ where
                 .push(
                     Row::new()
                         .push(Text::new(String::from(name.as_ref())))
-                        .push(Space::with_width(Length::Fixed(2.)))
+                        .push(Space::new().width(Length::Fixed(2.)))
                         .push(bearbeiten)
                         .push(löschen),
                 )
@@ -756,16 +764,20 @@ impl<'t, Thema, R> LeiterAnzeige<'t, MittelleiterSerialisiert, Thema, R> for Mit
 where
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::Catalog
-        + button::Catalog
-        + scrollable::Catalog
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
         + radio::Catalog
         + slider::Catalog
         + text::Catalog
         + text_input::Catalog
         + number_input::Catalog
-        + tab_bar::Catalog
+        + number_input::ExtendedCatalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
         + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
     fn anzeige_neu(
         name: &Name,
@@ -844,16 +856,20 @@ impl<'t, Thema, R> LeiterAnzeige<'t, ZweileiterSerialisiert, Thema, R> for Zweil
 where
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::Catalog
-        + button::Catalog
-        + scrollable::Catalog
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
         + radio::Catalog
         + slider::Catalog
         + text::Catalog
         + text_input::Catalog
         + number_input::Catalog
-        + tab_bar::Catalog
+        + number_input::ExtendedCatalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
         + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
     fn anzeige_neu(
         name: &Name,

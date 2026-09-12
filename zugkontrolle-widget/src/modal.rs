@@ -104,7 +104,7 @@ where
     }
 
     fn layout(&mut self, state: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.underlay.as_widget().layout(
+        self.underlay.as_widget_mut().layout(
             state.children.first_mut().expect("Keine State-Children gefunden!"),
             renderer,
             limits,
@@ -178,7 +178,7 @@ where
         renderer: &R,
         operation: &mut dyn Operation,
     ) {
-        self.underlay.as_widget().operate(state, layout, renderer, operation);
+        self.underlay.as_widget_mut().operate(state, layout, renderer, operation);
     }
 
     fn update(
@@ -193,7 +193,7 @@ where
         viewport: &Rectangle,
     ) {
         if self.overlay.is_none() || (self.passthrough_event)(&event) {
-            self.underlay.as_widget_mut().on_event(
+            self.underlay.as_widget_mut().update(
                 tree.children.first_mut().expect("Keine State-Children gefunden!"),
                 event,
                 layout,
@@ -225,7 +225,7 @@ where
     fn overlay<'s>(
         &'s mut self,
         state: &'s mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'s>,
         renderer: &R,
         viewport: &Rectangle,
         translation: Vector,
@@ -350,7 +350,7 @@ where
 
     fn operate(&mut self, layout: Layout<'_>, renderer: &R, operation: &mut dyn Operation) {
         let ModalOverlay { element, state, .. } = self;
-        element.as_widget().operate(state, layout, renderer, operation);
+        element.as_widget_mut().operate(state, layout, renderer, operation);
     }
 
     fn update(
@@ -366,7 +366,7 @@ where
         if !passthrough_event(&event) {
             element
                 .as_widget_mut()
-                .on_event(state, event, layout, cursor, renderer, clipboard, shell, viewport)
+                .update(state, event, layout, cursor, renderer, clipboard, shell, viewport)
         }
     }
 
@@ -382,7 +382,7 @@ where
 
     fn overlay<'a>(
         &'a mut self,
-        layout: Layout<'_>,
+        layout: Layout<'a>,
         renderer: &R,
     ) -> Option<overlay::Element<'a, Nachricht, Thema, R>> {
         let ModalOverlay { element, state, viewport, .. } = self;
