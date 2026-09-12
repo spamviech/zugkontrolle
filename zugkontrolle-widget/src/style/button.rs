@@ -1,10 +1,7 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Button`].
 
-use iced::{
-    Background, Color,
-    theme::{self, Theme},
-    widget::button,
-};
+use iced_core::{Background, Color};
+use iced_widget::button;
 
 use crate::style::thema::Thema;
 
@@ -62,14 +59,16 @@ impl Button {
     pub const fn hintergrund_grau_transparent(grau: f32, alpha: f32) -> Button {
         Button::Hintergrund { farbe: Color::from_rgba(grau, grau, grau, alpha) }
     }
-}
 
-impl From<Button> for button::Style {
-    fn from(value: Button) -> Self {
-        let mut style = button::Style::default();
-        if let Button::Hintergrund { farbe } = value {
-            style = style.with_background(Background::Color(farbe))
-        }
-        style
+    #[must_use]
+    pub fn style(&self) -> button::StyleFn<'_, Thema> {
+        Box::new(move |thema, status| {
+            let default_style = <Thema as button::Catalog>::default()(thema, status);
+            if let Button::Hintergrund { farbe } = self {
+                default_style.with_background(Background::Color(*farbe))
+            } else {
+                default_style
+            }
+        })
     }
 }

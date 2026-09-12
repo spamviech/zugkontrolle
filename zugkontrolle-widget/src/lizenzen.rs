@@ -2,6 +2,7 @@
 
 use std::borrow::Cow;
 
+use iced::Pixels;
 use iced_core::{
     Element, Length, event, text as text_core,
     widget::text::{self, Text},
@@ -20,7 +21,7 @@ use zugkontrolle_util::unicase_ord::UniCaseOrd;
 use crate::{
     map_mit_zustand::MapMitZustand,
     style::{
-        self,
+        self, Sammlung,
         linie::{Linie, TRENNLINIE},
     },
 };
@@ -72,7 +73,7 @@ pub struct Lizenzen<'a, Thema, R>(
 /// Der [`Abstand`](Space) zwischen Widgets in Pixel.
 const PADDING: f32 = 5.;
 /// Die Breite der [`Trennlinie`](Rule) zwischen der Auswahl-Liste und dem aktuell gezeigten Lizenztext.
-const TRENNLINIE_BREITE: u16 = 1;
+const TRENNLINIE_BREITE: u32 = 1;
 
 impl<'a, Thema, R> Lizenzen<'a, Thema, R>
 where
@@ -85,21 +86,12 @@ where
         + text::Catalog,
 {
     /// Erstelle ein neues [`Lizenzen`]-Widget mit den verwendeten Lizenzen.
-    pub fn neu_mit_verwendeten_lizenzen<ScrollableStyle>(scrollable_style: ScrollableStyle) -> Self
-    where
-        ScrollableStyle: 'a + Clone,
-    {
+    pub fn neu_mit_verwendeten_lizenzen(scrollable_style: Sammlung) -> Self {
         Self::neu(&TARGET_LIZENZEN, scrollable_style)
     }
 
     /// Erstelle ein neues [`Lizenzen`]-Widget.
-    pub fn neu<ScrollableStyle>(
-        lizenzen: &'a LizenzenMap,
-        scrollable_style: ScrollableStyle,
-    ) -> Self
-    where
-        ScrollableStyle: 'a + Clone,
-    {
+    pub fn neu(lizenzen: &'a LizenzenMap, scrollable_style: Sammlung) -> Self {
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
@@ -117,10 +109,10 @@ where
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Lizenzen`]-Widget.
-    fn erzeuge_element<ScrollableStyle>(
+    fn erzeuge_element(
         zustand: &Zustand,
         lizenzen: &'a LizenzenMap,
-        scrollable_style: ScrollableStyle,
+        scrollable_style: Sammlung,
     ) -> Element<'a, InterneNachricht, Thema, R> {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Shrink);
@@ -139,34 +131,34 @@ where
                 }
             });
         }
-        let buttons = Scrollable::new(buttons).height(Length::Fill).style(scrollable_style);
+        let buttons = Scrollable::new(buttons).height(Length::Fill).style(scrollable_style.style());
         let column = Column::new()
             .push(buttons)
-            .push(Space::with_height(Length::Fixed(PADDING)))
+            .push(Space::new().height(Length::Fixed(PADDING)))
             .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
             .width(Length::Shrink)
             .height(Length::Fill);
         let mut column_aktuell = Column::new().width(Length::Fill).height(Length::Shrink);
         if let Some(aktuell_text) = aktuell_text {
             let text_mit_horizontalem_padding = Row::new()
-                .push(Space::with_width(Length::Fixed(PADDING)))
+                .push(Space::new().width(Length::Fixed(PADDING)))
                 .push(Text::new(aktuell_text).width(Length::Fill).height(Length::Shrink))
-                .push(Space::with_width(Length::Fixed(PADDING)))
+                .push(Space::new().width(Length::Fixed(PADDING)))
                 .width(Length::Fill)
                 .height(Length::Shrink);
             column_aktuell = column_aktuell
-                .push(Space::with_height(Length::Fixed(PADDING)))
+                .push(Space::new().height(Length::Fixed(PADDING)))
                 .push(text_mit_horizontalem_padding)
-                .push(Space::with_height(Length::Fixed(PADDING)));
+                .push(Space::new().height(Length::Fixed(PADDING)));
         }
         let container = Container::new(
             Row::new()
                 .push(column)
-                .push(Rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE))
+                .push(rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE.style()))
                 .push(Scrollable::new(column_aktuell)),
         )
-        .style(style::container::WEIẞ);
-        container.into()
+        .style(style::container::WEIẞ.style());
+        Element::<'a, InterneNachricht, Thema, R>::from(container)
     }
 }
 

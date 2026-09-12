@@ -185,7 +185,7 @@ where
             ZeigeModus::Pcf8574,
             |pin, _beschreibung| {
                 let interrupt_pin_auswahl = Element::from(
-                    NumberInput::new(pin, 0..32, InputNachricht::interrupt).width(Length::Fill),
+                    NumberInput::new(pin, 0..=32, InputNachricht::interrupt).width(Length::Fill),
                 );
                 let interrupt_label = Text::new("Interrupt-Pin");
                 let width = Widget::<InputNachricht, Thema, R>::size(&interrupt_label).width;
@@ -232,7 +232,8 @@ where
         + radio::Catalog
         + scrollable::Catalog
         + text::Catalog
-        + text_input::Catalog,
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
 {
     /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
@@ -388,7 +389,8 @@ where
         + radio::Catalog
         + scrollable::Catalog
         + text::Catalog
-        + text_input::Catalog,
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
 {
     // Alle Argumente werden benötigt.
     #[allow(clippy::too_many_arguments)]
@@ -455,6 +457,7 @@ where
         + scrollable::Catalog
         + text::Catalog
         + text_input::Catalog
+        + tab_bar::Catalog
         + style::number_input::ExtendedCatalog,
 {
     /// Erzeuge die interne Widget-Hierarchie für ein [`Auswahl`]-Widget.
@@ -496,7 +499,7 @@ where
                         .push(Space::new().width(Length::Fixed(scrollable_style.breite()))),
                 )
                 .height(Length::Fixed(55.))
-                .style(scrollable::Style::from(scrollable_style)),
+                .style(scrollable_style.style()),
             )
             .push(high_low_column(a0, InterneNachricht::A0))
             .push(high_low_column(a1, InterneNachricht::A1))
@@ -515,7 +518,7 @@ where
                     )
                     .push(NumberInput::new(
                         &u8::from(*port),
-                        u8::from(kleiner_8::MAX),
+                        (u8::from(kleiner_8::MIN))..=u8::from(kleiner_8::MAX),
                         InterneNachricht::Port,
                     ))
                     .width(Length::Fixed(75.)),
@@ -527,9 +530,10 @@ where
                     (
                         TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
-                        NumberInput::new(pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 0..=32, InterneNachricht::Pin).into(),
                     ),
                     (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
+                        // FIXME typevar Thema != enum Thema
                         pcf8574_row.push(view_modus_mapped).into()
                     }),
                 ];
@@ -601,7 +605,12 @@ pub struct Pwm<'a, Thema, R>(
 impl<'a, Thema, R> Pwm<'a, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
-    Thema: 'a + number_input::Catalog + text::Catalog + container::Catalog + text_input::Catalog,
+    Thema: 'a
+        + number_input::Catalog
+        + text::Catalog
+        + container::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
 {
     /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
@@ -617,7 +626,7 @@ where
 
     /// Erzeuge die Widget-Hierarchie für ein [`Pwm`]-Widget.
     fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, Thema, R> {
-        NumberInput::new(&zustand.pin, 32, pwm::Serialisiert).into()
+        NumberInput::new(&zustand.pin, 0..=32, pwm::Serialisiert).into()
     }
 
     /// Konvertiere die interne Nachricht für ein [`Pwm`]-Widget.

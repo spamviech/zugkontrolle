@@ -3,11 +3,14 @@
 use std::fmt::{self, Debug, Display};
 
 use enum_iterator::Sequence;
-use iced_aw::{card, number_input};
+use iced_aw::{
+    card, number_input,
+    style::{self, tab_bar},
+};
 use iced_core::theme::{Base, Mode, Palette, Style, Theme};
 use iced_widget::{
-    canvas::Text, checkbox, container, overlay::menu, pick_list, radio, scrollable, slider, text,
-    text_input, vertical_slider,
+    button, canvas::Text, checkbox, container, overlay::menu, pick_list, radio, rule, scrollable,
+    slider, text, text_input, vertical_slider,
 };
 use int_enum::IntEnum;
 
@@ -115,6 +118,30 @@ impl container::Catalog for Thema {
     }
 
     fn style(&self, class: &Self::Class<'_>) -> container::Style {
+        todo!()
+    }
+}
+
+impl button::Catalog for Thema {
+    type Class<'a> = button::StyleFn<'a, Thema>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        todo!()
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: button::Status) -> button::Style {
+        todo!()
+    }
+}
+
+impl rule::Catalog for Thema {
+    type Class<'a> = rule::StyleFn<'a, Thema>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        todo!()
+    }
+
+    fn style(&self, class: &Self::Class<'_>) -> rule::Style {
         todo!()
     }
 }
@@ -350,10 +377,10 @@ impl number_input::Catalog for Thema {
     // }
 }
 
-impl iced_aw::style::number_input::ExtendedCatalog for Thema {
+impl style::number_input::ExtendedCatalog for Thema {
     fn style(
         &self,
-        class: &<Self as number_input::number_input::Catalog>::Class<'_>,
+        class: &<Self as number_input::Catalog>::Class<'_>,
         status: card::Status,
     ) -> number_input::Style {
         todo!()
@@ -433,4 +460,15 @@ impl menu::Catalog for Thema {
     //         Thema::Dunkel => menu::Catalog::appearance(&Theme::Dark, style),
     //     }
     // }
+}
+impl tab_bar::Catalog for Thema {
+    type Class<'a> = style::status::StyleFn<'a, Thema, tab_bar::Style>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        todo!()
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: card::Status) -> tab_bar::Style {
+        todo!()
+    }
 }

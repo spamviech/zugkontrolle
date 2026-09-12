@@ -1,14 +1,10 @@
 //! Style-Strukturen für ein [`iced::widget::Scrollable`].
 
-use iced::{
-    Color,
+use iced_core::{
+    Background, Color,
     border::{self, Border},
-    widget::{
-        container,
-        scrollable::{self, Scrollbar, Scroller},
-    },
 };
-use iced_widget::scrollable::Rail;
+use iced_widget::scrollable::{self, Rail, Scroller};
 
 use crate::style::thema::Thema;
 
@@ -38,26 +34,32 @@ impl Sammlung {
     pub fn breite(&self) -> f32 {
         self.breite
     }
-}
 
-impl From<Sammlung> for scrollable::Style {
-    fn from(value: Sammlung) -> Self {
-        // TODO: Re-introduce Theme handling
-        // Thema::Hell => 0.7,
-        // Thema::Dunkel => 0.3,
-        let grey_value = 0.7;
-        let rail = Rail {
-            background: None,
-            border: Border { radius: border::Radius::from(0.), width: 0., color: Color::BLACK },
-            scroller: Scroller {
-                border: Border {
-                    radius: border::Radius::from(0.25 * value.breite),
-                    width: 0.,
-                    color: Color::from_rgb(grey_value, grey_value, grey_value),
+    #[must_use]
+    pub fn style(&self) -> scrollable::StyleFn<'_, Thema> {
+        Box::new(|thema, status| {
+            let mut style = <Thema as scrollable::Catalog>::default()(thema, status);
+            let (grey_border, grey_background) = match thema {
+                Thema::Hell => (0.7, 0.6),
+                Thema::Dunkel => (0.3, 0.2),
+            };
+            style.vertical_rail = Rail {
+                background: None,
+                border: Border { radius: border::Radius::from(0.), width: 0., color: Color::BLACK },
+                scroller: Scroller {
+                    border: Border {
+                        radius: border::Radius::from(0.25 * self.breite),
+                        width: 0.,
+                        color: Color::from_rgb(grey_border, grey_border, grey_border),
+                    },
+                    background: Background::Color(Color::from_rgb(
+                        grey_background,
+                        grey_background,
+                        grey_background,
+                    )),
                 },
-                background: Default::default(),
-            },
-        };
-        scrollable::Style { vertical_rail: rail, ..Default::default() }
+            };
+            style
+        })
     }
 }

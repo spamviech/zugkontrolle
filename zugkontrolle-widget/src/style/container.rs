@@ -1,11 +1,10 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Container`].
 
-use iced::{
-    Background, Color, Theme,
+use iced_core::{
+    Background, Color,
     border::{self, Border},
-    theme,
-    widget::container,
 };
+use iced_widget::container;
 
 use crate::style::thema::Thema;
 
@@ -74,24 +73,27 @@ impl Container {
     pub const fn hintergrund_grau_transparent(grau: f32, alpha: f32) -> Container {
         Container::Hintergrund { farbe: Color::from_rgba(grau, grau, grau, alpha) }
     }
-}
 
-impl From<Container> for container::Style {
-    fn from(value: Container) -> Self {
-        // TODO: Re-introduce Theme handling
-        // Thema::Hell      => Some(Color::BLACK),
-        // Thema::Dunkel    => Some(Color::WHITE),
-        let pcf8474_text_farbe = Color::BLACK;
-        let mut style = container::Style::default();
-        if let Container::Hintergrund { farbe } = value {
-            style = style.background(Background::Color(farbe))
-        }
-        if let Container::Rand { farbe, breite, radius } = value {
-            style = style.border(Border { color: farbe, width: breite, radius });
-        }
-        if let Container::Pcf8574Beschreibung = value {
-            style = style.color(pcf8474_text_farbe);
-        }
-        style
+    #[must_use]
+    pub fn style(&self) -> container::StyleFn<'_, Thema> {
+        Box::new(|thema| {
+            let default_style = <Thema as container::Catalog>::default()(thema);
+            match self {
+                Container::Standard => default_style,
+                Container::Hintergrund { farbe } => {
+                    default_style.background(Background::Color(*farbe))
+                },
+                Container::Rand { farbe, breite, radius } => {
+                    default_style.border(Border { color: *farbe, width: *breite, radius: *radius })
+                },
+                Container::Pcf8574Beschreibung => {
+                    let pcf8474_text_farbe = match thema {
+                        Thema::Hell => Color::BLACK,
+                        Thema::Dunkel => Color::WHITE,
+                    };
+                    default_style.color(pcf8474_text_farbe)
+                },
+            }
+        })
     }
 }
