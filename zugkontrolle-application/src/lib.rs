@@ -7,12 +7,17 @@ use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
-    sync::mpsc::{Sender, channel},
+    sync::{
+        Arc,
+        mpsc::{Sender, channel},
+    },
     time::Instant,
 };
 
 use flexi_logger::FlexiLoggerError;
-use iced::{Element, Renderer, Subscription, Task, application::Application, executor};
+use iced::{Element, Renderer, Settings, Size, Subscription, Task, window};
+use iced_futures::subscription;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
@@ -29,15 +34,15 @@ use zugkontrolle_gleise::{Gleise, daten::v2::geschwindigkeit::BekannterZugtyp};
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
 use zugkontrolle_widget::{
     auswahl::AuswahlZustand,
-    bewegen,
-    bewegen::{Bewegen, Bewegung},
+    bewegen::{self, Bewegen, Bewegung},
     drehen::Drehen,
+    fonts,
     geschwindigkeit::LeiterAnzeige,
     speichern_laden,
     style::{self, thema::Thema},
 };
 
-use crate::{empfänger::Empfänger, nachricht::Nachricht};
+use crate::{empfänger::Empfänger, icon::icon, nachricht::Nachricht};
 
 #[path = "empfänger.rs"]
 pub mod empfänger;
@@ -66,7 +71,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     /// Alle Gleise, Streckenabschnitte, und Geschwindigkeiten.
     gleise: Gleise<L, Nachricht<L, S>>,
     /// Noch verfügbare Anschlüsse.
-    lager: Lager,
+    lager: Arc<RwLock<Lager>>,
     /// Der Stil für verwendete [`Scrollable-Widgets`](iced::widget::Scrollable)
     scrollable_style: style::sammlung::Sammlung,
     /// Aktivierte [`I2C-Busse`](crate::anschluss::pcf8574::I2cBus).
@@ -108,10 +113,7 @@ pub enum Fehler {
     Anschluss(InitFehler),
 }
 
-/// Flags für den [`Application`]-Trait.
-pub type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>);
-
-impl<L, S> Application for Zugkontrolle<L, S>
+impl<L, S> Zugkontrolle<L, S>
 where
     L: 'static
         + Debug
@@ -133,15 +135,40 @@ where
     S: From<<L as BekannterZugtyp>::V2>,
     for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
-    type Executor = executor::Default;
-    type Flags = Flags<L>;
-    type Message = Nachricht<L, S>;
-    type Theme = Thema;
+    pub fn application(
+        argumente: Argumente,
+        lager: Arc<RwLock<Lager>>,
+        zugtyp: &Zugtyp<L>,
+    ) -> iced::Application<impl iced::Program<State = Self, Message = Nachricht<L, S>, Theme = Thema>>
+    {
+        iced::application(
+            move || Zugkontrolle::new(argumente.clone(), lager.clone(), zugtyp.clone()),
+            Zugkontrolle::update,
+            Zugkontrolle::view,
+        )
+        .theme(Zugkontrolle::theme)
+        .subscription(Zugkontrolle::subscription)
+        .settings(Settings {
+            default_font: fonts::REGULAR,
+            fonts: fonts::benötigte_font_bytes(),
+            ..Settings::default()
+        })
+        .centered()
+        .window(window::Settings {
+            size: Size { width: 800., height: 480. },
+            icon: icon(),
+            ..window::Settings::default()
+        })
+    }
 
-    fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Task<Self::Message>) {
+    pub fn new(
+        argumente: Argumente,
+        lager: Arc<RwLock<Lager>>,
+        zugtyp: Zugtyp<L>,
+    ) -> (Self, Task<Nachricht<L, S>>) {
         let Argumente { pfad, modus, thema, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
-        let lade_zustand: Task<Self::Message>;
+        let lade_zustand: Task<Nachricht<L, S>>;
         let initialer_pfad: String;
         if let Some(pfad) = pfad {
             lade_zustand = Nachricht::Laden(pfad.clone()).als_task();
@@ -187,11 +214,11 @@ where
         (zugkontrolle, lade_zustand)
     }
 
-    fn title(&self) -> String {
+    pub fn title(&self) -> String {
         format!("Zugkontrolle {}", env!("zugkontrolle_version"))
     }
 
-    fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
+    pub fn update(&mut self, message: Nachricht<L, S>) -> Task<Nachricht<L, S>> {
         let mut command = Task::none();
 
         match message {
@@ -289,15 +316,15 @@ where
         command
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Thema, Renderer> {
+    pub fn view(&self) -> Element<'_, Nachricht<L, S>, Thema, Renderer> {
         self.view_impl()
     }
 
-    fn theme(&self) -> Self::Theme {
+    pub fn theme(&self) -> Thema {
         self.thema
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
-        Subscription::from_recipe(self.empfänger.clone())
+    pub fn subscription(&self) -> Subscription<Nachricht<L, S>> {
+        subscription::from_recipe(self.empfänger.clone())
     }
 }

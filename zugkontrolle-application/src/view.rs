@@ -6,11 +6,11 @@ use enum_iterator::all;
 use iced::{
     Alignment, Element, Event, Length, Renderer, mouse, touch,
     widget::{
-        Button, Canvas, Column, Container, Row, Rule, Slider, Space, Text,
+        Button, Canvas, Column, Container, Row, Slider, Space, Text,
         scrollable::{self, Scrollable},
     },
 };
-use iced_widget::{PickList, scrollable::Scrollbar};
+use iced_widget::{PickList, rule, scrollable::Scrollbar};
 use itertools::Itertools;
 use log::debug;
 
@@ -39,7 +39,11 @@ use zugkontrolle_widget::{
     geschwindigkeit::LeiterAnzeige,
     modal::Modal,
     speichern_laden, streckenabschnitt,
-    style::{linie::TRENNLINIE, sammlung::Sammlung, thema::Thema},
+    style::{
+        linie::{StyleProvider as _, TRENNLINIE},
+        sammlung::{Sammlung, StyleProvider as _},
+        thema::Thema,
+    },
 };
 
 use crate::{
@@ -123,7 +127,7 @@ where
         let column = Element::from(
             Column::new()
                 .push(Element::from(top_row).map(Nachricht::from))
-                .push(Rule::horizontal(1).style(TRENNLINIE))
+                .push(rule::horizontal(1).style(TRENNLINIE.style_fn()))
                 .push(Element::from(row_mit_scrollable_und_canvas)),
         );
 
@@ -222,10 +226,10 @@ where
             Slider::new(-2.5..=1.5, aktueller_zoom.0.ln(), |exponent| {
                 NachrichtClone::Skalieren(Skalar(exponent.exp()))
             })
-            .step(0.01)
+            .step(0.01f32)
             .width(Length::Fixed(SKALIEREN_BREITE)),
         )
-        .align_items(Alignment::Center);
+        .align_x(Alignment::Center);
     let speichern_laden = speichern_laden::SpeichernLaden::neu(initialer_pfad, speichern_gefärbt);
     let mut row = Row::new()
         .push(Element::from(
@@ -369,12 +373,12 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
                             Scrollbar::new().scroller_width(scroller_width),
                         ))
                         .height(Length::Fill)
-                        .style(scrollable_style),
+                        .style(scrollable_style.style_fn()),
                 )
                 .map(Nachricht::from),
             )
             .width(width)
             .height(Length::Fill),
         )
-        .push(Rule::vertical(1).style(TRENNLINIE))
+        .push(rule::vertical(1).style(TRENNLINIE.style_fn()))
 }

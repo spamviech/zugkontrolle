@@ -151,7 +151,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
         // Streckenabschnitt hat nur einen Anschluss.
         // Nachdem dieser unterschiedlich ist, kann der aktuelle Anschluss ignoriert werden.
         let (anschluss, fehler) = match anschluss_definition.reserviere(
-            &mut self.lager,
+            &mut self.lager.write(),
             Anschlüsse::default(),
             (),
             &(),
@@ -307,7 +307,7 @@ where
         use SteuerungAktualisierenFehler::{GleisNichtGefunden, Reservieren};
         let mut fehlermeldung = None;
         let mut auswahlzustand_verstecken = false;
-        match self.gleise.anschlüsse_anpassen(&mut self.lager, anschlüsse_anpassen) {
+        match self.gleise.anschlüsse_anpassen(&mut self.lager.write(), anschlüsse_anpassen) {
             Ok(()) => {
                 auswahlzustand_verstecken = true;
             },
@@ -396,45 +396,46 @@ where
             };
         // anschlüsse, geschwindigkeit related über `reserviere`
         #[allow(clippy::shadow_unrelated)]
-        let (fehler, anschlüsse) =
-            match geschwindigkeit.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
-                Wert { anschluss: geschwindigkeit, .. } => {
-                    if let Some(serialisiert) = alt_serialisiert {
-                        self.aktualisiere_message_box(Some(MessageBox {
-                            titel: format!("Geschwindigkeit {} anpassen", name.0),
-                            nachricht: format!(
-                                "Geschwindigkeit {} angepasst: {}",
-                                name.0, serialisiert
-                            ),
-                        }));
-                    };
-                    if let Some(bisher) =
-                        self.gleise.geschwindigkeit_hinzufügen(name, geschwindigkeit)
-                    {
-                        error!("Geschwindigkeit {bisher} beim wiederherstellen überschrieben!");
-                    }
-                    return;
-                },
-                WertMitWarnungen { anschluss, fehler, mut anschlüsse } => {
-                    anschlüsse.anhängen(anschluss.anschlüsse());
-                    (fehler, anschlüsse)
-                },
-                Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
-            };
+        let reserviert =
+            geschwindigkeit.reserviere(&mut self.lager.write(), anschlüsse, (), &(), &mut ());
+        let (fehler, anschlüsse) = match reserviert {
+            Wert { anschluss: geschwindigkeit, .. } => {
+                if let Some(serialisiert) = alt_serialisiert {
+                    self.aktualisiere_message_box(Some(MessageBox {
+                        titel: format!("Geschwindigkeit {} anpassen", name.0),
+                        nachricht: format!(
+                            "Geschwindigkeit {} angepasst: {}",
+                            name.0, serialisiert
+                        ),
+                    }));
+                };
+                if let Some(bisher) = self.gleise.geschwindigkeit_hinzufügen(name, geschwindigkeit)
+                {
+                    error!("Geschwindigkeit {bisher} beim wiederherstellen überschrieben!");
+                }
+                return;
+            },
+            WertMitWarnungen { anschluss, fehler, mut anschlüsse } => {
+                anschlüsse.anhängen(anschluss.anschlüsse());
+                (fehler, anschlüsse)
+            },
+            Fehler { fehler, anschlüsse } => (fehler, anschlüsse),
+        };
 
         let mut fehlermeldung = format!("Fehler beim Hinzufügen: {fehler:?}");
         if let Some(serialisiert) = alt_serialisiert {
             let serialisiert_clone = serialisiert.clone();
-            let (ursprüngliche_geschwindigkeit, fehler_wiederherstellen) =
-                match serialisiert.reserviere(&mut self.lager, anschlüsse, (), &(), &mut ()) {
-                    Wert { anschluss, .. } => (Some(anschluss), None),
-                    WertMitWarnungen { anschluss, fehler: fehler_wiederherstellen, .. } => {
-                        (Some(anschluss), Some(fehler_wiederherstellen))
-                    },
-                    Fehler { fehler: fehler_wiederherstellen, .. } => {
-                        (None, Some(fehler_wiederherstellen))
-                    },
-                };
+            let (ursprüngliche_geschwindigkeit, fehler_wiederherstellen) = match serialisiert
+                .reserviere(&mut *self.lager.write(), anschlüsse, (), &(), &mut ())
+            {
+                Wert { anschluss, .. } => (Some(anschluss), None),
+                WertMitWarnungen { anschluss, fehler: fehler_wiederherstellen, .. } => {
+                    (Some(anschluss), Some(fehler_wiederherstellen))
+                },
+                Fehler { fehler: fehler_wiederherstellen, .. } => {
+                    (None, Some(fehler_wiederherstellen))
+                },
+            };
             if let Some(ursprüngliche_geschwindigkeit) = ursprüngliche_geschwindigkeit {
                 // Modal/AnzeigeZustand-Map muss nicht angepasst werden,
                 // nachdem nur wiederhergestellt wird
@@ -551,7 +552,7 @@ where
         S: From<<L as BekannterZugtyp>::V2>,
         <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
     {
-        let lade_ergebnis = self.gleise.laden(&mut self.lager, &pfad);
+        let lade_ergebnis = self.gleise.laden(&mut self.lager.write(), &pfad);
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {
             self.aktualisiere_message_box(Some(MessageBox {

@@ -63,6 +63,7 @@ zugkontrolle-argumente.workspace = true
 flexi_logger.workspace = true
 iced.workspace = true
 log.workspace = true
+parking_lot.workspace = true
 
 # can't be used on non-raspi systems
 [dependencies.rppal]
@@ -384,3 +385,6 @@ features = ["parsing", "full", "extra-traits"]
 
 #[workspace.dependencies.libcamera]
 #version = "0.2.3"
+
+# TODO replace bincode-next feature "serde" with "derive"
+# TODO get rid of once-cell, Lazy is available in "std" now
