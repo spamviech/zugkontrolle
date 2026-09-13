@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle-lizenzen-macros"
-version = "1.0.0"
+version = "1.1.0"
 authors.workspace = true
 readme.workspace = true
 edition.workspace = true
@@ -12,6 +12,10 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 proc-macro = true
+
+[features]
+default = []
+allow-missing = []
 
 [lints]
 workspace = true

@@ -4027,7 +4027,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-lizenzen-macros"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "cargo_metadata",
  "proc-macro2",

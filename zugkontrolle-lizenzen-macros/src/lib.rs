@@ -153,12 +153,29 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     (token_stream, fehlermeldungen)
 }
 
+fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
+    #[cfg(not(feature = "allow-missing"))]
+    return quote! {{
+        compile_error!(#fehlermeldung);
+    }};
+    // Use #[must_use = "message"] to trigger a warning.
+    // https://internals.rust-lang.org/t/pre-rfc-add-compile-warning-macro/9370/7
+    #[cfg(feature = "allow-missing")]
+    return quote! {{
+        #[must_use = #fehlermeldung]
+        struct compile_warning;
+        #[allow(dead_code)]
+        fn trigger_warning () { compile_warning; }
+    }};
+}
+
 /// [`crate::target_crate_lizenzen`]
 pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> TokenStream {
     if !input.is_empty() {
-        let fehlermeldung = format!("No argument supported, but \"{input}\" was given.");
+        let fehlermeldung =
+            quote_fehlermeldung(&format!("No argument supported, but \"{input}\" was given."));
         return quote! {{
-            compile_error!(#fehlermeldung);
+            #fehlermeldung
             []
         }};
     }
@@ -167,7 +184,10 @@ pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> T
             let mut output = quote!();
             for target in targets {
                 let (crate_lizenzen, fehlermeldungen) = target_crate_lizenzen_impl(&target);
-                let compile_error = quote!(#(compile_error!(#fehlermeldungen);)*);
+                let quoted = fehlermeldungen.iter().map(String::as_str).map(quote_fehlermeldung);
+                let compile_error = quote! {#(
+                    #quoted
+                )*};
                 output = quote!(
                     #output
                     #[cfg(zugkontrolle_target = #target)]
@@ -179,8 +199,9 @@ pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> T
             quote!({#output})
         },
         Err(fehlermeldung) => {
+            let quoted = quote_fehlermeldung(&fehlermeldung);
             quote! {{
-                compile_error!(#fehlermeldung);
+                #quoted
                 []
             }}
         },
