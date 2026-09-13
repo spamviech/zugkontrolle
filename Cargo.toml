@@ -46,9 +46,11 @@ lto = "thin"
 panic = "abort"
 
 [features]
-default = []
+default = ["wgpu"]
 # Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
 raspi = ["zugkontrolle-anschluss/raspi"]
+# Add the iced wgpu feature for rendering.
+wgpu = ["zugkontrolle-application/wgpu"]
 
 [lints]
 workspace = true
@@ -370,6 +372,12 @@ features = ["geometry"]
 version = "0.14.1"
 default-features = false
 features = ["card", "tab_bar", "tabs", "number_input"]
+
+[profile.dev.package.iced_aw]
+# x86_64-pc-windows-gnu has linker issues without this when enabling the "wgpu" feature
+# mingw32/bin/ld.exe: error: export ordinal too large: 78666
+opt-level = 2
+debug = false
 
 [workspace.dependencies.rppal]
 default-features = false

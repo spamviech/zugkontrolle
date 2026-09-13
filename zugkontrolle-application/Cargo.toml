@@ -10,6 +10,10 @@ rust-version.workspace = true
 repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = []
+# Add the iced wgpu feature for rendering.
+wgpu = ["iced/wgpu"]
 
 [dependencies]
 zugkontrolle-anschluss.workspace = true
