@@ -146,6 +146,7 @@ where
             Zugkontrolle::update,
             Zugkontrolle::view,
         )
+        .title(Zugkontrolle::title)
         .theme(Zugkontrolle::theme)
         .subscription(Zugkontrolle::subscription)
         .settings(Settings {
@@ -153,12 +154,12 @@ where
             fonts: fonts::benötigte_font_bytes(),
             ..Settings::default()
         })
-        .centered()
         .window(window::Settings {
             size: Size { width: 800., height: 480. },
             icon: icon(),
             ..window::Settings::default()
         })
+        .centered()
     }
 
     pub fn new(
