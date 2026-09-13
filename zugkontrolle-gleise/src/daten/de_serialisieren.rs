@@ -813,7 +813,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 reason = "bytes at maximum length of the slice"
             )]
             let trailing_bytes = slice.len() - bytes;
-            if trailing_bytes == 0 {
+            if trailing_bytes > 0 {
                 Err(DecodeError::TrailingBytes(trailing_bytes))
             } else {
                 Ok(decoded)
