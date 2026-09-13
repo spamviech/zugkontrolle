@@ -4,7 +4,7 @@ use either::Either;
 use log::error;
 use nonempty::NonEmpty;
 
-use crate::{pwm, Fehler, InputAnschluss, Lager, OutputAnschluss};
+use crate::{Fehler, InputAnschluss, Lager, OutputAnschluss, pwm};
 
 /// Alle [`Anschlüsse`](anschluss::Anschluss).
 #[derive(Debug, Default)]
@@ -252,11 +252,7 @@ where
     }
 
     fn anschlüsse(self) -> Anschlüsse {
-        if let Some(reserviert) = self {
-            reserviert.anschlüsse()
-        } else {
-            Anschlüsse::default()
-        }
+        if let Some(reserviert) = self { reserviert.anschlüsse() } else { Anschlüsse::default() }
     }
 }
 

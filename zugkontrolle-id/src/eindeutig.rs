@@ -1,18 +1,18 @@
 //! Erzeuge eindeutige [`Ids`](Id).
 
 use std::{
-    any::{type_name, TypeId},
+    any::{TypeId, type_name},
     cmp::Ordering,
     collections::{
-        btree_map::{BTreeMap, Entry},
         BTreeSet,
+        btree_map::{BTreeMap, Entry},
     },
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
 
 use log::{error, trace};
-use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard, const_mutex};
 use thiserror::Error;
 
 /// Zahlen-typ, der über [`Id::repräsentation`] erhalten werden kann.
@@ -155,7 +155,7 @@ mod test {
 
     use std::collections::HashSet;
 
-    use zugkontrolle_test_util::{expect_eq, expect_true, init_test_logging, Expectation};
+    use zugkontrolle_test_util::{Expectation, expect_eq, expect_true, init_test_logging};
 
     #[test]
     fn eindeutig() -> Result<(), Expectation> {

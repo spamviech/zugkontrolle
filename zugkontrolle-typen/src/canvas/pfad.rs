@@ -6,7 +6,7 @@ use std::{
 };
 
 use iced_core::{Point, Radians};
-use iced_graphics::geometry::{path, Path};
+use iced_graphics::geometry::{Path, path};
 
 use crate::{
     skalar::Skalar,

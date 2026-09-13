@@ -1,6 +1,6 @@
 //! Ein analog zu [`enumerate`](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
 
-use num_traits::{bounds::LowerBounded, CheckedAdd, One};
+use num_traits::{CheckedAdd, One, bounds::LowerBounded};
 
 /// Ein analog zu [`enumerate`](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
 ///

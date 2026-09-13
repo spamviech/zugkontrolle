@@ -3,11 +3,11 @@
 use serde::Deserialize;
 
 use zugkontrolle_anschluss::{
+    InputSerialisiert as V4_InputSerialisiert, OutputSerialisiert as V4_OutputSerialisiert,
     level::Level,
     pcf8574::{self, I2cBus},
     polarität::Polarität,
     trigger::Trigger,
-    InputSerialisiert as V4_InputSerialisiert, OutputSerialisiert as V4_OutputSerialisiert,
 };
 use zugkontrolle_gleis::steuerung::kontakt;
 use zugkontrolle_util::eingeschränkt::kleiner_8;

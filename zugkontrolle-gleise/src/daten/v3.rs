@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fmt::Debug};
 
-use associated_list::{entry::Entry, AssocList};
+use associated_list::{AssocList, entry::Entry};
 use log::error;
 use serde::Deserialize;
 

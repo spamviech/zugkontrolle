@@ -7,11 +7,11 @@ use std::{
 };
 
 use iced_core::{
+    Element,
     event::{self},
     renderer::Renderer,
-    Element,
 };
-use iced_widget::{component, Component};
+use iced_widget::{Component, component};
 
 use crate::flat_map::FlatMap;
 

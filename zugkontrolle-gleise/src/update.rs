@@ -202,53 +202,53 @@ where
         },
     };
     if cursor.is_over(bounds)
-        && let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            let gleis_an_position = zustand.gleis_an_position(canvas_pos);
-            match modus {
-                ModusDaten::Bauen { gehalten: _, letzter_klick } => {
-                    let now = Instant::now();
-                    nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(
+        && let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren)
+    {
+        let gleis_an_position = zustand.gleis_an_position(canvas_pos);
+        match modus {
+            ModusDaten::Bauen { gehalten: _, letzter_klick } => {
+                let now = Instant::now();
+                nachrichten.push(Nachricht::from(ZustandAktualisierenEnum::LetzterKlick(
+                    aktueller_klick,
+                    now,
+                )));
+                if let Some(GleisAnPosition {
+                    id_steuerung,
+                    position: halte_position,
+                    winkel,
+                    streckenabschnitt: _,
+                }) = gleis_an_position
+                {
+                    aktion_bauen(
+                        &mut nachrichten,
+                        id_steuerung,
                         aktueller_klick,
                         now,
-                    )));
-                    if let Some(GleisAnPosition {
-                        id_steuerung,
-                        position: halte_position,
+                        letzter_klick,
+                        halte_position,
                         winkel,
-                        streckenabschnitt: _,
-                    }) = gleis_an_position
-                    {
-                        aktion_bauen(
-                            &mut nachrichten,
-                            id_steuerung,
-                            aktueller_klick,
-                            now,
-                            letzter_klick,
-                            halte_position,
-                            winkel,
-                        );
+                    );
+                    status = EventStatus::Captured;
+                }
+            },
+            ModusDaten::Fahren => {
+                if let Some(GleisAnPosition {
+                    id_steuerung,
+                    position: _,
+                    winkel: _,
+                    streckenabschnitt,
+                }) = gleis_an_position
+                {
+                    let nachricht = aktion_fahren(id_steuerung, streckenabschnitt, sender.clone());
+
+                    if let Some(nachricht) = nachricht {
+                        nachrichten.push(nachricht);
                         status = EventStatus::Captured;
                     }
-                },
-                ModusDaten::Fahren => {
-                    if let Some(GleisAnPosition {
-                        id_steuerung,
-                        position: _,
-                        winkel: _,
-                        streckenabschnitt,
-                    }) = gleis_an_position
-                    {
-                        let nachricht =
-                            aktion_fahren(id_steuerung, streckenabschnitt, sender.clone());
-
-                        if let Some(nachricht) = nachricht {
-                            nachrichten.push(nachricht);
-                            status = EventStatus::Captured;
-                        }
-                    }
-                },
-            }
+                }
+            },
         }
+    }
     (status, nachrichten)
 }
 
@@ -293,23 +293,23 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             },
         };
         if let ModusDaten::Bauen { gehalten, .. } = &self.modus
-            && let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle) {
-                let gleis_id = gleis_steuerung.id();
-                if *bewegt {
-                    if !cursor.is_over(bounds) {
-                        messages.push(Nachricht::from(ZustandAktualisierenEnum::GleisEntfernen(
-                            gleis_id,
-                        )));
-                    }
-                } else {
-                    // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
-                    messages.push(Nachricht::SetzeStreckenabschnitt(gleis_id));
+            && let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle)
+        {
+            let gleis_id = gleis_steuerung.id();
+            if *bewegt {
+                if !cursor.is_over(bounds) {
+                    messages
+                        .push(Nachricht::from(ZustandAktualisierenEnum::GleisEntfernen(gleis_id)));
                 }
-                messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(
-                    quelle, None,
-                )));
-                *event_status = EventStatus::Captured;
+            } else {
+                // setze Streckenabschnitt, falls Maus (von ButtonPressed) nicht bewegt
+                messages.push(Nachricht::SetzeStreckenabschnitt(gleis_id));
             }
+            messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenAktualisieren(
+                quelle, None,
+            )));
+            *event_status = EventStatus::Captured;
+        }
     }
 
     /// Behandle ein [`mouse::Event::CursorMoved`]-, oder [`touch::Event::FingerMoved`]-Event.
@@ -336,11 +336,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 )));
             }
             if let ModusDaten::Bauen { gehalten, .. } = &self.modus
-                && gehalten.contains_key(&quelle) {
-                    messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
-                        quelle, canvas_pos,
-                    )));
-                }
+                && gehalten.contains_key(&quelle)
+            {
+                messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
+                    quelle, canvas_pos,
+                )));
+            }
             *event_status = EventStatus::Captured;
         }
     }

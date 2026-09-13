@@ -4,8 +4,8 @@ use std::{
     fmt::Debug,
     hash::Hash,
     mem,
-    sync::{mpsc::Sender, Arc},
-    thread::{sleep, JoinHandle},
+    sync::{Arc, mpsc::Sender},
+    thread::{JoinHandle, sleep},
     time::Duration,
 };
 
@@ -14,11 +14,11 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    Fehler, Lager, OutputAnschluss,
     de_serialisieren::{self, Anschlüsse, Reserviere, Serialisiere},
     polarität::Fließend,
-    Fehler, Lager, OutputAnschluss,
 };
-use zugkontrolle_typen::{nachschlagen::Nachschlagen, MitName};
+use zugkontrolle_typen::{MitName, nachschlagen::Nachschlagen};
 
 use crate::{
     steuerung::aktualisieren::{self, SomeAktualisierenSender},
@@ -162,13 +162,13 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
         }
         // Reserviere die Anschlüsse bis der gesamte Schaltvorgang abgeschlossen ist.
         let mut anschlüsse_guard = anschlüsse.lock();
-        bei_fehler_zurücksetzen!(anschlüsse_guard
-            .erhalte_mut(&neue_richtung)
-            .einstellen(Fließend::Fließend));
+        bei_fehler_zurücksetzen!(
+            anschlüsse_guard.erhalte_mut(&neue_richtung).einstellen(Fließend::Fließend)
+        );
         sleep(schalten_zeit);
-        bei_fehler_zurücksetzen!(anschlüsse_guard
-            .erhalte_mut(&neue_richtung)
-            .einstellen(Fließend::Gesperrt));
+        bei_fehler_zurücksetzen!(
+            anschlüsse_guard.erhalte_mut(&neue_richtung).einstellen(Fließend::Gesperrt)
+        );
         Ok(())
     }
 }

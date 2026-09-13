@@ -1,11 +1,11 @@
 //! Erzeuge Type-Alias für das letzte Generic.
 
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{
-    punctuated::Punctuated, token::Comma, Field, Fields, FieldsNamed, GenericParam, Ident,
-    ItemStruct, Path, PathSegment, Type, TypeParam, TypePath, Visibility,
+    Field, Fields, FieldsNamed, GenericParam, Ident, ItemStruct, Path, PathSegment, Type,
+    TypeParam, TypePath, Visibility, punctuated::Punctuated, token::Comma,
 };
 
 /// Teile Felder in deren Typ der Generic-Ident vorkommt/nicht vorkommt.

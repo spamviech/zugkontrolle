@@ -41,21 +41,13 @@ impl Skalar {
     /// Kopie des größeren Elements.
     #[must_use]
     pub fn max(&self, other: &Self) -> Self {
-        if self > other {
-            *self
-        } else {
-            *other
-        }
+        if self > other { *self } else { *other }
     }
 
     /// Kopie des kleineren Elements.
     #[must_use]
     pub fn min(&self, other: &Self) -> Self {
-        if self < other {
-            *self
-        } else {
-            *other
-        }
+        if self < other { *self } else { *other }
     }
 
     /// Returns a number that represents the sign of self.
@@ -66,11 +58,7 @@ impl Skalar {
     /// - `NaN` if the number is `NaN`
     #[must_use]
     pub fn signum(&self) -> Self {
-        if *self == Skalar(0.) {
-            Skalar(0.)
-        } else {
-            Skalar(self.0.signum())
-        }
+        if *self == Skalar(0.) { Skalar(0.) } else { Skalar(self.0.signum()) }
     }
 }
 

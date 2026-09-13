@@ -3,9 +3,9 @@
 use std::collections::HashSet;
 
 use iced::{
+    Renderer,
     mouse::Cursor,
     widget::canvas::{Geometry, Program},
-    Renderer,
 };
 use nonempty::NonEmpty;
 
@@ -15,14 +15,13 @@ use zugkontrolle_gleis::{
     steuerung::{aktualisieren::Aktualisieren, geschwindigkeit::Leiter},
 };
 use zugkontrolle_typen::{
-    canvas::{pfad::Transformation, Frame, Position},
     Transparenz,
+    canvas::{Frame, Position, pfad::Transformation},
 };
 
 use crate::{
-    knopf,
+    Gleise, ModusDaten, knopf,
     nachricht::{Gehalten, Nachricht},
-    Gleise, ModusDaten,
 };
 
 /// Führe die notwendigen [`Transformationen`](Transformation) aus,

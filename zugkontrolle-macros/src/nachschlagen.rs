@@ -1,10 +1,10 @@
 //! Derive of `zugkontrolle::lookup::Lookup` from an enum by creating an associated Elements struct
 
 use heck::ToSnakeCase;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
-use syn::{punctuated::Punctuated, token::Comma, ItemEnum, Path};
+use syn::{ItemEnum, Path, punctuated::Punctuated, token::Comma};
 
 /// [`crate::nachschlagen`]
 pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum) -> TokenStream {

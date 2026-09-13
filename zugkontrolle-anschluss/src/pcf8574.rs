@@ -11,7 +11,7 @@ use std::{
     sync::Arc,
 };
 
-use enum_iterator::{all, Sequence};
+use enum_iterator::{Sequence, all};
 use itertools::iproduct;
 use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
@@ -20,12 +20,12 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_util::{
-    eingeschränkt::{kleiner_128, kleiner_8},
+    eingeschränkt::{kleiner_8, kleiner_128},
     enumerate_checked::EnumerateCheckedExt,
 };
 
 use crate::{
-    pin::{self, input, Pin},
+    pin::{self, Pin, input},
     rpi_pal::{
         gpio,
         i2c::{self, I2c},

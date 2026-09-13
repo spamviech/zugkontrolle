@@ -17,7 +17,6 @@ use iced_core::{
 };
 use iced_widget::container::{self, Container};
 
-
 /// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
 pub struct Modal<'a, Nachricht, Thema, R> {
     /// Das normal angezeigte Element.
@@ -213,7 +212,10 @@ where
                 repeat: _,
             }),
             Some(erzeuge_schließen_nachricht),
-        ) = (event, &self.schließe_bei_esc) { shell.publish(erzeuge_schließen_nachricht()) }
+        ) = (event, &self.schließe_bei_esc)
+        {
+            shell.publish(erzeuge_schließen_nachricht())
+        }
     }
 
     fn overlay<'s>(

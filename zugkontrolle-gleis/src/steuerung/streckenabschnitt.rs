@@ -9,9 +9,9 @@ use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    Fehler, Lager, OutputAnschluss, OutputSerialisiert,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     polarität::Fließend,
-    Fehler, Lager, OutputAnschluss, OutputSerialisiert,
 };
 use zugkontrolle_typen::farbe::Farbe;
 

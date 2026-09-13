@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
+    Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     pin::Pin as EinPin,
     polarität::Polarität,
     rpi_pal::{gpio, pwm},
-    Lager,
 };
 
 /// Hard- oder Software-erzeugtes Pwm-Signal. Erlaubt exklusive Steuerung der zugehörigen Pins.

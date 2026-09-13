@@ -18,7 +18,7 @@ use log::{debug, error};
 #[cfg(not(feature = "raspi"))]
 use num_traits::NumCast;
 #[cfg(not(feature = "raspi"))]
-use parking_lot::{const_rwlock, RwLock, RwLockWriteGuard};
+use parking_lot::{RwLock, RwLockWriteGuard, const_rwlock};
 
 #[cfg(not(feature = "raspi"))]
 /// Aktuell verfügbare Hardware-[`Pwm`] Kanälen.
@@ -84,7 +84,10 @@ impl Drop for Pwm {
         let pwm = guard.write_channel(self.channel);
         match pwm {
             Some(pwm) => {
-                error!("Dropped pwm channel {:?} was still available: {:?}\nDropped without restoring: {:?}", self.channel, pwm,self);
+                error!(
+                    "Dropped pwm channel {:?} was still available: {:?}\nDropped without restoring: {:?}",
+                    self.channel, pwm, self
+                );
             },
             None => {
                 *pwm = Some(Pwm {
@@ -228,11 +231,7 @@ impl Pwm {
     /// Returns the frequency of the pwm pulse.
     pub fn frequency(&self) -> Result<f64> {
         let period = <f64 as NumCast>::from(self.period.as_nanos()).unwrap_or_default();
-        if period > 0.0 {
-            Ok(NANOS_PER_SEC / period)
-        } else {
-            Ok(0.0)
-        }
+        if period > 0.0 { Ok(NANOS_PER_SEC / period) } else { Ok(0.0) }
     }
 
     /// Sets the frequency and duty cycle.
@@ -255,11 +254,7 @@ impl Pwm {
     /// Returns the duty cycle of the pwm pulse.
     pub fn duty_cycle(&self) -> Result<f64> {
         let period = self.period.as_secs_f64();
-        if period > 0.0 {
-            Ok(self.pulse_width.as_secs_f64() / period)
-        } else {
-            Ok(0.0)
-        }
+        if period > 0.0 { Ok(self.pulse_width.as_secs_f64() / period) } else { Ok(0.0) }
     }
 
     /// Sets the duty cycle.

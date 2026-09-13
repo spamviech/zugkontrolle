@@ -228,9 +228,15 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
                 self.streckenabschnitt_aktuell
                     .as_ref()
                     .map(|(streckenabschnitt_name, _farbe)| streckenabschnitt_name.clone()),
-            ) {
-                self.aktualisiere_message_box(Some(MessageBox {titel:                    String::from("Gleis entfernt"),nachricht:                    format!("Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {fehler:?}"),}));
-            }
+            )
+        {
+            self.aktualisiere_message_box(Some(MessageBox {
+                titel: String::from("Gleis entfernt"),
+                nachricht: format!(
+                    "Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {fehler:?}"
+                ),
+            }));
+        }
     }
 
     /// Einstellen ob anklicken eines Gleises dessen [`Streckenabschnitt`] zum
@@ -242,9 +248,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     /// Setze die Farbe des Speichern-Knopfes zurück.
     pub fn entferne_speichern_farbe(&mut self, nachricht_zeit: Instant) {
         if let Some((_gefärbt, färbe_zeit)) = self.speichern_gefärbt
-            && nachricht_zeit == färbe_zeit {
-                self.speichern_gefärbt = None;
-            }
+            && nachricht_zeit == färbe_zeit
+        {
+            self.speichern_gefärbt = None;
+        }
     }
 
     /// Beende die Bewegung des Pivot-Punktes.

@@ -4,7 +4,7 @@ use std::iter::once;
 
 use proc_macro2::{TokenStream, TokenTree};
 use quote::{format_ident, quote};
-use syn::{parse2, Ident, ItemEnum, Variant, Visibility};
+use syn::{Ident, ItemEnum, Variant, Visibility, parse2};
 
 /// Parse die Macro-Argumente.
 fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), Vec<String>> {
@@ -46,11 +46,7 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     if !acc.is_empty() {
         parse_acc(&mut acc);
     }
-    if errors.is_empty() {
-        Ok((arg_vis, arg_ident))
-    } else {
-        Err(errors)
-    }
+    if errors.is_empty() { Ok((arg_vis, arg_ident)) } else { Err(errors) }
 }
 
 /// [`crate::erstelle_enum`]

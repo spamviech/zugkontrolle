@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 
 use syn::{
-    parse::Parser, punctuated::Punctuated, token::Plus, Attribute, Error, Field, GenericParam,
-    Generics, Ident, LifetimeParam, Meta, MetaList, Path, PathSegment, Token, Type, TypeParamBound,
-    TypePath, WherePredicate,
+    Attribute, Error, Field, GenericParam, Generics, Ident, LifetimeParam, Meta, MetaList, Path,
+    PathSegment, Token, Type, TypeParamBound, TypePath, WherePredicate, parse::Parser,
+    punctuated::Punctuated, token::Plus,
 };
 
 /// Markiere die generischen Typen mit `true`, die im `fields`-Iterator vorkommen.
@@ -17,9 +17,10 @@ pub(crate) fn mark_fields_generic<'t, T>(
     for field in fields {
         if let Type::Path(TypePath { path: Path { segments, .. }, .. }) = &field.ty
             && let Some(PathSegment { ident, .. }) = segments.first()
-                && let Some((_, gefunden)) = generic_types.get_mut(ident) {
-                    *gefunden = true;
-                }
+            && let Some((_, gefunden)) = generic_types.get_mut(ident)
+        {
+            *gefunden = true;
+        }
     }
 }
 

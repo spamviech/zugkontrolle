@@ -2,11 +2,7 @@
 
 use std::{borrow::Cow, include_bytes};
 
-use iced::{
-    Font, Pixels, Point,
-    alignment::Vertical,
-    widget::canvas::Text,
-};
+use iced::{Font, Pixels, Point, alignment::Vertical, widget::canvas::Text};
 use iced_core::text::Alignment;
 
 /// Schriftart ohne zusätzliche Eigenschaften.

@@ -5,13 +5,13 @@ use std::iter;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    punctuated::{self},
     Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, Ident, Token,
     Variant, WhereClause,
+    punctuated::{self},
 };
 
 use crate::util::{
-    mark_fields_generic, parse_attributes, partitioniere_generics, PartitionierteGenericParameter,
+    PartitionierteGenericParameter, mark_fields_generic, parse_attributes, partitioniere_generics,
 };
 
 /// Erzeuge den Funktions-Körper (die Implementierung) für die `clone`-Methode.

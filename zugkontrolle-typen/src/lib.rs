@@ -4,7 +4,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use crate::{
-    canvas::{pfad::Pfad, Position},
+    canvas::{Position, pfad::Pfad},
     farbe::Farbe,
     mm::Spurweite,
     nachschlagen::Nachschlagen,
@@ -41,11 +41,7 @@ impl Transparenz {
     /// ansonsten [`Volle`](Transparenz::Voll) Transparenz.
     #[must_use]
     pub fn true_reduziert(input: bool) -> Transparenz {
-        if input {
-            Transparenz::Reduziert
-        } else {
-            Transparenz::Voll
-        }
+        if input { Transparenz::Reduziert } else { Transparenz::Voll }
     }
 
     /// Kombiniere zwei Transparenz-Werte.

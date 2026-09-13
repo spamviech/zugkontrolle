@@ -5,12 +5,12 @@ use std::iter;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    punctuated, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, Ident,
-    Index, Token, Variant, WhereClause,
+    Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, Ident, Index,
+    Token, Variant, WhereClause, punctuated,
 };
 
 use crate::util::{
-    mark_fields_generic, parse_attributes, partitioniere_generics, PartitionierteGenericParameter,
+    PartitionierteGenericParameter, mark_fields_generic, parse_attributes, partitioniere_generics,
 };
 
 /// Erzeuge den Funktions-Körper (die Implementierung) für die `fmt`-Methode.

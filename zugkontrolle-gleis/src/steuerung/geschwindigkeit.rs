@@ -5,8 +5,8 @@ use std::{
     hash::Hash,
     marker::PhantomData,
     ops::DerefMut,
-    sync::{mpsc::Sender, Arc},
-    thread::{sleep, JoinHandle},
+    sync::{Arc, mpsc::Sender},
+    thread::{JoinHandle, sleep},
     time::Duration,
 };
 
@@ -16,10 +16,10 @@ use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    Lager, OutputAnschluss, OutputSerialisiert,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     pin::pwm,
     polarität::{Fließend, Polarität},
-    Lager, OutputAnschluss, OutputSerialisiert,
 };
 use zugkontrolle_util::{
     eingeschränkt::{NichtNegativ, NullBisEins},

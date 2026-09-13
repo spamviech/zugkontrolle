@@ -4,7 +4,7 @@
 use std::fmt::{self, Debug, Formatter};
 
 #[cfg(not(feature = "raspi"))]
-use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard, const_mutex};
 
 #[cfg(feature = "raspi")]
 // wird nur für die Fallback-Implementierung benötigt.

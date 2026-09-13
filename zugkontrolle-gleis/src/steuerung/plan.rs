@@ -12,7 +12,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
-    de_serialisieren::Serialisiere, polarität::Fließend, OutputAnschluss, OutputSerialisiert,
+    OutputAnschluss, OutputSerialisiert, de_serialisieren::Serialisiere, polarität::Fließend,
 };
 use zugkontrolle_typen::nachschlagen::Nachschlagen;
 use zugkontrolle_util::eingeschränkt::NichtNegativ;

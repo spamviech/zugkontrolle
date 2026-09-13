@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use zugkontrolle_test_util::{expect_eq, expect_gt, expect_ne, init_test_logging, Expectation};
+use zugkontrolle_test_util::{Expectation, expect_eq, expect_gt, expect_ne, init_test_logging};
 
 use crate::GleisId;
 

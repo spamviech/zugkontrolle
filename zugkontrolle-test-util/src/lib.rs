@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use flexi_logger::{LogSpecBuilder, Logger, LoggerHandle};
 use log::LevelFilter;
-use parking_lot::{const_mutex, Mutex};
+use parking_lot::{Mutex, const_mutex};
 use thiserror::Error;
 
 /// Hilfs-Variable für [`init_test_logging`].
@@ -54,11 +54,7 @@ pub struct ExpectTrue;
 #[allow(clippy::missing_errors_doc)]
 /// Gebe [Ok] zurück wenn der wert [true] ist, ansonsten [`Err`].
 pub fn expect_true(wert: bool) -> Result<(), ExpectTrue> {
-    if wert {
-        Ok(())
-    } else {
-        Err(ExpectTrue)
-    }
+    if wert { Ok(()) } else { Err(ExpectTrue) }
 }
 
 #[derive(Debug, Error)]

@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_anschluss::{level::Level, trigger::Trigger};
 use zugkontrolle_macros::alias_serialisiert_unit;
 use zugkontrolle_typen::{
+    Innerhalb, MitName, Transparenz, Zeichnen,
     canvas::{
-        pfad::{self, Bogen, Pfad, Transformation},
         Position,
+        pfad::{self, Bogen, Pfad, Transformation},
     },
     farbe::{self, Farbe},
     mm::{Länge, Spurweite},
@@ -19,7 +20,6 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt};

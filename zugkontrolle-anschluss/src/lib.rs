@@ -20,7 +20,7 @@ use crate::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     event::Event,
     level::Level,
-    pin::{input, output, pwm, Pin},
+    pin::{Pin, input, output, pwm},
     polarität::{Fließend, Polarität},
     trigger::Trigger,
 };
@@ -196,11 +196,7 @@ impl OutputAnschluss {
     /// Aktuelle Einstellung des [`OutputAnschlusses`](OutputAnschluss).
     #[must_use]
     pub fn fließend(&self) -> Fließend {
-        if self.ist_fließend() {
-            Fließend::Fließend
-        } else {
-            Fließend::Gesperrt
-        }
+        if self.ist_fließend() { Fließend::Fließend } else { Fließend::Gesperrt }
     }
 
     /// Ist der [`OutputAnschluss`] aktuell [`fließend`](Fließend::Fließend).
@@ -523,11 +519,7 @@ impl InputSerialisiert {
     /// sofern es sich um einen handelt und einer konfiguriert ist.
     #[must_use]
     pub fn interrupt(&self) -> Option<u8> {
-        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self {
-            *interrupt
-        } else {
-            None
-        }
+        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self { *interrupt } else { None }
     }
 }
 

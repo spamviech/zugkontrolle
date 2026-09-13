@@ -1,6 +1,6 @@
 //! Mehrfach verwendete Utility Funktionen.
 
-use iced::{mouse::Cursor, Rectangle};
+use iced::{Rectangle, mouse::Cursor};
 
 use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor};
 
