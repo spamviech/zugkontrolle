@@ -10,7 +10,7 @@ use iced_aw::{
 use iced_core::theme::{Base, Mode, Palette, Style, Theme};
 use iced_widget::{
     button, canvas::Text, checkbox, container, overlay::menu, pick_list, radio, rule, scrollable,
-    slider, text, text_input, vertical_slider,
+    slider, text, text_input,
 };
 use int_enum::IntEnum;
 
@@ -114,11 +114,11 @@ impl container::Catalog for Thema {
     type Class<'a> = container::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema| <Theme as container::Catalog>::default()(&Theme::from(*thema)))
     }
 
     fn style(&self, class: &Self::Class<'_>) -> container::Style {
-        todo!()
+        class(self)
     }
 }
 
@@ -126,11 +126,13 @@ impl button::Catalog for Thema {
     type Class<'a> = button::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as button::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(&self, class: &Self::Class<'_>, status: button::Status) -> button::Style {
-        todo!()
+        class(self, status)
     }
 }
 
@@ -138,243 +140,104 @@ impl rule::Catalog for Thema {
     type Class<'a> = rule::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema| <Theme as rule::Catalog>::default()(&Theme::from(*thema)))
     }
 
     fn style(&self, class: &Self::Class<'_>) -> rule::Style {
-        todo!()
+        class(self)
     }
 }
 
 impl checkbox::Catalog for Thema {
-    type Class<'a> = fn(&Thema, checkbox::Status) -> checkbox::Style;
+    type Class<'a> = checkbox::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as checkbox::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(&self, class: &Self::Class<'_>, status: checkbox::Status) -> checkbox::Style {
-        todo!()
+        class(self, status)
     }
-    // type Style = <Theme as checkbox::Catalog>::Style;
-
-    // fn active(&self, style: &Self::Style, is_checked: bool) -> checkbox::Appearance {
-    //     match self {
-    //         Thema::Hell => checkbox::Catalog::active(&Theme::Light, style, is_checked),
-    //         Thema::Dunkel => checkbox::Catalog::active(&Theme::Dark, style, is_checked),
-    //     }
-    // }
-
-    // fn hovered(&self, style: &Self::Style, is_checked: bool) -> checkbox::Appearance {
-    //     match self {
-    //         Thema::Hell => checkbox::Catalog::hovered(&Theme::Light, style, is_checked),
-    //         Thema::Dunkel => checkbox::Catalog::hovered(&Theme::Dark, style, is_checked),
-    //     }
-    // }
 }
 
 impl text::Catalog for Thema {
     type Class<'a> = text::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema| <Theme as text::Catalog>::default()(&Theme::from(*thema)))
     }
 
-    fn style(&self, item: &Self::Class<'_>) -> text::Style {
-        todo!()
+    fn style(&self, class: &Self::Class<'_>) -> text::Style {
+        class(self)
     }
-    // type Style = <Theme as text::Catalog>::Style;
-
-    // fn appearance(&self, style: Self::Style) -> text::Appearance {
-    //     match self {
-    //         Thema::Hell => text::Catalog::appearance(&Theme::Light, style),
-    //         Thema::Dunkel => text::Catalog::appearance(&Theme::Dark, style),
-    //     }
-    // }
 }
 
 impl text_input::Catalog for Thema {
-    type Class<'a> = fn(&Thema, text_input::Status) -> text_input::Style;
+    type Class<'a> = text_input::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as text_input::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(&self, class: &Self::Class<'_>, status: text_input::Status) -> text_input::Style {
-        todo!()
+        class(self, status)
     }
-    // type Style = <Theme as text_input::Catalog>::Style;
-
-    // fn active(&self, style: &Self::Style) -> text_input::Appearance {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::active(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::active(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn focused(&self, style: &Self::Style) -> text_input::Appearance {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::focused(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::focused(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn placeholder_color(&self, style: &Self::Style) -> iced_core::Color {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::placeholder_color(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::placeholder_color(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn value_color(&self, style: &Self::Style) -> iced_core::Color {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::value_color(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::value_color(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn disabled_color(&self, style: &Self::Style) -> iced_core::Color {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::disabled_color(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::disabled_color(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn selection_color(&self, style: &Self::Style) -> iced_core::Color {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::selection_color(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::selection_color(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn disabled(&self, style: &Self::Style) -> text_input::Appearance {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::disabled(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::disabled(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn hovered(&self, style: &Self::Style) -> text_input::Appearance {
-    //     match self {
-    //         Thema::Hell => text_input::Catalog::hovered(&Theme::Light, style),
-    //         Thema::Dunkel => text_input::Catalog::hovered(&Theme::Dark, style),
-    //     }
-    // }
 }
 
 impl card::Catalog for Thema {
-    type Class<'a> = container::StyleFn<'a, Thema>;
+    type Class<'a> = card::StyleFn<'a, Thema, card::Style>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| <Theme as card::Catalog>::default()(&Theme::from(*thema), status))
     }
 
     fn style(&self, class: &Self::Class<'_>, status: card::Status) -> card::Style {
-        todo!()
+        class(self, status)
     }
-    // type Style = <Theme as card::Catalog>::Style;
-
-    // fn active(&self, style: &Self::Style) -> card::Appearance {
-    //     match self {
-    //         Thema::Hell => card::Catalog::active(&Theme::Light, style),
-    //         Thema::Dunkel => card::Catalog::active(&Theme::Dark, style),
-    //     }
-    // }
 }
 
 impl slider::Catalog for Thema {
-    type Class<'a> = fn(&Thema, slider::Status) -> slider::Style;
+    type Class<'a> = slider::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as slider::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(&self, class: &Self::Class<'_>, status: slider::Status) -> slider::Style {
-        todo!()
+        class(self, status)
     }
-    // type Style = <Theme as slider::Catalog>::Style;
-
-    // fn active(&self, style: &Self::Style) -> vertical_slider::Appearance {
-    //     match self {
-    //         Thema::Hell => slider::Catalog::active(&Theme::Light, style),
-    //         Thema::Dunkel => slider::Catalog::active(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn hovered(&self, style: &Self::Style) -> vertical_slider::Appearance {
-    //     match self {
-    //         Thema::Hell => slider::Catalog::hovered(&Theme::Light, style),
-    //         Thema::Dunkel => slider::Catalog::hovered(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn dragging(&self, style: &Self::Style) -> vertical_slider::Appearance {
-    //     match self {
-    //         Thema::Hell => slider::Catalog::dragging(&Theme::Light, style),
-    //         Thema::Dunkel => slider::Catalog::dragging(&Theme::Dark, style),
-    //     }
-    // }
 }
 
 impl radio::Catalog for Thema {
-    type Class<'a> = container::StyleFn<'a, Thema>;
+    type Class<'a> = radio::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| <Theme as radio::Catalog>::default()(&Theme::from(*thema), status))
     }
 
     fn style(&self, class: &Self::Class<'_>, status: radio::Status) -> radio::Style {
-        todo!()
+        class(self, status)
     }
-    // type Style = <Theme as radio::Catalog>::Style;
-
-    // fn active(&self, style: &Self::Style, is_selected: bool) -> radio::Appearance {
-    //     match self {
-    //         Thema::Hell => radio::Catalog::active(&Theme::Light, style, is_selected),
-    //         Thema::Dunkel => radio::Catalog::active(&Theme::Dark, style, is_selected),
-    //     }
-    // }
-
-    // fn hovered(&self, style: &Self::Style, is_selected: bool) -> radio::Appearance {
-    //     match self {
-    //         Thema::Hell => radio::Catalog::hovered(&Theme::Light, style, is_selected),
-    //         Thema::Dunkel => radio::Catalog::hovered(&Theme::Dark, style, is_selected),
-    //     }
-    // }
 }
 
 impl number_input::Catalog for Thema {
-    type Class<'a> = container::StyleFn<'a, Thema>;
+    type Class<'a> = number_input::StyleFn<'a, Thema, number_input::Style>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as number_input::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(&self, class: &Self::Class<'_>, status: card::Status) -> number_input::Style {
-        todo!()
+        class(self, status)
     }
-    // type Style = <Theme as number_input::Catalog>::Style;
-
-    // fn active(&self, style: &Self::Style) -> number_input::Appearance {
-    //     match self {
-    //         Thema::Hell => number_input::Catalog::active(&Theme::Light, style),
-    //         Thema::Dunkel => number_input::Catalog::active(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn pressed(&self, style: &Self::Style) -> number_input::Appearance {
-    //     match self {
-    //         Thema::Hell => number_input::Catalog::pressed(&Theme::Light, style),
-    //         Thema::Dunkel => number_input::Catalog::pressed(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn disabled(&self, style: &Self::Style) -> number_input::Appearance {
-    //     match self {
-    //         Thema::Hell => number_input::Catalog::disabled(&Theme::Light, style),
-    //         Thema::Dunkel => number_input::Catalog::disabled(&Theme::Dark, style),
-    //     }
-    // }
 }
 
 impl style::number_input::ExtendedCatalog for Thema {
@@ -383,11 +246,7 @@ impl style::number_input::ExtendedCatalog for Thema {
         class: &<Self as number_input::Catalog>::Class<'_>,
         status: card::Status,
     ) -> number_input::Style {
-        todo!()
-    }
-
-    fn default_input<'a>() -> <Self as text_input::Catalog>::Class<'a> {
-        <Self as text_input::Catalog>::default()
+        class(self, status)
     }
 }
 
@@ -395,11 +254,13 @@ impl scrollable::Catalog for Thema {
     type Class<'a> = scrollable::StyleFn<'a, Thema>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as scrollable::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(&self, class: &Self::Class<'_>, status: scrollable::Status) -> scrollable::Style {
-        todo!()
+        class(self, status)
     }
 }
 
@@ -407,7 +268,9 @@ impl pick_list::Catalog for Thema {
     type Class<'a> = pick_list::StyleFn<'a, Thema>;
 
     fn default<'a>() -> <Self as pick_list::Catalog>::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as pick_list::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(
@@ -415,60 +278,36 @@ impl pick_list::Catalog for Thema {
         class: &<Self as pick_list::Catalog>::Class<'_>,
         status: pick_list::Status,
     ) -> pick_list::Style {
-        todo!()
+        class(self, status)
     }
 
     fn default_menu<'a>() -> <Self as menu::Catalog>::Class<'a> {
         <Self as menu::Catalog>::default()
     }
-    // type Style = <Theme as pick_list::Catalog>::Style;
-
-    // fn active(&self, style: &Self::Style) -> pick_list::Appearance {
-    //     match self {
-    //         Thema::Hell => pick_list::Catalog::active(&Theme::Light, style),
-    //         Thema::Dunkel => pick_list::Catalog::active(&Theme::Dark, style),
-    //     }
-    // }
-
-    // fn hovered(&self, style: &Self::Style) -> pick_list::Appearance {
-    //     match self {
-    //         Thema::Hell => pick_list::Catalog::hovered(&Theme::Light, style),
-    //         Thema::Dunkel => pick_list::Catalog::hovered(&Theme::Dark, style),
-    //     }
-    // }
 }
 
 impl menu::Catalog for Thema {
-    type Class<'a> = fn(&Thema) -> menu::StyleFn<'a, Thema>;
+    type Class<'a> = menu::StyleFn<'a, Thema>;
 
     fn default<'a>() -> <Self as menu::Catalog>::Class<'a> {
-        todo!()
+        Box::new(|thema| <Theme as menu::Catalog>::default()(&Theme::from(*thema)))
     }
 
     fn style(&self, class: &<Self as menu::Catalog>::Class<'_>) -> menu::Style {
-        todo!()
+        class(self)
     }
-
-    fn default_scrollable<'a>() -> <Self as scrollable::Catalog>::Class<'a> {
-        <Self as scrollable::Catalog>::default()
-    }
-    // type Style = <Theme as menu::Catalog>::Style;
-
-    // fn appearance(&self, style: &Self::Style) -> menu::Appearance {
-    //     match self {
-    //         Thema::Hell => menu::Catalog::appearance(&Theme::Light, style),
-    //         Thema::Dunkel => menu::Catalog::appearance(&Theme::Dark, style),
-    //     }
-    // }
 }
+
 impl tab_bar::Catalog for Thema {
     type Class<'a> = style::status::StyleFn<'a, Thema, tab_bar::Style>;
 
     fn default<'a>() -> Self::Class<'a> {
-        todo!()
+        Box::new(|thema, status| {
+            <Theme as tab_bar::Catalog>::default()(&Theme::from(*thema), status)
+        })
     }
 
     fn style(&self, class: &Self::Class<'_>, status: card::Status) -> tab_bar::Style {
-        todo!()
+        class(self, status)
     }
 }
