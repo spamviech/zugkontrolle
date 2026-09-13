@@ -1,7 +1,9 @@
 //! [`Application`] für die Gleis-Anzeige.
 
-// Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![allow(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 use std::{
     convert::identity,
@@ -135,6 +137,7 @@ where
     S: From<<L as BekannterZugtyp>::V2>,
     for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
+    /// Erzeuge eine [`iced::Application`], konfiguriert für die [`Zugkontrolle`]-Logik.
     pub fn application(
         argumente: Argumente,
         lager: Arc<RwLock<Lager>>,
@@ -142,7 +145,7 @@ where
     ) -> iced::Application<impl iced::Program<State = Self, Message = Nachricht<L, S>, Theme = Thema>>
     {
         iced::application(
-            move || Zugkontrolle::new(argumente.clone(), lager.clone(), zugtyp.clone()),
+            move || Zugkontrolle::new(argumente.clone(), Arc::clone(&lager), zugtyp.clone()),
             Zugkontrolle::update,
             Zugkontrolle::view,
         )
@@ -162,6 +165,16 @@ where
         .centered()
     }
 
+    /// Initializes the [`Application`] with the flags provided to
+    /// [`run`] as part of the [`Settings`].
+    ///
+    /// Here is where you should return the initial state of your app.
+    ///
+    /// Additionally, you can return a [`Command`] if you need to perform some
+    /// async action in the background on startup. This is useful if you want to
+    /// load state from a file, perform an initial HTTP request, etc.
+    ///
+    /// [`run`]: Self::run
     pub fn new(
         argumente: Argumente,
         lager: Arc<RwLock<Lager>>,
@@ -186,7 +199,7 @@ where
         let (sender, receiver) = channel();
 
         let gleise = Gleise::neu(
-            zugtyp.clone(),
+            zugtyp,
             modus.into(),
             Position { punkt: Vektor { x, y }, winkel },
             zoom,
@@ -215,10 +228,21 @@ where
         (zugkontrolle, lade_zustand)
     }
 
+    /// Returns the current title of the [`Application`].
+    ///
+    /// This title can be dynamic! The runtime will automatically update the
+    /// title of your application when necessary.
     pub fn title(&self) -> String {
         format!("Zugkontrolle {}", env!("zugkontrolle_version"))
     }
 
+    /// Handles a __message__ and updates the state of the [`Application`].
+    ///
+    /// This is where you define your __update logic__. All the __messages__,
+    /// produced by either user interactions or commands, will be handled by
+    /// this method.
+    ///
+    /// Any [`Command`] returned will be executed immediately in the background.
     pub fn update(&mut self, message: Nachricht<L, S>) -> Task<Nachricht<L, S>> {
         let mut command = Task::none();
 
@@ -317,14 +341,28 @@ where
         command
     }
 
+    /// Returns the widgets to display in the [`Application`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
     pub fn view(&self) -> Element<'_, Nachricht<L, S>, Thema, Renderer> {
         self.view_impl()
     }
 
+    /// Returns the current [`Theme`] of the [`Application`].
+    ///
+    /// [`Theme`]: Self::Theme
     pub fn theme(&self) -> Thema {
         self.thema
     }
 
+    /// Returns the event [`Subscription`] for the current state of the
+    /// application.
+    ///
+    /// A [`Subscription`] will be kept alive as long as you keep returning it,
+    /// and the __messages__ produced will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// By default, this method returns an empty [`Subscription`].
     pub fn subscription(&self) -> Subscription<Nachricht<L, S>> {
         subscription::from_recipe(self.empfänger.clone())
     }

@@ -17,10 +17,12 @@ pub type StyleFn<'a, Theme> = style::status::StyleFn<'a, Theme, Style>;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TabBar;
 
+/// Erlaube Verwendung in [`iced_aw::TabBar::style`]).
 pub trait StyleProvider<'a, Thema>
 where
     Thema: tab_bar::Catalog<Class<'a> = StyleFn<'a, Thema>>,
 {
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
     #[must_use]
     fn style_fn(self) -> StyleFn<'static, Thema>;
 }
@@ -28,8 +30,8 @@ where
 impl StyleProvider<'_, Thema> for TabBar {
     fn style_fn(self) -> StyleFn<'static, Thema> {
         Box::new(|thema, status| {
-            let default_style = <Thema as tab_bar::Catalog>::default()(thema, status);
             use style::Status;
+            let default_style = <Thema as tab_bar::Catalog>::default()(thema, status);
             let grey_value = match (thema, status) {
                 (Thema::Hell, Status::Active) => 0.8,
                 (Thema::Hell, Status::Hovered | Status::Focused | Status::Selected) => 0.85,

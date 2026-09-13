@@ -22,10 +22,12 @@ pub struct Linie {
     pub radius: f32,
 }
 
+/// Erlaube Verwendung in [`iced_widget::Rule::style`]).
 pub trait StyleProvider<'a, Thema>
 where
     Thema: rule::Catalog<Class<'a> = StyleFn<'a, Thema>>,
 {
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
     #[must_use]
     fn style_fn(self) -> StyleFn<'static, Thema>;
 }

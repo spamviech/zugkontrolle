@@ -1,7 +1,9 @@
 //! Steuerung einer Modell-Eisenbahn über einen Raspberry Pi.
 
-// Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![allow(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 use std::sync::Arc;
 

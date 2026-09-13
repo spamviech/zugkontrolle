@@ -39,10 +39,12 @@ impl Sammlung {
     }
 }
 
+/// Erlaube Verwendung in [`iced_widget::Scrollable::style`]).
 pub trait StyleProvider<'a, Thema>
 where
     Thema: scrollable::Catalog<Class<'a> = StyleFn<'a, Thema>>,
 {
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
     #[must_use]
     fn style_fn(self) -> StyleFn<'static, Thema>;
 }
