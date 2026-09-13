@@ -441,18 +441,15 @@ where
             },
             ModusDaten::Bauen { .. } | ModusDaten::Fahren => {
                 let mut interaction = mouse::Interaction::default();
-                if cursor.is_over(bounds) {
-                    if let Some(canvas_pos) =
+                if cursor.is_over(bounds)
+                    && let Some(canvas_pos) =
                         berechne_canvas_position(&bounds, &cursor, &self.pivot, self.skalieren)
-                    {
-                        if self.zustand.gleis_an_position(canvas_pos).is_some() {
+                        && self.zustand.gleis_an_position(canvas_pos).is_some() {
                             interaction = match &self.modus {
                                 ModusDaten::Bauen { .. } => mouse::Interaction::Grab,
                                 ModusDaten::Fahren => mouse::Interaction::Pointer,
                             };
                         }
-                    }
-                }
                 interaction
             },
         }

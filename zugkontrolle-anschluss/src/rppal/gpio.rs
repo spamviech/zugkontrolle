@@ -191,21 +191,21 @@ impl InputPin {
     /// Reads the pin's logic level.
     #[must_use]
     pub fn read(&self) -> Level {
-        debug!("{:?}.read()", self);
+        debug!("{self:?}.read()");
         Level::Low
     }
 
     /// Reads the pin's logic level, and returns true if it's set to [`Level::Low`].
     #[must_use]
     pub fn is_low(&self) -> bool {
-        debug!("{:?}.is_low()", self);
+        debug!("{self:?}.is_low()");
         true
     }
 
     /// Reads the pin's logic level, and returns true if it's set to [`Level::High`].
     #[must_use]
     pub fn is_high(&self) -> bool {
-        debug!("{:?}.is_high()", self);
+        debug!("{self:?}.is_high()");
         false
     }
 
@@ -224,19 +224,19 @@ impl InputPin {
     pub fn set_async_interrupt<C>(
         &mut self,
         trigger: Trigger,
-        debounce: Option<Duration>,
-        callback: C,
+        _debounce: Option<Duration>,
+        _callback: C,
     ) -> Result<()>
     where
         C: FnMut(Event) + Send + 'static,
     {
-        debug!("{:?}.set_async_interrupt({:?}, <callback>)", self, trigger);
+        debug!("{self:?}.set_async_interrupt({trigger:?}, <callback>)");
         Ok(())
     }
 
     /// Removes a previously configured asynchronous interrupt trigger.
     pub fn clear_async_interrupt(&mut self) -> Result<()> {
-        debug!("{:?}.clear_async_interrupt()", self);
+        debug!("{self:?}.clear_async_interrupt()");
         Ok(())
     }
 }
@@ -273,31 +273,31 @@ impl OutputPin {
 
     /// Sets the pin's output state.
     pub fn write(&mut self, level: Level) {
-        debug!("{:?}.write({:?})", self, level);
+        debug!("{self:?}.write({level:?})");
         self.1 = level;
     }
 
     /// Toggles the pin's output state between [`Level::Low`] and [`Level::High`].
     pub fn toggle(&mut self) {
-        debug!("{:?}.toggle()", self);
+        debug!("{self:?}.toggle()");
         self.1 = !self.1;
     }
 
     /// Configures a software-based PWM signal.
     pub fn set_pwm(&mut self, period: Duration, pulse_width: Duration) -> Result<()> {
-        debug!("{:?}.set_pwm({:?}, {:?})", self, period, pulse_width);
+        debug!("{self:?}.set_pwm({period:?}, {pulse_width:?})");
         Ok(())
     }
 
     /// Configures a software-based PWM signal.
     pub fn set_pwm_frequency(&mut self, frequency: f64, duty_cycle: f64) -> Result<()> {
-        debug!("{:?}.set_pwm_frequency({:?}, {:?})", self, frequency, duty_cycle);
+        debug!("{self:?}.set_pwm_frequency({frequency:?}, {duty_cycle:?})");
         Ok(())
     }
 
     /// Stops a previously configured software-based PWM signal.
     pub fn clear_pwm(&mut self) -> Result<()> {
-        debug!("{:?}.clear_pwm()", self);
+        debug!("{self:?}.clear_pwm()");
         Ok(())
     }
 }
@@ -364,7 +364,7 @@ pub struct Event {
     pub timestamp: Duration,
     /// Sequence number for this event in the sequence of interrupt trigger events for this pin.
     pub seqno: u32,
-    /// Interrupt trigger. This will contain either [Trigger::RisingEdge] or [Trigger::FallingEdge].
+    /// Interrupt trigger. This will contain either [`Trigger::RisingEdge`] or [`Trigger::FallingEdge`].
     pub trigger: Trigger,
 }
 

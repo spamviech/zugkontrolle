@@ -83,11 +83,11 @@ where
     Thema: container::Catalog<Class<'a> = StyleFn<'a, Thema>>,
 {
     #[must_use]
-    fn style_fn(self) -> container::StyleFn<'static, Thema>;
+    fn style_fn(self) -> StyleFn<'static, Thema>;
 }
 
 impl StyleProvider<'_, Thema> for Container {
-    fn style_fn(self) -> container::StyleFn<'static, Thema> {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
         Box::new(move |thema| {
             let default_style = <Thema as container::Catalog>::default()(thema);
             match self {

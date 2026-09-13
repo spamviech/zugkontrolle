@@ -147,7 +147,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
                 return;
             },
             _fehler => {},
-        };
+        }
         // Streckenabschnitt hat nur einen Anschluss.
         // Nachdem dieser unterschiedlich ist, kann der aktuelle Anschluss ignoriert werden.
         let (anschluss, fehler) = match anschluss_definition.reserviere(
@@ -204,7 +204,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
         if self
             .streckenabschnitt_aktuell
             .as_ref()
-            .map_or(false, |(aktuell_name, _farbe)| aktuell_name == name)
+            .is_some_and(|(aktuell_name, _farbe)| aktuell_name == name)
         {
             self.streckenabschnitt_aktuell = None;
         }
@@ -222,8 +222,8 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     /// falls es nicht mit [`streckenabschnitt_festlegen`](Zugkontrolle::streckenabschnitt_festlegen)
     /// deaktiviert wurde.
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId) {
-        if self.streckenabschnitt_aktuell_festlegen {
-            if let Err(fehler) = self.gleise.setze_streckenabschnitt(
+        if self.streckenabschnitt_aktuell_festlegen
+            && let Err(fehler) = self.gleise.setze_streckenabschnitt(
                 any_id,
                 self.streckenabschnitt_aktuell
                     .as_ref()
@@ -231,7 +231,6 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
             ) {
                 self.aktualisiere_message_box(Some(MessageBox {titel:                    String::from("Gleis entfernt"),nachricht:                    format!("Versuch den Streckenabschnitt für ein entferntes Gleis zu setzen: {fehler:?}"),}));
             }
-        }
     }
 
     /// Einstellen ob anklicken eines Gleises dessen [`Streckenabschnitt`] zum
@@ -242,11 +241,10 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
 
     /// Setze die Farbe des Speichern-Knopfes zurück.
     pub fn entferne_speichern_farbe(&mut self, nachricht_zeit: Instant) {
-        if let Some((_gefärbt, färbe_zeit)) = self.speichern_gefärbt {
-            if nachricht_zeit == färbe_zeit {
+        if let Some((_gefärbt, färbe_zeit)) = self.speichern_gefärbt
+            && nachricht_zeit == färbe_zeit {
                 self.speichern_gefärbt = None;
             }
-        }
     }
 
     /// Beende die Bewegung des Pivot-Punktes.
@@ -408,7 +406,7 @@ where
                             name.0, serialisiert
                         ),
                     }));
-                };
+                }
                 if let Some(bisher) = self.gleise.geschwindigkeit_hinzufügen(name, geschwindigkeit)
                 {
                     error!("Geschwindigkeit {bisher} beim wiederherstellen überschrieben!");
@@ -426,7 +424,7 @@ where
         if let Some(serialisiert) = alt_serialisiert {
             let serialisiert_clone = serialisiert.clone();
             let (ursprüngliche_geschwindigkeit, fehler_wiederherstellen) = match serialisiert
-                .reserviere(&mut *self.lager.write(), anschlüsse, (), &(), &mut ())
+                .reserviere(&mut self.lager.write(), anschlüsse, (), &(), &mut ())
             {
                 Wert { anschluss, .. } => (Some(anschluss), None),
                 WertMitWarnungen { anschluss, fehler: fehler_wiederherstellen, .. } => {

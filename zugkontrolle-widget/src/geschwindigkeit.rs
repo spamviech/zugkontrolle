@@ -499,7 +499,7 @@ where
                             }
                             zustand.ks_anschlüsse = geschwindigkeit_anschlüsse;
                         },
-                    };
+                    }
                 },
             }
             nachrichten

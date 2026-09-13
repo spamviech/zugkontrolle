@@ -183,7 +183,7 @@ impl Pwm {
     ///
     /// This method will fail if `period` is shorter than the current pulse width.
     pub fn set_period(&mut self, period: Duration) -> Result<()> {
-        debug!("{:?}.set_period({:?})", self, period);
+        debug!("{self:?}.set_period({period:?})");
         if period < self.pulse_width {
             Err(Error::Io(io::Error::new(
                 io::ErrorKind::AlreadyExists,
@@ -210,7 +210,7 @@ impl Pwm {
     ///
     /// This method will fail if `pulse_width` is longer than the current period.
     pub fn set_pulse_width(&mut self, pulse_width: Duration) -> Result<()> {
-        debug!("{:?}.set_pulse_width({:?})", self, pulse_width);
+        debug!("{self:?}.set_pulse_width({pulse_width:?})");
         if pulse_width > self.period {
             Err(Error::Io(io::Error::new(
                 io::ErrorKind::AlreadyExists,
@@ -244,7 +244,7 @@ impl Pwm {
     ///
     /// `duty_cycle` is specified as a floating point value between `0.0` (0%) and `1.0` (100%).
     pub fn set_frequency(&mut self, frequency: f64, duty_cycle: f64) -> Result<()> {
-        debug!("{:?}.set_frequency({:?}, {:?})", self, frequency, duty_cycle);
+        debug!("{self:?}.set_frequency({frequency:?}, {duty_cycle:?})");
         let duty_cycle_checked = duty_cycle.max(0.0).min(1.0);
         let period = period(frequency);
         self.period = period;
@@ -269,7 +269,7 @@ impl Pwm {
     ///
     /// `duty_cycle` is specified as a floating point value between `0.0` (0%) and `1.0` (100%).
     pub fn set_duty_cycle(&mut self, duty_cycle: f64) -> Result<()> {
-        debug!("{:?}.set_duty_cycle({:?})", self, duty_cycle);
+        debug!("{self:?}.set_duty_cycle({duty_cycle:?})");
         let duty_cycle_checked = duty_cycle.max(0.0).min(1.0);
         self.pulse_width = self.period.mul_f64(duty_cycle_checked);
         Ok(())
@@ -282,7 +282,7 @@ impl Pwm {
 
     /// Sets the polarity of the pwm pulse.
     pub fn set_polarity(&mut self, polarity: Polarity) -> Result<()> {
-        debug!("{:?}.set_polarity({:?})", self, polarity);
+        debug!("{self:?}.set_polarity({polarity:?})");
         self.polarity = polarity;
         Ok(())
     }
@@ -294,14 +294,14 @@ impl Pwm {
 
     /// Enables the pwm pulse.
     pub fn enable(&mut self) -> Result<()> {
-        debug!("{:?}.enable()", self);
+        debug!("{self:?}.enable()");
         self.enabled = true;
         Ok(())
     }
 
     /// Disables the pwm pulse.
     pub fn disable(&mut self) -> Result<()> {
-        debug!("{:?}.enable()", self);
+        debug!("{self:?}.enable()");
         self.enabled = false;
         Ok(())
     }

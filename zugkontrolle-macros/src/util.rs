@@ -15,13 +15,11 @@ pub(crate) fn mark_fields_generic<'t, T>(
     generic_types: &mut HashMap<&Ident, (T, bool)>,
 ) {
     for field in fields {
-        if let Type::Path(TypePath { path: Path { segments, .. }, .. }) = &field.ty {
-            if let Some(PathSegment { ident, .. }) = segments.first() {
-                if let Some((_, gefunden)) = generic_types.get_mut(ident) {
+        if let Type::Path(TypePath { path: Path { segments, .. }, .. }) = &field.ty
+            && let Some(PathSegment { ident, .. }) = segments.first()
+                && let Some((_, gefunden)) = generic_types.get_mut(ident) {
                     *gefunden = true;
                 }
-            }
-        }
     }
 }
 

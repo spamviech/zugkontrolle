@@ -4,7 +4,7 @@ use std::{borrow::Cow, include_bytes};
 
 use iced::{
     Font, Pixels, Point,
-    alignment::{Horizontal, Vertical},
+    alignment::Vertical,
     widget::canvas::Text,
 };
 use iced_core::text::Alignment;

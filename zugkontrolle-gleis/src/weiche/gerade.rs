@@ -193,7 +193,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         (
             Position {
                 punkt: Vektor {
@@ -229,7 +229,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         let start = Vektor { x: Skalar(0.), y: start_height };
         // sub-checks
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
@@ -257,7 +257,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = self.rechteck(anschlüsse, spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]

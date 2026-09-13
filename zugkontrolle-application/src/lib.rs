@@ -180,7 +180,7 @@ where
                 standard_pfad.push_str(".zug");
                 standard_pfad
             };
-        };
+        }
 
         let (sender, receiver) = channel();
 

@@ -137,8 +137,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         klick_quelle: &KlickQuelle,
         canvas_pos: Vektor,
     ) -> Result<(), BewegenFehler> {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus
+            && let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
                 gehalten.get_mut(klick_quelle)
             {
                 // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
@@ -149,7 +149,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 *bewegt = true;
                 self.erzwinge_neuzeichnen();
             }
-        }
         Ok(())
     }
 

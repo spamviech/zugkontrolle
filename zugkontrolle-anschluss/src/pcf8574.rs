@@ -8,7 +8,6 @@ use std::{
     collections::hash_map::{Entry, HashMap},
     fmt::{self, Debug, Display, Formatter},
     hash::Hash,
-    mem,
     sync::Arc,
 };
 
@@ -196,7 +195,7 @@ impl Lager {
         // 0 <= port < 8 == ports.len()
         #[allow(clippy::indexing_slicing)]
         if let Some(bisher) = ports[usize::from(port.port())].replace(port) {
-            error!("Bereits verfügbaren Pcf8574-Port ersetzt: {:?}", bisher);
+            error!("Bereits verfügbaren Pcf8574-Port ersetzt: {bisher:?}");
         }
     }
 
@@ -480,7 +479,7 @@ impl Pcf8574 {
         let mut buf = [0; 1];
         let bytes_read = i2c_with_pins.i2c.read(&mut buf).map_err(map_fehler)?;
         if bytes_read != 1 {
-            debug!("bytes_read = {bytes_read} != 1",);
+            debug!("bytes_read = {bytes_read} != 1");
         }
         let mut result = [None; 8];
         for (port, modus) in self.ports.iter().enumerate_checked() {
@@ -546,7 +545,7 @@ impl Pcf8574 {
         let buf = [wert; 1];
         let bytes_written = i2c_with_pins.i2c.write(&buf).map_err(map_fehler)?;
         if bytes_written != 1 {
-            error!("bytes_written = {bytes_written} != 1",);
+            error!("bytes_written = {bytes_written} != 1");
         }
         Ok(())
     }
@@ -602,13 +601,13 @@ impl Eq for Port {}
 impl Display for Port {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         let Port { beschreibung, port, .. } = self;
-        write!(formatter, "{beschreibung}-{port}",)
+        write!(formatter, "{beschreibung}-{port}")
     }
 }
 
 impl Drop for Port {
     fn drop(&mut self) {
-        debug!("drop {:?}", self);
+        debug!("drop {self:?}");
         let port_ersatz = Port::neu(
             Arc::clone(&self.pcf8574),
             Lager(Arc::clone(&self.lager.0)),
@@ -728,7 +727,7 @@ impl OutputPort {
                 Modus::High => Level::Low,
                 Modus::Low => Level::High,
                 Modus::Input { .. } => {
-                    error!("Output pin configured as input: {:?}", self);
+                    error!("Output pin configured as input: {self:?}");
                     Level::Low
                 },
             }
@@ -772,7 +771,7 @@ impl InputPort {
         if let Some(value) = values[usize::from(self.0.port)] {
             Ok(value)
         } else {
-            error!("{:?} war nicht als input korrigiert!", self);
+            error!("{self:?} war nicht als input korrigiert!");
             // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
             self.0.pcf8574.lock().port_als_input::<fn(Event)>(
                 self.0.port,
@@ -840,7 +839,7 @@ impl InputPort {
                     Fehler::Gpio { beschreibung: *pcf8574.beschreibung(), fehler }
                 },
             )?;
-            mem::replace(&mut pcf8574.interrupt, Some(interrupt))
+            pcf8574.interrupt.replace(interrupt)
         };
         // clear interrupt on previous pin.
         let _ = previous.as_mut().map(input::Pin::lösche_async_interrupt);

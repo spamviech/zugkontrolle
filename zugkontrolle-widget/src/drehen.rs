@@ -112,7 +112,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
                 .baue();
             let hintergrund = thema.hintergrund(
                 state.grabbed.is_some(),
-                cursor.position_in(bounds).map_or(false, |position| {
+                cursor.position_in(bounds).is_some_and(|position| {
                     // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
                     #[allow(clippy::arithmetic_side_effects)]
                     let v_r =
@@ -132,7 +132,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
         state: &mut Self::State,
         event: &Event,
         bounds: Rectangle,
-        cursor: mouse::Cursor,
+        cursor: Cursor,
     ) -> Option<Action<Winkel>> {
         /// Reagiere auf einen Maus- oder Touch-Klick.
         fn pressed(
@@ -251,7 +251,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
         } else {
             Action::request_redraw()
         };
-        if (status == EventStatus::Captured) {
+        if status == EventStatus::Captured {
             action = action.and_capture();
         }
         Some(action)
@@ -280,7 +280,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
             #[allow(clippy::arithmetic_side_effects)]
             let knopf_radius = half_min_width_height - kreis_radius;
-            let cursor_über_knopf = cursor.position_in(bounds).map_or(false, |position| {
+            let cursor_über_knopf = cursor.position_in(bounds).is_some_and(|position| {
                 // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
                 #[allow(clippy::arithmetic_side_effects)]
                 let v_r = Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum;

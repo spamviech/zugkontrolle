@@ -514,7 +514,6 @@ macro_rules! erzeuge_zugtyp_maps {
             >().expect($expect_msg);
     )*};
 }
-pub(crate) use erzeuge_zugtyp_maps;
 
 impl<L: BekannterLeiter> ZugtypSerialisiert<L> {
     /// Erzeuge die Laufzeit-Darstellung für einen [`Zugtyp`].

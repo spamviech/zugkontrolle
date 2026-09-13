@@ -57,11 +57,9 @@ workspace = true
 [dependencies]
 zugkontrolle-anschluss.workspace = true
 zugkontrolle-application.workspace = true
-zugkontrolle-widget.workspace = true
 zugkontrolle-gleis.workspace = true
 zugkontrolle-argumente.workspace = true
 flexi_logger.workspace = true
-iced.workspace = true
 log.workspace = true
 parking_lot.workspace = true
 
@@ -212,7 +210,6 @@ str_to_string = "warn"
 string_add = "warn"
 string_lit_chars_any = "allow"             # lint existiert aus Performance-Gründen, app ist nicht Performance-kritisch
 string_slice = "warn"
-string_to_string = "warn"
 suspicious_xor_used_as_pow = "warn"
 tests_outside_test_module = "warn"
 todo = "warn"
@@ -301,7 +298,6 @@ int-enum = "1.0.0"
 itertools = "0.15.0"
 log = "0.4.14"
 num-traits = "0.2.14"
-once_cell = "1.17.1"
 parking_lot = "0.12.0"
 proc-macro-crate = "3.1.0"
 proc-macro2 = "1.0.36"
@@ -385,6 +381,3 @@ features = ["parsing", "full", "extra-traits"]
 
 #[workspace.dependencies.libcamera]
 #version = "0.2.3"
-
-# TODO replace bincode-next feature "serde" with "derive"
-# TODO get rid of once-cell, Lazy is available in "std" now

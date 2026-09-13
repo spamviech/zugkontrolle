@@ -10,7 +10,7 @@ use crate::style::thema::Thema;
 pub use tab_bar::Style;
 
 /// A styling function for a [`TabBar`](iced_aw::tab_bar::TabBar).
-pub type StyleFn<'a, Theme> = style::status::StyleFn<'a, Theme, tab_bar::Style>;
+pub type StyleFn<'a, Theme> = style::status::StyleFn<'a, Theme, Style>;
 
 /// Style-Struktur für eine [`TabBar`](iced_aw::tab_bar::TabBar)
 /// bei der Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).

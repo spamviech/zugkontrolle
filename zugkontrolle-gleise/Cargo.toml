@@ -27,7 +27,6 @@ iced.workspace = true
 kommandozeilen_argumente.workspace = true
 log.workspace = true
 nonempty.workspace = true
-once_cell.workspace = true
 rstar.workspace = true
 serde.workspace = true
 thiserror.workspace = true

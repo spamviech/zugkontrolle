@@ -99,7 +99,7 @@ impl I2c {
     /// [`read`]: #method.read
     /// [`write`]: #method.write
     pub fn set_slave_address(&mut self, slave_address: u16) -> Result<()> {
-        debug!("{:?}.set_slave_address({})", self, slave_address);
+        debug!("{self:?}.set_slave_address({slave_address})");
         self.slave_address = slave_address;
         Ok(())
     }
@@ -110,7 +110,7 @@ impl I2c {
     ///
     /// Returns how many bytes were read.
     pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
-        debug!("{:?}.read({:?})", self, buffer);
+        debug!("{self:?}.read({buffer:?})");
         let bytes = buffer.len();
         for element in buffer {
             *element = 0;
@@ -122,7 +122,7 @@ impl I2c {
     ///
     /// Returns how many bytes were written.
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize> {
-        debug!("{:?}.write({:?})", self, buffer);
+        debug!("{self:?}.write({buffer:?})");
         Ok(buffer.len())
     }
 }

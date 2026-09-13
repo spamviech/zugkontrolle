@@ -168,7 +168,7 @@ impl Cache {
                 // zeichne auf Frame
                 draw_fn(transformierter_frame);
             });
-        })
+        });
     }
 
     /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [`Cache`].
@@ -190,7 +190,7 @@ impl Cache {
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             Skalar::multiplikativ_neutral(),
             draw_fn,
-        )
+        );
     }
 }
 

@@ -26,7 +26,7 @@ use zugkontrolle_typen::nachschlagen::Nachschlagen;
 use crate::{
     anschluss,
     map_mit_zustand::MapMitZustand,
-    style::{self, sammlung::Sammlung, tab_bar::TabBar},
+    style::{self, sammlung::Sammlung},
 };
 
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).

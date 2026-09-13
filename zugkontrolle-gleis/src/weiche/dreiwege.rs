@@ -46,9 +46,9 @@ pub struct DreiwegeWeiche<Steuerung = Option<Anschlüsse>> {
     pub radius: Skalar,
     /// Der Winkel der Kurven.
     pub winkel: Winkel,
-    /// Eine allgemeine Beschreibung der DreiwegeWeiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der `DreiwegeWeiche`, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der DreiwegeWeiche.
+    /// Die Anschlüsse zum Schalten der `DreiwegeWeiche`.
     pub steuerung: Steuerung,
 }
 

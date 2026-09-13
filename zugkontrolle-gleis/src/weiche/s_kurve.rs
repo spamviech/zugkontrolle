@@ -40,7 +40,7 @@ type AnschlüsseSerialisiert =
 
 /// Definition einer Weiche mit S-Kurve.
 ///
-/// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
+/// Bei extremen Winkeln (<0, >90°, `angle_reverse>winkel`) wird in negativen x,y-Werten gezeichnet!
 #[alias_serialisiert_unit(AnschlüsseSerialisiert)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SKurvenWeiche<Anschlüsse = Option<Steuerung>> {
@@ -54,11 +54,11 @@ pub struct SKurvenWeiche<Anschlüsse = Option<Steuerung>> {
     pub radius_kurve_nach_innen: Skalar,
     /// Der Winkel der Kurve nach innen.
     pub winkel_kurve_nach_innen: Winkel,
-    /// Die Orientierung der SKurvenWeiche.
+    /// Die Orientierung der `SKurvenWeiche`.
     pub orientierung: Orientierung,
-    /// Eine allgemeine Beschreibung der SKurvenWeiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der `SKurvenWeiche`, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der SKurvenWeiche.
+    /// Die Anschlüsse zum Schalten der `SKurvenWeiche`.
     pub steuerung: Anschlüsse,
 }
 
@@ -296,7 +296,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         (
             Position {
                 punkt: Vektor {
@@ -332,7 +332,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
@@ -393,7 +393,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = self.rechteck(anschlüsse, spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]
         let angle_difference = self.winkel - self.winkel_kurve_nach_innen;

@@ -598,10 +598,10 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 }
 
 /// Berechne die Einraste-Position für ein Gleis `U` an der `position`,
-/// abhängig von den Gleisen im [`RStern`]:  
+/// abhängig von den Gleisen im [`RStern`]:\
 /// Wenn eine [`Verbindung`] der `definition` mit einer Verbindung aus dem [`RStern`]
 /// [überlappt](ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT) wird die `position` so angepasst,
-/// dass die Verbindungen entgegengesetzt an gleicher Position sind.  
+/// dass die Verbindungen entgegengesetzt an gleicher Position sind.\
 /// Wenn keine Verbindung überlappt, gebe die `position` unverändert zurück.
 fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     rstern: &RStern,

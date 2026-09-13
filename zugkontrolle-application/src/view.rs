@@ -245,7 +245,7 @@ where
                 .push(Element::from(skalieren_slider).map(Nachricht::from)),
         ));
     // Streckenabschnitte und Geschwindigkeiten können nur im Bauen-Modus geändert werden
-    if let Modus::Bauen { .. } = aktueller_modus {
+    if let Modus::Bauen = aktueller_modus {
         let geschwindigkeit =
             Element::new(Button::new(Text::new("Geschwindigkeiten")).on_press(
                 NachrichtClone::AuswahlModal(Some(AuswahlZustand::Geschwindigkeit(None))),

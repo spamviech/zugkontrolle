@@ -6,15 +6,13 @@
 use std::sync::Arc;
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
-use iced::{Application, Settings, Size, window};
 use log::LevelFilter;
 use parking_lot::RwLock;
 
 use zugkontrolle_anschluss::Lager;
-use zugkontrolle_application::{Fehler, Zugkontrolle, icon::icon};
+use zugkontrolle_application::{Fehler, Zugkontrolle};
 use zugkontrolle_argumente::{Argumente, ZugtypArgument};
-use zugkontrolle_gleis::{steuerung::geschwindigkeit::Leiter, zugtyp::Zugtyp};
-use zugkontrolle_widget::fonts;
+use zugkontrolle_gleis::zugtyp::Zugtyp;
 
 /// Parse die Kommandozeilen-Argumente und führe die Anwendung aus.
 ///
@@ -56,12 +54,12 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
 
     match zugtyp {
         ZugtypArgument::Märklin => {
-            Zugkontrolle::application(argumente, lager, Zugtyp::märklin()).run();
+            Zugkontrolle::application(argumente, lager, Zugtyp::märklin()).run()?;
         },
         ZugtypArgument::Lego => {
-            Zugkontrolle::application(argumente, lager, Zugtyp::lego()).run();
+            Zugkontrolle::application(argumente, lager, Zugtyp::lego()).run()?;
         },
-    };
+    }
 
     // explizit drop aufrufen, damit logger_handle auf jeden Fall lang genau in scope bleibt.
     drop(logger_handle);

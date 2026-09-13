@@ -3896,7 +3896,6 @@ version = "5.1.0"
 dependencies = [
  "embed-resource",
  "flexi_logger",
- "iced",
  "log",
  "parking_lot",
  "rppal",
@@ -3904,7 +3903,6 @@ dependencies = [
  "zugkontrolle-application",
  "zugkontrolle-argumente",
  "zugkontrolle-gleis",
- "zugkontrolle-widget",
 ]
 
 [[package]]
@@ -3974,7 +3972,6 @@ dependencies = [
  "either",
  "log",
  "nonempty 0.12.0",
- "once_cell",
  "parking_lot",
  "serde",
  "zugkontrolle-anschluss",
@@ -3996,7 +3993,6 @@ dependencies = [
  "kommandozeilen_argumente",
  "log",
  "nonempty 0.12.0",
- "once_cell",
  "rstar",
  "serde",
  "thiserror 2.0.20",
@@ -4025,7 +4021,6 @@ name = "zugkontrolle-lizenzen"
 version = "1.1.0"
 dependencies = [
  "cargo_metadata",
- "once_cell",
  "zugkontrolle-lizenzen-macros",
  "zugkontrolle-util",
 ]

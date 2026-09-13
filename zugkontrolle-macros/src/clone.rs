@@ -136,7 +136,7 @@ pub(crate) fn impl_clone(ast: &DeriveInput) -> TokenStream {
     } else {
         generic_constraints = quote! {#(#generic_lifetimes),*, #(#generic_type_constraints),*};
         generic_names = quote! {#(#generic_lifetimes),*, #(#generic_type_names),*};
-    };
+    }
     quote! {
 
         impl<#generic_constraints> Clone for #ident<#generic_names> #where_clause  {

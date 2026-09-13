@@ -21,7 +21,6 @@ dyn-clonable.workspace = true
 either.workspace = true
 log.workspace = true
 nonempty.workspace = true
-once_cell.workspace = true
 parking_lot.workspace = true
 serde.workspace = true
 

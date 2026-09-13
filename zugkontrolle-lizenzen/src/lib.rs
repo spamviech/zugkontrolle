@@ -4,9 +4,7 @@
 //! compile-Zeiten führen.
 //! Durch die Isolation in ein eigenes crate wird das hoffentlich minimiert.
 
-use std::collections::BTreeMap;
-
-use once_cell::sync::Lazy;
+use std::{collections::BTreeMap, sync::LazyLock};
 
 use zugkontrolle_util::unicase_ord::UniCaseOrd;
 
@@ -16,7 +14,7 @@ use zugkontrolle_util::unicase_ord::UniCaseOrd;
 pub type LizenzenMap = BTreeMap<UniCaseOrd<String>, &'static str>;
 
 /// Alle Lizenzen für die aktuelle target-Platform.
-pub static TARGET_LIZENZEN: Lazy<LizenzenMap> = Lazy::new(verwendete_lizenzen);
+pub static TARGET_LIZENZEN: LazyLock<LizenzenMap> = LazyLock::new(verwendete_lizenzen);
 
 /// Alle Lizenzen für die aktuelle target-Platform.
 static TARGET_NAME_VERSION_LIZENZ: &[(&str, &str, &str)] =

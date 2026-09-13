@@ -96,7 +96,7 @@ pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStr
 
     let ItemEnum { vis, variants, .. } = &item;
     if !args.is_empty() {
-        errors.push(format!("No args supported, but {args:?} was given!",));
+        errors.push(format!("No args supported, but {args:?} was given!"));
     }
 
     let mut enum_definition = None;

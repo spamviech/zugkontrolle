@@ -201,8 +201,8 @@ where
             (Cursor::Available(position), KlickQuelle::Touch(finger))
         },
     };
-    if cursor.is_over(bounds) {
-        if let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
+    if cursor.is_over(bounds)
+        && let Some(canvas_pos) = berechne_canvas_position(&bounds, &cursor, pivot, skalieren) {
             let gleis_an_position = zustand.gleis_an_position(canvas_pos);
             match modus {
                 ModusDaten::Bauen { gehalten: _, letzter_klick } => {
@@ -249,7 +249,6 @@ where
                 },
             }
         }
-    }
     (status, nachrichten)
 }
 
@@ -293,8 +292,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 (Cursor::Available(position), KlickQuelle::Touch(finger))
             },
         };
-        if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
-            if let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle) {
+        if let ModusDaten::Bauen { gehalten, .. } = &self.modus
+            && let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle) {
                 let gleis_id = gleis_steuerung.id();
                 if *bewegt {
                     if !cursor.is_over(bounds) {
@@ -311,7 +310,6 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 )));
                 *event_status = EventStatus::Captured;
             }
-        }
     }
 
     /// Behandle ein [`mouse::Event::CursorMoved`]-, oder [`touch::Event::FingerMoved`]-Event.
@@ -337,13 +335,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     canvas_pos,
                 )));
             }
-            if let ModusDaten::Bauen { gehalten, .. } = &self.modus {
-                if gehalten.contains_key(&quelle) {
+            if let ModusDaten::Bauen { gehalten, .. } = &self.modus
+                && gehalten.contains_key(&quelle) {
                     messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
                         quelle, canvas_pos,
                     )));
                 }
-            }
             *event_status = EventStatus::Captured;
         }
     }
@@ -416,7 +413,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 &mut messages,
             ),
             Event::Mouse(_) | Event::Keyboard(_) | Event::Window(_) | Event::InputMethod(_) => {},
-        };
+        }
         let mut action = Action::publish(messages);
         if event_status == EventStatus::Captured {
             self.canvas.leeren();
@@ -455,7 +452,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 if let ModusDaten::Bauen { letzter_klick, .. } = &mut self.modus {
                     *letzter_klick = Some((quelle, zeitpunkt));
                 } else {
-                    error!("LetzterKlick-Nachricht im {:?}-Modus!", &self.modus);
+                    error!("LetzterKlick-Nachricht im {:?}-Modus!", self.modus);
                 }
                 Ok(())
             },
@@ -483,7 +480,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                         }
                     }
                 } else {
-                    error!("GehaltenAktualisieren-Nachricht im {:?}-Modus!", &self.modus);
+                    error!("GehaltenAktualisieren-Nachricht im {:?}-Modus!", self.modus);
                 }
                 Ok(())
             },

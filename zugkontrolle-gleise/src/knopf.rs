@@ -1,7 +1,7 @@
 //! Knopf mit dem jeweiligen Gleis.
 
 use iced::{
-    Element, Length, Point, Rectangle, Renderer, event,
+    Element, Length, Point, Rectangle, Renderer,
     mouse::{self, Cursor},
     touch,
     widget::{
@@ -266,10 +266,10 @@ where
                 debug!("{event:?}");
                 pressed(
                     &self.definition,
-                    KlickQuelle::Touch(id.clone()),
+                    KlickQuelle::Touch(*id),
                     state,
                     bounds,
-                    Cursor::Available(position.clone()),
+                    Cursor::Available(*position),
                 )
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {

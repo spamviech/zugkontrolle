@@ -189,7 +189,7 @@ impl OutputAnschluss {
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 port.schreibe(fließend.mit_polarität(*polarität))?;
             },
-        };
+        }
         Ok(())
     }
 
@@ -230,7 +230,7 @@ impl OutputAnschluss {
         match self {
             OutputAnschluss::Pin { pin, .. } => pin.umschalten(),
             OutputAnschluss::Pcf8574Port { port, .. } => port.umschalten()?,
-        };
+        }
         Ok(())
     }
 }
@@ -584,7 +584,7 @@ fn reserviere_input_port(
                         })
                         .map(Fehler::from),
                 )
-                .chain(fehler_interrupt.map(Fehler::from))
+                .chain(fehler_interrupt)
                 .collect();
             if let Ok(non_empty) = NonEmpty::try_from(fehler_vec) {
                 Ergebnis::WertMitWarnungen {

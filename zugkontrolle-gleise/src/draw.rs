@@ -75,7 +75,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                         gehalten_ids = HashSet::new();
                         modus_bauen = false;
                     },
-                };
+                }
                 let ist_gehalten = |id| gehalten_ids.contains(&id);
                 let transparent_hintergrund = |id, fließend| {
                     Transparenz::true_reduziert(if modus_bauen {

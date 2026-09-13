@@ -45,11 +45,11 @@ pub struct KurvenWeiche<Anschlüsse = Option<Steuerung>> {
     pub radius: Skalar,
     /// Der Winkel der Kurven.
     pub winkel: Winkel,
-    /// Die Orientierung der KurvenWeiche.
+    /// Die Orientierung der `KurvenWeiche`.
     pub orientierung: Orientierung,
-    /// Eine allgemeine Beschreibung der KurvenWeiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der `KurvenWeiche`, z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der KurvenWeiche.
+    /// Die Anschlüsse zum Schalten der `KurvenWeiche`.
     pub steuerung: Anschlüsse,
 }
 
@@ -208,7 +208,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         (
             Position {
                 punkt: Vektor {
@@ -244,7 +244,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = size.y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         // sub-checks
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
@@ -288,7 +288,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 start_height = self.rechteck(anschlüsse, spurweite).ecke_max().y;
                 multiplier = Skalar(-1.);
             },
-        };
+        }
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
         #[allow(clippy::arithmetic_side_effects)]

@@ -68,7 +68,7 @@ impl From<v4::DreiwegeWeicheUnit> for DreiwegeWeicheUnit {
     }
 }
 
-#[doc = r" Mögliche Richtungen zum Schalten."]
+#[doc = " Mögliche Richtungen zum Schalten."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
     #[allow(missing_docs)]
@@ -92,11 +92,11 @@ impl From<Richtung> for v4::Richtung {
 #[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    #[doc = "[Richtung::Gerade]"]
+    #[doc = "[`Richtung::Gerade`]"]
     pub gerade: OutputSerialisiert,
-    #[doc = "[Richtung::Links]"]
+    #[doc = "[`Richtung::Links`]"]
     pub links: OutputSerialisiert,
-    #[doc = "[Richtung::Rechts]"]
+    #[doc = "[`Richtung::Rechts`]"]
     pub rechts: OutputSerialisiert,
 }
 

@@ -174,14 +174,14 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
 
     fn update(
         &mut self,
-        tree: &mut Tree,
+        _tree: &mut Tree,
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        renderer: &R,
-        clipboard: &mut dyn Clipboard,
+        _renderer: &R,
+        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, M>,
-        viewport: &Rectangle,
+        _viewport: &Rectangle,
     ) {
         let mut status = event::Status::Ignored;
         let bounds = layout.bounds();

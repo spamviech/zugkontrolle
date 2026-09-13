@@ -1,15 +1,15 @@
 //! Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 
 use iced_core::{
-    Element, Length, Point, Rectangle, Shell, Size, Vector,
+    Element, Length, Rectangle, Shell, Size, Vector,
     clipboard::Clipboard,
-    event::{self, Event},
+    event::Event,
     layout::{self, Layout},
     mouse,
     overlay::{self, Overlay},
     renderer::{self, Renderer},
     widget::{
-        self, Widget, operation,
+        self, Widget,
         tree::{self, Tree},
     },
 };
@@ -232,7 +232,7 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self.content.as_overlay_mut().update(
+        self.content.as_overlay_mut().update(
             event,
             layout,
             cursor,
@@ -256,7 +256,7 @@ where
             shell.publish(message);
         }
 
-        event_status
+        ();
     }
 
     fn mouse_interaction(

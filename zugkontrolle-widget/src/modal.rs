@@ -3,7 +3,7 @@
 use std::fmt::{self, Debug, Formatter};
 
 use iced_core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget, event,
+    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
     keyboard::{
         self,
         key::{self, Key},
@@ -11,13 +11,12 @@ use iced_core::{
     layout, mouse, overlay,
     renderer::{Renderer, Style},
     widget::{
-        operation::{self, Operation},
+        operation::Operation,
         tree::{self, Tag, Tree},
     },
 };
 use iced_widget::container::{self, Container};
 
-use crate::style;
 
 /// Ein Widget, dass ein Overlay vor einem anderen Widget anzeigen kann.
 pub struct Modal<'a, Nachricht, Thema, R> {
@@ -192,7 +191,7 @@ where
         shell: &mut Shell<'_, Nachricht>,
         viewport: &Rectangle,
     ) {
-        if self.overlay.is_none() || (self.passthrough_event)(&event) {
+        if self.overlay.is_none() || (self.passthrough_event)(event) {
             self.underlay.as_widget_mut().update(
                 tree.children.first_mut().expect("Keine State-Children gefunden!"),
                 event,
@@ -202,24 +201,19 @@ where
                 clipboard,
                 shell,
                 viewport,
-            )
-        } else {
-            match (event, &self.schließe_bei_esc) {
-                (
-                    Event::Keyboard(keyboard::Event::KeyPressed {
-                        key: Key::Named(key::Named::Escape),
-                        modifiers: _,
-                        location: _,
-                        text: _,
-                        modified_key: _,
-                        physical_key: _,
-                        repeat: _,
-                    }),
-                    Some(erzeuge_schließen_nachricht),
-                ) => shell.publish(erzeuge_schließen_nachricht()),
-                _ => {},
-            }
-        }
+            );
+        } else if let (
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key: Key::Named(key::Named::Escape),
+                modifiers: _,
+                location: _,
+                text: _,
+                modified_key: _,
+                physical_key: _,
+                repeat: _,
+            }),
+            Some(erzeuge_schließen_nachricht),
+        ) = (event, &self.schließe_bei_esc) { shell.publish(erzeuge_schließen_nachricht()) }
     }
 
     fn overlay<'s>(
@@ -363,10 +357,10 @@ where
         shell: &mut Shell<'_, Nachricht>,
     ) {
         let ModalOverlay { element, state, passthrough_event, viewport } = self;
-        if !passthrough_event(&event) {
+        if !passthrough_event(event) {
             element
                 .as_widget_mut()
-                .update(state, event, layout, cursor, renderer, clipboard, shell, viewport)
+                .update(state, event, layout, cursor, renderer, clipboard, shell, viewport);
         }
     }
 
