@@ -6,11 +6,12 @@ use std::{
 };
 
 use iced_core::Size;
-use iced_graphics::geometry::{fill::Fill, stroke::Stroke, Text};
-use iced_renderer::{geometry, Renderer};
+use iced_graphics::geometry::{Text, fill::Fill, stroke::Stroke};
+use iced_renderer::{Renderer, geometry};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    Zeichnen,
     canvas::pfad::{Pfad, Transformation},
     mm::Spurweite,
     nachschlagen::Nachschlagen,
@@ -18,7 +19,6 @@ use crate::{
     vektor::Vektor,
     verbindung::{self, Verbindung},
     winkel::{self, Winkel},
-    Zeichnen,
 };
 
 pub mod pfad;
@@ -168,7 +168,7 @@ impl Cache {
                 // zeichne auf Frame
                 draw_fn(transformierter_frame);
             });
-        });
+        })
     }
 
     /// Zeichne die [Geometry] über die übergebenen Closure und speichere sie im [`Cache`].
@@ -190,7 +190,7 @@ impl Cache {
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             Skalar::multiplikativ_neutral(),
             draw_fn,
-        );
+        )
     }
 }
 
