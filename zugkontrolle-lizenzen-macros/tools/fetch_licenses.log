@@ -1,0 +1,47 @@
+Fetch 433 licenses...
+21 / 433: async-task-4.7.1
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\block-0.1.6
+block-0.1.6: MIT
+	Repository: http://github.com/SSheldon/rust-block
+	Announced License: MIT
+42 / 433: camino-1.2.5
+63 / 433: cosmic-text-0.15.0
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\dispatch-0.2.0
+dispatch-0.2.0: MIT
+	Repository: http://github.com/SSheldon/rust-dispatch
+	Announced License: MIT
+84 / 433: errno-0.3.14
+105 / 433: futures-core-0.3.34
+126 / 433: half-2.7.1
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\iced_fonts_macros-0.3.0
+iced_fonts_macros-0.3.0: MIT
+	Repository: https://github.com/Redhawk18/iced_fonts
+	Announced License: MIT
+147 / 433: iced_program-0.14.0
+168 / 433: kommandozeilen_argumente-0.2.1
+189 / 433: memchr-2.8.3
+210 / 433: objc2-contacts-0.2.2
+231 / 433: ouroboros-0.18.5
+252 / 433: proc-macro-crate-3.5.0
+273 / 433: rstar-0.13.0
+294 / 433: simdutf8-0.1.5
+315 / 433: sys-locale-0.3.2
+336 / 433: unicase-2.9.0
+357 / 433: wayland-backend-0.3.17
+378 / 433: window_clipboard-0.5.1
+399 / 433: windows_i686_msvc-0.52.6
+Skip zugkontrolle-5.1.0
+420 / 433: zugkontrolle-5.1.0
+Skip zugkontrolle-anschluss-1.1.0
+Skip zugkontrolle-application-1.1.0
+Skip zugkontrolle-argumente-1.1.0
+Skip zugkontrolle-gleis-1.1.0
+Skip zugkontrolle-gleise-1.1.0
+Skip zugkontrolle-id-1.1.0
+Skip zugkontrolle-lizenzen-1.1.0
+Skip zugkontrolle-lizenzen-macros-1.1.0
+Skip zugkontrolle-macros-5.1.0
+Skip zugkontrolle-test-util-1.1.0
+Skip zugkontrolle-typen-1.1.0
+Skip zugkontrolle-util-1.1.0
+Skip zugkontrolle-widget-1.1.0

@@ -7,7 +7,7 @@ import urllib.request
 import urllib.error
 
 script_name=os.path.splitext(os.path.basename(__file__))[0]
-licenses_dir=os.path.dirname(os.path.abspath(__file__))
+script_dir=os.path.dirname(os.path.abspath(__file__))
 
 cargo_dir = os.path.join(os.path.expanduser("~"), ".cargo")
 # hash(probably) at the end might change, possibly with cargo update
@@ -72,7 +72,7 @@ def collect_cargo_lock_packages():
 
     packages = []
     current = Package()
-    with open(os.path.join(licenses_dir, "../..", "Cargo.lock"), 'r') as cargo_lock:
+    with open(os.path.join(script_dir, "../..", "Cargo.lock"), 'r') as cargo_lock:
         found_package = False
         for line in cargo_lock:
             line = line.removesuffix("\n").removesuffix("\r").removesuffix("\n\r")
@@ -194,16 +194,27 @@ def copy_licenses(src_dir, dst_dir, log_file):
     # Rückmeldung, falls auch im github-Repository keine Lizenz-Datei gefunden wurde
     if not found:
         log(f"Missing License: {dst_dir}", log_file)
+        log(f"{os.path.basename(dst_dir)}: {license}", log_file)
         log(f"\tRepository: {repository}", log_file)
         log(f"\tAnnounced License: {license}", log_file)
+
+def copy_fixed_licenses(src_dir, dst_dir, log_file):
+    fixed_licenses = ["CC0.txt", "LICENSE-APACHE-2.0.txt"]
+    os.makedirs(dst_dir, exist_ok=True)
+    for filename in fixed_licenses:
+        src = os.path.join(src_dir, filename)
+        dst = os.path.join(dst_dir, filename)
+        shutil.copy(src, dst)
 
 def copy_or_download_licenses(show_percent = 5):
     packages = collect_cargo_lock_packages()
     i = 0
     l = len(packages)
     step = int(show_percent * l / 100)
-    with open(os.path.join(os.path.join(licenses_dir, f"{script_name}.log")), 'w') as log_file:
+    with open(os.path.join(os.path.join(script_dir, f"{script_name}.log")), 'w') as log_file:
         log(f"Fetch {l} licenses...", log_file)
+        license_dir = os.path.join(script_dir, "..", "lizenzen")
+        copy_fixed_licenses(script_dir, license_dir, log_file)
         for package in packages:
             name_and_version = f"{package.name}-{package.version}"
             if package.git is None:
@@ -213,12 +224,11 @@ def copy_or_download_licenses(show_percent = 5):
                     if dir.startswith(package.name):
                         dir_path = os.path.join(git_dir, dir)
                         for rev in os.listdir(dir_path):
-                            os.path.join(dir_path, rev)
-                            target_dir = os.path.join(licenses_dir, name_and_version, rev)
+                            target_dir = os.path.join(license_dir, name_and_version, rev)
                             copy_licenses(src_dir, target_dir, log_file)
             else:
                 src_dir = os.path.join(crates_io_dir, name_and_version)
-                target_dir = os.path.join(licenses_dir, name_and_version)
+                target_dir = os.path.join(license_dir, name_and_version)
                 copy_licenses(src_dir, target_dir, log_file)
             i += 1
             if i % step == 0:

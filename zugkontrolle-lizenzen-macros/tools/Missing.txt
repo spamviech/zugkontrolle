@@ -1,3 +1,10 @@
+block-0.1.6: MIT
+    http://github.com/SSheldon/rust-block
+    None in repository
+    objc from the same author has a copy of the MIT license
+    https://github.com/SSheldon/rust-objc
+    https://github.com/SSheldon/rust-block/issues/13
+
 dispatch-0.2.0: MIT
     None in repository
     http://github.com/SSheldon/rust-dispatch
