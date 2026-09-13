@@ -1,8 +1,8 @@
 //! Low level Steuerung von Pwm Signalen.
 
-// Mit raspi-feature wird das rppal-crate verwendet.
+// Mit raspi-feature wird das rpi_pal-crate verwendet.
 #![cfg_attr(feature = "raspi", allow(clippy::pub_use))]
-// Dokumentation ist (modulo backticks) copy+paste vom rppal-crate.
+// Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate.
 #![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
 
 #[cfg(not(feature = "raspi"))]
@@ -60,7 +60,7 @@ impl PwmStore {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::pwm::Pwm;
+pub use rpi_pal::pwm::Pwm;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s PWM peripherals.
 #[derive(Debug)]
@@ -309,7 +309,7 @@ impl Pwm {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::pwm::Channel;
+pub use rpi_pal::pwm::Channel;
 #[cfg(not(feature = "raspi"))]
 /// Pwm channels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -328,7 +328,7 @@ impl Display for Channel {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::pwm::Polarity;
+pub use rpi_pal::pwm::Polarity;
 #[cfg(not(feature = "raspi"))]
 /// Polarity of a pwm pulse.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -345,7 +345,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::pwm::Error;
+pub use rpi_pal::pwm::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the PWM peripheral.
 #[derive(Debug)]

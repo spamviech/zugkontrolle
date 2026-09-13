@@ -1,8 +1,8 @@
 //! Low level Steuerung von Gpio Pins.
 
-// Mit raspi-feature wird das rppal-crate verwendet.
+// Mit raspi-feature wird das rpi_pal-crate verwendet.
 #![cfg_attr(feature = "raspi", allow(clippy::pub_use))]
-// Dokumentation ist (modulo backticks) copy+paste vom rppal-crate.
+// Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate.
 #![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
 
 #[cfg(not(feature = "raspi"))]
@@ -20,7 +20,7 @@ use log::{debug, error};
 use parking_lot::MappedMutexGuard;
 
 #[cfg(not(feature = "raspi"))]
-use crate::rppal::LazyMutex;
+use crate::rpi_pal::LazyMutex;
 
 #[cfg(not(feature = "raspi"))]
 /// Set mit den aktuell verfügbaren Pins.
@@ -54,7 +54,7 @@ impl GpioStore {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Gpio;
+pub use rpi_pal::gpio::Gpio;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s GPIO peripheral.
 #[derive(Debug, Clone)]
@@ -86,7 +86,7 @@ impl Gpio {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Pin;
+pub use rpi_pal::gpio::Pin;
 #[cfg(not(feature = "raspi"))]
 /// Unconfigured GPIO pin.
 #[derive(Debug, PartialEq, Eq)]
@@ -162,7 +162,7 @@ impl Pin {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::InputPin;
+pub use rpi_pal::gpio::InputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
@@ -243,7 +243,7 @@ impl InputPin {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::OutputPin;
+pub use rpi_pal::gpio::OutputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug, PartialEq, Eq)]
 /// GPIO pin configured as output.
@@ -304,7 +304,7 @@ impl OutputPin {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Level;
+pub use rpi_pal::gpio::Level;
 #[cfg(not(feature = "raspi"))]
 /// Pin logic levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -328,7 +328,7 @@ impl Not for Level {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Bias;
+pub use rpi_pal::gpio::Bias;
 #[cfg(not(feature = "raspi"))]
 /// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
@@ -341,7 +341,7 @@ pub enum Bias {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Trigger;
+pub use rpi_pal::gpio::Trigger;
 #[cfg(not(feature = "raspi"))]
 /// Interrupt trigger conditions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -355,7 +355,7 @@ pub enum Trigger {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Event;
+pub use rpi_pal::gpio::Event;
 #[cfg(not(feature = "raspi"))]
 /// Interrupt trigger event.
 #[derive(Debug, Copy, Clone)]
@@ -382,7 +382,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Error;
+pub use rpi_pal::gpio::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the GPIO peripheral.
 #[derive(Debug)]
@@ -397,7 +397,7 @@ pub enum Error {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::gpio::Mode;
+pub use rpi_pal::gpio::Mode;
 #[cfg(not(feature = "raspi"))]
 /// Pin modes.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

@@ -3,7 +3,7 @@
 use thiserror::Error;
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
-use crate::{level::Level, pwm::Pwm, rppal};
+use crate::{level::Level, pwm::Pwm, rpi_pal};
 
 pub mod input;
 pub mod output;
@@ -11,7 +11,7 @@ pub mod pwm;
 
 /// Verwalten aller nicht verwendeten [`Pins`](Pin).
 #[derive(Debug)]
-pub struct Lager(rppal::gpio::Gpio);
+pub struct Lager(rpi_pal::gpio::Gpio);
 
 impl Lager {
     /// Erstelle ein neues [`Lager`].
@@ -19,8 +19,8 @@ impl Lager {
     /// ## Errors
     ///
     /// Zugriff auf Gpio-Pins nicht möglich.
-    pub fn neu() -> Result<Lager, rppal::gpio::Error> {
-        rppal::gpio::Gpio::new().map(Lager)
+    pub fn neu() -> Result<Lager, rpi_pal::gpio::Error> {
+        rpi_pal::gpio::Gpio::new().map(Lager)
     }
 
     /// Reserviere den gewählten Gpio [`Pin`].
@@ -43,12 +43,12 @@ pub struct ReservierenFehler {
     /// Der gewünschte [`Pin`].
     pub pin: u8,
     /// Der aufgetretene Fehler.
-    pub fehler: rppal::gpio::Error,
+    pub fehler: rpi_pal::gpio::Error,
 }
 
 /// Ein Gpio Pin.
 #[derive(Debug, PartialEq, Eq)]
-pub struct Pin(rppal::gpio::Pin);
+pub struct Pin(rpi_pal::gpio::Pin);
 
 impl Pin {
     /// Erhalte die GPIO [`Pin`] Nummer.
@@ -89,17 +89,17 @@ impl Pin {
     #[must_use]
     pub fn als_output(self, level: Level) -> output::Pin {
         let modus_ändern = match level {
-            Level::Low => rppal::gpio::Pin::into_output_low,
-            Level::High => rppal::gpio::Pin::into_output_high,
+            Level::Low => rpi_pal::gpio::Pin::into_output_low,
+            Level::High => rpi_pal::gpio::Pin::into_output_high,
         };
         output::Pin(modus_ändern(self.0))
     }
 
     /// Erhalte den zum Pin gehörigen [`pwm::Channel`].
-    fn pwm_channel(&self) -> Option<rppal::pwm::Channel> {
+    fn pwm_channel(&self) -> Option<rpi_pal::pwm::Channel> {
         match self.0.pin() {
-            18 => Some(rppal::pwm::Channel::Pwm0),
-            19 => Some(rppal::pwm::Channel::Pwm1),
+            18 => Some(rpi_pal::pwm::Channel::Pwm0),
+            19 => Some(rpi_pal::pwm::Channel::Pwm1),
             _ => None,
         }
     }
@@ -107,7 +107,8 @@ impl Pin {
     /// Konsumiere den [`Pin`] und geben einen [`pwm::Pin`] zurück.
     #[must_use]
     pub fn als_pwm(self) -> pwm::Pin {
-        if let Some(pwm) = self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok())
+        if let Some(pwm) =
+            self.pwm_channel().and_then(|channel| rpi_pal::pwm::Pwm::new(channel).ok())
         {
             let konfiguration = pwm
                 .polarity()

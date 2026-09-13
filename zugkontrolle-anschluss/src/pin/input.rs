@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::{event::Event, level::Level, rppal::gpio, trigger::Trigger};
+use crate::{event::Event, level::Level, rpi_pal::gpio, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
 #[derive(Debug, PartialEq)]
@@ -38,9 +38,9 @@ impl Pin {
     ///
     /// ## Keine synchronen Interrupts
     ///
-    /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    /// Obwohl rpi_pal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
-    /// [`poll_interrupts`](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    /// [`poll_interrupts`](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.
     /// > Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or
     /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins simultaneously

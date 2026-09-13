@@ -1,8 +1,8 @@
 //! Low level Steuerung eines i2c Kanals.
 
-// Mit raspi-feature wird das rppal-crate verwendet.
+// Mit raspi-feature wird das rpi_pal-crate verwendet.
 #![cfg_attr(feature = "raspi", allow(clippy::pub_use))]
-// Dokumentation ist (modulo backticks) copy+paste vom rppal-crate.
+// Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate.
 #![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
 
 #[cfg(not(feature = "raspi"))]
@@ -14,7 +14,7 @@ use log::{debug, error};
 use parking_lot::MappedMutexGuard;
 
 #[cfg(not(feature = "raspi"))]
-use crate::rppal::LazyMutex;
+use crate::rpi_pal::LazyMutex;
 
 #[cfg(not(feature = "raspi"))]
 /// Verfügbare I2C-Busse.
@@ -48,7 +48,7 @@ impl I2cStore {
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::i2c::I2c;
+pub use rpi_pal::i2c::I2c;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s I2C peripheral.
 #[derive(Debug)]
@@ -134,7 +134,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "raspi")]
 #[doc(inline)]
-pub use ::rppal::i2c::Error;
+pub use rpi_pal::i2c::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the I2C peripheral.
 #[derive(Debug)]

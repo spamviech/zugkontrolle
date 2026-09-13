@@ -8,7 +8,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{level::Level, rppal::gpio};
+use crate::{level::Level, rpi_pal::gpio};
 
 /// [`Trigger`] für auslösen eines Interrupt-Events.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]

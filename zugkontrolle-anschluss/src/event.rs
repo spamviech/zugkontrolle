@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use crate::{rppal::gpio, trigger::Trigger};
+use crate::{rpi_pal::gpio, trigger::Trigger};
 
 /// Interrupt trigger event.
 #[derive(Debug, Copy, Clone)]

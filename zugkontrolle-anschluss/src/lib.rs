@@ -20,7 +20,7 @@ use crate::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     event::Event,
     level::Level,
-    pin::{Pin, input, output, pwm},
+    pin::{input, output, pwm, Pin},
     polarität::{Fließend, Polarität},
     trigger::Trigger,
 };
@@ -32,7 +32,7 @@ pub mod pcf8574;
 pub mod pin;
 #[path = "polarität.rs"]
 pub mod polarität;
-pub mod rppal;
+pub mod rpi_pal;
 pub mod trigger;
 
 /// Verwalten nicht verwendeter [Pin]s und [`Pcf8574-Ports`](pcf8574::Port).
@@ -48,7 +48,7 @@ pub struct Lager {
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum InitFehler {
     /// Fehler beim Initialisieren des [`Pin-Lagers`](pin::Lager).
-    Pin(rppal::gpio::Error),
+    Pin(rpi_pal::gpio::Error),
     /// Fehler beim Initialisieren des [`Pcf8574-Lagers`](pcf8574::Lager).
     Pcf8574(pcf8574::InitFehler),
 }
@@ -196,7 +196,11 @@ impl OutputAnschluss {
     /// Aktuelle Einstellung des [`OutputAnschlusses`](OutputAnschluss).
     #[must_use]
     pub fn fließend(&self) -> Fließend {
-        if self.ist_fließend() { Fließend::Fließend } else { Fließend::Gesperrt }
+        if self.ist_fließend() {
+            Fließend::Fließend
+        } else {
+            Fließend::Gesperrt
+        }
     }
 
     /// Ist der [`OutputAnschluss`] aktuell [`fließend`](Fließend::Fließend).
@@ -451,9 +455,9 @@ impl InputAnschluss {
         "Setzten des Interrupts schlug fehl.",
         "",
         "## Keine synchronen Interrupts",
-        "Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
+        "Obwohl rpi_pal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
         "Siehe die Dokumentation der",
-        "[poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)",
+        "[poll_interrupts](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)",
         "Methode.",
         "> Calling poll_interrupts blocks any other calls to poll_interrupts or",
         "> InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously",
@@ -519,7 +523,11 @@ impl InputSerialisiert {
     /// sofern es sich um einen handelt und einer konfiguriert ist.
     #[must_use]
     pub fn interrupt(&self) -> Option<u8> {
-        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self { *interrupt } else { None }
+        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self {
+            *interrupt
+        } else {
+            None
+        }
     }
 }
 

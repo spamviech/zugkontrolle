@@ -11,7 +11,7 @@ use std::{
     sync::Arc,
 };
 
-use enum_iterator::{Sequence, all};
+use enum_iterator::{all, Sequence};
 use itertools::iproduct;
 use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
@@ -20,13 +20,13 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_util::{
-    eingeschränkt::{kleiner_8, kleiner_128},
+    eingeschränkt::{kleiner_128, kleiner_8},
     enumerate_checked::EnumerateCheckedExt,
 };
 
 use crate::{
-    pin::{self, Pin, input},
-    rppal::{
+    pin::{self, input, Pin},
+    rpi_pal::{
         gpio,
         i2c::{self, I2c},
     },
@@ -855,9 +855,9 @@ impl InputPort {
     /// oder der [`input::Pin`] out of scope geht.
     ///
     /// ## Keine synchronen Interrupts
-    /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    /// Obwohl rpi_pal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
-    /// [`poll_interrupts`](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    /// [`poll_interrupts`](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.
     /// > Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or
     /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins simultaneously

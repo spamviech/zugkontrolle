@@ -66,7 +66,7 @@ log.workspace = true
 parking_lot.workspace = true
 
 # can't be used on non-raspi systems
-[dependencies.rppal]
+[dependencies.rpi-pal]
 workspace = true
 optional = true
 
@@ -379,9 +379,9 @@ features = ["card", "tab_bar", "tabs", "number_input"]
 opt-level = 2
 debug = false
 
-[workspace.dependencies.rppal]
+[workspace.dependencies.rpi-pal]
 default-features = false
-version = "0.22.1"
+version = "0.22.3"
 
 [workspace.dependencies.syn]
 version = "3.0.5"

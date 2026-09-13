@@ -9,7 +9,7 @@ use crate::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     pin::Pin as EinPin,
     polarität::Polarität,
-    rppal::{gpio, pwm},
+    rpi_pal::{gpio, pwm},
     Lager,
 };
 

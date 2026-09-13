@@ -1,6 +1,6 @@
 //! Gpio [`Pins`](Pin) konfiguriert für Output.
 
-use crate::{level::Level, rppal::gpio};
+use crate::{level::Level, rpi_pal::gpio};
 
 /// Ein Gpio Pin konfiguriert für Output.
 #[derive(Debug, PartialEq)]
@@ -38,5 +38,5 @@ impl Pin {
     }
 
     // maybe re-export more methods?
-    // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Pin.html
+    // https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Pin.html
 }

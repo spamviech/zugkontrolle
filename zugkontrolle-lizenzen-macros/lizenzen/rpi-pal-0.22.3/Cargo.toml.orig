@@ -1,13 +1,13 @@
 [package]
-name = "rppal"
+name = "rpi-pal"
 # Also update html_root_url in lib.rs
-version = "0.22.1"
+version = "0.22.3"
 edition = "2021"
 rust-version = "1.60"
 authors = ["Rene van der Meer <rene@golemparts.com>"]
 description = "Interface for the Raspberry Pi's GPIO, I2C, PWM, SPI and UART peripherals."
-documentation = "https://docs.rs/rppal"
-repository = "https://github.com/golemparts/rppal"
+documentation = "https://docs.rs/rpi-pal"
+repository = "https://github.com/rpi-pal/rpi-pal"
 readme = "README.md"
 license = "MIT"
 categories = ["embedded", "hardware-support"]
@@ -21,6 +21,7 @@ embedded-hal = { version = "1", optional = true }
 embedded-hal-nb = { version = "1", optional = true }
 void = { version = "1.0.2", optional = true }
 spin_sleep = { version = "1.0.0", optional = true }
+regex = "1.9.6"
 
 [dev-dependencies]
 simple-signal = "1.1.1"
