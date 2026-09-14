@@ -64,7 +64,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     pub fn aktualisiere_message_box(&mut self, message_box: Option<MessageBox>) {
         if let Some(MessageBox { titel, nachricht }) = &message_box {
             // TODO set loglevel dynamically as an argument?
-            log::warn!("{titel}\n{nachricht}");
+            log::info!("{titel}\n{nachricht}");
         }
         self.message_box = message_box;
     }

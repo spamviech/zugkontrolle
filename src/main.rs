@@ -34,7 +34,7 @@ fn main() -> Result<(), Fehler> {
 pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
     /// Initialisiere die Logger-Instanz.
     fn start_logger(verbose: bool, log_datei: bool) -> Result<LoggerHandle, FlexiLoggerError> {
-        let log_level = if verbose { LevelFilter::Debug } else { LevelFilter::Warn };
+        let log_level = if verbose { LevelFilter::Debug } else { LevelFilter::Info };
         let mut log_spec_builder = LogSpecBuilder::new();
         let _ = log_spec_builder.default(LevelFilter::Error).module("zugkontrolle", log_level);
         let log_spec = log_spec_builder.finalize();

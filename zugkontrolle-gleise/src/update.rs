@@ -466,14 +466,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     if let Some(wert) = wert {
                         let bisher = gehalten.insert(quelle, wert);
                         if bisher.is_some() {
-                            debug!("Aktualisiere gehaltenes Gleis für {quelle:?}.");
+                            trace!("Aktualisiere gehaltenes Gleis für {quelle:?}.");
                         } else {
-                            info!("Neues gehaltenes Gleis für {quelle:?}.");
+                            debug!("Neues gehaltenes Gleis für {quelle:?}.");
                         }
                     } else {
                         let bisher = gehalten.remove(&quelle);
                         if bisher.is_some() {
-                            info!("Gehaltenes Gleis für {quelle:?} entfernt.");
+                            debug!("Gehaltenes Gleis für {quelle:?} entfernt.");
                         } else {
                             warn!(
                                 "Gehaltenes Gleis für {quelle:?} soll entfernt werden, aber ist nicht vorhanden!"
