@@ -53,8 +53,7 @@ use crate::{
 /// [`bincode`]-Optionen, bei denen trailing bytes abgelehnt werden.
 ///
 /// Im Gegensatz zu [`DefaultOptions`] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
-/// <https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions>
-// TODO: .reject_trailing_bytes()
+/// <https://docs.rs/bincode/1.3.3/bincode/config/index.html#options-struct-vs-bincode-functions>
 const BINCODE_OPTIONS: Configuration<
     LittleEndian,
     Fixint,
