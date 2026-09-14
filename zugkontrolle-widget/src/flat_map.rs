@@ -123,35 +123,21 @@ where
         theme: &Thema,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.element.as_widget().draw(
-            tree,
-            renderer,
-            theme,
-            style,
-            layout,
-            cursor_position,
-            viewport,
-        );
+        self.element.as_widget().draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        self.element.as_widget().mouse_interaction(
-            tree,
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
+        self.element.as_widget().mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn overlay<'b>(
@@ -255,8 +241,6 @@ where
         for message in local_messages.drain(..).flat_map(self.mapper) {
             shell.publish(message);
         }
-
-        ();
     }
 
     fn mouse_interaction(
@@ -277,5 +261,16 @@ where
         cursor_position: mouse::Cursor,
     ) {
         self.content.as_overlay().draw(renderer, theme, style, layout, cursor_position);
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'b>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, B, Thema, Renderer>> {
+        let mapper = &self.mapper;
+        self.content.as_overlay_mut().overlay(layout, renderer).map(move |overlay| {
+            overlay::Element::new(Box::new(OverlayFlatMap::neu(overlay, mapper)))
+        })
     }
 }

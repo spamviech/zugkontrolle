@@ -214,7 +214,9 @@ where
             Some(erzeuge_schließen_nachricht),
         ) = (event, &self.schließe_bei_esc)
         {
-            shell.publish(erzeuge_schließen_nachricht())
+            shell.publish(erzeuge_schließen_nachricht());
+        } else {
+            // Event blocked by overlay
         }
     }
 
