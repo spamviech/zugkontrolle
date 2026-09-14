@@ -5,7 +5,7 @@ use zugkontrolle_util::eingeschränkt::kleiner_8;
 
 use crate::{
     level::Level,
-    pcf8574::{Beschreibung, I2cBus, I2cSettings, InVerwendung, Lager, Port, Variante},
+    pcf8574::{Beschreibung, I2cBus, I2cSettings, Lager, Port, ReservierenFehler, Variante},
     pin,
 };
 
@@ -59,6 +59,28 @@ fn drop_semantics() {
     );
 }
 
+#[test]
+fn i2c_settings() {
+    init_test_logging();
+
+    let llln_beschreibung = Beschreibung {
+        i2c_bus: I2cBus::I2c0_1,
+        a0: Level::Low,
+        a1: Level::Low,
+        a2: Level::Low,
+        variante: Variante::Normal,
+    };
+    let port0 = kleiner_8::MIN;
+
+    let i2c_settings =
+        I2cSettings { i2c0_1: false, i2c3: false, i2c4: false, i2c5: false, i2c6: false };
+    let mut pin_lager = pin::Lager::neu().expect("pin::Lager erstellen fehlgeschlagen!");
+    let mut lager =
+        Lager::neu(&mut pin_lager, i2c_settings).expect("pcf8574::Lager erstellen fehlgeschlagen!");
+
+    lager.reserviere_erwarte_deaktiviert(llln_beschreibung, port0, "1. Aufruf von llln.");
+}
+
 // nur für Tests
 #[allow(clippy::multiple_inherent_impl)]
 impl Lager {
@@ -84,8 +106,25 @@ impl Lager {
     }
 
     fn in_verwendung_eq(&mut self, beschreibung: Beschreibung, port: kleiner_8) -> bool {
-        if let Err(in_verwendung) = self.reserviere_pcf8574_port(beschreibung, port) {
-            in_verwendung == InVerwendung { beschreibung, port }
+        if let Err(fehler) = self.reserviere_pcf8574_port(beschreibung, port) {
+            fehler == ReservierenFehler::InVerwendung { beschreibung, port }
+        } else {
+            false
+        }
+    }
+
+    fn reserviere_erwarte_deaktiviert(
+        &mut self,
+        beschreibung: Beschreibung,
+        port: kleiner_8,
+        assert_nachricht: &str,
+    ) {
+        assert!(self.deaktiviert_eq(beschreibung, port), "{assert_nachricht}",);
+    }
+
+    fn deaktiviert_eq(&mut self, beschreibung: Beschreibung, port: kleiner_8) -> bool {
+        if let Err(fehler) = self.reserviere_pcf8574_port(beschreibung, port) {
+            fehler == ReservierenFehler::I2cBusDeaktiviert { beschreibung, port }
         } else {
             false
         }

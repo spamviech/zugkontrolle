@@ -163,17 +163,19 @@ impl Lager {
         &mut self,
         beschreibung: Beschreibung,
         port: kleiner_8,
-    ) -> Result<Port, InVerwendung> {
+    ) -> Result<Port, ReservierenFehler> {
         debug!("reserviere pcf8574 {beschreibung:?}-{port}");
         self.0
             .write()
             .get_mut(&beschreibung)
+            .ok_or(ReservierenFehler::I2cBusDeaktiviert { beschreibung, port })
             .and_then(|(_pcf8574, ports)| {
                 // 0 <= port < 8 == ports.len()
                 #[allow(clippy::indexing_slicing)]
-                ports[usize::from(port)].take()
+                ports[usize::from(port)]
+                    .take()
+                    .ok_or(ReservierenFehler::InVerwendung { beschreibung, port })
             })
-            .ok_or(InVerwendung { beschreibung, port })
     }
 
     /// Gebe einen Pcf8574-[`Port`] zurück, damit er wieder verwendet werden kann.
@@ -272,14 +274,25 @@ impl I2cBus {
     }
 }
 
-/// Der [`Port`] wird bereits verwendet.
+/// Ein Fehler beim reservieren eines [`Pcf8574-Port`](pcf8574::Port)s.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-#[error("Pcf8574-Port {beschreibung}-{port} wird bereits verwendet!")]
-pub struct InVerwendung {
-    /// [Beschreibung] des [`Pcf8574`]s.
-    pub beschreibung: Beschreibung,
-    /// Port des [`Pcf8574`].
-    pub port: kleiner_8,
+pub enum ReservierenFehler {
+    /// Der [`I2cBus`] ist nicht aktiviert
+    #[error("I2cBus des Pcf8574-Ports {beschreibung}-{port} ist deaktiviert!")]
+    I2cBusDeaktiviert {
+        /// [Beschreibung] des [`Pcf8574`]s.
+        beschreibung: Beschreibung,
+        /// Port des [`Pcf8574`].
+        port: kleiner_8,
+    },
+    /// Der [`Port`] wird bereits verwendet.
+    #[error("Pcf8574-Port {beschreibung}-{port} wird bereits verwendet!")]
+    InVerwendung {
+        /// [Beschreibung] des [`Pcf8574`]s.
+        beschreibung: Beschreibung,
+        /// Port des [`Pcf8574`].
+        port: kleiner_8,
+    },
 }
 
 /// Der aktuelle Zustand eines [`Pcf8574`]-[`Ports`](Port).

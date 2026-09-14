@@ -696,9 +696,9 @@ pub enum ReservierenFehler {
     /// Ein Fehler beim reservieren eines [`Pin`]s.
     #[error(transparent)]
     Pin(#[from] pin::ReservierenFehler),
-    /// Ein [`Pcf8574-Port`](pcf8574::Port) wird bereits verwendet.
+    /// Ein Fehler beim reservieren eines [`Pcf8574-Port`](pcf8574::Port)s.
     #[error(transparent)]
-    Pcf8574(#[from] pcf8574::InVerwendung),
+    Pcf8574(#[from] pcf8574::ReservierenFehler),
     /// Der Interrupt-Pin für einen [`Pcf8574`](pcf8574::Pcf8574) wurde angepasst.
     #[error("Interrupt-Pin für Pcf8574 {beschreibung} von {von} zu {zu:?} geändert.")]
     Pcf8574InterruptPinGeändert {
@@ -744,8 +744,8 @@ impl From<pin::ReservierenFehler> for Fehler {
         Fehler::Reservieren(fehler.into())
     }
 }
-impl From<pcf8574::InVerwendung> for Fehler {
-    fn from(fehler: pcf8574::InVerwendung) -> Self {
+impl From<pcf8574::ReservierenFehler> for Fehler {
+    fn from(fehler: pcf8574::ReservierenFehler) -> Self {
         Fehler::Reservieren(fehler.into())
     }
 }
