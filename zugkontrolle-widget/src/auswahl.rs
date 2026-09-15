@@ -174,17 +174,22 @@ impl<S> AuswahlZustand<S> {
             + From<lizenzen::Nachricht>,
     {
         match self {
-            AuswahlZustand::Streckenabschnitt(startwert) => Element::from(
-                streckenabschnitt::Auswahl::neu(startwert, gleise, scrollable_style, i2c_settings),
-            )
-            .map(Nachricht::from),
+            AuswahlZustand::Streckenabschnitt(startwert) => {
+                Element::from(streckenabschnitt::Auswahl::neu(
+                    startwert.as_ref(),
+                    gleise,
+                    scrollable_style,
+                    i2c_settings,
+                ))
+                .map(Nachricht::from)
+            },
             AuswahlZustand::Geschwindigkeit(startwert) => {
                 let geschwindigkeiten =
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
                         (name.clone(), geschwindigkeit.serialisiere())
                     });
                 Element::from(<L as LeiterAnzeige<S, Thema, Renderer>>::auswahl_neu(
-                    startwert,
+                    startwert.as_ref(),
                     geschwindigkeiten,
                     scrollable_style,
                     i2c_settings,

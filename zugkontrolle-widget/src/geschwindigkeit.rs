@@ -352,7 +352,7 @@ where
     #[allow(clippy::too_many_arguments)]
     /// Erstelle eine neue [`Auswahl`].
     fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
@@ -743,7 +743,7 @@ pub trait LeiterAnzeige<'t, S, Thema, R>: Leiter + Sized {
 
     /// Erstelle eine neue [`Auswahl`].
     fn auswahl_neu(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<S>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<S>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -804,7 +804,7 @@ where
     }
 
     fn auswahl_neu(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -908,7 +908,7 @@ where
     }
 
     fn auswahl_neu(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
