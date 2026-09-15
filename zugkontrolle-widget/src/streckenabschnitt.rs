@@ -225,46 +225,41 @@ where
                 settings,
             )
         };
-        let mapper = |interne_nachricht,
-                      zustand: &mut AuswahlZustand,
-                      status: &mut event::Status| {
-            *status = event::Status::Captured;
-            match interne_nachricht {
-                InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
-                InterneAuswahlNachricht::Wähle(wahl) => {
-                    vec![AuswahlNachricht::Wähle(wahl), AuswahlNachricht::Schließe]
-                },
-                InterneAuswahlNachricht::Hinzufügen => {
-                    let nachricht = AuswahlNachricht::Hinzufügen(
-                        None,
-                        Name(zustand.name.clone()),
-                        zustand.farbe,
-                        zustand.anschluss.clone(),
-                    );
-                    vec![nachricht]
-                },
-                InterneAuswahlNachricht::Lösche(name) => {
-                    vec![AuswahlNachricht::Lösche(name)]
-                },
-                InterneAuswahlNachricht::Name(name) => {
-                    zustand.name = name;
-                    Vec::new()
-                },
-                InterneAuswahlNachricht::FarbeBestimmen(farbe) => {
-                    zustand.farbe = farbe;
-                    Vec::new()
-                },
-                InterneAuswahlNachricht::Anschluss(anschluss) => {
-                    zustand.anschluss = anschluss;
-                    Vec::new()
-                },
-                InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
-                    zustand.name = name.0;
-                    zustand.farbe = farbe;
-                    zustand.anschluss = anschluss;
-                    Vec::new()
-                },
-            }
+        let mapper = |interne_nachricht, zustand: &mut AuswahlZustand| match interne_nachricht {
+            InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
+            InterneAuswahlNachricht::Wähle(wahl) => {
+                vec![AuswahlNachricht::Wähle(wahl), AuswahlNachricht::Schließe]
+            },
+            InterneAuswahlNachricht::Hinzufügen => {
+                let nachricht = AuswahlNachricht::Hinzufügen(
+                    None,
+                    Name(zustand.name.clone()),
+                    zustand.farbe,
+                    zustand.anschluss.clone(),
+                );
+                vec![nachricht]
+            },
+            InterneAuswahlNachricht::Lösche(name) => {
+                vec![AuswahlNachricht::Lösche(name)]
+            },
+            InterneAuswahlNachricht::Name(name) => {
+                zustand.name = name;
+                Vec::new()
+            },
+            InterneAuswahlNachricht::FarbeBestimmen(farbe) => {
+                zustand.farbe = farbe;
+                Vec::new()
+            },
+            InterneAuswahlNachricht::Anschluss(anschluss) => {
+                zustand.anschluss = anschluss;
+                Vec::new()
+            },
+            InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
+                zustand.name = name.0;
+                zustand.farbe = farbe;
+                zustand.anschluss = anschluss;
+                Vec::new()
+            },
         };
         Auswahl(MapMitZustand::neu(AuswahlZustand::neu(startwert), erzeuge_element, mapper))
     }

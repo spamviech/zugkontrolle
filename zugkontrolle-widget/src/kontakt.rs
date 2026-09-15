@@ -119,11 +119,8 @@ where
         let erzeuge_element = move |zustand: &_| {
             Self::erzeuge_element(gleis_art, zustand, scrollable_style, settings)
         };
-        let mapper = |interne_nachricht: InterneNachricht,
-                      zustand: &mut Zustand,
-                      status: &mut event::Status| {
-            *status = event::Status::Captured;
-            match interne_nachricht {
+        let mapper =
+            |interne_nachricht: InterneNachricht, zustand: &mut Zustand| match interne_nachricht {
                 InterneNachricht::Name(name) => {
                     zustand.name = name;
                     Vec::new()
@@ -147,8 +144,7 @@ where
                     vec![Nachricht::Festlegen(None)]
                 },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
-            }
-        };
+            };
         Auswahl(MapMitZustand::neu(Zustand::neu(kontakt, hat_steuerung), erzeuge_element, mapper))
     }
 

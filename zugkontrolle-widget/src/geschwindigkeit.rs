@@ -406,10 +406,8 @@ where
     + Fn(
         InterneAuswahlNachricht,
         &mut AuswahlZustand,
-        &mut event::Status,
     ) -> Vec<AuswahlNachricht<LeiterSerialisiert>> {
-        |interne_nachricht, zustand, status| {
-            *status = event::Status::Captured;
+        |interne_nachricht, zustand| {
             let mut nachrichten = Vec::new();
             match interne_nachricht {
                 InterneAuswahlNachricht::Schließen => {

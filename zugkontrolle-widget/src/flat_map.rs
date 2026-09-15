@@ -238,6 +238,12 @@ where
             shell.invalidate_widgets();
         }
 
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
+
+        *shell.input_method_mut() = local_shell.input_method().clone();
+
         for message in local_messages.drain(..).flat_map(self.mapper) {
             shell.publish(message);
         }

@@ -126,9 +126,7 @@ where
             Self::erzeuge_element(weichen_art, zustand, scrollable_style, settings)
         };
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
-                      zustand: &mut Zustand<AnschlüsseSerialisiert>,
-                      status: &mut event::Status| {
-            *status = event::Status::Captured;
+                      zustand: &mut Zustand<AnschlüsseSerialisiert>| {
             match interne_nachricht {
                 InterneNachricht::Name(name) => {
                     zustand.name = name;

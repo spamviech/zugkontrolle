@@ -417,10 +417,7 @@ where
         let erzeuge_element = move |zustand: &Zustand<Modus>| {
             Self::erzeuge_element(zustand, &view_modus, zeige_modus, scrollable_style, settings)
         };
-        let mapper = move |interne_nachricht,
-                           zustand: &mut Zustand<Modus>,
-                           status: &mut event::Status| {
-            *status = event::Status::Captured;
+        let mapper = move |interne_nachricht, zustand: &mut Zustand<Modus>| {
             match interne_nachricht {
                 InterneNachricht::TabSelected(tab) => zustand.active_tab = tab,
                 InterneNachricht::Pin(pin) => zustand.pin = pin,
@@ -637,12 +634,7 @@ where
     }
 
     /// Konvertiere die interne Nachricht für ein [`Pwm`]-Widget.
-    fn mapper(
-        nachricht: pwm::Serialisiert,
-        zustand: &mut PwmZustand,
-        status: &mut event::Status,
-    ) -> Vec<pwm::Serialisiert> {
-        *status = event::Status::Captured;
+    fn mapper(nachricht: pwm::Serialisiert, zustand: &mut PwmZustand) -> Vec<pwm::Serialisiert> {
         let pwm::Serialisiert(pin) = nachricht;
         zustand.pin = pin;
         vec![nachricht]

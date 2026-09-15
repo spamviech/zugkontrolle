@@ -107,15 +107,12 @@ where
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
-        let mapper = |interne_nachricht, zustand: &mut Zustand, status: &mut event::Status| {
-            *status = event::Status::Captured;
-            match interne_nachricht {
-                InterneNachricht::Aktuell(name, lizenz_text) => {
-                    zustand.aktuell = Some((name, Cow::Borrowed(lizenz_text)));
-                    Vec::new()
-                },
-                InterneNachricht::Schließen => vec![Nachricht::Schließen],
-            }
+        let mapper = |interne_nachricht, zustand: &mut Zustand| match interne_nachricht {
+            InterneNachricht::Aktuell(name, lizenz_text) => {
+                zustand.aktuell = Some((name, Cow::Borrowed(lizenz_text)));
+                Vec::new()
+            },
+            InterneNachricht::Schließen => vec![Nachricht::Schließen],
         };
         Lizenzen(MapMitZustand::neu(Zustand::neu(lizenzen), erzeuge_element, mapper))
     }
