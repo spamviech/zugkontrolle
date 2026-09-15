@@ -170,7 +170,7 @@ where
                 .push(rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE.style_fn()))
                 .push(Scrollable::new(column_aktuell)),
         )
-        .style(style::container::WEIẞ.style_fn());
+        .style(style::container::Container::HintergrundThema.style_fn());
         container.into()
     }
 }

@@ -3,6 +3,7 @@
 use iced_core::{
     Background, Color,
     border::{self, Border},
+    theme::Base as _,
 };
 use iced_widget::container;
 
@@ -28,6 +29,8 @@ pub enum Container {
     /// Die Standard-Darstellung des korrespondierenden [`iced::Theme`].
     #[default]
     Standard,
+    /// Ändere die Hintergrundfarbe ausgehend vom Thema.
+    HintergrundThema,
     /// Ändere die Hintergrundfarbe.
     Hintergrund {
         /// Die Hintergrundfarbe.
@@ -94,19 +97,16 @@ impl StyleProvider<'_, Thema> for Container {
             let default_style = <Thema as container::Catalog>::default()(thema);
             match self {
                 Container::Standard => default_style,
+                Container::HintergrundThema => {
+                    default_style.background(thema.base().background_color)
+                },
                 Container::Hintergrund { farbe } => {
                     default_style.background(Background::Color(farbe))
                 },
                 Container::Rand { farbe, breite, radius } => {
                     default_style.border(Border { color: farbe, width: breite, radius })
                 },
-                Container::Pcf8574Beschreibung => {
-                    let pcf8474_text_farbe = match thema {
-                        Thema::Hell => Color::BLACK,
-                        Thema::Dunkel => Color::WHITE,
-                    };
-                    default_style.color(pcf8474_text_farbe)
-                },
+                Container::Pcf8574Beschreibung => default_style.color(thema.base().text_color),
             }
         })
     }

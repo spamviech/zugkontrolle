@@ -93,7 +93,7 @@ impl<'t, Thema, R> Auswahl<'t, Thema, R>
 where
     R: 't + Renderer + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::Catalog
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
         + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
         + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
         + number_input::Catalog
@@ -104,6 +104,7 @@ where
         + text::Catalog
         + text_input::Catalog
         + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
     TabBar: style::tab_bar::StyleProvider<'t, Thema>,
     Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {

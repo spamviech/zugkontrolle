@@ -26,6 +26,7 @@ use crate::{
     bootstrap::{Bootstrap, Icon},
     map_mit_zustand::MapMitZustand,
     style::{
+        container::StyleProvider as _,
         sammlung::{self, Sammlung, StyleProvider as _},
         tab_bar::{StyleProvider as _, TabBar},
     },
@@ -119,12 +120,13 @@ where
     Thema: 'a
         + number_input::Catalog
         + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
-        + container::Catalog
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
         + radio::Catalog
         + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
         + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
     Sammlung: sammlung::StyleProvider<'a, Thema>,
     TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
@@ -233,12 +235,13 @@ where
     Thema: 'a
         + number_input::Catalog
         + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
-        + container::Catalog
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
         + radio::Catalog
         + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
         + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
     Sammlung: sammlung::StyleProvider<'a, Thema>,
     TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
@@ -392,12 +395,13 @@ where
     Thema: 'a
         + number_input::Catalog
         + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
-        + container::Catalog
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
         + radio::Catalog
         + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
         + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
     Sammlung: sammlung::StyleProvider<'a, Thema>,
     TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
@@ -458,12 +462,13 @@ where
     Thema: 'a
         + number_input::Catalog
         + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
-        + container::Catalog
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
         + radio::Catalog
         + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
         + text::Catalog
         + text_input::Catalog
         + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
     Sammlung: sammlung::StyleProvider<'a, Thema>,
     TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
@@ -567,7 +572,9 @@ where
                 Row::new().push(tabs).push(view_modus_mapped)
             },
         };
-        row.into()
+        let container = Container::new(row)
+            .style(crate::style::container::Container::HintergrundThema.style_fn());
+        container.into()
     }
 }
 

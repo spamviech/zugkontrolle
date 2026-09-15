@@ -103,7 +103,7 @@ where
     Thema: 't
         + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
         + card::Catalog
-        + container::Catalog
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
         + number_input::Catalog
         + number_input::ExtendedCatalog
         + radio::Catalog
@@ -111,6 +111,7 @@ where
         + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
         + text::Catalog
         + text_input::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
     Sammlung: style::sammlung::StyleProvider<'t, Thema>,
     style::tab_bar::TabBar: style::tab_bar::StyleProvider<'t, Thema>,
 {
