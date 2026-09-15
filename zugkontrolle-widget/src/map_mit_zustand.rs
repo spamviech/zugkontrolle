@@ -25,7 +25,7 @@ use crate::flat_map::FlatMap;
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Das Element.
     element: Element<'a, Intern, Thema, R>,
-    /// Erzeuge den initialen Zustand.
+    /// Der initiale Zustand.
     initialer_zustand: Zustand,
     /// Erzeuge die Widget-Hierarchie.
     #[allow(clippy::type_complexity)]
@@ -66,14 +66,11 @@ impl<'a, Zustand, Intern, Extern, Thema, R> MapMitZustand<'a, Zustand, Intern, E
     }
 }
 
-impl<'a, Zustand, Intern, Extern, Thema, R> Widget<Vec<Extern>, Thema, R>
+impl<Zustand, Intern, Extern, Thema, R> Widget<Vec<Extern>, Thema, R>
     for MapMitZustand<'_, Zustand, Intern, Extern, Thema, R>
 where
-    Zustand: 'static + Clone,
-    Intern: 'a,
-    Extern: 'a,
-    Thema: 'a,
-    R: 'a + Renderer,
+    Zustand: 'static + Clone + PartialEq,
+    R: Renderer,
 {
     fn size(&self) -> Size<Length> {
         self.element.as_widget().size()
@@ -186,9 +183,13 @@ where
         *shell.input_method_mut() = local_shell.input_method().clone();
 
         let zustand = tree.state.downcast_mut::<Zustand>();
+        let alter_zustand = zustand.clone();
         for intern in local_messages.drain(..) {
             let message = (self.mapper)(intern, zustand);
             shell.publish(message);
+        }
+        if alter_zustand != *zustand {
+            shell.request_redraw();
         }
 
         self.element = (self.erzeuge_element)(&*zustand);
@@ -362,7 +363,7 @@ where
 impl<'a, Zustand, Intern, Extern, Thema, R: Renderer>
     From<MapMitZustand<'a, Zustand, Intern, Extern, Thema, R>> for Element<'a, Extern, Thema, R>
 where
-    Zustand: 'static + Clone,
+    Zustand: 'static + Clone + PartialEq,
     Intern: 'a,
     Extern: 'a,
     Thema: 'a,

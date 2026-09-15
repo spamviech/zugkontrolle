@@ -575,7 +575,7 @@ impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>>
     for Element<'a, Serialisiert, Thema, R>
 where
-    Modus: 'static + Clone,
+    Modus: 'static + Clone + PartialEq,
     ModusNachricht: 'a,
     Serialisiert: 'a,
     Thema: 'a,
