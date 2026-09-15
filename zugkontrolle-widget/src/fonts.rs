@@ -3,6 +3,7 @@
 use std::{borrow::Cow, include_bytes};
 
 use iced::{Font, Pixels, Point, alignment::Vertical, widget::canvas::Text};
+use iced_aw::ICED_AW_FONT_BYTES;
 use iced_core::text::Alignment;
 
 /// Schriftart ohne zusätzliche Eigenschaften.
@@ -22,7 +23,10 @@ pub static BOOTSTRAP: Font = Font::with_name("bootstrap-icons");
 ///
 /// Werden sie nicht geladen kann es zu Darstellungsfehlern kommen.
 pub fn benötigte_font_bytes() -> Vec<Cow<'static, [u8]>> {
-    [REGULAR_BYTES, BOOTSTRAP_ICONS_BYTES].into_iter().map(Cow::Borrowed).collect()
+    [REGULAR_BYTES, BOOTSTRAP_ICONS_BYTES, ICED_AW_FONT_BYTES]
+        .into_iter()
+        .map(Cow::Borrowed)
+        .collect()
 }
 
 /// Die Standard-Schriftart, Größe und Ausrichtung für Text auf einem Canvas.
