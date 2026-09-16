@@ -188,11 +188,16 @@ where
             let message = (self.mapper)(intern, zustand);
             shell.publish(message);
         }
-        if alter_zustand != *zustand {
-            shell.request_redraw();
-        }
 
-        self.element = (self.erzeuge_element)(&*zustand);
+        if alter_zustand != *zustand {
+            self.element = (self.erzeuge_element)(&*zustand);
+            // Anmerkung: Kein Aufruf von shell.invalidate_widgets().
+            // Ansonsten werden bestimmte Änderungen nicht sofort sichtbar.
+            // Beispiel: Anderen Lizenztext anzeigen.
+            shell.request_redraw();
+            shell.invalidate_layout();
+            shell.capture_event();
+        }
     }
 
     fn mouse_interaction(
