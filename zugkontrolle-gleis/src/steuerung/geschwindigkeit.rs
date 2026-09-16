@@ -357,8 +357,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
     }
 }
 
-// Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert")]
 /// Serialisierbare Repräsentation einer [`Geschwindigkeit`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
@@ -423,8 +422,7 @@ fn geschwindigkeit_pwm(
 ) -> Result<(), pwm::Fehler> {
     // 0 <= u8 / u8::MAX <= 1
     let verhältnis = NullBisEins::neu_unchecked(f64::from(wert) / f64::from(u8::MAX));
-    // saturating Mult-Implementierung.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "saturating Mult-Implementierung.")]
     let betriebszyklus = faktor * verhältnis;
     pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
         polarität,
@@ -449,8 +447,7 @@ fn geschwindigkeit_ks(
     if *letzter_wert == 0 {
         // Geschwindigkeit war aus, es muss also kein Anschluss ausgeschaltet werden
     } else if let Some(anschluss) = geschwindigkeit.get_mut(usize::from(
-        // *letzter_wert > 0
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "*letzter_wert > 0")]
         {
             *letzter_wert - 1
         },
@@ -463,8 +460,7 @@ fn geschwindigkeit_ks(
     }
     // neuen anstellen
     if wert_usize > 0 {
-        // *wert_usize > 0
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "*wert_usize > 0")]
         let anschluss_index = wert_usize - 1;
         if let Some(anschluss) = geschwindigkeit.get_mut(anschluss_index) {
             anschluss.einstellen(Fließend::Fließend)?;
@@ -630,8 +626,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    // Selber wert zu einem späteren Zeitpunkt
-                    #[allow(clippy::shadow_unrelated)]
+                    #[allow(clippy::shadow_unrelated, reason = "Selber wert zu einem späteren Zeitpunkt")]
                     |geschwindigkeit, umdrehen| Mittelleiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1287,8 +1282,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    // Gleiche Werte zu einem späteren Zeitpunkt.
-                    #[allow(clippy::shadow_unrelated)]
+                    #[allow(clippy::shadow_unrelated, reason = "Gleiche Werte zu einem späteren Zeitpunkt.")]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::Pwm {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1307,8 +1301,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    // Gleiche Werte zu einem späteren Zeitpunkt.
-                    #[allow(clippy::shadow_unrelated)]
+                    #[allow(clippy::shadow_unrelated, reason = "Gleiche Werte zu einem späteren Zeitpunkt.")]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,

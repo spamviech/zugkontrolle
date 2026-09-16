@@ -213,8 +213,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             Position {
                 punkt: Vektor {
                     x: self.länge.min(&(size.y.halbiert())),
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                     y: start_height + multiplier * spurweite.beschränkung().halbiert(),
                 },
                 winkel: Winkel(0.),
@@ -247,16 +246,13 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         }
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         // sub-checks
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let mut relative_vector = relative_position - start_vector;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         {
             relative_vector.y *= multiplier;
         }
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let verschoben_vector = relative_vector - Vektor { x: self.länge, y: Skalar(0.) };
         gerade::innerhalb(spurweite, self.länge, relative_vector, ungenauigkeit)
             .oder(kurve::innerhalb(
@@ -290,11 +286,9 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             },
         }
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let innen = anfang
             + Vektor {
                 x: self.radius * self.winkel.sin(),
@@ -304,16 +298,13 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             anfang: Verbindung { position: anfang, richtung: winkel::PI },
             innen: Verbindung {
                 position: innen,
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 richtung: multiplier.0 * self.winkel,
             },
             außen: Verbindung {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 position: innen + Vektor { x: self.länge, y: Skalar(0.) },
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 richtung: multiplier.0 * self.winkel,
             },
         }
@@ -369,8 +360,7 @@ where
     pfade
 }
 
-// Alle Argumente benötigt.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
 /// Pfade für den Hintergrund einer [`KurvenWeiche`].
 fn fülle<P, A>(
     spurweite: Spurweite,

@@ -22,8 +22,7 @@ use crate::daten::{
     v4,
 };
 
-// Folge Konvention TypName -> TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameSerialisiert")]
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]

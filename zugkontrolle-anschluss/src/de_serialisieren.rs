@@ -170,15 +170,13 @@ impl<T> Ergebnis<T> {
             move_arg,
             ref_arg,
             mut_ref_arg,
-            // t: T, r:R; mehr Information ist nicht vorhanden und auch nicht notwendig
-            #[allow(clippy::min_ident_chars)]
+            #[allow(clippy::min_ident_chars, reason = "t: T, r:R; mehr Information ist nicht vorhanden und auch nicht notwendig")]
             |t, r| (t, r),
             |_| None,
         )
     }
 
-    // Argumente werden alle benötigt und können nicht sinnvoll zusammengefasst werden.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, reason = "Argumente werden alle benötigt und können nicht sinnvoll zusammengefasst werden.")]
     /// Reserviere weitere Anschlüsse, ausgehend von dem Ergebnis eines vorherigen
     /// [`reserviere`](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
     /// übergebenen Funktion.
@@ -195,8 +193,7 @@ impl<T> Ergebnis<T> {
         fehlerbehandlung: impl FnOnce(Either<Option<T>, R>) -> Option<U>,
     ) -> Ergebnis<U> {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
-        // t: T
-        #[allow(clippy::min_ident_chars)]
+        #[allow(clippy::min_ident_chars, reason = "t: T")]
         let (t, fehler_t, anschlüsse) = match self {
             Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
             WertMitWarnungen { anschluss, fehler, anschlüsse } => {
@@ -204,12 +201,10 @@ impl<T> Ergebnis<T> {
             },
             Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
         };
-        // r: R
-        #[allow(clippy::min_ident_chars)]
+        #[allow(clippy::min_ident_chars, reason = "r: R")]
         let (r, fehler_r, anschlüsse) =
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                // false positive, anschlüsse transformiert durch den Funktionsaufruf
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(clippy::shadow_unrelated, reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf")]
                 Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
                 #[allow(clippy::shadow_unrelated)]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {
@@ -218,8 +213,7 @@ impl<T> Ergebnis<T> {
                 #[allow(clippy::shadow_unrelated)]
                 Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
             };
-        // t:T, r: R
-        #[allow(clippy::min_ident_chars)]
+        #[allow(clippy::min_ident_chars, reason = "t:T, r: R")]
         let anschluss_kombiniert = match (t, r) {
             (Some(t), Some(r)) => Some(kombiniere(t, r)),
             (None, Some(r)) => fehlerbehandlung(Either::Right(r)),
@@ -275,8 +269,7 @@ where
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         if let Some(serialisiert) = self {
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                // false positive, anschlüsse transformiert durch den Funktionsaufruf
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(clippy::shadow_unrelated, reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf")]
                 Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
                 #[allow(clippy::shadow_unrelated)]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {

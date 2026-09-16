@@ -79,8 +79,7 @@ impl<T> Steuerung<&Option<T>> {
     #[must_use]
     pub fn nur_some(&self) -> Option<Steuerung<&T>> {
         let Steuerung { steuerung, sender } = self;
-        // steuerung related über `.as_ref().map()`
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "steuerung related über `.as_ref().map()`")]
         steuerung.as_ref().map(|steuerung| Steuerung { steuerung, sender: sender.clone() })
     }
 }
@@ -111,8 +110,7 @@ impl<T> Steuerung<&mut Option<T>> {
     /// Betrachte die [Steuerung] nur, wenn der enthaltene Wert [`Some`] ist.
     pub fn nur_some(&mut self) -> Option<Steuerung<&mut T>> {
         let Steuerung { steuerung, sender } = self;
-        // steuerung related über `.as_mut().map()`
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "steuerung related über `.as_mut().map()`")]
         steuerung.as_mut().map(|steuerung| Steuerung { steuerung, sender: sender.clone() })
     }
 }

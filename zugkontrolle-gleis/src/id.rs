@@ -11,8 +11,7 @@ use zugkontrolle_typen::Zeichnen;
 
 use crate::steuerung::aktualisieren::MitSteuerung;
 
-// soll direkt importiert werden
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "soll direkt importiert werden")]
 /// Id für die Definition eines Gleises.
 pub type DefinitionId<T> = GleisId<<T as MitSteuerung>::SelfUnit>;
 
@@ -73,8 +72,7 @@ macro_rules! als_ref {
 }
 
 #[macro_export]
-// Soll unqualifiziert verwendet werden
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
 /// Erzeuge ein `match`-statement und führe das `$macro!`/die `$funktion`
 /// mit den als `$ident` gematchten Varianten-Feldern als Argumente aus.
 macro_rules! mit_any_id {
@@ -139,8 +137,7 @@ macro_rules! mit_any_id {
         }
     }};
 }
-// Soll unqualifiziert verwendet werden
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
 pub use mit_any_id;
 
 erzeuge_any_enum! {

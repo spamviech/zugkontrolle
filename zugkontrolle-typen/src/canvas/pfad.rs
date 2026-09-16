@@ -29,8 +29,7 @@ impl Pfad {
     /// Erzeuge ein Rechteck der gegebenen `größe` unter den gegebenen `transformationen`.
     #[must_use]
     pub fn rechteck(größe: Vektor, transformationen: Vec<Transformation>) -> Self {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.")]
         Erbauer::neu()
             .move_to_chain(Vektor::null_vektor())
             .line_to_chain(größe.x * Vektor::EX)
@@ -90,8 +89,7 @@ impl<T, Achse> From<T> for Invertiert<T, Achse> {
 impl<P: Into<Vektor>> From<Invertiert<P, XAchse>> for Vektor {
     fn from(invertiert: Invertiert<P, XAchse>) -> Self {
         let mut vektor = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
         {
             vektor.x = -vektor.x;
         }
@@ -102,8 +100,7 @@ impl<P: Into<Vektor>> From<Invertiert<P, XAchse>> for Vektor {
 impl<P: Into<Vektor>> From<Invertiert<P, YAchse>> for Vektor {
     fn from(invertiert: Invertiert<P, YAchse>) -> Self {
         let mut vektor = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
         {
             vektor.y = -vektor.y;
         }
@@ -114,8 +111,7 @@ impl<P: Into<Vektor>> From<Invertiert<P, YAchse>> for Vektor {
 impl<A: Into<Winkel>> From<Invertiert<A, XAchse>> for Winkel {
     fn from(invertiert: Invertiert<A, XAchse>) -> Self {
         let w = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
         {
             winkel::PI - w
         }
@@ -125,8 +121,7 @@ impl<A: Into<Winkel>> From<Invertiert<A, XAchse>> for Winkel {
 impl<A: Into<Winkel>> From<Invertiert<A, YAchse>> for Winkel {
     fn from(invertiert: Invertiert<A, YAchse>) -> Self {
         let w = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
         {
             -w
         }

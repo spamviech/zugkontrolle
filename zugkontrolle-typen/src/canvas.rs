@@ -42,8 +42,7 @@ impl<'t> Frame<'t> {
         Frame(frame)
     }
 
-    // elided lifetimes in impl-Traits are experimental
-    #[allow(single_use_lifetimes)]
+    #[allow(single_use_lifetimes, reason = "elided lifetimes in impl-Traits are experimental")]
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Stroke).
     pub fn stroke<'s>(
         &mut self,
@@ -159,8 +158,7 @@ impl Cache {
                 transformierter_frame.transformation(&Transformation::Skalieren(skalieren));
                 transformierter_frame.transformation(&Transformation::Rotation(pivot.winkel));
                 transformierter_frame.transformation(&Transformation::Translation(
-                    // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
                     {
                         -pivot.punkt
                     },
@@ -208,8 +206,7 @@ impl Position {
     /// Vektor nachdem das Objekt an die Position bewegt und um den Winkel gedreht wurde.
     #[must_use]
     pub fn transformation(&self, anchor: Vektor) -> Vektor {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
         {
             self.punkt + anchor.rotiert(&self.winkel)
         }
@@ -236,11 +233,9 @@ impl Position {
     {
         let verbindungen = definition.verbindungen(z, spurweite);
         let verbindung = verbindungen.erhalte(verbindung_name);
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
         let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
         Position {
             punkt: Vektor {
                 x: ziel_verbindung.position.x - verbindung.position.x * winkel.cos()

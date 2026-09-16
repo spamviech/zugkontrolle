@@ -58,8 +58,7 @@ impl Bewegung {
             Bewegung::Oben => 1.5,
             Bewegung::ObenRechts => 1.75,
         };
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let gradmaß = bogenmaß * winkel::PI;
         Vektor::polar_koordinaten(länge, gradmaß)
     }
@@ -145,90 +144,68 @@ impl WichtigeWerte {
         let half_height = height.halbiert();
         // Startpunkte
         let links = Vektor { x: padding_x, y: half_height };
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let rechts = Vektor { x: width - padding_x, y: half_height };
         let oben = Vektor { x: half_width, y: padding_y };
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let unten = Vektor { x: half_width, y: height - padding_y };
         let zentrum = Vektor { x: half_width, y: half_height };
         // relative Bewegung
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let diagonale_länge = (links - oben).länge();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let bein_länge = diagonale_länge / Skalar(3.);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let diagonal_runter =
             bein_länge * Vektor { x: half_width, y: half_height }.einheitsvektor();
         let diagonal_hoch = Vektor {
             x: diagonal_runter.x,
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             y: -diagonal_runter.y,
         };
         // Zielpunkte
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_links_oben = links + diagonal_hoch;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_links_unten = links + diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_rechts_oben = rechts - diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_rechts_unten = rechts - diagonal_hoch;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_oben_links = oben - diagonal_hoch;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_oben_rechts = oben + diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_unten_links = unten - diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let ende_unten_rechts = unten + diagonal_hoch;
 
         // Diagonale Start-Werte
         let abstand_diagonale = Skalar(
             ((bein_länge.0.powf(2.)) - ((0.5 - (1. / 3.)) * diagonale_länge.0).powf(2.)).sqrt(),
         );
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let links_nach_oben = oben - links;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let links_oben = links
             + Skalar(0.5) * links_nach_oben
             + abstand_diagonale * links_nach_oben.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let links_nach_unten = unten - links;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let links_unten = links
             + Skalar(0.5) * links_nach_unten
             + abstand_diagonale * links_nach_unten.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let rechts_nach_oben = oben - rechts;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let rechts_oben = rechts
             + Skalar(0.5) * rechts_nach_oben
             + abstand_diagonale * rechts_nach_oben.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let rechts_nach_unten = unten - rechts;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let rechts_unten = rechts
             + Skalar(0.5) * rechts_nach_unten
             + abstand_diagonale * rechts_nach_unten.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
@@ -236,8 +213,7 @@ impl WichtigeWerte {
         // Zurücksetzen
         // Inkreis-Radius r = 2A/u
         // https://de.wikipedia.org/wiki/Inkreis
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
 
         WichtigeWerte {
@@ -263,8 +239,7 @@ impl WichtigeWerte {
     }
 }
 
-// Gibt es bessere Namen für die Ecken eines Dreiecks?
-#[allow(clippy::min_ident_chars)]
+#[allow(clippy::min_ident_chars, reason = "Gibt es bessere Namen für die Ecken eines Dreiecks?")]
 /// Liegt der `punkt` innerhalb des Dreiecks `a`-`b`-`c`.
 ///
 /// <https://prlbr.de/2014/liegt-der-punkt-im-dreieck/>
@@ -274,29 +249,23 @@ fn punkt_innerhalb_dreieck(punkt: Vektor, a: Vektor, b: Vektor, c: Vektor) -> bo
     fn winkel_ordnung(vektor: Vektor) -> Skalar {
         let Vektor { x, y } = vektor;
         let faktor = if y >= Skalar(0.) { Skalar(1.) } else { Skalar(-1.) };
-        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.")]
         {
             faktor * (Skalar(1.) - (x / (x.abs() + y.abs())))
         }
     }
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let schwerpunkt = (a + b + c) / Skalar(3.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let punkt_rel = punkt - schwerpunkt;
     let punkt_foo = winkel_ordnung(punkt_rel);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let a_rel = a - schwerpunkt;
     let a_foo = winkel_ordnung(a_rel);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let b_rel = b - schwerpunkt;
     let b_foo = winkel_ordnung(b_rel);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let c_rel = c - schwerpunkt;
     let c_foo = winkel_ordnung(c_rel);
     let dreieck_winkel_ordnung_werte = [(a_foo, a), (b_foo, b), (c_foo, c)];
@@ -324,11 +293,9 @@ fn punkt_innerhalb_dreieck(punkt: Vektor, a: Vektor, b: Vektor, c: Vektor) -> bo
     let Vektor { x: x2, y: y2 } = kleinstes_größer.unwrap_or(kleinstes);
     let Vektor { x: xp, y: yp } = punkt;
     let Vektor { x: xs, y: ys } = schwerpunkt;
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let sgn1 = (((yp - y2) * (x1 - x2)) - ((y1 - y2) * (xp - x2))).signum();
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let sgn2 = (((ys - y2) * (x1 - x2)) - ((y1 - y2) * (xs - x2))).signum();
     sgn1 == sgn2
 }
@@ -364,8 +331,7 @@ fn pressed(
         rechts_unten,
         radius,
     } = WichtigeWerte::aus_size(size);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
     let klick_radius = (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
     let punkt = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
     if punkt_innerhalb_dreieck(punkt, links, ende_links_oben, ende_links_unten) {
@@ -544,8 +510,7 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
                 rechts_unten,
                 radius,
             } = WichtigeWerte::aus_size(size);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let klick_radius =
                 (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
             let punkt = Vektor { x: Skalar(position.x), y: Skalar(position.y) };

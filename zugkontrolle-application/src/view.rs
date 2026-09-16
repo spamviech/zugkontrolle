@@ -192,8 +192,7 @@ const DREHEN_BREITE: f32 = 50.;
 /// Die Breite des [`Sliders`](Slider) zum Einstellen der Skalierung in Pixeln.
 const SKALIEREN_BREITE: f32 = 75.;
 
-// Interne Methode, alle Argumente benötigt.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, reason = "Interne Methode, alle Argumente benötigt.")]
 /// Erzeuge die Widgets für die Kopfleiste.
 fn top_row<'t, L, S>(
     aktueller_modus: Modus,
@@ -299,8 +298,10 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
                 DefinitionId<T>: Into<AnyDefinitionId>,
                 <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
             {
-                // scrollable_column related über take_mut::take
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(
+                    clippy::shadow_unrelated,
+                    reason = "scrollable_column related über take_mut::take"
+                )]
                 take_mut::take(scrollable_column, |mut scrollable_column| {
                     for (id, button) in buttons.iter().sorted_by_key(|(_id, gleis)| {
                         let (_position, beschreibung, _name) =
@@ -352,8 +353,10 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
         Modus::Fahren => {
             scrollable_column = scrollable_column.push(Text::new("Geschwindigkeiten")).spacing(1);
             gleise.mit_allen_geschwindigkeiten(|name, geschwindigkeit| {
-                // scrollable_column related über take_mut::take
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(
+                    clippy::shadow_unrelated,
+                    reason = "scrollable_column related über take_mut::take"
+                )]
                 take_mut::take(&mut scrollable_column, |scrollable_column| {
                     scrollable_column.push(
                         Element::from(L::anzeige_neu(name, geschwindigkeit))

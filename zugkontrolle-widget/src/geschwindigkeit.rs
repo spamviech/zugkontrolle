@@ -58,8 +58,7 @@ fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -
     // no need to check head, since `i` is non-zero
     (i < non_empty.len()).then(|| {
         non_empty.tail.remove(
-            // 1 <= i < non_empty.len()
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "1 <= i < non_empty.len()")]
             {
                 i - 1
             },
@@ -348,8 +347,7 @@ where
     TabBar: style::tab_bar::StyleProvider<'t, Thema>,
     Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
-    // Alle Argumente benötigt.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
     /// Erstelle eine neue [`Auswahl`].
     fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>(
         startwert: Option<&(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,

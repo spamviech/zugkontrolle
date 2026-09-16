@@ -176,8 +176,7 @@ where
         )
     }
 
-    // Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?")]
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     fn neu_input_aux(
         active_tab: TabId,
@@ -358,8 +357,7 @@ enum ZeigeModus {
     Pcf8574,
 }
 
-// anonymous lifetimes in `impl Trait` are unstable
-#[allow(single_use_lifetimes)]
+#[allow(single_use_lifetimes, reason = "anonymous lifetimes in `impl Trait` are unstable")]
 /// Erstelle einen [`Radio`] für alle `elemente` und füge sie zu einem [`Column`] hinzu.
 pub(crate) fn make_radios<'a, 'b, T, M, Thema, R>(
     aktuell: &T,
@@ -405,8 +403,7 @@ where
     Sammlung: sammlung::StyleProvider<'a, Thema>,
     TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
-    // Alle Argumente werden benötigt.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, reason = "Alle Argumente werden benötigt.")]
     /// Erzeuge ein neues [`Auswahl`]-Widget.
     fn neu_mit_modus_view(
         zeige_modus: ZeigeModus,

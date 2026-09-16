@@ -155,8 +155,7 @@ macro_rules! async_ausführen {
             };
             #[allow(unused_mut)]
             if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
-                // closure wird für Macro-Nutzung erzeugt.
-                #[allow(clippy::redundant_closure_call)]
+                #[allow(clippy::redundant_closure_call, reason = "closure wird für Macro-Nutzung erzeugt.")]
                 sende_nachricht($erzeuge_fehler_nachricht(clone, fehler))
             } else if let Some(mut erzeuge_nachricht) = $erzeuge_aktualisieren_nachricht {
                 sende_nachricht(erzeuge_nachricht());
@@ -203,8 +202,7 @@ macro_rules! impl_ausführen_simple {
     };
 }
 
-// Sollte nicht direkt verwendet werden.
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Sollte nicht direkt verwendet werden.")]
 /// Ein Fahrplan. Wird normalerweise über das [`Plan`]-alias verwendet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanEnum<Aktion> {
@@ -272,8 +270,7 @@ where
     }
 }
 
-// Verwende Konvention TypName->TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Verwende Konvention TypName->TypNameSerialisiert")]
 /// Serialisierbare Repräsentation eines Fahrplans.
 pub type PlanSerialisiert<L, S> = PlanEnum<AktionSerialisiert<L, S>>;
 

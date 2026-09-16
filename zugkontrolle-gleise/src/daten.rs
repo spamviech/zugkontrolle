@@ -441,8 +441,7 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_>> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
             self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
-        // streckenabschnitt_id, geschwindigkeit_id related über `and_then`
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "streckenabschnitt_id, geschwindigkeit_id related über `and_then`")]
         let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_name| {
             self.streckenabschnitte
                 .get(&streckenabschnitt_name)
@@ -531,8 +530,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 ) -> (Vec<Verbindung>, bool) {
     let vektor_genauigkeit =
         Vektor { x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT, y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT };
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
     let kandidaten_rechteck = Rechteck {
         ecke_a: verbindung.position + vektor_genauigkeit,
         ecke_b: verbindung.position - vektor_genauigkeit,
@@ -583,8 +581,7 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         .flatten()
         .unwrap_or((Vec::new(), false));
         for kandidat_verbindung in kandidat_verbindungen {
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
             if (verbindung.position - kandidat_verbindung.position).länge()
                 < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
             {
@@ -838,8 +835,7 @@ pub struct SetzteStreckenabschnittFehler(AnyId, Option<streckenabschnitt::Name>)
 
 impl Display for SetzteStreckenabschnittFehler {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        // Darstellen der Id nur über Debug möglich.
-        #[allow(clippy::use_debug)]
+        #[allow(clippy::use_debug, reason = "Darstellen der Id nur über Debug möglich.")]
         match &self.1 {
             Some(streckenabschnitt) => {
                 write!(
@@ -1071,8 +1067,7 @@ fn fülle_gleis<T>(
             )),
         };
         if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
-            // related über `Frame::with_save`.
-            #[allow(clippy::shadow_unrelated)]
+            #[allow(clippy::shadow_unrelated, reason = "related über `Frame::with_save`.")]
             frame.with_save(|frame| {
                 let color = Color { r: rot, g: grün, b: blau, a: alpha };
                 frame.fill(
@@ -1099,8 +1094,7 @@ fn zeichne_gleis<T>(
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
 {
     for path in definition.zeichne(steuerung, spurweite) {
-        // related über `Frame::with_save`.
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "related über `Frame::with_save`.")]
         frame.with_save(|frame| {
             let alpha =
                 Transparenz::true_reduziert(ist_gehalten(AnyId::from(gleis_id.clone()))).alpha();
@@ -1116,8 +1110,7 @@ fn zeichne_gleis<T>(
     }
 }
 
-// Internes struct
-#[allow(clippy::struct_excessive_bools)]
+#[allow(clippy::struct_excessive_bools, reason = "Internes struct")]
 /// Hilfs-Typ für [`ist_gehalten_und_andere_verbindung`].
 pub(crate) struct GehaltenVerbindung {
     /// Ist die `gleis_id` aktuell gehalten.
@@ -1143,8 +1136,7 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
     let (überlappende, andere_gehalten) =
         überlappende_verbindungen(rstern, zugtyp, &verbindung, Some(gleis_id), &ist_gehalten);
     let andere = !überlappende.is_empty();
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
     let ist_entgegengesetzt = |überlappend: Verbindung| {
         (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs() < Winkel(0.1)
     };
@@ -1152,8 +1144,7 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
     GehaltenVerbindung { gehalten, andere, andere_entgegengesetzt, andere_gehalten }
 }
 
-// Alle Argumente benötigt
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
 /// Zeichne die Verbindungen eines Gleises.
 fn zeichne_verbindungen<T, L: Leiter>(
     frame: &mut Frame<'_>,
@@ -1171,8 +1162,7 @@ fn zeichne_verbindungen<T, L: Leiter>(
 {
     // zeichne Verbindungen
     definition.verbindungen(steuerung, zugtyp.spurweite).für_alle(|_name, &verbindung| {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
         let verbindung_an_position = Verbindung {
             position: position.transformation(verbindung.position),
             richtung: position.winkel + verbindung.richtung,
@@ -1185,26 +1175,21 @@ fn zeichne_verbindungen<T, L: Leiter>(
                 &AnyId::from(gleis_id.clone()),
                 verbindung_an_position,
             );
-        // frame related über with_save
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "frame related über with_save")]
         frame.with_save(|frame| {
             let alpha = Transparenz::true_reduziert(gehalten).alpha();
             let grün = if andere_entgegengesetzt { 1. } else { 0. };
             let color = Color { r: 0., g: grün, b: 1. - grün, a: alpha };
             let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
             let richtung_seite = Skalar(0.5) * richtung.rotiert(&winkel::FRAC_PI_2);
             let verbindung_position = verbindung.position;
             let mut path_builder = pfad::Erbauer::neu();
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
             path_builder.move_to(verbindung_position + richtung_seite);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
             path_builder.line_to(verbindung_position + richtung);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
             path_builder.line_to(verbindung_position - richtung_seite);
             let path = path_builder.baue();
             frame.stroke(
@@ -1219,8 +1204,7 @@ fn zeichne_verbindungen<T, L: Leiter>(
     });
 }
 
-// Alle Argumente benötigt
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
 /// Erzeuge den Text für Beschreibung und Name eines Gleises.
 fn schreibe_gleis_beschreibung_name<T, Thema>(
     frame: &mut Frame<'_>,
@@ -1246,8 +1230,7 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
         (Some(beschreibung), None) => Some(String::from(beschreibung)),
         (None, None) => None,
     } {
-        // frame related über with_save
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "frame related über with_save")]
         frame.with_save(|frame| {
             bewege_an_position(frame, &relative_position);
             let alpha =
@@ -1257,8 +1240,7 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
                 color: Color { a: alpha, ..Color::from(farbe) },
                 ..thema.standard_text()
             };
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             {
                 text.size = text.size * skalieren.0;
             }
@@ -1455,8 +1437,7 @@ impl GleiseDaten {
         }
     }
 
-    // Alle Argumente benötigt
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
     pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: knopf::Thema>(
         &self,
@@ -1496,11 +1477,9 @@ impl GleiseDaten {
         let mut ergebnis = None;
         for geom_with_data in self.rstern.locate_all_at_point(canvas_pos) {
             let (gleis_definition_id, position) = &geom_with_data.data;
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let relative_pos = canvas_pos - position.punkt;
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let rotated_pos = relative_pos.rotiert(&(-position.winkel));
             /// Hilfs-Makro für [`mit_any_id`].
             macro_rules! gleis_an_position_aux {

@@ -18,8 +18,7 @@ mod test;
 
 pub use eindeutig::Repräsentation;
 
-// soll direkt importiert werden
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "soll direkt importiert werden")]
 /// Id für ein Gleis.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct GleisId<T: 'static>(Arc<Id<T>>);

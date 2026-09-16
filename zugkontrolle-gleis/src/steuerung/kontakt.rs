@@ -59,8 +59,7 @@ pub struct Kontakt {
 /// Entferne den Anschluss aus dem Either und ersetzte ihn durch seine serialisierbare Repräsentation.
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
     let serialisiert = serialisiere_anschluss(either);
-    // std::mem::replace soll offensichtlich sein.
-    #[allow(clippy::absolute_paths)]
+    #[allow(clippy::absolute_paths, reason = "std::mem::replace soll offensichtlich sein.")]
     std::mem::replace(either, Either::Right(serialisiert))
 }
 
@@ -135,8 +134,7 @@ impl Kontakt {
                     let mut next = aktuelle_senders.len().checked_sub(1);
                     while let Some(index) = next {
                         // 0 <= index < senders.len()
-                        // range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.
-                        #[allow(clippy::indexing_slicing)]
+                        #[allow(clippy::indexing_slicing, reason = "range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.")]
                         match aktuelle_senders[index].send(neues_level) {
                             Ok(()) => next = index.checked_sub(1),
                             Err(SendError(_level)) => {
@@ -206,8 +204,7 @@ impl MitName for Kontakt {
     }
 }
 
-// Folge der Konvention TypName->TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Folge der Konvention TypName->TypNameSerialisiert")]
 /// Serialisierbare Variante eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
@@ -260,8 +257,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
-        // anschlüsse ist die selbe Struktur nach ausführen von `reserviere`.
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "anschlüsse ist die selbe Struktur nach ausführen von `reserviere`.")]
         let (mut anschluss, fehler, mut anschlüsse) =
             match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
@@ -303,8 +299,7 @@ impl MitName for KontaktSerialisiert {
     }
 }
 
-// Wird nicht qualifiziert verwendet.
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Wird nicht qualifiziert verwendet.")]
 /// Trait für Typen mit einem [`Kontakt`].
 pub trait MitKontakt {
     /// Erhalte das aktuelle [Level] und den gewählten [`Trigger`].

@@ -76,8 +76,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let kreis_radius = Skalar(0.8) * half_min_width_height;
             let kreis_pfad = pfad::Erbauer::neu()
                 .arc_chain(Bogen {
@@ -95,12 +94,10 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
                     ..Default::default()
                 },
             );
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let knopf_zentrum =
                 kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let knopf_radius = half_min_width_height - kreis_radius;
             let knopf_pfad = pfad::Erbauer::neu()
                 .arc_chain(Bogen {
@@ -113,8 +110,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             let hintergrund = thema.hintergrund(
                 state.grabbed.is_some(),
                 cursor.position_in(bounds).is_some_and(|position| {
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                     let v_r =
                         Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum;
                     v_r.länge() < knopf_radius
@@ -146,18 +142,14 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let kreis_radius = Skalar(0.8) * half_min_width_height;
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let knopf_zentrum =
                 kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let knopf_radius = half_min_width_height - kreis_radius;
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             if (relative_position - knopf_zentrum).länge() < knopf_radius {
                 state.grabbed = Some(klick_quelle);
                 EventStatus::Captured
@@ -181,16 +173,14 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
                 let min_width_height = Skalar(size.width.min(size.height));
                 let half_min_width_height = min_width_height.halbiert();
                 let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 let position_von_zentrum = relative_position - kreis_zentrum;
                 let acos =
                     Winkel::acos(position_von_zentrum.einheitsvektor().skalarprodukt(&Vektor::EX));
                 state.winkel = if position_von_zentrum.y > Skalar(0.) {
                     acos
                 } else {
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                     {
                         -acos
                     }
@@ -270,19 +260,15 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let kreis_radius = Skalar(0.8) * half_min_width_height;
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let knopf_zentrum =
                 kreis_zentrum + Vektor::polar_koordinaten(kreis_radius, state.winkel);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let knopf_radius = half_min_width_height - kreis_radius;
             let cursor_über_knopf = cursor.position_in(bounds).is_some_and(|position| {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 let v_r = Vektor { x: Skalar(position.x), y: Skalar(position.y) } - knopf_zentrum;
                 v_r.länge() < knopf_radius
             });

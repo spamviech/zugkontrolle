@@ -45,8 +45,7 @@ impl<'a, M> Farbwahl<'a, M> {
     /// Ändere den Radius der [`Farbwahl`].
     #[must_use]
     pub fn radius(mut self, radius: u16) -> Self {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
         {
             self.durchmesser = 2 * radius;
         }
@@ -68,19 +67,16 @@ impl<'a, M> Farbwahl<'a, M> {
         (länge <= radius).then(|| {
             let e_r = Vektor { x: Skalar(1.), y: Skalar(0.) };
             let e_g = {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 let winkel_g = winkel::TAU / 3.;
                 Vektor { x: winkel_g.cos(), y: winkel_g.sin() }
             };
             let e_b = {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 let winkel_b = winkel::TAU * 2. / 3.;
                 Vektor { x: winkel_b.cos(), y: winkel_b.sin() }
             };
-            // Wie f32: Schlimmstenfalls wird ein Nan-Wert erzeugt.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls wird ein Nan-Wert erzeugt.")]
             let skaliert = vr / halber_radius;
             if länge <= halber_radius {
                 Farbe {
@@ -91,8 +87,7 @@ impl<'a, M> Farbwahl<'a, M> {
             } else {
                 let einheitsvektor = vr.einheitsvektor();
                 // skaliert um schwarzen äußeren Ring zu verhindern
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 let reduziert = Skalar(0.8) * skaliert - einheitsvektor;
                 let anpassen = |vektor: Vektor, e_vektor: Vektor| {
                     let x = vektor.skalarprodukt(&e_vektor).0;
@@ -142,8 +137,7 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         for x in 0..self.durchmesser {
             for y in 0..self.durchmesser {
                 let vektor = Vektor { x: Skalar(f32::from(x)), y: Skalar(f32::from(y)) };
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
                 let vr = vektor - center;
                 if let Some(farbe) = self.farbe(vr) {
                     let quad = Quad {
@@ -193,8 +187,7 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
             _ => None,
         };
         if let Some(position) = position {
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
             let vr = Vektor { x: Skalar(position.x), y: Skalar(position.y) }
                 - Vektor { x: Skalar(bounds.center_x()), y: Skalar(bounds.center_y()) };
             if let Some(farbe) = self.farbe(vr) {

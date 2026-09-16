@@ -175,8 +175,7 @@ impl GleiseDaten {
     }
 }
 
-// Alle Argumente benötigt.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
 /// Reserviere die Anschlüsse für alle Gleise.
 #[must_use]
 fn reserviere_anschlüsse<T, S, Ss, L>(
@@ -203,8 +202,7 @@ where
     use Ergebnis::{Fehler, Wert, WertMitWarnungen};
     serialisiert.into_iter().fold(
         (GleisMap::new(), Vec::new(), anschlüsse),
-        // `anschlüsse` über Argument->Rückgabewert zusammenhängend.
-        #[allow(clippy::shadow_unrelated)]
+        #[allow(clippy::shadow_unrelated, reason = "`anschlüsse` über Argument->Rückgabewert zusammenhängend.")]
         |(mut gleise, mut rstern_elemente, anschlüsse), (gespeicherte_id, gleis_serialisiert)| {
             let id = match bekannte_ids.get(&gespeicherte_id) {
                 Some(id) => id.clone(),

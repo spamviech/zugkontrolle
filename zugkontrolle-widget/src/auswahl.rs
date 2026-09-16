@@ -51,8 +51,7 @@ pub enum WeichenId {
     Kreuzung(GleisId<Kreuzung>),
 }
 
-// Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
-#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
+#[allow(clippy::absolute_paths, reason = "Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)")] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`Weiche`], [`SKurvenWeiche`] oder [`Kreuzung`].
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::gerade::Richtung,
@@ -71,8 +70,7 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-// Beheben benötigt Änderung des public API.
-#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions, reason = "Beheben benötigt Änderung des public API.")]
 /// Zustand des Auswahl-Fensters.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuswahlZustand<S> {

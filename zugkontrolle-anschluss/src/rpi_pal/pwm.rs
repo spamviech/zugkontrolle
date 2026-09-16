@@ -333,8 +333,7 @@ pub enum Polarity {
     Inverse,
 }
 
-// disambiguate mit self::Result
-#[allow(clippy::absolute_paths)]
+#[allow(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
 /// Result with `pwm::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 

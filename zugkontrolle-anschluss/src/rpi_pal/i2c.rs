@@ -127,8 +127,7 @@ impl I2c {
     }
 }
 
-// disambiguate mit self::Result
-#[allow(clippy::absolute_paths)]
+#[allow(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
 /// Result with `i2c::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 

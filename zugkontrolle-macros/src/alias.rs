@@ -89,8 +89,7 @@ fn erzeuge_typ_definitionen(
                 mut_ref_arg: &mut Self::MutRefArg,
             ) -> #crate_ident::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
                 let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                // #param_fields related über reserviere/konvertiere
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(clippy::shadow_unrelated, reason = "#param_fields related über reserviere/konvertiere")]
                 (#(#param_fields),*)
                     .reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg)
                     .konvertiere(|(#(#param_fields),*)| {

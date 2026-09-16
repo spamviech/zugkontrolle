@@ -13,8 +13,7 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     let mut arg_ident: Option<Ident> = None;
     let mut errors = Vec::new();
     let mut parse_acc = |current_acc: &mut TokenStream| {
-        // Unterschiedliche Funktion wegen unterschiedlichem Rückgabetyp.
-        #[allow(clippy::same_functions_in_if_condition)]
+        #[allow(clippy::same_functions_in_if_condition, reason = "Unterschiedliche Funktion wegen unterschiedlichem Rückgabetyp.")]
         if let Ok(vis) = parse2(current_acc.clone()) {
             if arg_vis.is_none() {
                 arg_vis = Some(vis);
@@ -33,8 +32,7 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
         *current_acc = TokenStream::new();
     };
     for tt in args {
-        // if-let-chain ist noch nicht auf stable
-        #[allow(clippy::wildcard_enum_match_arm)]
+        #[allow(clippy::wildcard_enum_match_arm, reason = "if-let-chain ist noch nicht auf stable")]
         match tt {
             TokenTree::Punct(punct) if punct.as_char() == ',' => {
                 parse_acc(&mut acc);
