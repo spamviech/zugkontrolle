@@ -3,9 +3,9 @@
 use std::fmt::{self, Debug, Formatter};
 
 use iced_core::{
-    Background, Clipboard, Color, Element, Length, Rectangle, Shadow, Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Event, Length, Rectangle, Shadow, Shell, Size, Vector,
+    Widget,
     border::{self, Border},
-    event::{self, Event},
     layout::{self, Layout},
     mouse,
     renderer::{Quad, Renderer, Style},
@@ -183,7 +183,6 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         shell: &mut Shell<'_, M>,
         _viewport: &Rectangle,
     ) {
-        let mut status = event::Status::Ignored;
         let bounds = layout.bounds();
         let position = match (event, cursor) {
             (
@@ -200,7 +199,6 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
                 - Vektor { x: Skalar(bounds.center_x()), y: Skalar(bounds.center_y()) };
             if let Some(farbe) = self.farbe(vr) {
                 shell.publish((self.nachricht)(farbe));
-                status = event::Status::Captured;
             }
         }
     }

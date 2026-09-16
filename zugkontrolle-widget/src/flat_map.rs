@@ -13,7 +13,6 @@ use iced_core::{
         tree::{self, Tree},
     },
 };
-use zugkontrolle_gleise::knopf::Nachricht;
 
 ///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 #[allow(missing_debug_implementations)]

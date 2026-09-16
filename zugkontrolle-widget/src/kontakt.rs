@@ -10,7 +10,7 @@ use iced_aw::{
     },
 };
 use iced_core::{
-    Element, Font, Length, Renderer, event, text as text_core,
+    Element, Font, Length, Renderer, text as text_core,
     widget::text::{self, Text},
 };
 use iced_widget::{

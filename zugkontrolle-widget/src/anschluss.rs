@@ -4,7 +4,7 @@ use iced_aw::{
     number_input, style, tab_bar,
     widgets::{NumberInput, TabLabel, Tabs},
 };
-use iced_core::{Element, Font, Length, Renderer, Widget, event, text as text_core, widget::Text};
+use iced_core::{Element, Font, Length, Renderer, Widget, text as text_core, widget::Text};
 use iced_widget::{
     Column, Container, Radio, Row, Space, container, radio,
     scrollable::{self, Scrollable},

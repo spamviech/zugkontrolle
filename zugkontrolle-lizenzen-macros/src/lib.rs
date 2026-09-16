@@ -153,13 +153,13 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     (token_stream, fehlermeldungen)
 }
 
-/// Anzeige einer Fehlermeldung, je nach feature als [`compile_error`] oder unused #[must_use].
+/// Anzeige einer Fehlermeldung, je nach feature als [`compile_error`] oder `#[deprecated]` struct usage.
 fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
     #[cfg(not(feature = "allow-missing"))]
     return quote! {{
         compile_error!(#fehlermeldung);
     }};
-    // Use #[must_use = "message"] to trigger a warning.
+    // Use #[deprecated = "message"] to trigger a warning.
     // https://internals.rust-lang.org/t/pre-rfc-add-compile-warning-macro/9370/7
     #[cfg(feature = "allow-missing")]
     return quote! {{
@@ -192,10 +192,8 @@ pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> T
                 )*};
                 output = quote!(
                     #output
-                    #[allow(unexpected_cfgs, reason = "Wird in build.rs von zugkontrolle-lizenzen gesetzt.")]
                     #[cfg(zugkontrolle_target = #target)]
                     {#compile_error}
-                    #[allow(unexpected_cfgs, reason = "Wird in build.rs von zugkontrolle-lizenzen gesetzt.")]
                     #[cfg(zugkontrolle_target = #target)]
                     {#crate_lizenzen}
                 );

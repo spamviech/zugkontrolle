@@ -3,7 +3,7 @@
 use std::borrow::Cow;
 
 use iced_core::{
-    Element, Length, event, text as text_core,
+    Element, Length, text as text_core,
     widget::text::{self, Text},
 };
 use iced_widget::{

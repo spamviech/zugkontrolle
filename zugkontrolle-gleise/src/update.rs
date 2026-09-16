@@ -15,7 +15,7 @@ use iced::{
         canvas::{Event, Program},
     },
 };
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, trace, warn};
 use nonempty::{NonEmpty, nonempty};
 
 use zugkontrolle_gleis::{
