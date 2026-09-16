@@ -190,8 +190,10 @@ pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> T
                 )*};
                 output = quote!(
                     #output
+                    #[allow(unexpected_cfgs, reason = "Wird in build.rs von zugkontrolle-lizenzen gesetzt.")]
                     #[cfg(zugkontrolle_target = #target)]
                     {#compile_error}
+                    #[allow(unexpected_cfgs, reason = "Wird in build.rs von zugkontrolle-lizenzen gesetzt.")]
                     #[cfg(zugkontrolle_target = #target)]
                     {#crate_lizenzen}
                 );
