@@ -38,7 +38,7 @@ impl Pin {
     ///
     /// ## Keine synchronen Interrupts
     ///
-    /// Obwohl rpi_pal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    /// Obwohl [`rpi_pal`] prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
     /// [`poll_interrupts`](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.

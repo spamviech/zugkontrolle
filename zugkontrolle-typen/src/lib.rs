@@ -1,7 +1,10 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![allow(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 use crate::{
     canvas::{Position, pfad::Pfad},
@@ -170,7 +173,10 @@ pub trait Zeichnen<T> {
     ) -> Self::Verbindungen {
         self.verbindungen(t, spurweite).zuordnen(
             |&Verbindung { position: verbindung_position, richtung }| {
-                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                #[allow(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 let richtung = position.winkel + richtung;
                 Verbindung { position: position.transformation(verbindung_position), richtung }
             },

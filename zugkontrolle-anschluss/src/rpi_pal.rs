@@ -1,4 +1,4 @@
-//! Mock-Methoden oder re-export für rpi_pal.
+//! Mock-Methoden oder re-export für [`rpi_pal`].
 
 #[cfg(not(feature = "raspi"))]
 use std::fmt::{self, Debug, Formatter};

@@ -5,7 +5,7 @@ use quote::{format_ident, quote};
 use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReceiverKind, ReturnType, Signature};
 
 /// [`crate::make_chain`]
-#[allow(clippy::single_call_fn)]
+#[allow(clippy::single_call_fn, reason = "Implementierung von make_chain")]
 pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
@@ -43,11 +43,12 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     }
     let mut inputs_iter = inputs.iter();
     let first = inputs_iter.next();
-    if let Some(FnArg::Receiver(Receiver { kind, .. })) = &first {
-        match kind {
-            ReceiverKind::Reference(_and, _lifetime, Some(_mut)) => {},
-            _ => errors.push(format!("first argument must be &mut self. Found: {first:?}")),
-        }
+    if let Some(FnArg::Receiver(Receiver {
+        kind: ReceiverKind::Reference(_and, _lifetime, Some(_mut)),
+        ..
+    })) = &first
+    {
+        // &mut self
     } else {
         errors.push(format!("first argument must be &mut self. Found: {first:?}"));
     }

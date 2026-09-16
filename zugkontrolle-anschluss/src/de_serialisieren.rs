@@ -44,21 +44,20 @@ impl Anschlüsse {
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
 /// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
-/// dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
-/// ```
-/// let clone = s.clone();
-/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
-///     assert_eq!(anschluss.serialisiere(), clone)
-/// }
-/// ```
+///   dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
+///   ```
+///   let clone = s.clone();
+///   if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
+///       assert_eq!(anschluss.serialisiere(), clone)
+///   }
+///   ```
 /// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
-/// [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
-/// ```
-/// let s = r.serialisiere();
-/// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
-///     && anschluss == r
-/// ```
-
+///   [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+///   ```
+///   let s = r.serialisiere();
+///   s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
+///       && anschluss == r
+///   ```
 pub trait Serialisiere<S>: Sized {
     /// Erstelle eine serialisierbare Repräsentation.
     fn serialisiere(&self) -> S;
@@ -118,20 +117,20 @@ impl<R> Ergebnis<R> {
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
 /// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
-/// dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
-/// ```
-/// let clone = s.clone();
-/// if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
-///     assert_eq!(anschluss.serialisiere(), clone)
-/// }
-/// ```
+///   dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
+///   ```
+///   let clone = s.clone();
+///   if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
+///       assert_eq!(anschluss.serialisiere(), clone)
+///   }
+///   ```
 /// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
-/// [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
-/// ```
-/// let s = r.serialisiere();
-/// s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
-///     && anschluss == r
-/// ```
+///   [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
+///   ```
+///   let s = r.serialisiere();
+///   s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
+///       && anschluss == r
+///   ```
 pub trait Reserviere<R> {
     /// Extra Move-Argument zum reservieren der Anschlüsse.
     type MoveArg;
@@ -170,13 +169,19 @@ impl<T> Ergebnis<T> {
             move_arg,
             ref_arg,
             mut_ref_arg,
-            #[allow(clippy::min_ident_chars, reason = "t: T, r:R; mehr Information ist nicht vorhanden und auch nicht notwendig")]
+            #[allow(
+                clippy::min_ident_chars,
+                reason = "t: T, r:R; mehr Information ist nicht vorhanden und auch nicht notwendig"
+            )]
             |t, r| (t, r),
             |_| None,
         )
     }
 
-    #[allow(clippy::too_many_arguments, reason = "Argumente werden alle benötigt und können nicht sinnvoll zusammengefasst werden.")]
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "Argumente werden alle benötigt und können nicht sinnvoll zusammengefasst werden."
+    )]
     /// Reserviere weitere Anschlüsse, ausgehend von dem Ergebnis eines vorherigen
     /// [`reserviere`](Reserviere::reserviere)-Aufrufs und kombiniere beide Ergebnisse mit der
     /// übergebenen Funktion.
@@ -204,13 +209,16 @@ impl<T> Ergebnis<T> {
         #[allow(clippy::min_ident_chars, reason = "r: R")]
         let (r, fehler_r, anschlüsse) =
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                #[allow(clippy::shadow_unrelated, reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf")]
+                #[allow(
+                    clippy::shadow_unrelated,
+                    reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf"
+                )]
                 Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     (Some(anschluss), Some(fehler), anschlüsse)
                 },
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
             };
         #[allow(clippy::min_ident_chars, reason = "t:T, r: R")]
@@ -269,13 +277,16 @@ where
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         if let Some(serialisiert) = self {
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                #[allow(clippy::shadow_unrelated, reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf")]
+                #[allow(
+                    clippy::shadow_unrelated,
+                    reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf"
+                )]
                 Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     WertMitWarnungen { anschluss: Some(anschluss), fehler, anschlüsse }
                 },
-                #[allow(clippy::shadow_unrelated)]
+                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 Fehler { fehler, anschlüsse } => {
                     WertMitWarnungen { anschluss: None, fehler, anschlüsse }
                 },
@@ -413,7 +424,7 @@ macro_rules! tuple_arg_type {
 /// Implementiere [`Serialisiere`] und [`Reserviere`] für ein Tupel.
 macro_rules! impl_serialisiere_tuple {
     ($($name: ident : $type: ident - $serialisiert: ident),+) => {
-        #[allow(clippy::min_ident_chars)]
+        #[allow(clippy::min_ident_chars, reason = "macro_rules interne Variablen")]
         impl<A0, S0, $($type, $serialisiert),+> Serialisiere<(S0, $($serialisiert),+)> for (A0, $($type),+)
         where
             A0: Serialisiere<S0>,
@@ -442,7 +453,7 @@ macro_rules! impl_serialisiere_tuple {
             }
         }
 
-        #[allow(clippy::min_ident_chars)]
+        #[allow(clippy::min_ident_chars, reason = "macro_rules interne Variablen")]
         impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
         where
             A0: Serialisiere<S0>,
@@ -452,11 +463,11 @@ macro_rules! impl_serialisiere_tuple {
                 $serialisiert: Reserviere<$type> + ,
             )+
         {
-            #[allow(unused_parens)]
+            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type MoveArg = tuple_arg_type!(MoveArg: A0 - S0, $($type - $serialisiert),+);
-            #[allow(unused_parens)]
+            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type RefArg = tuple_arg_type!(RefArg: A0 - S0, $($type - $serialisiert),+);
-            #[allow(unused_parens)]
+            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type MutRefArg = tuple_arg_type!(MutRefArg: A0 - S0, $($type - $serialisiert),+);
             fn reserviere(
                 self,
@@ -477,7 +488,7 @@ macro_rules! impl_serialisiere_tuple {
                     move_tail_tuple,
                     ref_tail_tuple,
                     mut_ref_tail_tuple,
-                    #[allow(unused_parens)]
+                    #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
                     |a0, ($($name),+)| (a0, $($name),+),
                     |_| None,
                 )

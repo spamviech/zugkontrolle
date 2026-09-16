@@ -1,7 +1,10 @@
 //! Kommandozeilen-Argumente.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![allow(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 // TODO durch derive-Macro für Parse ausgelöst.
 #![allow(clippy::shadow_unrelated)]
 

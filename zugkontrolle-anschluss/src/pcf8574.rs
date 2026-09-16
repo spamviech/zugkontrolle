@@ -139,7 +139,10 @@ impl Lager {
                             beschreibung,
                             port_num,
                         );
-                        #[allow(clippy::indexing_slicing, reason = "0 <= port_num < 8 == array.len()")]
+                        #[allow(
+                            clippy::indexing_slicing,
+                            reason = "0 <= port_num < 8 == array.len()"
+                        )]
                         {
                             array[usize::from(port_num)] = Some(port_struct);
                         }
@@ -461,7 +464,10 @@ impl Pcf8574 {
             Variante::Normal => 0x20,
             Variante::A => 0x38,
         };
-        #[allow(clippy::arithmetic_side_effects, reason = "max value: 0x38 + 0b001 + 0b010 + 0b100 == 0x3f == 63 < 255 == u8::MAX")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "max value: 0x38 + 0b001 + 0b010 + 0b100 == 0x3f == 63 < 255 == u8::MAX"
+        )]
         if let Level::High = a0 {
             adresse += 0b001;
         }
@@ -855,7 +861,7 @@ impl InputPort {
     /// oder der [`input::Pin`] out of scope geht.
     ///
     /// ## Keine synchronen Interrupts
-    /// Obwohl rpi_pal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    /// Obwohl [`rpi_pal`] prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
     /// [`poll_interrupts`](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.

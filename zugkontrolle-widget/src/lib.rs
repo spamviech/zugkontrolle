@@ -1,7 +1,10 @@
 //! Spezialisierte Widgets für die Gleis-Anzeige.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![allow(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 pub mod anschluss;
 pub mod auswahl;
