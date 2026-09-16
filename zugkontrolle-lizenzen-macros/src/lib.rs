@@ -153,6 +153,7 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     (token_stream, fehlermeldungen)
 }
 
+/// Anzeige einer Fehlermeldung, je nach feature als [`compile_error`] oder unused #[must_use].
 fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
     #[cfg(not(feature = "allow-missing"))]
     return quote! {{
@@ -162,9 +163,10 @@ fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
     // https://internals.rust-lang.org/t/pre-rfc-add-compile-warning-macro/9370/7
     #[cfg(feature = "allow-missing")]
     return quote! {{
-        #[must_use = #fehlermeldung]
+        #[deprecated = #fehlermeldung]
         struct compile_warning;
         #[allow(dead_code)]
+        #[warn(deprecated)]
         fn trigger_warning () { compile_warning; }
     }};
 }
