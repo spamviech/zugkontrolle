@@ -1,6 +1,7 @@
 //! Pfadauswahl mit Speichern und Laden Knopf.
 
 use std::{
+    ffi::OsStr,
     fmt::{self, Debug, Formatter},
     future::Future,
     path::Path,
@@ -92,7 +93,7 @@ where
         let mapped = Element::from(row).map(move |button| {
             let async_file_dialog = AsyncFileDialog::new()
                 .set_directory(pfad.parent().and_then(Path::to_str).unwrap_or_default())
-                .set_file_name(pfad.to_str().unwrap_or_default())
+                .set_file_name(pfad.file_name().and_then(OsStr::to_str).unwrap_or_default())
                 .add_filter(".zug", &["zug"])
                 .add_filter("*", &["*"]);
             let future = async move {
