@@ -52,19 +52,16 @@ impl knopf::Thema for Thema {
     }
 
     fn strich(&self) -> Farbe {
-        match self {
-            Thema::Hell => Farbe { rot: 0., grün: 0., blau: 0. },
-            Thema::Dunkel => Farbe { rot: 1., grün: 1., blau: 1. },
-        }
+        self.base().text_color.into()
     }
 
     fn hintergrund(&self, aktiv: bool, in_bounds: bool) -> Farbe {
         let grey_value = match self {
             Thema::Hell | Thema::Dunkel if aktiv => 0.5,
             Thema::Hell if in_bounds => 0.7,
-            Thema::Hell => 0.9,
-            Thema::Dunkel if in_bounds => 0.3,
-            Thema::Dunkel => 0.2,
+            Thema::Hell => 0.8,
+            Thema::Dunkel if in_bounds => 0.4,
+            Thema::Dunkel => 0.3,
         };
         Farbe { rot: grey_value, grün: grey_value, blau: grey_value }
     }
