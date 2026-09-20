@@ -19,7 +19,7 @@ use crate::daten::{
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 
-#[allow(
+#[expect(
     clippy::module_name_repetitions,
     reason = "Folge Konvention TypName -> TypNameSerialisiert"
 )]
@@ -38,7 +38,7 @@ pub struct KreuzungSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {
     pub steuerung: Anschlüsse,
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameUnit")]
+#[expect(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameUnit")]
 /// Eine Variante ohne Anschlüsse.
 pub type KreuzungUnit = KreuzungSerialisiert<()>;
 

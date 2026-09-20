@@ -37,12 +37,12 @@ pub(in crate::daten::v2) struct NonEmpty<T> {
 
 /// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Deserialize)]
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct MittelleiterSerialisiert(MittelleiterSerialisiertEnum);
 
 /// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Deserialize)]
-#[allow(variant_size_differences)]
+#[expect(variant_size_differences)]
 pub(in crate::daten::v2) enum MittelleiterSerialisiertEnum {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -56,7 +56,7 @@ pub(in crate::daten::v2) enum MittelleiterSerialisiertEnum {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<OutputSerialisiert>,
         /// Der letzte eingestellte Wert.
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         letzter_wert: usize,
         /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
         umdrehen: OutputSerialisiert,
@@ -94,12 +94,12 @@ impl From<MittelleiterSerialisiert> for v4::MittelleiterSerialisiert {
 
 /// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Deserialize)]
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct ZweileiterSerialisiert(ZweileiterSerialisiertEnum);
 
 /// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Deserialize)]
-#[allow(variant_size_differences)]
+#[expect(variant_size_differences)]
 pub(in crate::daten::v2) enum ZweileiterSerialisiertEnum {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -115,7 +115,7 @@ pub(in crate::daten::v2) enum ZweileiterSerialisiertEnum {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<OutputSerialisiert>,
         /// Der letzte eingestellte Wert.
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         letzter_wert: usize,
         /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: OutputSerialisiert,

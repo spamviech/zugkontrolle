@@ -153,9 +153,9 @@ macro_rules! async_ausführen {
                     $aktion_beschreibung,
                 )
             };
-            #[allow(unused_mut)]
+            #[expect(unused_mut, reason = "Erlaube verwendung mit impl FnMut.")]
             if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
-                #[allow(clippy::redundant_closure_call, reason = "closure wird für Macro-Nutzung erzeugt.")]
+                #[expect(clippy::redundant_closure_call, reason = "closure wird für Macro-Nutzung erzeugt.")]
                 sende_nachricht($erzeuge_fehler_nachricht(clone, fehler))
             } else if let Some(mut erzeuge_nachricht) = $erzeuge_aktualisieren_nachricht {
                 sende_nachricht(erzeuge_nachricht());
@@ -202,7 +202,7 @@ macro_rules! impl_ausführen_simple {
     };
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Sollte nicht direkt verwendet werden.")]
+#[expect(clippy::module_name_repetitions, reason = "Sollte nicht direkt verwendet werden.")]
 /// Ein Fahrplan. Wird normalerweise über das [`Plan`]-alias verwendet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanEnum<Aktion> {
@@ -270,7 +270,7 @@ where
     }
 }
 
-#[allow(
+#[expect(
     clippy::module_name_repetitions,
     reason = "Verwende Konvention TypName->TypNameSerialisiert"
 )]
@@ -316,7 +316,7 @@ pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur jeweiligen Gleis-Steuerung.
 #[derive(Debug)]
-#[allow(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind selbsterklärend.")]
 pub struct SteuerungMaps<L, S> {
     pub geschwindigkeiten: HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
     pub streckenabschnitte: HashMap<OutputSerialisiert, Streckenabschnitt>,
@@ -461,7 +461,6 @@ pub type AktionSerialisiert<L, S> = AktionEnum<
 
 impl<L: Leiter> Aktion<L> {
     /// Serialisiere eine [`Aktion`].
-
     pub fn serialisiere<S>(&self) -> AktionSerialisiert<L, S>
     where
         L: Serialisiere<S>,
@@ -988,7 +987,6 @@ where
 
 impl<Weiche, Richtung: Clone> AktionSchalten<Steuerung<Weiche>, Richtung> {
     /// Serialisiere eine Aktion mit einer [`Weiche`].
-
     pub fn serialisiere<WeicheSerialisiert>(&self) -> AktionSchalten<WeicheSerialisiert, Richtung>
     where
         Weiche: Serialisiere<WeicheSerialisiert>,

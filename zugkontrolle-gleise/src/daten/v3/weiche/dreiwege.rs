@@ -31,7 +31,7 @@ impl From<RichtungInformation> for v4::RichtungInformation {
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
-#[allow(
+#[expect(
     clippy::module_name_repetitions,
     reason = "Folge Konvention TypName -> TypNameSerialisiert"
 )]
@@ -52,7 +52,7 @@ pub struct DreiwegeWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisie
     pub steuerung: Anschlüsse,
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameUnit")]
+#[expect(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameUnit")]
 /// Eine Variante ohne Anschlüsse.
 pub type DreiwegeWeicheUnit = DreiwegeWeicheSerialisiert<()>;
 
@@ -72,11 +72,11 @@ impl From<v4::DreiwegeWeicheUnit> for DreiwegeWeicheUnit {
 #[doc = " Mögliche Richtungen zum Schalten."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
-    #[allow(missing_docs)]
+    #[expect(missing_docs)]
     Gerade,
-    #[allow(missing_docs)]
+    #[expect(missing_docs)]
     Links,
-    #[allow(missing_docs)]
+    #[expect(missing_docs)]
     Rechts,
 }
 

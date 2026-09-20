@@ -13,7 +13,7 @@ fn main() {
         // Setup windows binary icon
         let result = embed_resource::compile("resources.rc", embed_resource::NONE);
         if !matches!(result, CompilationResult::Ok) {
-            #[allow(clippy::use_debug, reason = "Report diagnostics in build script.")]
+            #[expect(clippy::use_debug, reason = "Report diagnostics in build script.")]
             {
                 println!("cargo::error={result:?}");
             }

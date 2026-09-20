@@ -19,7 +19,7 @@ impl Pin {
 
     // FIXME Unnötiges Result<_, Fehler> entfernen. Lesen ist immer erfolgreich!
     /// Lese das aktuell am [Pin] anliegende [`Level`].
-    #[allow(clippy::missing_errors_doc)]
+    #[expect(clippy::missing_errors_doc)]
     pub fn lese(&mut self) -> Result<Level, Fehler> {
         Ok(self.0.read().into())
     }

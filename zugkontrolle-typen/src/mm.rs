@@ -37,7 +37,7 @@ impl Spurweite {
     /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes.
     #[must_use]
     pub fn abstand(self) -> Skalar {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -49,7 +49,7 @@ impl Spurweite {
     /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten).
     #[must_use]
     pub fn beschränkung(self) -> Skalar {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -61,7 +61,7 @@ impl Spurweite {
     /// Innerster Radius (inklusive Beschränkung) einer Kurve.
     #[must_use]
     pub fn radius_begrenzung_innen(self, radius: Skalar) -> Skalar {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -73,7 +73,7 @@ impl Spurweite {
     /// Äußerster Radius (inklusive Beschränkung) einer Kurve.
     #[must_use]
     pub fn radius_begrenzung_außen(self, radius: Skalar) -> Skalar {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]

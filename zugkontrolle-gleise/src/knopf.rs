@@ -39,7 +39,7 @@ const STROKE_WIDTH: Skalar = Skalar(1.5);
 const BORDER_WIDTH: u16 = 1;
 /// Das Padding zwischen Gleis und Rand.
 const PADDING: u16 = 2;
-#[allow(clippy::as_conversions, reason = "notwendig wegen const")]
+#[expect(clippy::as_conversions, reason = "notwendig wegen const")]
 /// Doppelter Wert von [`PADDING`] und [`BORDER_WIDTH`] als [`Skalar`].
 const DOUBLE_PADDING_BORDER_WIDTH: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 
@@ -84,12 +84,12 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
         Knopf<'t, T>: Program<Nachricht, Thema, Renderer>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         let standard_breite = (STROKE_WIDTH + größe.x).0;
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -152,7 +152,7 @@ where
             let rechteck = self.gleis.rechteck(&(), spurweite);
             let rechteck_position = rechteck.position();
             frame.transformation(&Transformation::Translation(
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
@@ -161,7 +161,7 @@ where
                 },
             ));
             let größe = rechteck.größe();
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
             )]
@@ -169,7 +169,7 @@ where
             if maximale_breite > größe.x {
                 // horizontal zentrieren
                 frame.transformation(&Transformation::Translation(
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
@@ -180,7 +180,7 @@ where
             } else {
                 // skaliere zu vorhandener Breite
                 frame.transformation(&Transformation::Skalieren(
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
@@ -189,7 +189,7 @@ where
                     },
                 ));
                 frame.transformation(&Transformation::Translation(
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
@@ -203,7 +203,7 @@ where
                 ));
             }
             for path in self.gleis.zeichne(&(), spurweite) {
-                #[allow(clippy::shadow_unrelated, reason = "frame related über `with_save`")]
+                #[expect(clippy::shadow_unrelated, reason = "frame related über `with_save`")]
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
@@ -218,7 +218,7 @@ where
             if let (relative_position, Some(content), _unit_name) =
                 self.gleis.beschreibung_und_name(&(), spurweite)
             {
-                #[allow(clippy::shadow_unrelated, reason = "frame related über `with_save`")]
+                #[expect(clippy::shadow_unrelated, reason = "frame related über `with_save`")]
                 frame.with_save(|frame| {
                     bewege_an_position(frame, &relative_position);
                     frame.fill_text(Text {

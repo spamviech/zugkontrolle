@@ -45,7 +45,7 @@ impl<'a, M> Farbwahl<'a, M> {
     /// Ändere den Radius der [`Farbwahl`].
     #[must_use]
     pub fn radius(mut self, radius: u16) -> Self {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -70,7 +70,7 @@ impl<'a, M> Farbwahl<'a, M> {
         (länge <= radius).then(|| {
             let e_r = Vektor { x: Skalar(1.), y: Skalar(0.) };
             let e_g = {
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
@@ -78,14 +78,14 @@ impl<'a, M> Farbwahl<'a, M> {
                 Vektor { x: winkel_g.cos(), y: winkel_g.sin() }
             };
             let e_b = {
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
                 let winkel_b = winkel::TAU * 2. / 3.;
                 Vektor { x: winkel_b.cos(), y: winkel_b.sin() }
             };
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls wird ein Nan-Wert erzeugt."
             )]
@@ -99,7 +99,7 @@ impl<'a, M> Farbwahl<'a, M> {
             } else {
                 let einheitsvektor = vr.einheitsvektor();
                 // skaliert um schwarzen äußeren Ring zu verhindern
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
@@ -152,7 +152,7 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         for x in 0..self.durchmesser {
             for y in 0..self.durchmesser {
                 let vektor = Vektor { x: Skalar(f32::from(x)), y: Skalar(f32::from(y)) };
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
@@ -205,7 +205,7 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
             _ => None,
         };
         if let Some(position) = position {
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
             )]

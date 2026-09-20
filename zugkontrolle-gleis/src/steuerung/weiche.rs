@@ -205,7 +205,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
                     }
                 }
             });
-        #[allow(clippy::shadow_unrelated, reason = "Selber Wert, übergeben als Argument.")]
+        #[expect(clippy::shadow_unrelated, reason = "Selber Wert, übergeben als Argument.")]
         let schalten_aux = |(richtung, anschlüsse): &mut _,
                             neue_richtung,
                             schalten_zeit,
@@ -233,7 +233,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
     }
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName->TypNameSerialisiert")]
+#[expect(clippy::module_name_repetitions, reason = "Folge Konvention TypName->TypNameSerialisiert")]
 /// Serialisierbare Repräsentation der Steuerung einer [`Weiche`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
@@ -296,7 +296,7 @@ where
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
-        #[allow(
+        #[expect(
             clippy::shadow_unrelated,
             reason = "Selber Wert `anschlüsse`, als Ergebnis von `reserviere`."
         )]

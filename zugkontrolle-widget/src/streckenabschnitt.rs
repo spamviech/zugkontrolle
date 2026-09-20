@@ -78,7 +78,7 @@ where
 {
     /// Erstelle eine neue [`Anzeige`].
     #[must_use]
-    pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool) -> Self {
+    pub fn neu(zustand: Option<&'a (Name, Farbe)>, festlegen: bool) -> Self {
         let mut children = Vec::new();
         let style = if let Some((streckenabschnitt_name, farbe)) = zustand {
             children.push(Text::new(&streckenabschnitt_name.0).into());

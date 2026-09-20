@@ -174,7 +174,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Bewege aktuellen Pivot-Punkt um `bewegung`.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -197,7 +197,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Drehe die aktuelle Darstellung um `winkel`.
     pub fn drehen(&mut self, winkel: Winkel) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -220,7 +220,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Multipliziere die aktuelle Darstellung mit `skalieren`.
     pub fn skalieren(&mut self, skalieren: Skalar) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]

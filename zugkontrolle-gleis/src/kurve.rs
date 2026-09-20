@@ -139,7 +139,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         anschlüsse: &'t Anschlüsse2,
         spurweite: Spurweite,
     ) -> (Position, Option<&'s str>, Option<&'t str>) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -147,12 +147,12 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         (
             Position {
                 punkt: Vektor {
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
                     x: self.radius * half_angle.sin(),
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
@@ -187,12 +187,12 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
             },
             ende: Verbindung {
                 position: Vektor {
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
                     x: self.radius * self.winkel.sin(),
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
@@ -213,7 +213,7 @@ pub(crate) fn rechteck(spurweite: Spurweite, radius: Skalar, winkel: Winkel) -> 
     let position_x_faktor;
     if winkel < winkel::FRAC_PI_2 {
         breite_faktor = winkel.sin();
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -225,7 +225,7 @@ pub(crate) fn rechteck(spurweite: Spurweite, radius: Skalar, winkel: Winkel) -> 
     } else {
         breite_faktor = Skalar(1.);
         if winkel < winkel::PI {
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
             )]
@@ -235,7 +235,7 @@ pub(crate) fn rechteck(spurweite: Spurweite, radius: Skalar, winkel: Winkel) -> 
             position_x_faktor = Skalar(0.);
         } else {
             höhe_vergleich = radius_begrenzung_außen;
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
             )]
@@ -246,7 +246,7 @@ pub(crate) fn rechteck(spurweite: Spurweite, radius: Skalar, winkel: Winkel) -> 
     }
     // Minimale Koordinaten
     let ecke_a = Vektor {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -254,7 +254,7 @@ pub(crate) fn rechteck(spurweite: Spurweite, radius: Skalar, winkel: Winkel) -> 
         y: Skalar(0.),
     };
     // Maximale Koordinaten
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
@@ -335,40 +335,40 @@ fn zeichne_internal<P, A>(
     let spurweite_skalar = spurweite.als_skalar();
     let beschränkung = spurweite.beschränkung();
     let winkel_anfang = Winkel(3. * PI / 2.);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let winkel_ende = winkel_anfang + winkel;
     let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: beschränkung };
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_außen = radius_begrenzung_außen - spurweite.abstand();
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_innen = radius_außen - spurweite_skalar;
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let begrenzung0 = gleis_links_oben
         + radius_begrenzung_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let begrenzung1 = begrenzung0 + beschränkung * Vektor { x: -winkel.sin(), y: winkel.cos() };
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
@@ -439,14 +439,14 @@ fn zeichne_kontakt_intern<P, A>(
     // Utility Größen
     let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let kontakt_radius = (Skalar(0.5) * spurweite.abstand())
         .min(&(Skalar(0.25) * radius_begrenzung_außen * Skalar(winkel.0)));
     let anzeige_winkel = Winkel(3. * kontakt_radius.0 / radius_begrenzung_außen.0);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
@@ -499,47 +499,47 @@ fn fülle_internal<P, A>(
     let beschränkung_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     // Koordinaten für den Bogen
     let winkel_anfang = Winkel(3. * PI / 2.);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let winkel_ende = winkel_anfang + winkel;
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_außen = radius_begrenzung_außen - abstand;
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_innen = radius_außen - spurweite_skalar;
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let bogen_zentrum =
         beschränkung_links_oben + Vektor { x: Skalar(0.), y: radius_begrenzung_außen };
     // Koordinaten links
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let gleis_links_oben = beschränkung_links_oben + Vektor { x: Skalar(0.), y: abstand };
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: spurweite_skalar };
     // Koordinaten rechts
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let gleis_rechts_oben: Vektor = gleis_links_oben
         + radius_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
@@ -619,14 +619,14 @@ where
     // Utility Größen
     let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_kontakt = (Skalar(0.5) * spurweite.abstand())
         .min(&(Skalar(0.25) * radius_begrenzung_außen * Skalar(winkel.0)));
     let anzeige_winkel = Winkel(3. * radius_kontakt.0 / radius_begrenzung_außen.0);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
@@ -657,29 +657,29 @@ pub(crate) fn innerhalb(
     let spurweite_skalar = spurweite.als_skalar();
     let abstand = spurweite.abstand();
     let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(radius);
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_außen = radius_begrenzung_außen - abstand;
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_innen = radius_außen - spurweite_skalar;
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let bogen_zentrum = Vektor { x: Skalar(0.), y: abstand + radius_außen };
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]
     let radius_vector = bogen_zentrum - relative_position;
     let länge = radius_vector.länge();
     let mut innerhalb = Innerhalb::Außerhalb;
-    #[allow(
+    #[expect(
         clippy::arithmetic_side_effects,
         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
     )]

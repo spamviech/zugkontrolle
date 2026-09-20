@@ -61,12 +61,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         let punkt = self.letzte_maus_position - halte_position;
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -145,7 +145,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             && let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
                 gehalten.get_mut(klick_quelle)
         {
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
             )]

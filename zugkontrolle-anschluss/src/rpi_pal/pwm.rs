@@ -308,7 +308,7 @@ pub use rpi_pal::pwm::Channel;
 #[cfg(not(feature = "raspi"))]
 /// Pwm channels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Channel {
     Pwm0,
     Pwm1,
@@ -327,13 +327,13 @@ pub use rpi_pal::pwm::Polarity;
 #[cfg(not(feature = "raspi"))]
 /// Polarity of a pwm pulse.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Polarity {
     Normal,
     Inverse,
 }
 
-#[allow(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
+#[expect(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
 /// Result with `pwm::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -343,7 +343,7 @@ pub use rpi_pal::pwm::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the PWM peripheral.
 #[derive(Debug)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Error {
     Io(io::Error),
 }

@@ -29,7 +29,7 @@ impl Pfad {
     /// Erzeuge ein Rechteck der gegebenen `größe` unter den gegebenen `transformationen`.
     #[must_use]
     pub fn rechteck(größe: Vektor, transformationen: Vec<Transformation>) -> Self {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -83,7 +83,7 @@ pub struct YAchse;
 pub struct Invertiert<T, Achse>(T, PhantomData<*const Achse>);
 
 impl<T, Achse> From<T> for Invertiert<T, Achse> {
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars)]
     fn from(t: T) -> Self {
         Invertiert(t, PhantomData)
     }
@@ -92,7 +92,7 @@ impl<T, Achse> From<T> for Invertiert<T, Achse> {
 impl<P: Into<Vektor>> From<Invertiert<P, XAchse>> for Vektor {
     fn from(invertiert: Invertiert<P, XAchse>) -> Self {
         let mut vektor = invertiert.0.into();
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -106,7 +106,7 @@ impl<P: Into<Vektor>> From<Invertiert<P, XAchse>> for Vektor {
 impl<P: Into<Vektor>> From<Invertiert<P, YAchse>> for Vektor {
     fn from(invertiert: Invertiert<P, YAchse>) -> Self {
         let mut vektor = invertiert.0.into();
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -120,7 +120,7 @@ impl<P: Into<Vektor>> From<Invertiert<P, YAchse>> for Vektor {
 impl<A: Into<Winkel>> From<Invertiert<A, XAchse>> for Winkel {
     fn from(invertiert: Invertiert<A, XAchse>) -> Self {
         let w = invertiert.0.into();
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -133,7 +133,7 @@ impl<A: Into<Winkel>> From<Invertiert<A, XAchse>> for Winkel {
 impl<A: Into<Winkel>> From<Invertiert<A, YAchse>> for Winkel {
     fn from(invertiert: Invertiert<A, YAchse>) -> Self {
         let w = invertiert.0.into();
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]

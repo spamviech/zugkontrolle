@@ -69,7 +69,7 @@ pub struct Argumente {
 /// Einstellung über aktivierte I2c-Channel.
 #[derive(Debug, Clone, Copy, Parse)]
 #[kommandozeilen_argumente(sprache: deutsch)]
-#[allow(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools)]
 pub struct I2cSettings {
     /// I2C channel auf pins 2 und 3 (bus 0 oder 1).
     #[kommandozeilen_argumente(lang: [i2c0_1, i2c0, i2c1])]

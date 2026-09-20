@@ -22,7 +22,7 @@ use crate::daten::{
     v4,
 };
 
-#[allow(
+#[expect(
     clippy::module_name_repetitions,
     reason = "Folge Konvention TypName -> TypNameSerialisiert"
 )]

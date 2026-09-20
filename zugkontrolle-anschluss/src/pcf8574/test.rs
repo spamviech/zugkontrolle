@@ -81,7 +81,7 @@ fn i2c_settings() {
     lager.reserviere_erwarte_deaktiviert(llln_beschreibung, port0, "1. Aufruf von llln.");
 }
 
-#[allow(clippy::multiple_inherent_impl, reason = "nur für Tests")]
+#[expect(clippy::multiple_inherent_impl, reason = "nur für Tests")]
 impl Lager {
     fn reserviere_erwarte_erfolg(
         &mut self,

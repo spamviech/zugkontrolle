@@ -27,7 +27,7 @@ fn partition_generic_fields<'f>(
 }
 
 /// Erzeuge den [`TokenStream`] für die neuen Definitionen.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn erzeuge_typ_definitionen(
     crate_ident: &Ident,
     arg: &TokenStream,
@@ -75,7 +75,7 @@ fn erzeuge_typ_definitionen(
         }
 
         impl<#(#params),*> #crate_ident::de_serialisieren::Reserviere<#ident<#(#params),*>> for #serialisiert_ident<#(#params),*> {
-            #[allow(unused_qualifications)]
+            #[expect(unused_qualifications)]
             type MoveArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::MoveArg;
             type RefArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::RefArg;
             type MutRefArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::MutRefArg;
@@ -89,7 +89,7 @@ fn erzeuge_typ_definitionen(
                 mut_ref_arg: &mut Self::MutRefArg,
             ) -> #crate_ident::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
                 let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                #[allow(clippy::shadow_unrelated, reason = "#param_fields related über reserviere/konvertiere")]
+                #[expect(clippy::shadow_unrelated, reason = "#param_fields related über reserviere/konvertiere")]
                 (#(#param_fields),*)
                     .reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg)
                     .konvertiere(|(#(#param_fields),*)| {
@@ -123,7 +123,7 @@ fn erzeuge_typ_definitionen(
 }
 
 /// [`crate::alias_serialisiert_unit`]
-#[allow(clippy::single_call_fn)]
+#[expect(clippy::single_call_fn)]
 pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> TokenStream {
     let mut errors = Vec::new();
 

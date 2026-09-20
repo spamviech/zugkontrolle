@@ -51,7 +51,7 @@ pub enum Expectation {
 /// Es wurde `true` erwartet.
 pub struct ExpectTrue;
 
-#[allow(clippy::missing_errors_doc)]
+#[expect(clippy::missing_errors_doc)]
 /// Gebe [Ok] zurück wenn der wert [true] ist, ansonsten [`Err`].
 pub fn expect_true(wert: bool) -> Result<(), ExpectTrue> {
     if wert { Ok(()) } else { Err(ExpectTrue) }
@@ -62,9 +62,9 @@ pub fn expect_true(wert: bool) -> Result<(), ExpectTrue> {
 #[error("Expected {0:?} and {1:?} to be equal!")]
 pub struct ExpectEq(Box<dyn Debug>, Box<dyn Debug>);
 
-#[allow(clippy::missing_errors_doc)]
+#[expect(clippy::missing_errors_doc)]
 /// Gebe [Ok] zurück wenn beide Werte gleich sind, ansonsten [`Err`].
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 pub fn expect_eq<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectEq> {
     expect_true(a == b).map_err(|_expect_true| ExpectEq(Box::new(a), Box::new(b)))
 }
@@ -74,9 +74,9 @@ pub fn expect_eq<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), Expec
 #[error("Expected {0:?} and {1:?} to be different!")]
 pub struct ExpectNe(Box<dyn Debug>, Box<dyn Debug>);
 
-#[allow(clippy::missing_errors_doc)]
+#[expect(clippy::missing_errors_doc)]
 /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [`Err`].
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 pub fn expect_ne<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectNe> {
     expect_true(a != b).map_err(|_expect_true| ExpectNe(Box::new(a), Box::new(b)))
 }
@@ -86,9 +86,9 @@ pub fn expect_ne<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), Expec
 #[error("Expected {0:?} to be greater than {1:?}!")]
 pub struct ExpectGt(Box<dyn Debug>, Box<dyn Debug>);
 
-#[allow(clippy::missing_errors_doc)]
+#[expect(clippy::missing_errors_doc)]
 /// Gebe [Ok] zurück wenn beide Werte unterschiedlich sind, ansonsten [`Err`].
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars)]
 pub fn expect_gt<T: 'static + Debug + PartialEq>(a: T, b: T) -> Result<(), ExpectGt> {
     expect_true(a != b).map_err(|_expect_true| ExpectGt(Box::new(a), Box::new(b)))
 }

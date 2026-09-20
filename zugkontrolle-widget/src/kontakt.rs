@@ -60,7 +60,7 @@ impl Zustand {
 
 /// Interne Nachricht für Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
-#[allow(variant_size_differences)]
+#[expect(variant_size_differences)]
 enum InterneNachricht {
     /// Neuer gewählter Name.
     Name(String),

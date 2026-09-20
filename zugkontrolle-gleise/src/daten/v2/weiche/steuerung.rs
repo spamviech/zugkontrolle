@@ -23,9 +23,9 @@ pub(in crate::daten::v2) struct WeicheSteuerungSerialisiert<Richtung, Anschlüss
 
 /// Die aktuelle und vorherige Richtung.
 pub(in crate::daten::v2) struct AktuellUndBisher<R> {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     aktuelle_richtung: R,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     letzte_richtung: R,
 }
 

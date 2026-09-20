@@ -114,7 +114,7 @@ pub trait Zeichnen<T> {
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self, t: &T, spurweite: Spurweite) -> Rechteck;
 
-    #[allow(clippy::min_ident_chars, reason = "t: T")]
+    #[expect(clippy::min_ident_chars, reason = "t: T")]
     /// Einschließendes Rechteck, wenn sich das Gleis an der [`Position`] befindet.
     fn rechteck_an_position(&self, t: &T, spurweite: Spurweite, position: &Position) -> Rechteck {
         self.rechteck(t, spurweite)
@@ -163,7 +163,7 @@ pub trait Zeichnen<T> {
     /// Es wird erwartet, dass sich die Verbindungen innerhalb von `rechteck` befinden.
     fn verbindungen(&self, t: &T, spurweite: Spurweite) -> Self::Verbindungen;
 
-    #[allow(clippy::min_ident_chars, reason = "t: T")]
+    #[expect(clippy::min_ident_chars, reason = "t: T")]
     /// Absolute Position der Verbindungen, wenn sich das Gleis an der [`Position`] befindet.
     fn verbindungen_an_position(
         &self,
@@ -173,7 +173,7 @@ pub trait Zeichnen<T> {
     ) -> Self::Verbindungen {
         self.verbindungen(t, spurweite).zuordnen(
             |&Verbindung { position: verbindung_position, richtung }| {
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]

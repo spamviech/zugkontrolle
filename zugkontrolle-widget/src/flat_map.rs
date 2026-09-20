@@ -15,7 +15,7 @@ use iced_core::{
 };
 
 ///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct FlatMap<'a, A, I, Thema, R> {
     /// Das ursprüngliche Widget.
     element: Element<'a, A, Thema, R>,

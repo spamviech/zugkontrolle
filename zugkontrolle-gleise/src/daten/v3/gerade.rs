@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_gleis::{gerade as v4, steuerung::kontakt::KontaktSerialisiert};
 use zugkontrolle_typen::skalar::Skalar;
 
-#[allow(
+#[expect(
     clippy::module_name_repetitions,
     reason = "Folge Konvention TypName -> TypNameSerialisiert"
 )]
@@ -20,7 +20,7 @@ pub struct GeradeSerialisiert<Anschluss = Option<KontaktSerialisiert>> {
     pub kontakt: Anschluss,
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameUnit")]
+#[expect(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameUnit")]
 /// Eine Variante ohne Anschlüsse.
 pub type GeradeUnit = GeradeSerialisiert<()>;
 

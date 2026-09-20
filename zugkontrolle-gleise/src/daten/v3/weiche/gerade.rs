@@ -66,9 +66,9 @@ impl From<v4::WeicheUnit> for WeicheUnit {
 /// Mögliche Richtungen zum Schalten.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
-    #[allow(missing_docs)]
+    #[expect(missing_docs)]
     Gerade,
-    #[allow(missing_docs)]
+    #[expect(missing_docs)]
     Kurve,
 }
 

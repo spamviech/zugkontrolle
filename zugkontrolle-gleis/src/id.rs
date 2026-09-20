@@ -11,7 +11,7 @@ use zugkontrolle_typen::Zeichnen;
 
 use crate::steuerung::aktualisieren::MitSteuerung;
 
-#[allow(clippy::module_name_repetitions, reason = "soll direkt importiert werden")]
+#[expect(clippy::module_name_repetitions, reason = "soll direkt importiert werden")]
 /// Id für die Definition eines Gleises.
 pub type DefinitionId<T> = GleisId<<T as MitSteuerung>::SelfUnit>;
 
@@ -35,7 +35,7 @@ macro_rules! erzeuge_any_enum {
     ($(($vis: vis))? $name: ident$(<$($lt: lifetime),*>)?, $doc: literal, [$($derives: ident),*], $( ($($path: tt)*) ),+ $(,)?) => {
         #[doc = $doc]
         #[derive(zugkontrolle_macros::From, $($derives),*)]
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         $($vis)? enum $name$(<$($lt),*>)? {
             /// Variante für eine [`Gerade`](crate::gleis::gerade::Gerade).
             Gerade($( $crate::ersetzte_eckige_klammern!{$crate::gerade::Gerade, [], $($path)*} ),+),
@@ -72,7 +72,7 @@ macro_rules! als_ref {
 }
 
 #[macro_export]
-#[allow(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
+#[expect(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
 /// Erzeuge ein `match`-statement und führe das `$macro!`/die `$funktion`
 /// mit den als `$ident` gematchten Varianten-Feldern als Argumente aus.
 macro_rules! mit_any_id {
@@ -137,7 +137,7 @@ macro_rules! mit_any_id {
         }
     }};
 }
-#[allow(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
+#[expect(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
 pub use mit_any_id;
 
 erzeuge_any_enum! {

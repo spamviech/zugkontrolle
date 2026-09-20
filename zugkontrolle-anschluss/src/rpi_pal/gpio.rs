@@ -58,7 +58,7 @@ pub use rpi_pal::gpio::Gpio;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s GPIO peripheral.
 #[derive(Debug, Clone)]
-#[allow(missing_copy_implementations)]
+#[expect(missing_copy_implementations)]
 pub struct Gpio;
 
 #[cfg(not(feature = "raspi"))]
@@ -166,7 +166,7 @@ pub use rpi_pal::gpio::InputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
-pub struct InputPin(Pin, #[allow(dead_code)] Bias);
+pub struct InputPin(Pin, #[expect(dead_code)] Bias);
 
 #[cfg(not(feature = "raspi"))]
 impl PartialEq for InputPin {
@@ -308,7 +308,7 @@ pub use rpi_pal::gpio::Level;
 #[cfg(not(feature = "raspi"))]
 /// Pin logic levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Level {
     Low,
     High,
@@ -332,7 +332,7 @@ pub use rpi_pal::gpio::Bias;
 #[cfg(not(feature = "raspi"))]
 /// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Bias {
     Off,
     PullDown,
@@ -345,7 +345,7 @@ pub use rpi_pal::gpio::Trigger;
 #[cfg(not(feature = "raspi"))]
 /// Interrupt trigger conditions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Trigger {
     Disabled,
     RisingEdge,
@@ -375,7 +375,7 @@ impl Default for Event {
     }
 }
 
-#[allow(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
+#[expect(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
 /// Result with [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -385,7 +385,7 @@ pub use rpi_pal::gpio::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the GPIO peripheral.
 #[derive(Debug)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Error {
     UnknownModel,
     PinNotAvailable(u8),
@@ -401,7 +401,7 @@ pub use rpi_pal::gpio::Mode;
 /// Pin modes.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Mode {
     Input,
     Output,

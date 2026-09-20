@@ -73,9 +73,9 @@ impl From<v4::KurvenWeicheUnit> for KurvenWeicheUnit {
 /// Mögliche Richtungen zum Schalten.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Richtung {
-    #[allow(missing_docs)]
+    #[expect(missing_docs)]
     Innen,
-    #[allow(missing_docs)]
+    #[expect(missing_docs)]
     Außen,
 }
 

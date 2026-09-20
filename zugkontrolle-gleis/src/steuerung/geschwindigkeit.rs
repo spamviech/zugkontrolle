@@ -357,7 +357,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
     }
 }
 
-#[allow(
+#[expect(
     clippy::module_name_repetitions,
     reason = "Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert"
 )]
@@ -425,7 +425,7 @@ fn geschwindigkeit_pwm(
 ) -> Result<(), pwm::Fehler> {
     // 0 <= u8 / u8::MAX <= 1
     let verhältnis = NullBisEins::neu_unchecked(f64::from(wert) / f64::from(u8::MAX));
-    #[allow(clippy::arithmetic_side_effects, reason = "saturating Mult-Implementierung.")]
+    #[expect(clippy::arithmetic_side_effects, reason = "saturating Mult-Implementierung.")]
     let betriebszyklus = faktor * verhältnis;
     pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
         polarität,
@@ -450,7 +450,7 @@ fn geschwindigkeit_ks(
     if *letzter_wert == 0 {
         // Geschwindigkeit war aus, es muss also kein Anschluss ausgeschaltet werden
     } else if let Some(anschluss) = geschwindigkeit.get_mut(usize::from(
-        #[allow(clippy::arithmetic_side_effects, reason = "*letzter_wert > 0")]
+        #[expect(clippy::arithmetic_side_effects, reason = "*letzter_wert > 0")]
         {
             *letzter_wert - 1
         },
@@ -463,7 +463,7 @@ fn geschwindigkeit_ks(
     }
     // neuen anstellen
     if wert_usize > 0 {
-        #[allow(clippy::arithmetic_side_effects, reason = "*wert_usize > 0")]
+        #[expect(clippy::arithmetic_side_effects, reason = "*wert_usize > 0")]
         let anschluss_index = wert_usize - 1;
         if let Some(anschluss) = geschwindigkeit.get_mut(anschluss_index) {
             anschluss.einstellen(Fließend::Fließend)?;
@@ -526,7 +526,7 @@ impl Display for Mittelleiter {
 
 /// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[allow(variant_size_differences)]
+#[expect(variant_size_differences)]
 pub enum MittelleiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -629,7 +629,7 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[allow(
+                    #[expect(
                         clippy::shadow_unrelated,
                         reason = "Selber wert zu einem späteren Zeitpunkt"
                     )]
@@ -1177,7 +1177,7 @@ impl Geschwindigkeit<Zweileiter> {
 
 /// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[allow(variant_size_differences)]
+#[expect(variant_size_differences)]
 pub enum ZweileiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -1288,7 +1288,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[allow(
+                    #[expect(
                         clippy::shadow_unrelated,
                         reason = "Gleiche Werte zu einem späteren Zeitpunkt."
                     )]
@@ -1310,7 +1310,7 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[allow(
+                    #[expect(
                         clippy::shadow_unrelated,
                         reason = "Gleiche Werte zu einem späteren Zeitpunkt."
                     )]
@@ -1368,7 +1368,7 @@ impl Display for Fahrtrichtung {
 
 /// Mögliche Fehler beim einstellen der Geschwindigkeit oder Fahrtrichtung.
 #[derive(Debug, zugkontrolle_macros::From)]
-#[allow(variant_size_differences)]
+#[expect(variant_size_differences)]
 pub enum Fehler {
     /// Fehler bei Interaktion mit einem [`Anschluss`](OutputAnschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),

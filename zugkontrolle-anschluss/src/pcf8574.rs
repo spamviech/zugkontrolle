@@ -38,13 +38,12 @@ use crate::{
 struct I2cMitPins {
     /// Zugriff auf die I2C-Kommunikation.
     i2c: I2c,
-    #[allow(dead_code)]
     /// Der angesprochene Bus.
     i2c_bus: I2cBus,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "Gespeichert um relevante Pins zu reservieren.")]
     /// Der SDA-Pin.
     sda: Pin,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "Gespeichert um relevante Pins zu reservieren.")]
     /// Der SCL-Pin.
     scl: Pin,
 }
@@ -139,7 +138,7 @@ impl Lager {
                             beschreibung,
                             port_num,
                         );
-                        #[allow(
+                        #[expect(
                             clippy::indexing_slicing,
                             reason = "0 <= port_num < 8 == array.len()"
                         )]
@@ -172,7 +171,7 @@ impl Lager {
             .get_mut(&beschreibung)
             .ok_or(ReservierenFehler::I2cBusDeaktiviert { beschreibung, port })
             .and_then(|(_pcf8574, ports)| {
-                #[allow(clippy::indexing_slicing, reason = "0 <= port < 8 == ports.len()")]
+                #[expect(clippy::indexing_slicing, reason = "0 <= port < 8 == ports.len()")]
                 ports[usize::from(port)]
                     .take()
                     .ok_or(ReservierenFehler::InVerwendung { beschreibung, port })
@@ -195,7 +194,7 @@ impl Lager {
                 vacant.insert((pcf8574, array))
             },
         };
-        #[allow(clippy::indexing_slicing, reason = "0 <= port < 8 == ports.len()")]
+        #[expect(clippy::indexing_slicing, reason = "0 <= port < 8 == ports.len()")]
         if let Some(bisher) = ports[usize::from(port.port())].replace(port) {
             error!("Bereits verfügbaren Pcf8574-Port ersetzt: {bisher:?}");
         }
@@ -464,18 +463,24 @@ impl Pcf8574 {
             Variante::Normal => 0x20,
             Variante::A => 0x38,
         };
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "max value: 0x38 + 0b001 + 0b010 + 0b100 == 0x3f == 63 < 255 == u8::MAX"
         )]
         if let Level::High = a0 {
             adresse += 0b001;
         }
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "max value: 0x38 + 0b001 + 0b010 + 0b100 == 0x3f == 63 < 255 == u8::MAX"
+        )]
         if let Level::High = a1 {
             adresse += 0b010;
         }
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "max value: 0x38 + 0b001 + 0b010 + 0b100 == 0x3f == 63 < 255 == u8::MAX"
+        )]
         if let Level::High = a2 {
             adresse += 0b100;
         }
@@ -501,7 +506,7 @@ impl Pcf8574 {
             let port: usize = port.expect("port passt nicht in usize!");
             let port_u32 = u32::try_from(port).expect("port passt nicht in u32!");
             let port_bit = 2u8.pow(port_u32);
-            #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == result.len()")]
+            #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == result.len()")]
             {
                 result[port] = if let Modus::Input { .. } = modus {
                     Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
@@ -526,7 +531,7 @@ impl Pcf8574 {
             Some(callback) => Some(Arc::new(callback)),
             None => None,
         };
-        #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
+        #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
         {
             self.ports[usize::from(port)] = Modus::Input { trigger, callback };
         }
@@ -536,7 +541,7 @@ impl Pcf8574 {
     /// Schreibe auf einen Port des Pcf8574.
     /// Der Port wird automatisch als Output gesetzt.
     fn schreibe_port(&mut self, port: kleiner_8, level: Level) -> Result<(), Fehler> {
-        #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
+        #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
         {
             self.ports[usize::from(port)] = level.into();
         }
@@ -565,7 +570,7 @@ impl Pcf8574 {
 
 /// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Sequence, Serialize, Deserialize)]
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "Variante wird pcf8574A genannt.")]
 pub enum Variante {
     /// Variante ohne Zusätze auf dem Chip-Aufdruck.
     #[default]
@@ -587,6 +592,7 @@ pub struct Port {
     /// Die Beschreibung des [`Pcf8574`].
     beschreibung: Beschreibung,
     /// Die Port-Nummer.
+    #[expect(clippy::struct_field_names, reason = "Kein Grund einen neuen Namen zu erzwingen.")]
     port: kleiner_8,
 }
 
@@ -707,7 +713,7 @@ impl OutputPort {
     /// Ist der aktuelle Level [`High`](Level::High)?
     #[must_use]
     pub fn ist_high(&self) -> bool {
-        #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
+        #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
         {
             self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::High
         }
@@ -716,7 +722,7 @@ impl OutputPort {
     /// Ist der aktuelle Level [`Low`](Level::Low)?
     #[must_use]
     pub fn ist_low(&self) -> bool {
-        #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
+        #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
         {
             self.0.pcf8574.lock().ports[usize::from(self.port())] == Modus::Low
         }
@@ -730,7 +736,7 @@ impl OutputPort {
     /// Fehler beim schreiben des aktuellen Werts für den [`Pcf8574`].
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
         let level = {
-            #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
+            #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
             let modus = &self.0.pcf8574.lock().ports[usize::from(self.port())];
             match modus {
                 Modus::High => Level::Low,
@@ -775,7 +781,7 @@ impl InputPort {
     /// Fehler beim lesen des aktuellen Werts des [`Pcf8574`].
     pub fn lese(&self) -> Result<Level, Fehler> {
         let values = self.0.pcf8574.lock().lese()?;
-        #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
+        #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
         if let Some(value) = values[usize::from(self.0.port)] {
             Ok(value)
         } else {
@@ -813,7 +819,7 @@ impl InputPort {
             let arc_clone = Arc::clone(&self.0.pcf8574);
             let interrupt_callback = move |event| {
                 let Event { timestamp, seqno, trigger: _ } = event;
-                #[allow(clippy::shadow_unrelated, reason = "neuer Zugriff auf die selbe Mutex")]
+                #[expect(clippy::shadow_unrelated, reason = "neuer Zugriff auf die selbe Mutex")]
                 let mut pcf8574 = arc_clone.lock();
                 let current = match pcf8574.lese() {
                     Ok(current) => current,
@@ -822,7 +828,7 @@ impl InputPort {
                         return;
                     },
                 };
-                #[allow(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
+                #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == self.ports.len()")]
                 for i in 0..8 {
                     match (&mut pcf8574.ports[i], current[i], &mut last[i]) {
                         (

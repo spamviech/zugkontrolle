@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// Hard- oder Software-erzeugtes Pwm-Signal. Erlaubt exklusive Steuerung der zugehörigen Pins.
-#[allow(variant_size_differences)]
+#[expect(variant_size_differences)]
 #[derive(Debug)]
 pub(in crate::pin) enum Pwm {
     /// Hardware-Pwm.
@@ -134,7 +134,7 @@ impl Pin {
                 // konfiguration.zeit wird hier kopiert, ein verändern ist demnach kein Problem
                 let Zeit { frequenz, mut betriebszyklus } = konfiguration.zeit;
                 if konfiguration.polarität == Polarität::Invertiert {
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "NullBisEins hat eine saturating Add-Implementierung"
                     )]
@@ -190,7 +190,7 @@ pub enum Fehler {
 }
 
 /// Serialisierbare Informationen einen Pwm-Pins.
-#[allow(missing_copy_implementations)]
+#[expect(missing_copy_implementations)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
 

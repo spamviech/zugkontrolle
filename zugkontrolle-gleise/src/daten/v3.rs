@@ -57,19 +57,19 @@ pub struct Gleis<T> {
 /// Die serialisierte Darstellung aller Gleise, wie sie in Version 3 verwendet wurde.
 #[derive(Debug, Deserialize)]
 pub(crate) struct GleiseDatenSerialisiert {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
@@ -92,24 +92,24 @@ impl GleiseDatenSerialisiert {
 /// für eine Definition. Verwendet in [`GleiseDatenSerialisiert::v4`].
 #[derive(Debug)]
 struct DefinitionMaps {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     geraden: AssocList<GeradeSerialisiert, (zugkontrolle_id::Repräsentation, GeradeUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven: AssocList<KurveSerialisiert, (zugkontrolle_id::Repräsentation, KurveUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     weichen: AssocList<WeicheSerialisiert, (zugkontrolle_id::Repräsentation, WeicheUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: AssocList<
         DreiwegeWeicheSerialisiert,
         (zugkontrolle_id::Repräsentation, DreiwegeWeicheUnit),
     >,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen:
         AssocList<KurvenWeicheSerialisiert, (zugkontrolle_id::Repräsentation, KurvenWeicheUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen:
         AssocList<SKurvenWeicheSerialisiert, (zugkontrolle_id::Repräsentation, SKurvenWeicheUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: AssocList<KreuzungSerialisiert, (zugkontrolle_id::Repräsentation, KreuzungUnit)>,
 }
 
@@ -131,19 +131,19 @@ impl DefinitionMaps {
 /// Die nächste freie [`id::Repräsentation`] für eine Definition.
 #[derive(Debug)]
 struct NächsteDefinitionIds {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     geraden: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<zugkontrolle_id::Repräsentation>,
 }
 
@@ -165,21 +165,21 @@ impl NächsteDefinitionIds {
 /// Die nächste freie [`id::Repräsentation`] für ein Gleis oder eine Definition.
 #[derive(Debug)]
 struct NächsteIds {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     geraden: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     definitionen: NächsteDefinitionIds,
 }
 

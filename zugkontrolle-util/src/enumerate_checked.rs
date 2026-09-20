@@ -14,7 +14,7 @@ pub struct EnumerateChecked<C, I> {
     iterator: I,
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Repetition bewusst gewählt.")]
+#[expect(clippy::module_name_repetitions, reason = "Repetition bewusst gewählt.")]
 /// Erweiterungs-trait für alle Iteratoren, damit die
 /// [`enumerate_checked`](EnumerateCheckedExt::enumerate_checked)-Methode verfügbar ist.
 pub trait EnumerateCheckedExt<C, I> {

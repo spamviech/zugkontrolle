@@ -32,7 +32,7 @@ impl From<Pcf8574Beschreibung> for pcf8574::Beschreibung {
 }
 
 /// Serialisierbare Informationen eines [`OutputAnschluss`]es.
-#[allow(missing_copy_implementations, variant_size_differences)]
+#[expect(missing_copy_implementations, variant_size_differences)]
 #[derive(Deserialize)]
 pub(in crate::daten::v2) enum OutputSerialisiert {
     /// Ein [`Pin`](output::Pin).
@@ -71,7 +71,7 @@ impl From<OutputSerialisiert> for zugkontrolle_anschluss::OutputSerialisiert {
 }
 
 /// Serialisierbare Informationen eines [`InputAnschlusses`](anschluss::InputAnschluss).
-#[allow(missing_copy_implementations, variant_size_differences)]
+#[expect(missing_copy_implementations, variant_size_differences)]
 #[derive(Deserialize)]
 pub(in crate::daten::v2) enum InputSerialisiert {
     /// Ein [`Pin`](input::Pin).

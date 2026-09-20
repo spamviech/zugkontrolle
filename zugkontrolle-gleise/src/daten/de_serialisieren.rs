@@ -175,7 +175,7 @@ impl GleiseDaten {
     }
 }
 
-#[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
+#[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
 /// Reserviere die Anschlüsse für alle Gleise.
 #[must_use]
 fn reserviere_anschlüsse<T, S, Ss, L>(
@@ -202,7 +202,7 @@ where
     use Ergebnis::{Fehler, Wert, WertMitWarnungen};
     serialisiert.into_iter().fold(
         (GleisMap::new(), Vec::new(), anschlüsse),
-        #[allow(
+        #[expect(
             clippy::shadow_unrelated,
             reason = "`anschlüsse` über Argument->Rückgabewert zusammenhängend."
         )]
@@ -266,19 +266,19 @@ where
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [`DefinitionId`].
 #[derive(Debug)]
 pub(crate) struct DefinitionIdMaps {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     geraden: HashMap<u32, DefinitionId<Gerade>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven: HashMap<u32, DefinitionId<Kurve>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     weichen: HashMap<u32, DefinitionId<Weiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: HashMap<u32, DefinitionId<DreiwegeWeiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: HashMap<u32, DefinitionId<KurvenWeiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: HashMap<u32, DefinitionId<SKurvenWeiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: HashMap<u32, DefinitionId<Kreuzung>>,
 }
 
@@ -300,21 +300,21 @@ impl DefinitionIdMaps {
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [`GleisId`].
 #[derive(Debug)]
 pub(crate) struct IdMaps {
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     geraden: HashMap<u32, GleisId<Gerade>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven: HashMap<u32, GleisId<Kurve>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     weichen: HashMap<u32, GleisId<Weiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: HashMap<u32, GleisId<DreiwegeWeiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: HashMap<u32, GleisId<KurvenWeiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: HashMap<u32, GleisId<SKurvenWeiche>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: HashMap<u32, GleisId<Kreuzung>>,
-    #[allow(clippy::missing_docs_in_private_items)]
+    #[expect(clippy::missing_docs_in_private_items)]
     definitionen: DefinitionIdMaps,
 }
 
@@ -335,7 +335,7 @@ impl IdMaps {
 }
 
 impl GleiseDatenSerialisiert {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     /// Reserviere alle benötigten Anschlüsse.
     #[must_use]
     fn reserviere<L, S, Nachricht>(
@@ -480,7 +480,7 @@ pub enum ZugtypDeserialisierenFehler {
 macro_rules! erzeuge_zugtyp_maps {
     ($id_maps: expr => $($gleise: ident : $typ: ty),* $(,)?) => {
         $(
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         let ($gleise, ids) = $gleise
             .into_iter()
             .fold(
@@ -502,7 +502,7 @@ macro_rules! erzeuge_zugtyp_maps {
         )*
     };
     ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)?) => {$(
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         let $gleise = $gleise
             .into_iter()
             .map(|definition| Ok((crate::gleise::id::DefinitionId::<$typ>::neu()?, definition)) )
@@ -591,7 +591,7 @@ impl<L: Leiter> Zustand<L> {
         /// Erzeuge eine serialisierbare Darstellung für die jeweiligen [`HashMaps`](HashMap).
         macro_rules! serialisiere_maps {
             ($(($($matching: ident),*): $map: ident - $serialize_id: ident),* $(,)?) => {$(
-                #[allow(unused_parens)]
+                #[expect(unused_parens)]
                 let $map = $map
                     .iter()
                     .map(|(id, ($($matching),*))| (id.$serialize_id(), serialisiere_head_clone_tail!($($matching),*)))
@@ -641,7 +641,7 @@ impl<L: Leiter> Zustand<L> {
         /// Auf das erste pattern-argument wird [`Serialisiere::anschlüsse`] aufgerufen.
         macro_rules! collect_anschlüsse {
             (($($matching: ident),+) : $map: ident) => {
-                #[allow(unused_parens)]
+                #[expect(unused_parens)]
                 for (_id, ($($matching),+)) in $map.drain() {
                     anschlüsse.anhängen(head!($($matching),+).anschlüsse());
                 }
@@ -685,7 +685,7 @@ where
         /// Reserviere die benötigten Anschlüsse für die übergebenen [`HashMaps`](HashMap).
         macro_rules! reserviere_maps {
             ($anschlüsse: ident => $($elemente: ident $(, $extra_info: ident - $hash_eq_steuerung: ident)?);* $(;)? ) => {$(
-                #[allow(unused_parens)]
+                #[expect(unused_parens)]
                 let ($elemente, $anschlüsse) = $elemente.into_iter().fold(
                     (HashMap::new(), $anschlüsse),
                     |(mut elemente, anschlüsse), (name, (serialisiert $(, $extra_info)?))| {
@@ -808,7 +808,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     {
         fn deserialize<T: DeserializeOwned>(slice: &[u8]) -> Result<T, DecodeError> {
             let (decoded, bytes): (T, usize) = decode_from_slice(slice, BINCODE_OPTIONS)?;
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "bytes at maximum length of the slice"
             )]

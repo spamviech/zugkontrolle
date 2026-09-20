@@ -44,7 +44,7 @@ impl Winkel {
     #[must_use]
     pub fn normalisiert(mut self) -> Self {
         while self < -PI {
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
             )]
@@ -53,7 +53,7 @@ impl Winkel {
             }
         }
         while self >= PI {
-            #[allow(
+            #[expect(
                 clippy::arithmetic_side_effects,
                 reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
             )]
@@ -103,7 +103,7 @@ impl Winkel {
 
 impl AddAssign<&Winkel> for Winkel {
     fn add_assign(&mut self, Winkel(other): &Winkel) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -115,7 +115,7 @@ impl AddAssign<&Winkel> for Winkel {
 
 impl AddAssign<Winkel> for Winkel {
     fn add_assign(&mut self, rhs: Winkel) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -130,7 +130,7 @@ where
     Winkel: for<'s> AddAssign<&'s T>,
 {
     fn add_assign(&mut self, rhs: &mut T) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -147,7 +147,7 @@ where
     type Output = Self;
 
     fn add(mut self, other: T) -> Winkel {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -160,7 +160,7 @@ where
 
 impl SubAssign<&Winkel> for Winkel {
     fn sub_assign(&mut self, Winkel(other): &Winkel) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -172,7 +172,7 @@ impl SubAssign<&Winkel> for Winkel {
 
 impl SubAssign<Winkel> for Winkel {
     fn sub_assign(&mut self, rhs: Winkel) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -187,7 +187,7 @@ where
     Winkel: for<'s> SubAssign<&'s T>,
 {
     fn sub_assign(&mut self, rhs: &mut T) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -204,7 +204,7 @@ where
     type Output = Self;
 
     fn sub(mut self, other: T) -> Self::Output {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -225,7 +225,7 @@ impl Neg for Winkel {
 
 impl MulAssign<f32> for Winkel {
     fn mul_assign(&mut self, rhs: f32) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -239,7 +239,7 @@ impl Mul<f32> for Winkel {
     type Output = Self;
 
     fn mul(mut self, other: f32) -> Self {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -254,7 +254,7 @@ impl Mul<Winkel> for f32 {
     type Output = Winkel;
 
     fn mul(self, other: Winkel) -> Winkel {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -266,7 +266,7 @@ impl Mul<Winkel> for f32 {
 
 impl DivAssign<f32> for Winkel {
     fn div_assign(&mut self, rhs: f32) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt."
         )]
@@ -280,7 +280,7 @@ impl Div<f32> for Winkel {
     type Output = Self;
 
     fn div(mut self, other: f32) -> Self {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt."
         )]
@@ -295,7 +295,7 @@ impl Div<Winkel> for f32 {
     type Output = Winkel;
 
     fn div(self, other: Winkel) -> Winkel {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt."
         )]

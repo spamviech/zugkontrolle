@@ -53,7 +53,7 @@ impl<T, F> ElementOderKonstruktor<T, F> {
         match self {
             ElementOderKonstruktor::Element(element) => element,
             ElementOderKonstruktor::Konstruktor(_konstruktor) => {
-                #[allow(clippy::panic, reason = "Methode ist explizit partiell.")]
+                #[expect(clippy::panic, reason = "Methode ist explizit partiell.")]
                 {
                     panic!(
                         "erhalte_element_mut_unchecked für eine Konstruktor-Variante aufgerufen!"

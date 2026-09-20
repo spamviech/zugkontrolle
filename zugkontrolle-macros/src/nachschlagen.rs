@@ -18,12 +18,12 @@ pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum)
         } else {
             String::from("Collection missing!")
         });
-        #[allow(clippy::iter_skip_zero, reason = "Skip, damit die Iterator-Typen übereinstimmen.")]
+        #[expect(clippy::iter_skip_zero, reason = "Skip, damit die Iterator-Typen übereinstimmen.")]
         (None, None, dummy.iter().skip(0))
     } else {
-        #[allow(clippy::indexing_slicing, reason = "sichergestellt durch `arg.len() < 2` check")]
+        #[expect(clippy::indexing_slicing, reason = "sichergestellt durch `arg.len() < 2` check")]
         let fst = &args[0];
-        #[allow(clippy::indexing_slicing)]
+        #[expect(clippy::indexing_slicing)]
         let snd = &args[1];
         let derives = args.iter().skip(2);
         (Some(fst), Some(snd), derives)

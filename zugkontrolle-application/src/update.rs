@@ -166,7 +166,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
             Fehler { fehler, .. } => (None, Some(fehler)),
         };
 
-        #[allow(clippy::shadow_unrelated, reason = "false-positive: fehler related über map")]
+        #[expect(clippy::shadow_unrelated, reason = "false-positive: fehler related über map")]
         let mut fehlermeldung = fehler.map(|fehler| {
             (format!("Hinzufügen Streckenabschnitt {}", name.0), format!("{fehler:?}"))
         });
@@ -402,7 +402,7 @@ where
             } else {
                 (None, Anschlüsse::default())
             };
-        #[allow(
+        #[expect(
             clippy::shadow_unrelated,
             reason = "anschlüsse, geschwindigkeit related über `reserviere`"
         )]
@@ -489,7 +489,7 @@ where
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt"
                 )]

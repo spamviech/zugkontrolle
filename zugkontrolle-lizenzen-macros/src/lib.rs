@@ -165,7 +165,7 @@ fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
     return quote! {{
         #[deprecated = #fehlermeldung]
         struct compile_warning;
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         #[warn(deprecated)]
         fn trigger_warning () { compile_warning; }
     }};

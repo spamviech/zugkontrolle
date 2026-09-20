@@ -13,7 +13,7 @@ use crate::fonts::BOOTSTRAP;
 /// Es kann sein, dass in Zukunft die Fill-Variante bei einem alternativen
 /// [`Thema`](crate::style::thema::Thema) angezeigt wird.
 #[derive(Debug, Clone, Copy)]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub enum Bootstrap {
     Feather,
     FileEarmark,
@@ -38,7 +38,7 @@ impl Bootstrap {
 /// Ein Widget, dass ein Icon darstellt.
 ///
 /// Damit das Icon richtig angezeigt wird muss vorher die [BOOTSTRAP]-Schriftart [`geladen`](iced::font::load) werden.
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct Icon<'a, Thema, R>(Text<'a, Thema, R>)
 where
     R: text_core::Renderer,

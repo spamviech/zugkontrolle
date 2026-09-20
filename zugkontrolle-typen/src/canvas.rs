@@ -42,7 +42,7 @@ impl<'t> Frame<'t> {
         Frame(frame)
     }
 
-    #[allow(single_use_lifetimes, reason = "elided lifetimes in impl-Traits are experimental")]
+    #[expect(single_use_lifetimes, reason = "elided lifetimes in impl-Traits are experimental")]
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Stroke).
     pub fn stroke<'s>(
         &mut self,
@@ -158,7 +158,7 @@ impl Cache {
                 transformierter_frame.transformation(&Transformation::Skalieren(skalieren));
                 transformierter_frame.transformation(&Transformation::Rotation(pivot.winkel));
                 transformierter_frame.transformation(&Transformation::Translation(
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
                     )]
@@ -196,7 +196,7 @@ impl Cache {
 }
 
 /// Position eines Gleises/Textes auf dem Canvas.
-#[allow(missing_copy_implementations)]
+#[expect(missing_copy_implementations)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Die linke Obere Ecke auf dem Canvas.
@@ -209,7 +209,7 @@ impl Position {
     /// Vektor nachdem das Objekt an die Position bewegt und um den Winkel gedreht wurde.
     #[must_use]
     pub fn transformation(&self, anchor: Vektor) -> Vektor {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -239,12 +239,12 @@ impl Position {
     {
         let verbindungen = definition.verbindungen(z, spurweite);
         let verbindung = verbindungen.erhalte(verbindung_name);
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
         let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]

@@ -169,7 +169,7 @@ impl<T> Ergebnis<T> {
             move_arg,
             ref_arg,
             mut_ref_arg,
-            #[allow(
+            #[expect(
                 clippy::min_ident_chars,
                 reason = "t: T, r:R; mehr Information ist nicht vorhanden und auch nicht notwendig"
             )]
@@ -178,7 +178,7 @@ impl<T> Ergebnis<T> {
         )
     }
 
-    #[allow(
+    #[expect(
         clippy::too_many_arguments,
         reason = "Argumente werden alle benötigt und können nicht sinnvoll zusammengefasst werden."
     )]
@@ -198,7 +198,7 @@ impl<T> Ergebnis<T> {
         fehlerbehandlung: impl FnOnce(Either<Option<T>, R>) -> Option<U>,
     ) -> Ergebnis<U> {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
-        #[allow(clippy::min_ident_chars, reason = "t: T")]
+        #[expect(clippy::min_ident_chars, reason = "t: T")]
         let (t, fehler_t, anschlüsse) = match self {
             Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
             WertMitWarnungen { anschluss, fehler, anschlüsse } => {
@@ -206,22 +206,22 @@ impl<T> Ergebnis<T> {
             },
             Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
         };
-        #[allow(clippy::min_ident_chars, reason = "r: R")]
+        #[expect(clippy::min_ident_chars, reason = "r: R")]
         let (r, fehler_r, anschlüsse) =
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                #[allow(
+                #[expect(
                     clippy::shadow_unrelated,
                     reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf"
                 )]
                 Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
-                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
+                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     (Some(anschluss), Some(fehler), anschlüsse)
                 },
-                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
+                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
             };
-        #[allow(clippy::min_ident_chars, reason = "t:T, r: R")]
+        #[expect(clippy::min_ident_chars, reason = "t:T, r: R")]
         let anschluss_kombiniert = match (t, r) {
             (Some(t), Some(r)) => Some(kombiniere(t, r)),
             (None, Some(r)) => fehlerbehandlung(Either::Right(r)),
@@ -277,16 +277,16 @@ where
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         if let Some(serialisiert) = self {
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                #[allow(
+                #[expect(
                     clippy::shadow_unrelated,
                     reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf"
                 )]
                 Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
-                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
+                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     WertMitWarnungen { anschluss: Some(anschluss), fehler, anschlüsse }
                 },
-                #[allow(clippy::shadow_unrelated, reason = "related über reserviere()")]
+                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 Fehler { fehler, anschlüsse } => {
                     WertMitWarnungen { anschluss: None, fehler, anschlüsse }
                 },
@@ -424,7 +424,7 @@ macro_rules! tuple_arg_type {
 /// Implementiere [`Serialisiere`] und [`Reserviere`] für ein Tupel.
 macro_rules! impl_serialisiere_tuple {
     ($($name: ident : $type: ident - $serialisiert: ident),+) => {
-        #[allow(clippy::min_ident_chars, reason = "macro_rules interne Variablen")]
+        #[expect(clippy::min_ident_chars, reason = "macro_rules interne Variablen")]
         impl<A0, S0, $($type, $serialisiert),+> Serialisiere<(S0, $($serialisiert),+)> for (A0, $($type),+)
         where
             A0: Serialisiere<S0>,
@@ -453,7 +453,7 @@ macro_rules! impl_serialisiere_tuple {
             }
         }
 
-        #[allow(clippy::min_ident_chars, reason = "macro_rules interne Variablen")]
+        #[expect(clippy::min_ident_chars, reason = "macro_rules interne Variablen")]
         impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
         where
             A0: Serialisiere<S0>,
@@ -463,11 +463,11 @@ macro_rules! impl_serialisiere_tuple {
                 $serialisiert: Reserviere<$type> + ,
             )+
         {
-            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+            #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type MoveArg = tuple_arg_type!(MoveArg: A0 - S0, $($type - $serialisiert),+);
-            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+            #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type RefArg = tuple_arg_type!(RefArg: A0 - S0, $($type - $serialisiert),+);
-            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+            #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type MutRefArg = tuple_arg_type!(MutRefArg: A0 - S0, $($type - $serialisiert),+);
             fn reserviere(
                 self,
@@ -488,7 +488,7 @@ macro_rules! impl_serialisiere_tuple {
                     move_tail_tuple,
                     ref_tail_tuple,
                     mut_ref_tail_tuple,
-                    #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+                    #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
                     |a0, ($($name),+)| (a0, $($name),+),
                     |_| None,
                 )

@@ -15,7 +15,7 @@ impl Skalar {
     /// Doppelter Wert.
     #[must_use]
     pub fn doppelt(&self) -> Self {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -27,7 +27,7 @@ impl Skalar {
     /// Halber Wert.
     #[must_use]
     pub fn halbiert(&self) -> Self {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -76,7 +76,7 @@ impl AddAssign<&Self> for Skalar {
 
 impl AddAssign<&mut Self> for Skalar {
     fn add_assign(&mut self, rhs: &mut Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -88,7 +88,7 @@ impl AddAssign<&mut Self> for Skalar {
 
 impl AddAssign<Self> for Skalar {
     fn add_assign(&mut self, rhs: Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -105,7 +105,7 @@ where
     type Output = Self;
 
     fn add(mut self, rhs: T) -> Self::Output {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -137,11 +137,11 @@ impl Neg for Skalar {
 
 impl SubAssign<Self> for Skalar {
     fn sub_assign(&mut self, rhs: Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
-        #[allow(
+        #[expect(
             clippy::suspicious_op_assign_impl,
             reason = "Der Wert wird vor der Addition negiert."
         )]
@@ -153,7 +153,7 @@ impl SubAssign<Self> for Skalar {
 
 impl SubAssign<&Self> for Skalar {
     fn sub_assign(&mut self, rhs: &Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -165,7 +165,7 @@ impl SubAssign<&Self> for Skalar {
 
 impl SubAssign<&mut Self> for Skalar {
     fn sub_assign(&mut self, rhs: &mut Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -182,7 +182,7 @@ where
     type Output = Self;
 
     fn sub(mut self, rhs: T) -> Self::Output {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
         )]
@@ -202,7 +202,7 @@ impl MulAssign<&Self> for Skalar {
 
 impl MulAssign<&mut Self> for Skalar {
     fn mul_assign(&mut self, rhs: &mut Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -214,7 +214,7 @@ impl MulAssign<&mut Self> for Skalar {
 
 impl MulAssign<Self> for Skalar {
     fn mul_assign(&mut self, rhs: Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -231,7 +231,7 @@ where
     type Output = Self;
 
     fn mul(mut self, rhs: T) -> Self::Output {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -254,7 +254,7 @@ impl Skalar {
 // Inverses Element (via division)
 impl DivAssign<&Self> for Skalar {
     fn div_assign(&mut self, rhs: &Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -266,7 +266,7 @@ impl DivAssign<&Self> for Skalar {
 
 impl DivAssign<&mut Self> for Skalar {
     fn div_assign(&mut self, rhs: &mut Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -278,7 +278,7 @@ impl DivAssign<&mut Self> for Skalar {
 
 impl DivAssign<Self> for Skalar {
     fn div_assign(&mut self, rhs: Self) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]
@@ -295,7 +295,7 @@ where
     type Output = Self;
 
     fn div(mut self, rhs: T) -> Self::Output {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
         )]

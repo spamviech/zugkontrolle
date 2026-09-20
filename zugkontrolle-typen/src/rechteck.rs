@@ -5,7 +5,7 @@ use rstar::primitives::Rectangle;
 use crate::{vektor::Vektor, winkel::Winkel};
 
 /// Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
-#[allow(missing_copy_implementations)]
+#[expect(missing_copy_implementations)]
 #[derive(Debug, Clone)]
 pub struct Rechteck {
     /// Eine Ecke des Rechtecks.
@@ -32,7 +32,7 @@ impl Rechteck {
     /// Verschiebe das Rechteck um [`Vektor`].
     #[zugkontrolle_macros::chain]
     pub fn verschiebe(&mut self, bewegung: &Vektor) {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -83,7 +83,7 @@ impl Rechteck {
     /// Größe des Rechtecks.
     #[must_use]
     pub fn größe(&self) -> Vektor {
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]

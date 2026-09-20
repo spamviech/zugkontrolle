@@ -198,7 +198,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             Position {
                 punkt: Vektor {
                     x: self.länge.halbiert(),
-                    #[allow(
+                    #[expect(
                         clippy::arithmetic_side_effects,
                         reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                     )]
@@ -234,12 +234,12 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         }
         let start = Vektor { x: Skalar(0.), y: start_height };
         // sub-checks
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         let mut relative_vector = relative_position - start;
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -265,7 +265,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             },
         }
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
-        #[allow(
+        #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
@@ -273,7 +273,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },
             gerade: Verbindung {
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
@@ -281,7 +281,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 richtung: winkel::ZERO,
             },
             kurve: Verbindung {
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
@@ -290,7 +290,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                         x: self.winkel.sin() * self.radius,
                         y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
                     },
-                #[allow(
+                #[expect(
                     clippy::arithmetic_side_effects,
                     reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
                 )]
@@ -329,7 +329,7 @@ where
     ]
 }
 
-#[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
+#[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
 /// Erhalte die Pfade für den Hintergrund einer [`Weiche`].
 fn fülle<P, A>(
     spurweite: Spurweite,

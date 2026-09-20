@@ -47,7 +47,7 @@ pub(crate) fn impl_from(item: ItemEnum) -> TokenStream {
         };
         let ty = quote!((#(#types),*));
         impls.push(quote!(
-            #[allow(unused_qualifications)]
+            #[expect(unused_qualifications)]
             impl #item_generics From<#ty> for #item_ident #item_ty_generics {
                 fn from((#(#idents),*): #ty) -> Self {
                     Self::#var_ident #arg_teil

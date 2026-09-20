@@ -176,7 +176,7 @@ where
         )
     }
 
-    #[allow(
+    #[expect(
         clippy::too_many_arguments,
         reason = "Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?"
     )]
@@ -360,7 +360,7 @@ enum ZeigeModus {
     Pcf8574,
 }
 
-#[allow(single_use_lifetimes, reason = "anonymous lifetimes in `impl Trait` are unstable")]
+#[expect(single_use_lifetimes, reason = "anonymous lifetimes in `impl Trait` are unstable")]
 /// Erstelle einen [`Radio`] für alle `elemente` und füge sie zu einem [`Column`] hinzu.
 pub(crate) fn make_radios<'a, 'b, T, M, Thema, R>(
     aktuell: &T,
@@ -406,7 +406,7 @@ where
     Sammlung: sammlung::StyleProvider<'a, Thema>,
     TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
-    #[allow(clippy::too_many_arguments, reason = "Alle Argumente werden benötigt.")]
+    #[expect(clippy::too_many_arguments, reason = "Alle Argumente werden benötigt.")]
     /// Erzeuge ein neues [`Auswahl`]-Widget.
     fn neu_mit_modus_view(
         zeige_modus: ZeigeModus,

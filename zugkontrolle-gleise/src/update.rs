@@ -88,7 +88,7 @@ where
         DreiwegeWeiche, Gerade, Kreuzung, Kurve, KurvenWeiche, SKurvenWeiche, Weiche,
     };
     match gleis_steuerung {
-        #[allow(clippy::shadow_unrelated, reason = "streckenabschnitt related über `map`")]
+        #[expect(clippy::shadow_unrelated, reason = "streckenabschnitt related über `map`")]
         Gerade(_, _) | Kurve(_, _) => streckenabschnitt.map(|streckenabschnitt| {
             let fließend = !streckenabschnitt.fließend();
             Nachricht::StreckenabschnittUmschalten(AktionStreckenabschnitt::Strom {
@@ -99,7 +99,7 @@ where
                 fließend,
             })
         }),
-        #[allow(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
+        #[expect(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
         Weiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::gerade::Richtung::{Gerade, Kurve};
             let richtung = match steuerung.richtung() {
@@ -111,7 +111,7 @@ where
                 richtung,
             }))
         }),
-        #[allow(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
+        #[expect(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
         KurvenWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::kurve::Richtung::{Außen, Innen};
             let richtung = match steuerung.richtung() {
@@ -123,7 +123,7 @@ where
                 richtung,
             }))
         }),
-        #[allow(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
+        #[expect(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
         DreiwegeWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::dreiwege::{
                 Richtung::{Gerade, Links, Rechts},
@@ -146,7 +146,7 @@ where
                 richtung,
             }))
         }),
-        #[allow(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
+        #[expect(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
         SKurvenWeiche(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::gerade::Richtung::{Gerade, Kurve};
             let richtung = match steuerung.richtung() {
@@ -158,7 +158,7 @@ where
                 richtung,
             }))
         }),
-        #[allow(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
+        #[expect(clippy::shadow_unrelated, reason = "steuerung related über `map`")]
         Kreuzung(_id, steuerung) => steuerung.as_ref().map(|steuerung| {
             use weiche::gerade::Richtung::{Gerade, Kurve};
             let richtung = match steuerung.richtung() {
@@ -340,7 +340,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         }
     }
 
-    #[allow(
+    #[expect(
         clippy::needless_pass_by_value,
         reason = "Event: Kopiere Signatur von [`Program::update`]."
     )]

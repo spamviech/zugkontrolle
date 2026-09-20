@@ -36,7 +36,7 @@ impl From<Farbe> for Color {
 }
 
 impl From<Color> for Farbe {
-    #[allow(clippy::min_ident_chars, reason = "third party interface")]
+    #[expect(clippy::min_ident_chars, reason = "third party interface")]
     fn from(Color { r, g, b, a: _ }: Color) -> Self {
         Farbe { rot: r, grün: g, blau: b }
     }

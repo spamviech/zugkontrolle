@@ -9,7 +9,7 @@ use syn::{
 };
 
 /// Markiere die generischen Typen mit `true`, die im `fields`-Iterator vorkommen.
-#[allow(single_use_lifetimes)]
+#[expect(single_use_lifetimes)]
 pub(crate) fn mark_fields_generic<'t, T>(
     fields: impl Iterator<Item = &'t Field>,
     generic_types: &mut HashMap<&Ident, (T, bool)>,
@@ -66,7 +66,7 @@ pub(crate) fn parse_attributes_fn(
     let intermediate: Vec<Punctuated<WherePredicate, Token!(,)>> = attrs
         .iter()
         .filter_map(|attr| {
-            #[allow(
+            #[expect(
                 clippy::indexing_slicing,
                 reason = "sichergestellt durch `segments.len() == 1`"
             )]

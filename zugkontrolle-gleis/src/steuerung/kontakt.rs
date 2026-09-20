@@ -59,7 +59,7 @@ pub struct Kontakt {
 /// Entferne den Anschluss aus dem Either und ersetzte ihn durch seine serialisierbare Repräsentation.
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
     let serialisiert = serialisiere_anschluss(either);
-    #[allow(clippy::absolute_paths, reason = "std::mem::replace soll offensichtlich sein.")]
+    #[expect(clippy::absolute_paths, reason = "std::mem::replace soll offensichtlich sein.")]
     std::mem::replace(either, Either::Right(serialisiert))
 }
 
@@ -134,7 +134,7 @@ impl Kontakt {
                     let mut next = aktuelle_senders.len().checked_sub(1);
                     while let Some(index) = next {
                         // 0 <= index < senders.len()
-                        #[allow(clippy::indexing_slicing, reason = "range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.")]
+                        #[expect(clippy::indexing_slicing, reason = "range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.")]
                         match aktuelle_senders[index].send(neues_level) {
                             Ok(()) => next = index.checked_sub(1),
                             Err(SendError(_level)) => {
@@ -204,7 +204,7 @@ impl MitName for Kontakt {
     }
 }
 
-#[allow(
+#[expect(
     clippy::module_name_repetitions,
     reason = "Folge der Konvention TypName->TypNameSerialisiert"
 )]
@@ -260,7 +260,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
-        #[allow(
+        #[expect(
             clippy::shadow_unrelated,
             reason = "anschlüsse ist die selbe Struktur nach ausführen von `reserviere`."
         )]
@@ -305,7 +305,7 @@ impl MitName for KontaktSerialisiert {
     }
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Wird nicht qualifiziert verwendet.")]
+#[expect(clippy::module_name_repetitions, reason = "Wird nicht qualifiziert verwendet.")]
 /// Trait für Typen mit einem [`Kontakt`].
 pub trait MitKontakt {
     /// Erhalte das aktuelle [Level] und den gewählten [`Trigger`].

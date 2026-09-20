@@ -99,7 +99,6 @@ impl Lager {
 
 /// Ein Anschluss.
 #[derive(Debug, zugkontrolle_macros::From)]
-#[allow(variant_size_differences)]
 pub enum Anschluss {
     /// Ein [`Pin`].
     Pin(Pin),
@@ -147,7 +146,6 @@ impl Anschluss {
 
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
-#[allow(variant_size_differences)]
 pub enum OutputAnschluss {
     /// Ein [`Pin`](output::Pin).
     Pin {
@@ -239,7 +237,7 @@ impl OutputAnschluss {
 }
 
 /// Serialisierbare Informationen eines [`OutputAnschlusses`](OutputAnschluss).
-#[allow(missing_copy_implementations, variant_size_differences)]
+#[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
     /// Ein [`Pin`](output::Pin).
@@ -388,7 +386,6 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
 
 /// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
-#[allow(variant_size_differences)]
 pub enum InputAnschluss {
     /// Ein [`Pin`](input::Pin).
     Pin(input::Pin),
@@ -432,7 +429,7 @@ macro_rules! match_method {
 impl InputAnschluss {
     match_method! {
         lese -> Level,
-        "Lese das aktuell am [InputAnschluss] anliegende [Level].",
+        "Lese das aktuell am [`InputAnschluss`] anliegende [`Level`].",
         "",
         "## Errors",
         "",
@@ -454,14 +451,13 @@ impl InputAnschluss {
         "Setzten des Interrupts schlug fehl.",
         "",
         "## Keine synchronen Interrupts",
-        "Obwohl rpi_pal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
+        "Obwohl [`rpi_pal`] prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
         "Siehe die Dokumentation der",
-        "[poll_interrupts](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)",
+        "[`poll_interrupts`](https://docs.rs/rpi_pal/0.22.3/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)",
         "Methode.",
-        "> Calling poll_interrupts blocks any other calls to poll_interrupts or",
-        "> InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously",
-        "> on different threads, consider using asynchronous interrupts with",
-        "> InputPin::set_async_interrupt instead.",
+        "> Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or [`InputPin::poll_interrupt`] until",
+        "> it returns. If you need to poll multiple pins simultaneously on different threads, consider using",
+        "> asynchronous interrupts with [`InputPin::set_async_interrupt`] instead.",
     }
 
     match_method! {
@@ -475,7 +471,7 @@ impl InputAnschluss {
 }
 
 /// Serialisierbare Informationen eines [`InputAnschlusses`](InputAnschluss).
-#[allow(missing_copy_implementations, variant_size_differences)]
+#[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
     /// Ein [`Pin`](input::Pin).
@@ -694,7 +690,6 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 
 /// Fehler, die beim reservieren eines [`Anschluss`]es auftreten können.
 #[derive(Debug, Error)]
-#[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     /// Ein Fehler beim reservieren eines [`Pin`]s.
     #[error(transparent)]

@@ -52,7 +52,7 @@ pub use rpi_pal::i2c::I2c;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s I2C peripheral.
 #[derive(Debug)]
-#[allow(missing_copy_implementations)]
+#[expect(missing_copy_implementations)]
 pub struct I2c {
     /// Der I2C-Bus.
     bus: u8,
@@ -127,7 +127,7 @@ impl I2c {
     }
 }
 
-#[allow(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
+#[expect(clippy::absolute_paths, reason = "disambiguate mit self::Result")]
 /// Result with `i2c::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -137,7 +137,7 @@ pub use rpi_pal::i2c::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the I2C peripheral.
 #[derive(Debug)]
-#[allow(variant_size_differences, missing_docs)]
+#[expect(variant_size_differences, missing_docs)]
 pub enum Error {
     Io(io::Error),
     InvalidSlaveAddress(u16),

@@ -28,10 +28,10 @@ pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Der initiale Zustand.
     initialer_zustand: Zustand,
     /// Erzeuge die Widget-Hierarchie.
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>>,
     /// Konvertiere eine interne Nachricht, potentiell unter Änderung des Zustands.
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     mapper: Box<dyn 'a + Fn(Intern, &mut Zustand) -> Vec<Extern>>,
 }
 

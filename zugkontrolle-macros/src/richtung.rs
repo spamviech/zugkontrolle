@@ -23,7 +23,7 @@ fn erzeuge_enum_definition(
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
         #vis enum Richtung {
             #(
-                #[allow(missing_docs)]
+                #[expect(missing_docs)]
                 #enum_variants
             ),*
         }
@@ -41,7 +41,7 @@ fn erzeuge_enum_definition(
                 )
             }
         }
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         impl crate::steuerung::weiche::MitRichtung<Richtung> for Richtung {
             fn aktuelle_richtung(&self) -> Option<Richtung> {
                 Some(*self)
@@ -74,7 +74,7 @@ fn erzeuge_enum_definition(
                 _mut_ref_arg: &mut Self::MutRefArg,
             ) -> #crate_ident::de_serialisieren::Ergebnis<RichtungAnschlüsse> {
                 let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
-                #[allow(unused_parens)]
+                #[expect(unused_parens)]
                 (#(#struct_fields),*)
                     .reserviere(lager, anschlüsse, #stacked_unit_tuple_args, &#stacked_unit_tuple_args, &mut #stacked_unit_tuple_args)
                     .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* })
