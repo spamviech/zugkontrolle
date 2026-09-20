@@ -13,7 +13,10 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     let mut arg_ident: Option<Ident> = None;
     let mut errors = Vec::new();
     let mut parse_acc = |current_acc: &mut TokenStream| {
-        #[allow(clippy::same_functions_in_if_condition, reason = "Unterschiedliche Funktion wegen unterschiedlichem Rückgabetyp.")]
+        #[allow(
+            clippy::same_functions_in_if_condition,
+            reason = "Unterschiedliche Funktion wegen unterschiedlichem Rückgabetyp."
+        )]
         if let Ok(vis) = parse2(current_acc.clone()) {
             if arg_vis.is_none() {
                 arg_vis = Some(vis);

@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_gleis::{kurve as v4, steuerung::kontakt::KontaktSerialisiert};
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
-#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameSerialisiert")]
+#[allow(
+    clippy::module_name_repetitions,
+    reason = "Folge Konvention TypName -> TypNameSerialisiert"
+)]
 /// Definition einer Kurve.
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!

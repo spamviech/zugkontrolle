@@ -131,12 +131,21 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let radius_außen = spurweite.radius_begrenzung_außen(radius);
         let radius_innen = spurweite.radius_begrenzung_innen(radius);
         let winkel_sin = winkel.sin();
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let eins_minus_winkel_cos = Skalar(1.) - winkel.cos();
         let verschieben = Vektor {
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             x: (winkel_sin * radius_außen).min(&(winkel_sin * radius_innen)),
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             y: (eins_minus_winkel_cos * radius_außen).min(&(eins_minus_winkel_cos * radius_innen)),
         };
         let rechteck_kurve_reverse_verschoben = rechteck_kurve_reverse
@@ -151,19 +160,31 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         // utility sizes
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformationen = |multiplier: Skalar| {
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let winkel = multiplier.0 * self.winkel;
             vec![
                 Transformation::Translation(Vektor {
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     x: multiplier * radius_begrenzung_außen * winkel.sin(),
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     y: multiplier * radius_begrenzung_außen * (Skalar(1.) - winkel.cos()),
                 }),
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     y: multiplier * spurweite.beschränkung(),
                 }),
             ]
@@ -206,22 +227,37 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         spurweite: Spurweite,
     ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformationen = |multiplier: Skalar| {
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let winkel = multiplier.0 * self.winkel;
             vec![
                 Transformation::Translation(Vektor {
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     x: multiplier * radius_begrenzung_außen * winkel.sin(),
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     y: multiplier * radius_begrenzung_außen * (Skalar(1.) - winkel.cos()),
                 }),
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
                     x: Skalar(0.),
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     y: multiplier * spurweite.beschränkung(),
                 }),
             ]
@@ -289,7 +325,10 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             Position {
                 punkt: Vektor {
                     x: self.länge.halbiert(),
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     y: start_height + multiplier * spurweite.beschränkung().halbiert(),
                 },
                 winkel: Winkel(0.),
@@ -322,24 +361,45 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         }
         let start_vector = Vektor { x: Skalar(0.), y: start_height };
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let multiplied_winkel = multiplier.0 * self.winkel;
         let s_kurve_start_vector = Vektor {
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             x: multiplier * radius_begrenzung_außen * multiplied_winkel.sin(),
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             y: radius_begrenzung_außen * (Skalar(1.) - multiplied_winkel.cos()),
         };
         // sub-checks
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let mut relative_vector = relative_position - start_vector;
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         {
             relative_vector.y *= multiplier;
         }
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(&(-self.winkel));
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         {
             s_kurve_vector -= Vektor { x: Skalar(0.), y: spurweite.beschränkung() };
             s_kurve_vector.y = -s_kurve_vector.y;
@@ -374,22 +434,34 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 multiplier = Skalar(-1.);
             },
         }
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let angle_difference = self.winkel - self.winkel_kurve_nach_innen;
         let anfang = Vektor {
             x: Skalar(0.),
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             y: start_height + multiplier * spurweite.beschränkung().halbiert(),
         };
         Verbindungen {
             anfang: Verbindung { position: anfang, richtung: winkel::PI },
             gerade: Verbindung {
-                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                #[allow(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
                 richtung: winkel::ZERO,
             },
             kurve: Verbindung {
-                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                #[allow(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 position: anfang
                     + Vektor {
                         x: self.radius * self.winkel.sin()
@@ -400,7 +472,10 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                                 + self.radius_kurve_nach_innen
                                     * (angle_difference.cos() - self.winkel.cos())),
                     },
-                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                #[allow(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 richtung: multiplier.0 * angle_difference,
             },
         }

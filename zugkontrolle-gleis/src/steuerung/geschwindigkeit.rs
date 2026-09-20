@@ -357,7 +357,10 @@ impl<L: Leiter> Geschwindigkeit<L> {
     }
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert")]
+#[allow(
+    clippy::module_name_repetitions,
+    reason = "Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert"
+)]
 /// Serialisierbare Repräsentation einer [`Geschwindigkeit`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
@@ -626,7 +629,10 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[allow(clippy::shadow_unrelated, reason = "Selber wert zu einem späteren Zeitpunkt")]
+                    #[allow(
+                        clippy::shadow_unrelated,
+                        reason = "Selber wert zu einem späteren Zeitpunkt"
+                    )]
                     |geschwindigkeit, umdrehen| Mittelleiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1282,7 +1288,10 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[allow(clippy::shadow_unrelated, reason = "Gleiche Werte zu einem späteren Zeitpunkt.")]
+                    #[allow(
+                        clippy::shadow_unrelated,
+                        reason = "Gleiche Werte zu einem späteren Zeitpunkt."
+                    )]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::Pwm {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1301,7 +1310,10 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[allow(clippy::shadow_unrelated, reason = "Gleiche Werte zu einem späteren Zeitpunkt.")]
+                    #[allow(
+                        clippy::shadow_unrelated,
+                        reason = "Gleiche Werte zu einem späteren Zeitpunkt."
+                    )]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,

@@ -19,7 +19,10 @@ use crate::daten::{
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<Richtung, RichtungAnschlüsseSerialisiert>;
 
-#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameSerialisiert")]
+#[allow(
+    clippy::module_name_repetitions,
+    reason = "Folge Konvention TypName -> TypNameSerialisiert"
+)]
 /// Definition einer Kreuzung.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KreuzungSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert>> {

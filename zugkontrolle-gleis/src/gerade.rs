@@ -140,7 +140,10 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         &self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite
     ) -> Self::Verbindungen {
         let gleis_links = Skalar(0.);
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let gleis_rechts = gleis_links + self.länge;
         let beschränkung_mitte = spurweite.beschränkung().halbiert();
         Verbindungen {
@@ -197,14 +200,26 @@ fn zeichne_intern<P, A>(
 {
     // Koordinaten
     let gleis_links = Skalar(0.);
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let beschränkung_unten = beschränkung_oben + spurweite.beschränkung();
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_oben = beschränkung_oben + spurweite.abstand();
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Beschränkungen
     if beschränkungen {
@@ -254,9 +269,15 @@ fn zeichne_kontakt_intern<P, A>(
     // Koordinaten
     let gleis_links = Skalar(0.);
     let beschränkung_oben = Skalar(0.);
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
     // Kontakt
     erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
@@ -293,12 +314,21 @@ where
 {
     // Koordinaten
     let gleis_links = Skalar(0.);
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_oben = beschränkung_oben + spurweite.abstand();
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Zeichne Umriss
     erbauer.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
@@ -350,9 +380,15 @@ where
     // Koordinaten
     let gleis_links = Skalar(0.);
     let beschränkung_oben = Skalar(0.);
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
     // Kontakt
     erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
@@ -372,7 +408,10 @@ pub(crate) fn innerhalb(
     relative_position: Vektor,
     ungenauigkeit: Skalar,
 ) -> Innerhalb {
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     if (relative_position.x >= Skalar(0.))
         && (relative_position.x <= länge)
         && (relative_position.y >= spurweite.abstand())

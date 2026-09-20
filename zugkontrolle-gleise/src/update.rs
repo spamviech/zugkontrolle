@@ -340,7 +340,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         }
     }
 
-    #[allow(clippy::needless_pass_by_value, reason = "Event: Kopiere Signatur von [`Program::update`].")]
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "Event: Kopiere Signatur von [`Program::update`]."
+    )]
     /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`]
     pub(crate) fn update_impl<Thema>(
         &self,

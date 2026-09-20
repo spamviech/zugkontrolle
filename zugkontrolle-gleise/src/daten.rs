@@ -441,7 +441,10 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_>> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
             self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
-        #[allow(clippy::shadow_unrelated, reason = "streckenabschnitt_id, geschwindigkeit_id related über `and_then`")]
+        #[allow(
+            clippy::shadow_unrelated,
+            reason = "streckenabschnitt_id, geschwindigkeit_id related über `and_then`"
+        )]
         let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_name| {
             self.streckenabschnitte
                 .get(&streckenabschnitt_name)
@@ -530,7 +533,10 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 ) -> (Vec<Verbindung>, bool) {
     let vektor_genauigkeit =
         Vektor { x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT, y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT };
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+    )]
     let kandidaten_rechteck = Rechteck {
         ecke_a: verbindung.position + vektor_genauigkeit,
         ecke_b: verbindung.position - vektor_genauigkeit,
@@ -581,7 +587,10 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         .flatten()
         .unwrap_or((Vec::new(), false));
         for kandidat_verbindung in kandidat_verbindungen {
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             if (verbindung.position - kandidat_verbindung.position).länge()
                 < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
             {
@@ -1136,7 +1145,10 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
     let (überlappende, andere_gehalten) =
         überlappende_verbindungen(rstern, zugtyp, &verbindung, Some(gleis_id), &ist_gehalten);
     let andere = !überlappende.is_empty();
-    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+    )]
     let ist_entgegengesetzt = |überlappend: Verbindung| {
         (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs() < Winkel(0.1)
     };
@@ -1162,7 +1174,10 @@ fn zeichne_verbindungen<T, L: Leiter>(
 {
     // zeichne Verbindungen
     definition.verbindungen(steuerung, zugtyp.spurweite).für_alle(|_name, &verbindung| {
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+        )]
         let verbindung_an_position = Verbindung {
             position: position.transformation(verbindung.position),
             richtung: position.winkel + verbindung.richtung,
@@ -1181,15 +1196,27 @@ fn zeichne_verbindungen<T, L: Leiter>(
             let grün = if andere_entgegengesetzt { 1. } else { 0. };
             let color = Color { r: 0., g: grün, b: 1. - grün, a: alpha };
             let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             let richtung_seite = Skalar(0.5) * richtung.rotiert(&winkel::FRAC_PI_2);
             let verbindung_position = verbindung.position;
             let mut path_builder = pfad::Erbauer::neu();
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             path_builder.move_to(verbindung_position + richtung_seite);
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             path_builder.line_to(verbindung_position + richtung);
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             path_builder.line_to(verbindung_position - richtung_seite);
             let path = path_builder.baue();
             frame.stroke(
@@ -1240,7 +1267,10 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
                 color: Color { a: alpha, ..Color::from(farbe) },
                 ..thema.standard_text()
             };
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             {
                 text.size = text.size * skalieren.0;
             }
@@ -1477,9 +1507,15 @@ impl GleiseDaten {
         let mut ergebnis = None;
         for geom_with_data in self.rstern.locate_all_at_point(canvas_pos) {
             let (gleis_definition_id, position) = &geom_with_data.data;
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let relative_pos = canvas_pos - position.punkt;
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let rotated_pos = relative_pos.rotiert(&(-position.winkel));
             /// Hilfs-Makro für [`mit_any_id`].
             macro_rules! gleis_an_position_aux {

@@ -31,7 +31,10 @@ impl From<RichtungInformation> for v4::RichtungInformation {
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
-#[allow(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameSerialisiert")]
+#[allow(
+    clippy::module_name_repetitions,
+    reason = "Folge Konvention TypName -> TypNameSerialisiert"
+)]
 /// Definition einer Dreiwege-Weiche.
 ///
 /// Bei extremen Winkeln (`<0°`, `>180°`) wird in negativen x-Werten gezeichnet!

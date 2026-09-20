@@ -51,7 +51,10 @@ pub enum WeichenId {
     Kreuzung(GleisId<Kreuzung>),
 }
 
-#[allow(clippy::absolute_paths, reason = "Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)")] // Notwendig, da `weiche` bereits in scope ist.
+#[allow(
+    clippy::absolute_paths,
+    reason = "Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)"
+)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`Weiche`], [`SKurvenWeiche`] oder [`Kreuzung`].
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::gerade::Richtung,

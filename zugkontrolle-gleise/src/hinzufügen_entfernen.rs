@@ -61,9 +61,15 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let punkt = self.letzte_maus_position - halte_position;
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let winkel = -self.pivot.winkel;
         let gleis_id = self.hinzufügen(
             definition_steuerung.clone(),
@@ -139,7 +145,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             && let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
                 gehalten.get_mut(klick_quelle)
         {
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let punkt = canvas_pos - halte_position;
             let id = gleis_steuerung.id();
             self.zustand.bewegen(id, Position { punkt, winkel: *winkel }, true)?;

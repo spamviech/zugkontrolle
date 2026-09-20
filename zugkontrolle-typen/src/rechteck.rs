@@ -32,7 +32,10 @@ impl Rechteck {
     /// Verschiebe das Rechteck um [`Vektor`].
     #[zugkontrolle_macros::chain]
     pub fn verschiebe(&mut self, bewegung: &Vektor) {
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         {
             self.ecke_a += bewegung;
             self.ecke_b += bewegung;
@@ -80,7 +83,10 @@ impl Rechteck {
     /// Größe des Rechtecks.
     #[must_use]
     pub fn größe(&self) -> Vektor {
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         Vektor {
             x: (self.ecke_a.x - self.ecke_b.x).abs(),
             y: (self.ecke_a.y - self.ecke_b.y).abs(),

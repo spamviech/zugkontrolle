@@ -84,9 +84,15 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
         Knopf<'t, T>: Program<Nachricht, Thema, Renderer>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let standard_breite = (STROKE_WIDTH + größe.x).0;
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let höhe = (DOUBLE_PADDING_BORDER_WIDTH + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
         let canvas: Canvas<_, Nachricht, Thema, Renderer> = Canvas::new(self)
@@ -146,18 +152,27 @@ where
             let rechteck = self.gleis.rechteck(&(), spurweite);
             let rechteck_position = rechteck.position();
             frame.transformation(&Transformation::Translation(
-                #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                #[allow(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 {
                     -rechteck_position
                 },
             ));
             let größe = rechteck.größe();
-            #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+            #[allow(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let maximale_breite = bounds_vector.x - DOUBLE_PADDING_BORDER_WIDTH;
             if maximale_breite > größe.x {
                 // horizontal zentrieren
                 frame.transformation(&Transformation::Translation(
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     {
                         Skalar(0.5) * (bounds_vector - größe)
                     },
@@ -165,13 +180,19 @@ where
             } else {
                 // skaliere zu vorhandener Breite
                 frame.transformation(&Transformation::Skalieren(
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     {
                         maximale_breite / größe.x
                     },
                 ));
                 frame.transformation(&Transformation::Translation(
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     {
                         Skalar(0.5)
                             * Vektor {

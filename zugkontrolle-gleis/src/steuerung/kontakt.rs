@@ -204,7 +204,10 @@ impl MitName for Kontakt {
     }
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Folge der Konvention TypName->TypNameSerialisiert")]
+#[allow(
+    clippy::module_name_repetitions,
+    reason = "Folge der Konvention TypName->TypNameSerialisiert"
+)]
 /// Serialisierbare Variante eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
@@ -257,7 +260,10 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
-        #[allow(clippy::shadow_unrelated, reason = "anschlüsse ist die selbe Struktur nach ausführen von `reserviere`.")]
+        #[allow(
+            clippy::shadow_unrelated,
+            reason = "anschlüsse ist die selbe Struktur nach ausführen von `reserviere`."
+        )]
         let (mut anschluss, fehler, mut anschlüsse) =
             match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),

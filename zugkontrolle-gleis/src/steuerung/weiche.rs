@@ -296,7 +296,10 @@ where
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
-        #[allow(clippy::shadow_unrelated, reason = "Selber Wert `anschlüsse`, als Ergebnis von `reserviere`.")]
+        #[allow(
+            clippy::shadow_unrelated,
+            reason = "Selber Wert `anschlüsse`, als Ergebnis von `reserviere`."
+        )]
         anschlüsse
             .reserviere(lager, bekannte_anschlüsse, (), ref_arg, mut_ref_arg)
             .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, sender))

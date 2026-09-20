@@ -270,7 +270,10 @@ where
     }
 }
 
-#[allow(clippy::module_name_repetitions, reason = "Verwende Konvention TypName->TypNameSerialisiert")]
+#[allow(
+    clippy::module_name_repetitions,
+    reason = "Verwende Konvention TypName->TypNameSerialisiert"
+)]
 /// Serialisierbare Repräsentation eines Fahrplans.
 pub type PlanSerialisiert<L, S> = PlanEnum<AktionSerialisiert<L, S>>;
 

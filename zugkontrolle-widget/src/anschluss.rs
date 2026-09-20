@@ -176,7 +176,10 @@ where
         )
     }
 
-    #[allow(clippy::too_many_arguments, reason = "Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?")]
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?"
+    )]
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     fn neu_input_aux(
         active_tab: TabId,

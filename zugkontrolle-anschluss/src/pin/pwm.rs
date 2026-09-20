@@ -134,7 +134,10 @@ impl Pin {
                 // konfiguration.zeit wird hier kopiert, ein verändern ist demnach kein Problem
                 let Zeit { frequenz, mut betriebszyklus } = konfiguration.zeit;
                 if konfiguration.polarität == Polarität::Invertiert {
-                    #[allow(clippy::arithmetic_side_effects, reason = "NullBisEins hat eine saturating Add-Implementierung")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "NullBisEins hat eine saturating Add-Implementierung"
+                    )]
                     {
                         betriebszyklus = NullBisEins::MAX - betriebszyklus;
                     }

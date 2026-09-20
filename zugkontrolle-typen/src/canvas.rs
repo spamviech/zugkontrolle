@@ -158,7 +158,10 @@ impl Cache {
                 transformierter_frame.transformation(&Transformation::Skalieren(skalieren));
                 transformierter_frame.transformation(&Transformation::Rotation(pivot.winkel));
                 transformierter_frame.transformation(&Transformation::Translation(
-                    #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
+                    #[allow(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+                    )]
                     {
                         -pivot.punkt
                     },
@@ -206,7 +209,10 @@ impl Position {
     /// Vektor nachdem das Objekt an die Position bewegt und um den Winkel gedreht wurde.
     #[must_use]
     pub fn transformation(&self, anchor: Vektor) -> Vektor {
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             self.punkt + anchor.rotiert(&self.winkel)
         }
@@ -233,9 +239,15 @@ impl Position {
     {
         let verbindungen = definition.verbindungen(z, spurweite);
         let verbindung = verbindungen.erhalte(verbindung_name);
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
-        #[allow(clippy::arithmetic_side_effects, reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.")]
+        #[allow(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         Position {
             punkt: Vektor {
                 x: ziel_verbindung.position.x - verbindung.position.x * winkel.cos()

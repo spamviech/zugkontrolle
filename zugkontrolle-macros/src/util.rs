@@ -66,7 +66,10 @@ pub(crate) fn parse_attributes_fn(
     let intermediate: Vec<Punctuated<WherePredicate, Token!(,)>> = attrs
         .iter()
         .filter_map(|attr| {
-            #[allow(clippy::indexing_slicing, reason = "sichergestellt durch `segments.len() == 1`")]
+            #[allow(
+                clippy::indexing_slicing,
+                reason = "sichergestellt durch `segments.len() == 1`"
+            )]
             match attr {
                 Attribute {
                     meta: Meta::List(MetaList { path: Path { segments, .. }, tokens, .. }),
