@@ -209,16 +209,10 @@ impl<T> Ergebnis<T> {
         #[expect(clippy::min_ident_chars, reason = "r: R")]
         let (r, fehler_r, anschlüsse) =
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                #[expect(
-                    clippy::shadow_unrelated,
-                    reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf"
-                )]
                 Wert { anschluss, anschlüsse } => (Some(anschluss), None, anschlüsse),
-                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     (Some(anschluss), Some(fehler), anschlüsse)
                 },
-                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 Fehler { fehler, anschlüsse } => (None, Some(fehler), anschlüsse),
             };
         #[expect(clippy::min_ident_chars, reason = "t:T, r: R")]
@@ -277,16 +271,10 @@ where
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         if let Some(serialisiert) = self {
             match serialisiert.reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg) {
-                #[expect(
-                    clippy::shadow_unrelated,
-                    reason = "false positive, anschlüsse transformiert durch den Funktionsaufruf"
-                )]
                 Wert { anschluss, anschlüsse } => Wert { anschluss: Some(anschluss), anschlüsse },
-                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 WertMitWarnungen { anschluss, fehler, anschlüsse } => {
                     WertMitWarnungen { anschluss: Some(anschluss), fehler, anschlüsse }
                 },
-                #[expect(clippy::shadow_unrelated, reason = "related über reserviere()")]
                 Fehler { fehler, anschlüsse } => {
                     WertMitWarnungen { anschluss: None, fehler, anschlüsse }
                 },
@@ -463,11 +451,11 @@ macro_rules! impl_serialisiere_tuple {
                 $serialisiert: Reserviere<$type> + ,
             )+
         {
-            #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type MoveArg = tuple_arg_type!(MoveArg: A0 - S0, $($type - $serialisiert),+);
-            #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type RefArg = tuple_arg_type!(RefArg: A0 - S0, $($type - $serialisiert),+);
-            #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+            #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
             type MutRefArg = tuple_arg_type!(MutRefArg: A0 - S0, $($type - $serialisiert),+);
             fn reserviere(
                 self,
@@ -488,7 +476,7 @@ macro_rules! impl_serialisiere_tuple {
                     move_tail_tuple,
                     ref_tail_tuple,
                     mut_ref_tail_tuple,
-                    #[expect(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
+                    #[allow(unused_parens, reason = "macro mit nur einem Argument aufgerufen")]
                     |a0, ($($name),+)| (a0, $($name),+),
                     |_| None,
                 )

@@ -81,7 +81,6 @@ fn i2c_settings() {
     lager.reserviere_erwarte_deaktiviert(llln_beschreibung, port0, "1. Aufruf von llln.");
 }
 
-#[expect(clippy::multiple_inherent_impl, reason = "nur für Tests")]
 impl Lager {
     fn reserviere_erwarte_erfolg(
         &mut self,
@@ -90,8 +89,8 @@ impl Lager {
         assert_nachricht: &str,
     ) -> Port {
         let llln = self.reserviere_pcf8574_port(beschreibung, port).expect(assert_nachricht);
-        assert_eq!(llln.beschreibung(), &beschreibung, "{assert_nachricht}",);
-        assert_eq!(llln.port(), port, "{assert_nachricht}",);
+        assert_eq!(llln.beschreibung(), &beschreibung, "{assert_nachricht}");
+        assert_eq!(llln.port(), port, "{assert_nachricht}");
         llln
     }
 
@@ -101,7 +100,7 @@ impl Lager {
         port: kleiner_8,
         assert_nachricht: &str,
     ) {
-        assert!(self.in_verwendung_eq(beschreibung, port), "{assert_nachricht}",);
+        assert!(self.in_verwendung_eq(beschreibung, port), "{assert_nachricht}");
     }
 
     fn in_verwendung_eq(&mut self, beschreibung: Beschreibung, port: kleiner_8) -> bool {
@@ -118,7 +117,7 @@ impl Lager {
         port: kleiner_8,
         assert_nachricht: &str,
     ) {
-        assert!(self.deaktiviert_eq(beschreibung, port), "{assert_nachricht}",);
+        assert!(self.deaktiviert_eq(beschreibung, port), "{assert_nachricht}");
     }
 
     fn deaktiviert_eq(&mut self, beschreibung: Beschreibung, port: kleiner_8) -> bool {

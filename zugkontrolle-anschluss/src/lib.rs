@@ -146,6 +146,10 @@ impl Anschluss {
 
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
+#[cfg_attr(
+    not(feature = "raspi"),
+    expect(variant_size_differences, reason = "Betrifft nur Mock-Implementierung.")
+)]
 pub enum OutputAnschluss {
     /// Ein [`Pin`](output::Pin).
     Pin {

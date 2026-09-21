@@ -14,7 +14,6 @@ use crate::{
 };
 
 /// Hard- oder Software-erzeugtes Pwm-Signal. Erlaubt exklusive Steuerung der zugehörigen Pins.
-#[expect(variant_size_differences)]
 #[derive(Debug)]
 pub(in crate::pin) enum Pwm {
     /// Hardware-Pwm.
@@ -190,8 +189,7 @@ pub enum Fehler {
 }
 
 /// Serialisierbare Informationen einen Pwm-Pins.
-#[expect(missing_copy_implementations)]
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
 
 impl Serialisiere<Serialisiert> for Pin {
