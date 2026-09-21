@@ -8,6 +8,7 @@
 
 use std::{
     any::TypeId,
+    convert::identity,
     fmt::{self, Display, Formatter},
 };
 
@@ -420,10 +421,22 @@ macro_rules! match_method {
         $method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty
         $(, $($docstring: expr),+ $(,)?)?
     ) => {
+        match_method! {$method;identity;$(($($arg : $arg_ty),+))? -> () $(, $($docstring),+)?}
+    };
+    (
+        $method:ident; pin_wrapper:expr$(($($arg:ident : $arg_ty: ty),+))?
+        $(, $($docstring: expr),+ $(,)?)?
+    ) => {
+        match_method! {$method; pin_wrapper;$(($($arg : $arg_ty),+))? -> () $(, $($docstring),+)?}
+    };
+    (
+        $method:ident;$pin_wrapper:expr; $(($($arg:ident : $arg_ty: ty),+))? -> $result:ty
+        $(, $($docstring: expr),+ $(,)?)?
+    ) => {
         $($(#[doc = $docstring])+)?
         pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Fehler> {
             Ok(match self {
-                InputAnschluss::Pin(pin) => pin.$method($($($arg),+)?)?,
+                InputAnschluss::Pin(pin) => $pin_wrapper(pin.$method($($($arg),+)?))?,
                 InputAnschluss::Pcf8574Port(port) => port.$method($($($arg),+)?)?,
             })
         }
@@ -432,7 +445,7 @@ macro_rules! match_method {
 
 impl InputAnschluss {
     match_method! {
-        lese -> Level,
+        lese; Result::<Level, Fehler>::Ok; -> Level,
         "Lese das aktuell am [`InputAnschluss`] anliegende [`Level`].",
         "",
         "## Errors",

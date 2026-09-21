@@ -5,6 +5,7 @@
 - Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.
 - Zeige bei Geschwindigkeitsauswahl immer die Widgets für eine neue Geschwindigkeit an.
 - Aktualisiere dependencies und rust edition auf 2024.
+- `input::Pin::lese` gibt direkt `Level` zurück.
 
 ## 5.0.0
 

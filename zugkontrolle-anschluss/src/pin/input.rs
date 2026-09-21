@@ -17,11 +17,9 @@ impl Pin {
         self.0.pin()
     }
 
-    // FIXME Unnötiges Result<_, Fehler> entfernen. Lesen ist immer erfolgreich!
     /// Lese das aktuell am [Pin] anliegende [`Level`].
-    #[expect(clippy::missing_errors_doc)]
-    pub fn lese(&mut self) -> Result<Level, Fehler> {
-        Ok(self.0.read().into())
+    pub fn lese(&mut self) -> Level {
+        self.0.read().into()
     }
 
     /// Konfiguriere einen asynchronen Interrupt Trigger.
