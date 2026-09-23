@@ -1,9 +1,16 @@
 //! Low level Steuerung von Pwm Signalen.
 
-// Mit raspi-feature wird das rpi_pal-crate verwendet.
-#![cfg_attr(feature = "raspi", allow(clippy::pub_use))]
-// Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate.
-#![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
+#![cfg_attr(
+    feature = "raspi",
+    expect(clippy::pub_use, reason = "Mit raspi-feature wird das rpi_pal-crate verwendet.")
+)]
+#![cfg_attr(
+    not(feature = "raspi"),
+    allow(
+        clippy::missing_errors_doc,
+        reason = "Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate."
+    )
+)]
 
 #[cfg(not(feature = "raspi"))]
 use std::{
@@ -28,6 +35,10 @@ struct PwmStore {
     pwm0: Option<Pwm>,
     /// Pwm-Kanal 1.
     pwm1: Option<Pwm>,
+    /// Pwm-Kanal 2.
+    pwm2: Option<Pwm>,
+    /// Pwm-Kanal 3.
+    pwm3: Option<Pwm>,
 }
 
 #[cfg(not(feature = "raspi"))]
@@ -35,6 +46,8 @@ struct PwmStore {
 static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
     pwm0: Some(Pwm::init(Channel::Pwm0)),
     pwm1: Some(Pwm::init(Channel::Pwm1)),
+    pwm2: Some(Pwm::init(Channel::Pwm2)),
+    pwm3: Some(Pwm::init(Channel::Pwm3)),
 });
 
 #[cfg(not(feature = "raspi"))]
@@ -50,10 +63,12 @@ impl PwmStore {
     ///
     /// Der Aufruf blockiert, bis der Zugriff erhalten wurde.
     fn write_channel(&mut self, channel: Channel) -> &mut Option<Pwm> {
-        let PwmStore { pwm0, pwm1 } = self;
+        let PwmStore { pwm0, pwm1, pwm2, pwm3 } = self;
         match channel {
             Channel::Pwm0 => pwm0,
             Channel::Pwm1 => pwm1,
+            Channel::Pwm2 => pwm2,
+            Channel::Pwm3 => pwm3,
         }
     }
 }
@@ -170,7 +185,7 @@ impl Pwm {
         polarity: Polarity,
         enabled: bool,
     ) -> Result<Pwm> {
-        let duty_cycle_checked = duty_cycle.max(0.0).min(1.0);
+        let duty_cycle_checked = duty_cycle.clamp(0.0, 1.0);
         let period = period(frequency);
         Pwm::with_period(channel, period, period.mul_f64(duty_cycle_checked), polarity, enabled)
     }
@@ -244,7 +259,7 @@ impl Pwm {
     /// `duty_cycle` is specified as a floating point value between `0.0` (0%) and `1.0` (100%).
     pub fn set_frequency(&mut self, frequency: f64, duty_cycle: f64) -> Result<()> {
         debug!("{self:?}.set_frequency({frequency:?}, {duty_cycle:?})");
-        let duty_cycle_checked = duty_cycle.max(0.0).min(1.0);
+        let duty_cycle_checked = duty_cycle.clamp(0.0, 1.0);
         let period = period(frequency);
         self.period = period;
         self.pulse_width = period.mul_f64(duty_cycle_checked);
@@ -265,7 +280,7 @@ impl Pwm {
     /// `duty_cycle` is specified as a floating point value between `0.0` (0%) and `1.0` (100%).
     pub fn set_duty_cycle(&mut self, duty_cycle: f64) -> Result<()> {
         debug!("{self:?}.set_duty_cycle({duty_cycle:?})");
-        let duty_cycle_checked = duty_cycle.max(0.0).min(1.0);
+        let duty_cycle_checked = duty_cycle.clamp(0.0, 1.0);
         self.pulse_width = self.period.mul_f64(duty_cycle_checked);
         Ok(())
     }
@@ -306,12 +321,19 @@ impl Pwm {
 #[doc(inline)]
 pub use rpi_pal::pwm::Channel;
 #[cfg(not(feature = "raspi"))]
-/// Pwm channels.
+/// PWM channels.
+///
+/// More information on enabling and configuring the PWM channels can be
+/// found [here].
+///
+/// [here]: index.html
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Channel {
     Pwm0,
     Pwm1,
+    Pwm2,
+    Pwm3,
 }
 
 #[cfg(not(feature = "raspi"))]
@@ -327,7 +349,7 @@ pub use rpi_pal::pwm::Polarity;
 #[cfg(not(feature = "raspi"))]
 /// Polarity of a pwm pulse.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Polarity {
     Normal,
     Inverse,
@@ -343,7 +365,7 @@ pub use rpi_pal::pwm::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the PWM peripheral.
 #[derive(Debug)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Error {
     Io(io::Error),
 }

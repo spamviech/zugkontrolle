@@ -6,6 +6,7 @@
 - Zeige bei Geschwindigkeitsauswahl immer die Widgets für eine neue Geschwindigkeit an.
 - Aktualisiere dependencies und rust edition auf 2024.
 - `input::Pin::lese` gibt direkt `Level` zurück.
+- Neue `Channel`-Varianten `Pwm2` und `Pwm3` für Hardware-Pwm.
 
 ## 5.0.0
 

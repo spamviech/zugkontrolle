@@ -1,13 +1,23 @@
 //! Gpio [`Pin`] in verschiedenen Konfigurationen.
 
+use std::sync::LazyLock;
+
 use thiserror::Error;
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
-use crate::{level::Level, pwm::Pwm, rpi_pal};
+use crate::{
+    level::Level,
+    pwm::Pwm,
+    rpi_pal::{self, system::DeviceInfo},
+};
 
 pub mod input;
 pub mod output;
 pub mod pwm;
+
+/// Das aktuelle Geräte-Modell.
+static DEVICE_MODEL: LazyLock<DeviceInfo> =
+    LazyLock::new(|| DeviceInfo::new().expect("Failed to get DeviceInfo!"));
 
 /// Verwalten aller nicht verwendeten [`Pins`](Pin).
 #[derive(Debug)]
@@ -96,10 +106,28 @@ impl Pin {
     }
 
     /// Erhalte den zum Pin gehörigen [`pwm::Channel`].
+    ///
+    /// The `BCM283x SoC` supports 2 hardware PWM channels. By default, the channels are
+    /// mapped as follows:
+    ///
+    /// * [Pwm0](Channel::Pwm0) = GPIO12/GPIO18
+    /// * [Pwm1](Channel::Pwm1) = GPIO13/GPIO19
+    ///
+    /// ### Newer models (Raspberry Pi 5 and later)
+    ///
+    /// The Raspberry Pi 5 and other recent models support 4 hardware PWM channels. By
+    /// default, the channels are mapped as follows:
+    ///
+    /// * [Pwm0](Channel::Pwm0) = GPIO12
+    /// * [Pwm1](Channel::Pwm1) = GPIO13
+    /// * [Pwm2](Channel::Pwm2) = GPIO18
+    /// * [Pwm3](Channel::Pwm3) = GPIO19
     fn pwm_channel(&self) -> Option<rpi_pal::pwm::Channel> {
         match self.0.pin() {
             18 => Some(rpi_pal::pwm::Channel::Pwm0),
             19 => Some(rpi_pal::pwm::Channel::Pwm1),
+            12 if DEVICE_MODEL.pwm_channels() > 2 => Some(rpi_pal::pwm::Channel::Pwm2),
+            13 if DEVICE_MODEL.pwm_channels() > 2 => Some(rpi_pal::pwm::Channel::Pwm3),
             _ => None,
         }
     }

@@ -16,6 +16,7 @@ use take_mut as _;
 pub mod gpio;
 pub mod i2c;
 pub mod pwm;
+pub mod system;
 
 #[cfg(not(feature = "raspi"))]
 /// Ein Element, oder eine Funktion, die den initialen Wert erzeugt.

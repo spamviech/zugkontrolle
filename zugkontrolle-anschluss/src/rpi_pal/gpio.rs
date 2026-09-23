@@ -1,9 +1,16 @@
 //! Low level Steuerung von Gpio Pins.
 
-// Mit raspi-feature wird das rpi_pal-crate verwendet.
-#![cfg_attr(feature = "raspi", allow(clippy::pub_use))]
-// Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate.
-#![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
+#![cfg_attr(
+    feature = "raspi",
+    expect(clippy::pub_use, reason = "Mit raspi-feature wird das rpi_pal-crate verwendet.")
+)]
+#![cfg_attr(
+    not(feature = "raspi"),
+    allow(
+        clippy::missing_errors_doc,
+        reason = "Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate."
+    )
+)]
 
 #[cfg(not(feature = "raspi"))]
 use std::{
@@ -58,7 +65,10 @@ pub use rpi_pal::gpio::Gpio;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s GPIO peripheral.
 #[derive(Debug, Clone)]
-#[expect(missing_copy_implementations)]
+#[expect(
+    missing_copy_implementations,
+    reason = "Selbes interface wie die Variante im rpi_pal crate."
+)]
 pub struct Gpio;
 
 #[cfg(not(feature = "raspi"))]
@@ -166,7 +176,7 @@ pub use rpi_pal::gpio::InputPin;
 #[cfg(not(feature = "raspi"))]
 #[derive(Debug)]
 /// GPIO pin configured as input.
-pub struct InputPin(Pin, #[expect(dead_code)] Bias);
+pub struct InputPin(Pin, #[expect(dead_code, reason = "Zum setzen und für Debugging.")] Bias);
 
 #[cfg(not(feature = "raspi"))]
 impl PartialEq for InputPin {
@@ -308,7 +318,7 @@ pub use rpi_pal::gpio::Level;
 #[cfg(not(feature = "raspi"))]
 /// Pin logic levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Level {
     Low,
     High,
@@ -332,7 +342,7 @@ pub use rpi_pal::gpio::Bias;
 #[cfg(not(feature = "raspi"))]
 /// Built-in pull-up/pull-down resistor states.
 #[derive(Clone, Copy, Debug)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Bias {
     Off,
     PullDown,
@@ -345,7 +355,7 @@ pub use rpi_pal::gpio::Trigger;
 #[cfg(not(feature = "raspi"))]
 /// Interrupt trigger conditions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Trigger {
     Disabled,
     RisingEdge,
@@ -385,7 +395,7 @@ pub use rpi_pal::gpio::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the GPIO peripheral.
 #[derive(Debug)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Error {
     UnknownModel,
     PinNotAvailable(u8),
@@ -401,7 +411,7 @@ pub use rpi_pal::gpio::Mode;
 /// Pin modes.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Mode {
     Input,
     Output,

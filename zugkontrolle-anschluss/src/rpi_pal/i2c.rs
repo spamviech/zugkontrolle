@@ -1,9 +1,16 @@
 //! Low level Steuerung eines i2c Kanals.
 
-// Mit raspi-feature wird das rpi_pal-crate verwendet.
-#![cfg_attr(feature = "raspi", allow(clippy::pub_use))]
-// Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate.
-#![cfg_attr(not(feature = "raspi"), allow(clippy::missing_errors_doc))]
+#![cfg_attr(
+    feature = "raspi",
+    expect(clippy::pub_use, reason = "Mit raspi-feature wird das rpi_pal-crate verwendet.")
+)]
+#![cfg_attr(
+    not(feature = "raspi"),
+    allow(
+        clippy::missing_errors_doc,
+        reason = "Dokumentation ist (modulo backticks) copy+paste vom rpi_pal-crate."
+    )
+)]
 
 #[cfg(not(feature = "raspi"))]
 use std::{collections::HashSet, fmt::Debug, io};
@@ -52,7 +59,6 @@ pub use rpi_pal::i2c::I2c;
 #[cfg(not(feature = "raspi"))]
 /// Provides access to the Raspberry Pi’s I2C peripheral.
 #[derive(Debug)]
-#[expect(missing_copy_implementations)]
 pub struct I2c {
     /// Der I2C-Bus.
     bus: u8,
@@ -137,7 +143,11 @@ pub use rpi_pal::i2c::Error;
 #[cfg(not(feature = "raspi"))]
 /// Errors that can occur when accessing the I2C peripheral.
 #[derive(Debug)]
-#[expect(variant_size_differences, missing_docs)]
+#[expect(
+    variant_size_differences,
+    missing_docs,
+    reason = "Kopie von rpi_pal. Namen sind aussagekräftig genug."
+)]
 pub enum Error {
     Io(io::Error),
     InvalidSlaveAddress(u16),
