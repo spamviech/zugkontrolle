@@ -241,8 +241,8 @@ impl OutputAnschluss {
     }
 }
 
-/// Serialisierbare Informationen eines [`OutputAnschlusses`](OutputAnschluss).
 #[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
+/// Serialisierbare Informationen eines [`OutputAnschlusses`](OutputAnschluss).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
     /// Ein [`Pin`](output::Pin).
@@ -487,8 +487,8 @@ impl InputAnschluss {
     }
 }
 
-/// Serialisierbare Informationen eines [`InputAnschlusses`](InputAnschluss).
 #[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
+/// Serialisierbare Informationen eines [`InputAnschlusses`](InputAnschluss).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
     /// Ein [`Pin`](input::Pin).

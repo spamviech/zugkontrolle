@@ -56,20 +56,15 @@ pub struct Gleis<T> {
 
 /// Die serialisierte Darstellung aller Gleise, wie sie in Version 3 verwendet wurde.
 #[derive(Debug, Deserialize)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct GleiseDatenSerialisiert {
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
@@ -91,25 +86,20 @@ impl GleiseDatenSerialisiert {
 /// Mapping von der serialisierten Darstellung zur assoziierten [`id::Repräsentation`]
 /// für eine Definition. Verwendet in [`GleiseDatenSerialisiert::v4`].
 #[derive(Debug)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct DefinitionMaps {
-    #[expect(clippy::missing_docs_in_private_items)]
     geraden: AssocList<GeradeSerialisiert, (zugkontrolle_id::Repräsentation, GeradeUnit)>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven: AssocList<KurveSerialisiert, (zugkontrolle_id::Repräsentation, KurveUnit)>,
-    #[expect(clippy::missing_docs_in_private_items)]
     weichen: AssocList<WeicheSerialisiert, (zugkontrolle_id::Repräsentation, WeicheUnit)>,
-    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: AssocList<
         DreiwegeWeicheSerialisiert,
         (zugkontrolle_id::Repräsentation, DreiwegeWeicheUnit),
     >,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen:
         AssocList<KurvenWeicheSerialisiert, (zugkontrolle_id::Repräsentation, KurvenWeicheUnit)>,
-    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen:
         AssocList<SKurvenWeicheSerialisiert, (zugkontrolle_id::Repräsentation, SKurvenWeicheUnit)>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: AssocList<KreuzungSerialisiert, (zugkontrolle_id::Repräsentation, KreuzungUnit)>,
 }
 
@@ -130,20 +120,15 @@ impl DefinitionMaps {
 
 /// Die nächste freie [`id::Repräsentation`] für eine Definition.
 #[derive(Debug)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct NächsteDefinitionIds {
-    #[expect(clippy::missing_docs_in_private_items)]
     geraden: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<zugkontrolle_id::Repräsentation>,
 }
 
@@ -164,22 +149,16 @@ impl NächsteDefinitionIds {
 
 /// Die nächste freie [`id::Repräsentation`] für ein Gleis oder eine Definition.
 #[derive(Debug)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct NächsteIds {
-    #[expect(clippy::missing_docs_in_private_items)]
     geraden: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<zugkontrolle_id::Repräsentation>,
-    #[expect(clippy::missing_docs_in_private_items)]
     definitionen: NächsteDefinitionIds,
 }
 

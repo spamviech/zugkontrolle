@@ -93,8 +93,10 @@ impl<Anschluss> Streckenabschnitt<Anschluss> {
     }
 }
 
-// Befolge Konvention TypName->TypNameSerialisiert
-#[expect(clippy::module_name_repetitions)]
+#[expect(
+    clippy::module_name_repetitions,
+    reason = "Befolge Konvention TypName->TypNameSerialisiert"
+)]
 /// Serialisierbare Repräsentation der Steuerung der Stromzufuhr.
 pub type StreckenabschnittSerialisiert = Streckenabschnitt<OutputSerialisiert>;
 

@@ -68,7 +68,6 @@ pub struct Zugtyp<L: Leiter> {
 macro_rules! erzeuge_zugtyp_maps {
     ($id_maps: expr => $($gleise: ident : $typ: ty),* $(,)?) => {
         $(
-        #[expect(unused_qualifications)]
         let ($gleise, ids) = $gleise
             .into_iter()
             .fold(
@@ -90,7 +89,6 @@ macro_rules! erzeuge_zugtyp_maps {
         )*
     };
     ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)? : $error: ty) => {$(
-        #[expect(unused_qualifications)]
         let $gleise = $gleise
             .into_iter()
             .map(|definition| Ok(($crate::id::DefinitionId::<$typ>::neu()?, definition)) )

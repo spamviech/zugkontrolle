@@ -1,6 +1,9 @@
 //! Style Definitionen.
 
-#![expect(clippy::pub_use, reason = "style::Container fühlt sich viel natürlicher an als style::container::Container")]
+#![expect(
+    clippy::pub_use,
+    reason = "style::Container fühlt sich viel natürlicher an als style::container::Container"
+)]
 
 pub mod button;
 pub mod container;

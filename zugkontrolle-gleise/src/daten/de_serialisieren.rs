@@ -8,8 +8,9 @@ use bincode_next::{
     self,
     config::{
         BincodeLegacyFormat, Configuration, FingerprintDisabled, Fixint, LittleEndian, LsbFirst,
-        NoLimit, SkipBitPacking,
+        NoLimit, SkipBitPacking, legacy,
     },
+    error,
     serde::{decode_from_slice, encode_into_std_write},
 };
 use nonempty::NonEmpty;
@@ -62,19 +63,19 @@ const BINCODE_OPTIONS: Configuration<
     LsbFirst,
     FingerprintDisabled,
     BincodeLegacyFormat,
-> = bincode_next::config::legacy().with_fixed_int_encoding();
+> = legacy().with_fixed_int_encoding();
 
 /// Fehler beim deserialisieren mit bincode.
 #[derive(Debug)]
 pub enum DecodeError {
     /// Fehler beim deserialisieren.
-    Decode(bincode_next::error::DecodeError),
+    Decode(error::DecodeError),
     /// Nicht alle Bytes wurden gelesen.
     TrailingBytes(usize),
 }
 
-impl From<bincode_next::error::DecodeError> for DecodeError {
-    fn from(value: bincode_next::error::DecodeError) -> Self {
+impl From<error::DecodeError> for DecodeError {
+    fn from(value: error::DecodeError) -> Self {
         DecodeError::Decode(value)
     }
 }
@@ -202,10 +203,6 @@ where
     use Ergebnis::{Fehler, Wert, WertMitWarnungen};
     serialisiert.into_iter().fold(
         (GleisMap::new(), Vec::new(), anschlüsse),
-        #[expect(
-            clippy::shadow_unrelated,
-            reason = "`anschlüsse` über Argument->Rückgabewert zusammenhängend."
-        )]
         |(mut gleise, mut rstern_elemente, anschlüsse), (gespeicherte_id, gleis_serialisiert)| {
             let id = match bekannte_ids.get(&gespeicherte_id) {
                 Some(id) => id.clone(),
@@ -265,20 +262,15 @@ where
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [`DefinitionId`].
 #[derive(Debug)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct DefinitionIdMaps {
-    #[expect(clippy::missing_docs_in_private_items)]
     geraden: HashMap<u32, DefinitionId<Gerade>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven: HashMap<u32, DefinitionId<Kurve>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     weichen: HashMap<u32, DefinitionId<Weiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: HashMap<u32, DefinitionId<DreiwegeWeiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: HashMap<u32, DefinitionId<KurvenWeiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: HashMap<u32, DefinitionId<SKurvenWeiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: HashMap<u32, DefinitionId<Kreuzung>>,
 }
 
@@ -299,22 +291,16 @@ impl DefinitionIdMaps {
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [`GleisId`].
 #[derive(Debug)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct IdMaps {
-    #[expect(clippy::missing_docs_in_private_items)]
     geraden: HashMap<u32, GleisId<Gerade>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven: HashMap<u32, GleisId<Kurve>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     weichen: HashMap<u32, GleisId<Weiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: HashMap<u32, GleisId<DreiwegeWeiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: HashMap<u32, GleisId<KurvenWeiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: HashMap<u32, GleisId<SKurvenWeiche>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: HashMap<u32, GleisId<Kreuzung>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     definitionen: DefinitionIdMaps,
 }
 
@@ -335,7 +321,7 @@ impl IdMaps {
 }
 
 impl GleiseDatenSerialisiert {
-    #[expect(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "Interne Methode.")]
     /// Reserviere alle benötigten Anschlüsse.
     #[must_use]
     fn reserviere<L, S, Nachricht>(
@@ -480,7 +466,6 @@ pub enum ZugtypDeserialisierenFehler {
 macro_rules! erzeuge_zugtyp_maps {
     ($id_maps: expr => $($gleise: ident : $typ: ty),* $(,)?) => {
         $(
-        #[expect(unused_qualifications)]
         let ($gleise, ids) = $gleise
             .into_iter()
             .fold(
@@ -591,7 +576,7 @@ impl<L: Leiter> Zustand<L> {
         /// Erzeuge eine serialisierbare Darstellung für die jeweiligen [`HashMaps`](HashMap).
         macro_rules! serialisiere_maps {
             ($(($($matching: ident),*): $map: ident - $serialize_id: ident),* $(,)?) => {$(
-                #[expect(unused_parens)]
+                #[allow(unused_parens, reason = "Aufruf mit einem einzelnen Argument.")]
                 let $map = $map
                     .iter()
                     .map(|(id, ($($matching),*))| (id.$serialize_id(), serialisiere_head_clone_tail!($($matching),*)))
@@ -641,7 +626,7 @@ impl<L: Leiter> Zustand<L> {
         /// Auf das erste pattern-argument wird [`Serialisiere::anschlüsse`] aufgerufen.
         macro_rules! collect_anschlüsse {
             (($($matching: ident),+) : $map: ident) => {
-                #[expect(unused_parens)]
+                #[allow(unused_parens, reason = "Aufruf mit einem einzelnen Argument.")]
                 for (_id, ($($matching),+)) in $map.drain() {
                     anschlüsse.anhängen(head!($($matching),+).anschlüsse());
                 }
@@ -685,7 +670,7 @@ where
         /// Reserviere die benötigten Anschlüsse für die übergebenen [`HashMaps`](HashMap).
         macro_rules! reserviere_maps {
             ($anschlüsse: ident => $($elemente: ident $(, $extra_info: ident - $hash_eq_steuerung: ident)?);* $(;)? ) => {$(
-                #[expect(unused_parens)]
+                #[allow(unused_parens, reason = "Aufruf mit einem einzelnen Argument.")]
                 let ($elemente, $anschlüsse) = $elemente.into_iter().fold(
                     (HashMap::new(), $anschlüsse),
                     |(mut elemente, anschlüsse), (name, (serialisiert $(, $extra_info)?))| {

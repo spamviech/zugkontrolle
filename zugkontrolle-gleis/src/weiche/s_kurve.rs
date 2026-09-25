@@ -1,6 +1,9 @@
 //! Definition und zeichnen einer [Weiche mit S-Kurve](SKurvenWeiche).
 
-#![expect(clippy::pub_use, reason = "Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], [`RichtungAnschlüsseSerialisiert`]")]
+#![expect(
+    clippy::pub_use,
+    reason = "Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], [`RichtungAnschlüsseSerialisiert`]"
+)]
 
 use serde::{Deserialize, Serialize};
 
@@ -226,10 +229,6 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         spurweite: Spurweite,
     ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let radius_begrenzung_außen = spurweite.radius_begrenzung_außen(self.radius);
         let s_kurve_transformationen = |multiplier: Skalar| {
             #[expect(

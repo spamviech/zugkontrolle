@@ -195,8 +195,7 @@ impl Cache {
     }
 }
 
-/// Position eines Gleises/Textes auf dem Canvas.
-#[expect(missing_copy_implementations)]
+#[expect(missing_copy_implementations, reason = "Position eines Gleises/Textes auf dem Canvas.")]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Die linke Obere Ecke auf dem Canvas.

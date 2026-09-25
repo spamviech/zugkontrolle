@@ -155,7 +155,6 @@ macro_rules! async_ausführen {
             };
             #[expect(unused_mut, reason = "Erlaube verwendung mit impl FnMut.")]
             if let Err(fehler) = $funktion(&mut clone $(.$as_mut())? $(, $($args)*)?) {
-                #[expect(clippy::redundant_closure_call, reason = "closure wird für Macro-Nutzung erzeugt.")]
                 sende_nachricht($erzeuge_fehler_nachricht(clone, fehler))
             } else if let Some(mut erzeuge_nachricht) = $erzeuge_aktualisieren_nachricht {
                 sende_nachricht(erzeuge_nachricht());

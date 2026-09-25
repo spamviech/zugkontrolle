@@ -526,7 +526,6 @@ impl Display for Mittelleiter {
 
 /// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[expect(variant_size_differences)]
 pub enum MittelleiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -629,10 +628,6 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[expect(
-                        clippy::shadow_unrelated,
-                        reason = "Selber wert zu einem späteren Zeitpunkt"
-                    )]
                     |geschwindigkeit, umdrehen| Mittelleiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1177,7 +1172,6 @@ impl Geschwindigkeit<Zweileiter> {
 
 /// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[expect(variant_size_differences)]
 pub enum ZweileiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -1288,10 +1282,6 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[expect(
-                        clippy::shadow_unrelated,
-                        reason = "Gleiche Werte zu einem späteren Zeitpunkt."
-                    )]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::Pwm {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1310,10 +1300,6 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    #[expect(
-                        clippy::shadow_unrelated,
-                        reason = "Gleiche Werte zu einem späteren Zeitpunkt."
-                    )]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1368,7 +1354,6 @@ impl Display for Fahrtrichtung {
 
 /// Mögliche Fehler beim einstellen der Geschwindigkeit oder Fahrtrichtung.
 #[derive(Debug, zugkontrolle_macros::From)]
-#[expect(variant_size_differences)]
 pub enum Fehler {
     /// Fehler bei Interaktion mit einem [`Anschluss`](OutputAnschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),

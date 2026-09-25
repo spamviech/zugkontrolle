@@ -13,7 +13,7 @@ fn erzeuge_enum_definition(
     enum_variants: &[&Ident],
     default_variant: &Ident,
     struct_fields: &[Ident],
-    stacked_unit_tuple_args: &Option<TokenStream>,
+    stacked_unit_tuple_args: Option<&TokenStream>,
 ) -> TokenStream {
     let enum_variants_str = enum_variants.iter().map(ToString::to_string);
     quote! {
@@ -129,7 +129,7 @@ pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStr
                 &enum_variants,
                 default_variant,
                 &struct_fields,
-                &stacked_unit_tuple_args,
+                stacked_unit_tuple_args.as_ref(),
             ));
         } else {
             errors.push(String::from("Mindestens eine Variante benötigt!"));

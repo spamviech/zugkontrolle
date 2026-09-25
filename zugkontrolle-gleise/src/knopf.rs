@@ -203,7 +203,6 @@ where
                 ));
             }
             for path in self.gleis.zeichne(&(), spurweite) {
-                #[expect(clippy::shadow_unrelated, reason = "frame related über `with_save`")]
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
@@ -218,7 +217,6 @@ where
             if let (relative_position, Some(content), _unit_name) =
                 self.gleis.beschreibung_und_name(&(), spurweite)
             {
-                #[expect(clippy::shadow_unrelated, reason = "frame related über `with_save`")]
                 frame.with_save(|frame| {
                     bewege_an_position(frame, &relative_position);
                     frame.fill_text(Text {

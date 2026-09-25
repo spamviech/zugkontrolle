@@ -16,8 +16,8 @@ pub type LizenzenMap = BTreeMap<UniCaseOrd<String>, &'static str>;
 /// Alle Lizenzen für die aktuelle target-Platform.
 pub static TARGET_LIZENZEN: LazyLock<LizenzenMap> = LazyLock::new(verwendete_lizenzen);
 
-/// Alle Lizenzen für die aktuelle target-Platform.
 #[expect(unexpected_cfgs, reason = "zugkontrolle_target wird in build.rs gesetzt.")]
+/// Alle Lizenzen für die aktuelle target-Platform.
 static TARGET_NAME_VERSION_LIZENZ: &[(&str, &str, &str)] =
     zugkontrolle_lizenzen_macros::target_crate_lizenzen!();
 

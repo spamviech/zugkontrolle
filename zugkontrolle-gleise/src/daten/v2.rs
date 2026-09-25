@@ -45,29 +45,25 @@ pub(in crate::daten::v2) struct Gleis<T> {
 
 /// Der serialisierbare Zustand, wie er in Version 2 verwendet wurde.
 #[derive(Deserialize)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct GleiseVecs<LeiterV2> {
     /// Der Name des gespeicherten Zugtyps.
     name: String,
-    #[expect(clippy::missing_docs_in_private_items)]
     geraden: Vec<Gleis<GeradeSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven: Vec<Gleis<KurveSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     weichen: Vec<Gleis<WeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
-    #[expect(clippy::missing_docs_in_private_items)]
     streckenabschnitte: StreckenabschnittMapSerialisiert,
-    #[expect(clippy::missing_docs_in_private_items)]
     geschwindigkeiten: GeschwindigkeitMapSerialisiert<LeiterV2>,
     /// Die Pläne. In Version 2 wurden keine Pläne unterstützt.
-    #[expect(clippy::zero_sized_map_values)]
+    #[expect(
+        clippy::zero_sized_map_values,
+        reason = "In Version 2 wurden keine Pläne unterstützt."
+    )]
     pläne: HashMap<plan::Name, Void>,
 }
 

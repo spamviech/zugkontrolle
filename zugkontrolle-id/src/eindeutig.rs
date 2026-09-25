@@ -94,10 +94,8 @@ impl<T> Drop for Id<T> {
 #[error("Es ist keine Id für den Typ {type_name} verfügbar!")]
 pub struct KeineIdVerfügbar {
     /// Die [`TypeId`] des Typs für den eine [`Id`] gewünscht wurde.
-    #[expect(dead_code)]
     type_id: TypeId,
     /// Der [`Typ-Name`](type_name) des Typs für den eine [`Id`] gewünscht wurde.
-    #[expect(dead_code)]
     type_name: &'static str,
 }
 

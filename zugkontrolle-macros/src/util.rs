@@ -9,7 +9,6 @@ use syn::{
 };
 
 /// Markiere die generischen Typen mit `true`, die im `fields`-Iterator vorkommen.
-#[expect(single_use_lifetimes)]
 pub(crate) fn mark_fields_generic<'t, T>(
     fields: impl Iterator<Item = &'t Field>,
     generic_types: &mut HashMap<&Ident, (T, bool)>,
@@ -65,21 +64,15 @@ pub(crate) fn parse_attributes_fn(
 ) -> Result<impl Iterator<Item = WherePredicate>, Error> {
     let intermediate: Vec<Punctuated<WherePredicate, Token!(,)>> = attrs
         .iter()
-        .filter_map(|attr| {
-            #[expect(
-                clippy::indexing_slicing,
-                reason = "sichergestellt durch `segments.len() == 1`"
-            )]
-            match attr {
-                Attribute {
-                    meta: Meta::List(MetaList { path: Path { segments, .. }, tokens, .. }),
-                    ..
-                } if segments.len() == 1 && segments[0].ident == name => {
-                    let parser = Punctuated::parse_terminated;
-                    Some(parser.parse2(tokens.clone()))
-                },
-                _ => None,
-            }
+        .filter_map(|attr| match attr {
+            Attribute {
+                meta: Meta::List(MetaList { path: Path { segments, .. }, tokens, .. }),
+                ..
+            } if segments.len() == 1 && segments[0].ident == name => {
+                let parser = Punctuated::parse_terminated;
+                Some(parser.parse2(tokens.clone()))
+            },
+            _ => None,
         })
         .collect::<Result<_, _>>()?;
     Ok(intermediate.into_iter().flat_map(Punctuated::into_iter))

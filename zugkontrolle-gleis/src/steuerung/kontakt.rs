@@ -96,6 +96,10 @@ impl Kontakt {
     /// ## Errors
     ///
     /// Fehler beim setzen des async Interrupt callbacks.
+    ///
+    /// ## Panics
+    ///
+    /// Programmierfehler, die zu verletzten Invarianten führen.
     pub fn neu(
         name: Name,
         mut anschluss: InputAnschluss,
@@ -260,10 +264,6 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
-        #[expect(
-            clippy::shadow_unrelated,
-            reason = "anschlüsse ist die selbe Struktur nach ausführen von `reserviere`."
-        )]
         let (mut anschluss, fehler, mut anschlüsse) =
             match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),

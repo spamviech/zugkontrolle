@@ -13,7 +13,7 @@ use zugkontrolle_gleis::steuerung::kontakt;
 use zugkontrolle_util::eingeschränkt::kleiner_8;
 
 /// Beschreibung eines [`anschluss::pcf85747::Pcf8574`].
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub(in crate::daten::v2) struct Pcf8574Beschreibung {
     /// Anliegendes [`Level`] an das `A0` Adress-Bit.
     a0: Level,
@@ -31,9 +31,8 @@ impl From<Pcf8574Beschreibung> for pcf8574::Beschreibung {
     }
 }
 
-/// Serialisierbare Informationen eines [`OutputAnschluss`]es.
-#[expect(missing_copy_implementations, variant_size_differences)]
-#[derive(Deserialize)]
+/// Serialisierbare Informationen eines [`OutputAnschlusses`](OutputAnschluss).
+#[derive(Debug, Deserialize)]
 pub(in crate::daten::v2) enum OutputSerialisiert {
     /// Ein [`Pin`](output::Pin).
     Pin {
@@ -70,9 +69,8 @@ impl From<OutputSerialisiert> for zugkontrolle_anschluss::OutputSerialisiert {
     }
 }
 
-/// Serialisierbare Informationen eines [`InputAnschlusses`](anschluss::InputAnschluss).
-#[expect(missing_copy_implementations, variant_size_differences)]
-#[derive(Deserialize)]
+/// Serialisierbare Informationen eines [`InputAnschlusses`](InputAnschluss).
+#[derive(Debug, Deserialize)]
 pub(in crate::daten::v2) enum InputSerialisiert {
     /// Ein [`Pin`](input::Pin).
     Pin {

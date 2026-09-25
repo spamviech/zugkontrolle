@@ -27,7 +27,7 @@ fn partition_generic_fields<'f>(
 }
 
 /// Erzeuge den [`TokenStream`] für die neuen Definitionen.
-#[expect(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments, reason = "Interne Funktion.")]
 fn erzeuge_typ_definitionen(
     crate_ident: &Ident,
     arg: &TokenStream,
@@ -122,8 +122,8 @@ fn erzeuge_typ_definitionen(
     }
 }
 
-/// [`crate::alias_serialisiert_unit`]
-#[expect(clippy::single_call_fn)]
+/// Implementierung von [`crate::alias_serialisiert_unit`].
+#[expect(clippy::single_call_fn, reason = "[`crate::alias_serialisiert_unit`]")]
 pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> TokenStream {
     let mut errors = Vec::new();
 

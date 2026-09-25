@@ -8,6 +8,7 @@
 
 use std::{collections::HashMap, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant};
 
+use bincode_next::error::EncodeError;
 use iced::{
     Rectangle, Renderer,
     mouse::{self, Cursor},
@@ -363,7 +364,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub fn aus_allen_geschwindigkeiten<T, C>(
         &self,
-        mut funktion: impl for<'s> FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
+        mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
     ) -> C
     where
         C: FromIterator<T>,
@@ -472,7 +473,7 @@ pub enum Fehler {
     /// Ein IO-Fehler.
     IO(io::Error),
     /// Fehler beim Serialisieren (speichern) der Gleise.
-    BincodeSerialisieren(bincode_next::error::EncodeError),
+    BincodeSerialisieren(EncodeError),
     /// Ein Fehler bei Interaktion mit einem [`Anschluss`](anschluss::Anschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),
 }

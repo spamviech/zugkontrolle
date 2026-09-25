@@ -441,10 +441,6 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_>> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
             self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
-        #[expect(
-            clippy::shadow_unrelated,
-            reason = "streckenabschnitt_id, geschwindigkeit_id related über `and_then`"
-        )]
         let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_name| {
             self.streckenabschnitte
                 .get(&streckenabschnitt_name)
@@ -613,7 +609,7 @@ fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     rstern: &RStern,
     zugtyp: &Zugtyp<L>,
     definition: &U,
-    id: &Option<AnyId>,
+    id: Option<&AnyId>,
     z: &Z,
     position: Position,
 ) -> Position {
@@ -622,9 +618,7 @@ fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     verbindungen.für_alle(|verbindung_name, verbindung| {
         if snap.is_none() {
             let (überlappende, _gehalten) =
-                überlappende_verbindungen(rstern, zugtyp, verbindung, id.as_ref(), |_gleis_id| {
-                    false
-                });
+                überlappende_verbindungen(rstern, zugtyp, verbindung, id, |_gleis_id| false);
             snap =
                 überlappende.into_iter().next().map(|überlappend| (verbindung_name, überlappend));
         }
@@ -677,7 +671,7 @@ impl GleiseDaten {
                 // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
                 if einrasten {
                     position =
-                        einraste_position(&self.rstern, zugtyp, definition, &None, &(), position)
+                        einraste_position(&self.rstern, zugtyp, definition, None, &(), position)
                 }
                 // Erzeuge neue Id.
                 let id = GleisId::neu()?;
@@ -756,7 +750,7 @@ impl GleiseDaten {
                                 &self.rstern,
                                 zugtyp,
                                 definition,
-                                &Some(AnyId::from($gleis_id.clone())),
+                                Some(&AnyId::from($gleis_id.clone())),
                                 &(),
                                 neue_position,
                             );
@@ -1076,7 +1070,6 @@ fn fülle_gleis<T>(
             )),
         };
         if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
-            #[expect(clippy::shadow_unrelated, reason = "related über `Frame::with_save`.")]
             frame.with_save(|frame| {
                 let color = Color { r: rot, g: grün, b: blau, a: alpha };
                 frame.fill(
@@ -1103,7 +1096,6 @@ fn zeichne_gleis<T>(
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
 {
     for path in definition.zeichne(steuerung, spurweite) {
-        #[expect(clippy::shadow_unrelated, reason = "related über `Frame::with_save`.")]
         frame.with_save(|frame| {
             let alpha =
                 Transparenz::true_reduziert(ist_gehalten(AnyId::from(gleis_id.clone()))).alpha();
@@ -1190,7 +1182,6 @@ fn zeichne_verbindungen<T, L: Leiter>(
                 &AnyId::from(gleis_id.clone()),
                 verbindung_an_position,
             );
-        #[expect(clippy::shadow_unrelated, reason = "frame related über with_save")]
         frame.with_save(|frame| {
             let alpha = Transparenz::true_reduziert(gehalten).alpha();
             let grün = if andere_entgegengesetzt { 1. } else { 0. };
@@ -1257,7 +1248,6 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
         (Some(beschreibung), None) => Some(String::from(beschreibung)),
         (None, None) => None,
     } {
-        #[expect(clippy::shadow_unrelated, reason = "frame related über with_save")]
         frame.with_save(|frame| {
             bewege_an_position(frame, &relative_position);
             let alpha =

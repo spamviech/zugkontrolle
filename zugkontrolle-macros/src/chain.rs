@@ -4,8 +4,8 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReceiverKind, ReturnType, Signature};
 
-/// [`crate::make_chain`]
 #[expect(clippy::single_call_fn, reason = "Implementierung von make_chain")]
+/// [`crate::make_chain`]
 pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 

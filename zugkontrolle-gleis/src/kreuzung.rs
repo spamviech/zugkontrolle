@@ -150,7 +150,10 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         let gerade_zentrum = Skalar(0.5) * rechteck_gerade.ecke_max();
-        #[expect(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let negierte_gerade_zentrum = -gerade_zentrum;
         let rechteck_gerade_gedreht = rechteck_gerade
             .verschiebe_chain(&negierte_gerade_zentrum)

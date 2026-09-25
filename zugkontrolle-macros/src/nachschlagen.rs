@@ -21,9 +21,7 @@ pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum)
         #[expect(clippy::iter_skip_zero, reason = "Skip, damit die Iterator-Typen übereinstimmen.")]
         (None, None, dummy.iter().skip(0))
     } else {
-        #[expect(clippy::indexing_slicing, reason = "sichergestellt durch `arg.len() < 2` check")]
         let fst = &args[0];
-        #[expect(clippy::indexing_slicing)]
         let snd = &args[1];
         let derives = args.iter().skip(2);
         (Some(fst), Some(snd), derives)

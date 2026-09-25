@@ -81,20 +81,15 @@ pub struct GleisSerialisiert<T: MitSteuerung> {
 
 /// Serialisierbare Darstellung aller Gleise, wie sie in Version 4 verwendet wird.
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct GleiseDatenSerialisiert {
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) geraden: GleisMapSerialisiert<Gerade>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kurven: GleisMapSerialisiert<Kurve>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) weichen: GleisMapSerialisiert<Weiche>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) dreiwege_weichen: GleisMapSerialisiert<DreiwegeWeiche>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kurven_weichen: GleisMapSerialisiert<KurvenWeiche>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) s_kurven_weichen: GleisMapSerialisiert<SKurvenWeiche>,
-    #[expect(clippy::missing_docs_in_private_items)]
     pub(crate) kreuzungen: GleisMapSerialisiert<Kreuzung>,
 }
 
