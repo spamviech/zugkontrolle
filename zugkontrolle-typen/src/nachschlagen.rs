@@ -1,7 +1,6 @@
 //! Trait für fehler-freies Nachschlagen von Elementen.
 
-// Erlaube, `zugkontrolle_macros` nicht direkt als dependency anzugeben.
-#![expect(clippy::pub_use)]
+#![expect(clippy::pub_use, reason = "Erlaube, `zugkontrolle_macros` nicht direkt als dependency anzugeben.")]
 #[expect(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden.")]
 pub use zugkontrolle_macros::impl_nachschlagen;
 

@@ -1,7 +1,6 @@
 //! Alle Eigenschaften und bekannte Gleise für einen [`Zugtyp`].
 
-// only way to export macros from a module
-#![expect(clippy::pub_use)]
+#![expect(clippy::pub_use, reason = "only way to export macros from a module")]
 
 use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
