@@ -35,7 +35,10 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
         *current_acc = TokenStream::new();
     };
     for tt in args {
-        #[expect(clippy::wildcard_enum_match_arm, reason = "if-let-chain ist noch nicht auf stable")]
+        #[expect(
+            clippy::wildcard_enum_match_arm,
+            reason = "if-let-chain ist noch nicht auf stable"
+        )]
         match tt {
             TokenTree::Punct(punct) if punct.as_char() == ',' => {
                 parse_acc(&mut acc);

@@ -1,7 +1,7 @@
 //! Ids zur Identifikation der Gleise.
 
 // Erlaubt id::Repräsentation
-#![allow(clippy::pub_use)]
+#![expect(clippy::pub_use)]
 
 use std::{
     cmp::Ordering,

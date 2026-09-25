@@ -1,7 +1,7 @@
 //! Definition und zeichnen einer [`Kreuzung`].
 
 // Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], [`RichtungAnschlüsseSerialisiert`]
-#![allow(clippy::pub_use)]
+#![expect(clippy::pub_use)]
 
 use std::fmt::Debug;
 

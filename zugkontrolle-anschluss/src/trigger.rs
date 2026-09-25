@@ -117,7 +117,7 @@ impl Trigger {
         match self {
             Trigger::RisingEdge => Some(Level::High),
             Trigger::FallingEdge => Some(Level::Low),
-            _ => None,
+            Trigger::Disabled | Trigger::Both => None,
         }
     }
 }

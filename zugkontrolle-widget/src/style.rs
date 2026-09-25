@@ -1,7 +1,7 @@
 //! Style Definitionen.
 
 // style::Container fühlt sich viel natürlicher an als style::container::Container
-#![allow(clippy::pub_use)]
+#![expect(clippy::pub_use)]
 
 pub mod button;
 pub mod container;

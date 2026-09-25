@@ -1,12 +1,11 @@
 //! Kommandozeilen-Argumente.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(
+#![expect(
     clippy::multiple_crate_versions,
     reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
 )]
-// TODO durch derive-Macro für Parse ausgelöst.
-#![allow(clippy::shadow_unrelated)]
+#![expect(clippy::shadow_unrelated, reason = "Durch derive-Macro für Parse ausgelöst.")]
 
 use std::{
     env,
@@ -69,7 +68,7 @@ pub struct Argumente {
 /// Einstellung über aktivierte I2c-Channel.
 #[derive(Debug, Clone, Copy, Parse)]
 #[kommandozeilen_argumente(sprache: deutsch)]
-#[expect(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools, reason = "Viele Flags für kommandozeilen_argumente.")]
 pub struct I2cSettings {
     /// I2C channel auf pins 2 und 3 (bus 0 oder 1).
     #[kommandozeilen_argumente(lang: [i2c0_1, i2c0, i2c1])]

@@ -1,6 +1,6 @@
 //! Steuerung einer Modell-Eisenbahn über einen Raspberry Pi.
 
-#![allow(
+#![expect(
     clippy::multiple_crate_versions,
     reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
 )]

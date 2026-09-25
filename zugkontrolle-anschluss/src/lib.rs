@@ -1,7 +1,7 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(
+#![expect(
     clippy::multiple_crate_versions,
     reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
 )]

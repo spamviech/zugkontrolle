@@ -1,7 +1,9 @@
 //! Ids zur Identifikation der Gleise.
 
-// Erlaubt id::Repräsentation, only way to export macros from a module
-#![allow(clippy::pub_use)]
+#![expect(
+    clippy::pub_use,
+    reason = "Erlaubt id::Repräsentation, only way to export macros from a module."
+)]
 
 use std::hash::Hash;
 
@@ -35,7 +37,7 @@ macro_rules! erzeuge_any_enum {
     ($(($vis: vis))? $name: ident$(<$($lt: lifetime),*>)?, $doc: literal, [$($derives: ident),*], $( ($($path: tt)*) ),+ $(,)?) => {
         #[doc = $doc]
         #[derive(zugkontrolle_macros::From, $($derives),*)]
-        #[expect(unused_qualifications)]
+        #[allow(unused_qualifications, reason = "Soll verwendet werden, ohne use-statements vorauszusetzen.")]
         $($vis)? enum $name$(<$($lt),*>)? {
             /// Variante für eine [`Gerade`](crate::gleis::gerade::Gerade).
             Gerade($( $crate::ersetzte_eckige_klammern!{$crate::gerade::Gerade, [], $($path)*} ),+),
@@ -72,7 +74,6 @@ macro_rules! als_ref {
 }
 
 #[macro_export]
-#[expect(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
 /// Erzeuge ein `match`-statement und führe das `$macro!`/die `$funktion`
 /// mit den als `$ident` gematchten Varianten-Feldern als Argumente aus.
 macro_rules! mit_any_id {
@@ -82,6 +83,7 @@ macro_rules! mit_any_id {
         => $macro: ident ! ( $($extra_arg: expr),* $(,)? )
     ) => {{
         use $id::{Gerade, Kurve, Weiche, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Kreuzung};
+        #[allow(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
         match $any_id {
             Gerade( $($ident),+ ) => {
                 $macro! ( $( $crate::als_ref!($($mut)? $collection.geraden) , )* $($ident),+ $(, $extra_arg)*)
@@ -112,6 +114,7 @@ macro_rules! mit_any_id {
         => $function: ident ( $($extra_arg: expr),* $(,)? )
     ) => {{
         use $id::{Gerade, Kurve, Weiche, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Kreuzung};
+        #[allow(clippy::module_name_repetitions, reason = "Soll unqualifiziert verwendet werden")]
         match $any_id {
             Gerade( $($ident),+ ) => {
                 $function ( $( $crate::als_ref!($($mut)? $collection) , )* $($ident),+ $(, $extra_arg)*)

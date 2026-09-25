@@ -1,7 +1,7 @@
 //! Definition und zeichnen einer [Weiche mit S-Kurve](SKurvenWeiche).
 
 // Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], [`RichtungAnschlüsseSerialisiert`]
-#![allow(clippy::pub_use)]
+#![expect(clippy::pub_use)]
 
 use serde::{Deserialize, Serialize};
 

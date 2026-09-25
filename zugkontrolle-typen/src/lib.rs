@@ -1,7 +1,7 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(
+#![expect(
     clippy::multiple_crate_versions,
     reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
 )]

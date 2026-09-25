@@ -1,6 +1,6 @@
 //! [`Application`] für die Gleis-Anzeige.
 
-#![allow(
+#![expect(
     clippy::multiple_crate_versions,
     reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
 )]
