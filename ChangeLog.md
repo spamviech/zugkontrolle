@@ -2,6 +2,8 @@
 
 ## Unreleased changes
 
+## 5.1.0
+
 - Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.
 - Zeige bei Geschwindigkeitsauswahl immer die Widgets für eine neue Geschwindigkeit an.
 - Aktualisiere dependencies und rust edition auf 2024.
