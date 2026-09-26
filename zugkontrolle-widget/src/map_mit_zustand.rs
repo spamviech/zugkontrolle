@@ -20,6 +20,13 @@ use iced_core::{
 
 use crate::flat_map::FlatMap;
 
+/// Erzeuge ein [`Element`] ausgehend vom aktuellen [`Zustand`].
+type ElementFn<'a, Zustand, Intern, Thema, R> =
+    Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>>;
+/// Konvertiere eine [`Intern`]e Nachricht zu einer [`Extern`]en Nachricht,
+/// bei potentieller Mutation des Zustandes.
+type MapFn<'a, Zustand, Intern, Extern> = Box<dyn 'a + Fn(Intern, &mut Zustand) -> Vec<Extern>>;
+
 /// Ein Hilfs-[`Widget`], dass eine Konvertierung einer internen Nachricht in eine externe Nachricht
 /// mit potentieller Mutation eines Zustands erlaubt.
 pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
@@ -28,11 +35,9 @@ pub struct MapMitZustand<'a, Zustand, Intern, Extern, Thema, R> {
     /// Der initiale Zustand.
     initialer_zustand: Zustand,
     /// Erzeuge die Widget-Hierarchie.
-    #[expect(clippy::type_complexity)]
-    erzeuge_element: Box<dyn 'a + Fn(&Zustand) -> Element<'a, Intern, Thema, R>>,
+    erzeuge_element: ElementFn<'a, Zustand, Intern, Thema, R>,
     /// Konvertiere eine interne Nachricht, potentiell unter Änderung des Zustands.
-    #[expect(clippy::type_complexity)]
-    mapper: Box<dyn 'a + Fn(Intern, &mut Zustand) -> Vec<Extern>>,
+    mapper: MapFn<'a, Zustand, Intern, Extern>,
 }
 
 impl<Zustand: Debug, Intern, Extern, Thema, R> Debug

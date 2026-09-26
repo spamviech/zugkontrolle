@@ -103,13 +103,7 @@ impl Winkel {
 
 impl AddAssign<&Winkel> for Winkel {
     fn add_assign(&mut self, Winkel(other): &Winkel) {
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
-        {
-            self.0 += other;
-        }
+        self.0 += other;
     }
 }
 
@@ -160,13 +154,7 @@ where
 
 impl SubAssign<&Winkel> for Winkel {
     fn sub_assign(&mut self, Winkel(other): &Winkel) {
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
-        {
-            self.0 -= other;
-        }
+        self.0 -= other;
     }
 }
 
@@ -225,13 +213,7 @@ impl Neg for Winkel {
 
 impl MulAssign<f32> for Winkel {
     fn mul_assign(&mut self, rhs: f32) {
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
-        {
-            self.0 *= rhs;
-        }
+        self.0 *= rhs;
     }
 }
 
@@ -266,13 +248,7 @@ impl Mul<Winkel> for f32 {
 
 impl DivAssign<f32> for Winkel {
     fn div_assign(&mut self, rhs: f32) {
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt."
-        )]
-        {
-            self.0 /= rhs;
-        }
+        self.0 /= rhs;
     }
 }
 

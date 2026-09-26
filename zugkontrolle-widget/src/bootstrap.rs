@@ -13,7 +13,7 @@ use crate::fonts::BOOTSTRAP;
 /// Es kann sein, dass in Zukunft die Fill-Variante bei einem alternativen
 /// [`Thema`](crate::style::thema::Thema) angezeigt wird.
 #[derive(Debug, Clone, Copy)]
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Bootstrap {
     Feather,
     FileEarmark,

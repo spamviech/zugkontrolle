@@ -83,7 +83,7 @@ pub struct YAchse;
 pub struct Invertiert<T, Achse>(T, PhantomData<*const Achse>);
 
 impl<T, Achse> From<T> for Invertiert<T, Achse> {
-    #[expect(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars, reason = "t: T")]
     fn from(t: T) -> Self {
         Invertiert(t, PhantomData)
     }

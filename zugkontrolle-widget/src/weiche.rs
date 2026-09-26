@@ -43,7 +43,7 @@ struct Zustand<AnschlüsseSerialisiert> {
 impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> {
     /// Erstelle einen neuen [`Zustand`], potentiell mit voreingestellten Anschlüssen.
     fn neu<Richtung>(
-        option_weiche: &Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+        option_weiche: Option<&WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
         hat_steuerung: bool,
     ) -> Self {
         let (name, anschlüsse) =
@@ -150,7 +150,11 @@ where
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
-        Auswahl(MapMitZustand::neu(Zustand::neu(weiche, hat_steuerung), erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(
+            Zustand::neu(weiche.as_ref(), hat_steuerung),
+            erzeuge_element,
+            mapper,
+        ))
     }
 
     /// Erzeuge die Widget-Hierarchie.

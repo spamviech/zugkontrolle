@@ -3,11 +3,9 @@
 use std::fmt::Debug;
 
 use iced_aw::{
+    style::number_input,
     tab_bar,
-    widgets::{
-        card::{self, Card},
-        number_input,
-    },
+    widgets::card::{self, Card},
 };
 use iced_core::{
     Element, Font, Length, Renderer, text as text_core,
@@ -47,7 +45,7 @@ struct Zustand {
 
 impl Zustand {
     /// Erstelle einen neuen [`Zustand`], potentiell mit voreingestellten Anschlüssen.
-    fn neu(option_kontakt: &Option<KontaktSerialisiert>, hat_steuerung: bool) -> Self {
+    fn neu(option_kontakt: Option<&KontaktSerialisiert>, hat_steuerung: bool) -> Self {
         let (name, anschluss, trigger) =
             if let Some(KontaktSerialisiert { name, anschluss, trigger }) = option_kontakt {
                 (name.0.clone(), anschluss.clone(), *trigger)
@@ -60,7 +58,6 @@ impl Zustand {
 
 /// Interne Nachricht für Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
-#[expect(variant_size_differences)]
 enum InterneNachricht {
     /// Neuer gewählter Name.
     Name(String),
@@ -97,7 +94,7 @@ where
         + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
         + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
         + number_input::Catalog
-        + iced_aw::style::number_input::ExtendedCatalog
+        + number_input::ExtendedCatalog
         + radio::Catalog
         + scrollable::Catalog
         + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
@@ -146,7 +143,11 @@ where
                 },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             };
-        Auswahl(MapMitZustand::neu(Zustand::neu(kontakt, hat_steuerung), erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(
+            Zustand::neu(kontakt.as_ref(), hat_steuerung),
+            erzeuge_element,
+            mapper,
+        ))
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.

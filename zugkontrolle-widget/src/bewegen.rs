@@ -96,40 +96,25 @@ impl Bewegen {
 }
 
 /// Wichtige Punkte und Größen für die Darstellung und Interaktion mit dem Widget.
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct WichtigeWerte {
-    #[expect(clippy::missing_docs_in_private_items)]
     links: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     rechts: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     oben: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     unten: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     zentrum: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_links_oben: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_links_unten: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_rechts_oben: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_rechts_unten: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_oben_links: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_oben_rechts: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_unten_links: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     ende_unten_rechts: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     links_oben: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     links_unten: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     rechts_oben: Vektor,
-    #[expect(clippy::missing_docs_in_private_items)]
     rechts_unten: Vektor,
     /// Der Radius für den Zurücksetzen-Kreis.
     radius: Skalar,
@@ -138,6 +123,10 @@ struct WichtigeWerte {
 impl WichtigeWerte {
     /// Erzeuge alle [`WichtigenPunkte`] innerhalb der gegebenen Bounds.
     #[must_use]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     fn aus_size(size: Size) -> Self {
         let padding_x = Skalar(0.05 * size.width);
         let padding_y = Skalar(0.05 * size.height);
@@ -147,134 +136,43 @@ impl WichtigeWerte {
         let half_height = height.halbiert();
         // Startpunkte
         let links = Vektor { x: padding_x, y: half_height };
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let rechts = Vektor { x: width - padding_x, y: half_height };
         let oben = Vektor { x: half_width, y: padding_y };
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let unten = Vektor { x: half_width, y: height - padding_y };
         let zentrum = Vektor { x: half_width, y: half_height };
         // relative Bewegung
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let diagonale_länge = (links - oben).länge();
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let bein_länge = diagonale_länge / Skalar(3.);
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let diagonal_runter =
             bein_länge * Vektor { x: half_width, y: half_height }.einheitsvektor();
-        let diagonal_hoch = Vektor {
-            x: diagonal_runter.x,
-            #[expect(
-                clippy::arithmetic_side_effects,
-                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-            )]
-            y: -diagonal_runter.y,
-        };
+        let diagonal_hoch = Vektor { x: diagonal_runter.x, y: -diagonal_runter.y };
         // Zielpunkte
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_links_oben = links + diagonal_hoch;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_links_unten = links + diagonal_runter;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_rechts_oben = rechts - diagonal_runter;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_rechts_unten = rechts - diagonal_hoch;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_oben_links = oben - diagonal_hoch;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_oben_rechts = oben + diagonal_runter;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_unten_links = unten - diagonal_runter;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let ende_unten_rechts = unten + diagonal_hoch;
 
         // Diagonale Start-Werte
         let abstand_diagonale = Skalar(
             ((bein_länge.0.powf(2.)) - ((0.5 - (1. / 3.)) * diagonale_länge.0).powf(2.)).sqrt(),
         );
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let links_nach_oben = oben - links;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let links_oben = links
             + Skalar(0.5) * links_nach_oben
             + abstand_diagonale * links_nach_oben.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let links_nach_unten = unten - links;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let links_unten = links
             + Skalar(0.5) * links_nach_unten
             + abstand_diagonale * links_nach_unten.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let rechts_nach_oben = oben - rechts;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let rechts_oben = rechts
             + Skalar(0.5) * rechts_nach_oben
             + abstand_diagonale * rechts_nach_oben.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let rechts_nach_unten = unten - rechts;
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let rechts_unten = rechts
             + Skalar(0.5) * rechts_nach_unten
             + abstand_diagonale * rechts_nach_unten.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
@@ -282,10 +180,6 @@ impl WichtigeWerte {
         // Zurücksetzen
         // Inkreis-Radius r = 2A/u
         // https://de.wikipedia.org/wiki/Inkreis
-        #[expect(
-            clippy::arithmetic_side_effects,
-            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-        )]
         let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
 
         WichtigeWerte {

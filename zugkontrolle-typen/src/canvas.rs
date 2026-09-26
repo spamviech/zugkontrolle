@@ -42,7 +42,6 @@ impl<'t> Frame<'t> {
         Frame(frame)
     }
 
-    #[expect(single_use_lifetimes, reason = "elided lifetimes in impl-Traits are experimental")]
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Stroke).
     pub fn stroke<'s>(
         &mut self,
@@ -195,7 +194,8 @@ impl Cache {
     }
 }
 
-#[expect(missing_copy_implementations, reason = "Position eines Gleises/Textes auf dem Canvas.")]
+/// Position eines Gleises/Textes auf dem Canvas.
+#[expect(missing_copy_implementations, reason = "Zu Groß für Copy.")]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Die linke Obere Ecke auf dem Canvas.

@@ -114,6 +114,7 @@ pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>(
     MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, Thema, R>,
 );
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Thema, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
@@ -176,10 +177,6 @@ where
         )
     }
 
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?"
-    )]
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     fn neu_input_aux(
         active_tab: TabId,
@@ -231,6 +228,7 @@ where
     }
 }
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Thema, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
@@ -360,7 +358,6 @@ enum ZeigeModus {
     Pcf8574,
 }
 
-#[expect(single_use_lifetimes, reason = "anonymous lifetimes in `impl Trait` are unstable")]
 /// Erstelle einen [`Radio`] für alle `elemente` und füge sie zu einem [`Column`] hinzu.
 pub(crate) fn make_radios<'a, 'b, T, M, Thema, R>(
     aktuell: &T,
@@ -387,6 +384,7 @@ where
     column
 }
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
 where
@@ -454,6 +452,7 @@ where
 /// Wie viel [`Platz`](Space) soll zwischen Widgets eingefügt werden?
 const PADDING: f32 = 2.5;
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
 where

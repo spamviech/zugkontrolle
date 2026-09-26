@@ -35,7 +35,7 @@ macro_rules! definiere_u8_typ {
             Serialize,
             Deserialize,
         )]
-        #[expect(non_camel_case_types)]
+        #[expect(non_camel_case_types, reason = "Angelehnt an u8, u16, ...")]
         pub struct $ident(u8);
 
         impl From<$ident> for u8 {

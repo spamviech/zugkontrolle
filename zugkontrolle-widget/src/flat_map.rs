@@ -1,5 +1,7 @@
 //! Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 
+use std::fmt;
+
 use iced_core::{
     Element, Length, Rectangle, Shell, Size, Vector,
     clipboard::Clipboard,
@@ -14,15 +16,23 @@ use iced_core::{
     },
 };
 
-#[expect(
-    missing_debug_implementations,
-    reason = " Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können."
-)]
+/// Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 pub struct FlatMap<'a, A, I, Thema, R> {
     /// Das ursprüngliche Widget.
     element: Element<'a, A, Thema, R>,
     /// Die Funktion zur Transformation der ursprünglichen Nachrichten.
     mapper: Box<dyn Fn(A) -> I + 'a>,
+}
+
+impl<A: fmt::Debug, I: fmt::Debug, Thema: fmt::Debug, R: fmt::Debug> fmt::Debug
+    for FlatMap<'_, A, I, Thema, R>
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FlatMap")
+            .field("element", &"<element>")
+            .field("mapper", &"<closure>")
+            .finish()
+    }
 }
 
 impl<'a, A, I, Thema, R> FlatMap<'a, A, I, Thema, R> {

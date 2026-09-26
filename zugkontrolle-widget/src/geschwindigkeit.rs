@@ -56,14 +56,7 @@ use crate::{
 fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -> Option<T> {
     let i = ix.get();
     // no need to check head, since `i` is non-zero
-    (i < non_empty.len()).then(|| {
-        non_empty.tail.remove(
-            #[expect(clippy::arithmetic_side_effects, reason = "1 <= i < non_empty.len()")]
-            {
-                i - 1
-            },
-        )
-    })
+    (i < non_empty.len()).then(|| non_empty.tail.remove(i - 1))
 }
 
 /// Sortierte Map aller Widget zur Anzeige der [`Geschwindigkeiten`](Geschwindigkeit).
@@ -194,7 +187,6 @@ struct AuswahlZustand {
 
 /// Der Startwert für ein [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
-#[expect(variant_size_differences)]
 pub enum AuswahlStartwert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -448,7 +440,7 @@ where
                     let leiter = match zustand.aktueller_tab {
                         TabId::Pwm => pwm_nachricht(
                             zustand.umdrehen_anschluss.clone(),
-                            zustand.pwm_pin.clone(),
+                            zustand.pwm_pin,
                             zustand.pwm_polarität,
                         ),
                         TabId::KonstanteSpannung => {
@@ -526,7 +518,7 @@ where
     fn pwm_auswahl(
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, Thema, R>,
-        pwm_pin: &pwm::Serialisiert,
+        pwm_pin: pwm::Serialisiert,
         pwm_polarität: Polarität,
     ) -> Element<'t, InterneAuswahlNachricht, Thema, R> {
         let make_radio = |polarität: Polarität| {
@@ -543,7 +535,7 @@ where
         }
         pwm_auswahl = pwm_auswahl
             .push(
-                Element::from(anschluss::Pwm::neu_s(Some(pwm_pin.clone())))
+                Element::from(anschluss::Pwm::neu_s(Some(pwm_pin)))
                     .map(InterneAuswahlNachricht::PwmPin),
             )
             .push(
@@ -646,7 +638,7 @@ where
         let pwm_auswahl = Self::pwm_auswahl(
             fahrtrichtung_anschluss,
             erzeuge_umdrehen_auswahl,
-            pwm_pin,
+            *pwm_pin,
             *pwm_polarität,
         );
         let ks_auswahl = Self::ks_auswahl(
@@ -826,7 +818,7 @@ where
         match &serialisiert.leiter {
             MittelleiterSerialisiert::Pwm { pin, polarität } => AuswahlStartwert::Pwm {
                 umdrehen_anschluss: None,
-                pwm_pin: pin.clone(),
+                pwm_pin: *pin,
                 polarität: *polarität,
             },
             MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
@@ -935,7 +927,7 @@ where
             ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 AuswahlStartwert::Pwm {
                     umdrehen_anschluss: Some(fahrtrichtung.clone()),
-                    pwm_pin: geschwindigkeit.clone(),
+                    pwm_pin: *geschwindigkeit,
                     polarität: *polarität,
                 }
             },

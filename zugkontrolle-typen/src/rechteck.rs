@@ -4,10 +4,8 @@ use rstar::primitives::Rectangle;
 
 use crate::{vektor::Vektor, winkel::Winkel};
 
-#[expect(
-    missing_copy_implementations,
-    reason = "Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box."
-)]
+/// Ein Rechteck auf dem Canvas. Hauptsächlich zur Verwendung als Bounding Box.
+#[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
 #[derive(Debug, Clone)]
 pub struct Rechteck {
     /// Eine Ecke des Rechtecks.

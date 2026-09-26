@@ -110,11 +110,11 @@ impl Innerhalb {
 ///
 /// Die Darstellungs-Reihenfolge ist [fülle](Zeichnen::fülle), [`zeichne`](Zeichnen::zeichne),
 /// [`beschreibung_und_name`](Zeichnen::beschreibung_und_name).
+#[expect(clippy::min_ident_chars, reason = "t: T")]
 pub trait Zeichnen<T> {
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self, t: &T, spurweite: Spurweite) -> Rechteck;
 
-    #[expect(clippy::min_ident_chars, reason = "t: T")]
     /// Einschließendes Rechteck, wenn sich das Gleis an der [`Position`] befindet.
     fn rechteck_an_position(&self, t: &T, spurweite: Spurweite, position: &Position) -> Rechteck {
         self.rechteck(t, spurweite)

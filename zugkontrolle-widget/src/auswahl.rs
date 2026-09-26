@@ -51,30 +51,28 @@ pub enum WeichenId {
     Kreuzung(GleisId<Kreuzung>),
 }
 
-#[expect(
-    clippy::absolute_paths,
-    reason = "Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)"
-)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`Weiche`], [`SKurvenWeiche`] oder [`Kreuzung`].
+/// Beinhaltet [`SKurvenWeiche`] und [`Kreuzung`] (identische Richtungen).
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::gerade::Richtung,
     zugkontrolle_gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
-#[expect(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`DreiwegeWeiche`].
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::dreiwege::RichtungInformation,
     zugkontrolle_gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
-#[expect(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`KurvenWeiche`].
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::kurve::Richtung,
     zugkontrolle_gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-#[expect(clippy::module_name_repetitions, reason = "Beheben benötigt Änderung des public API.")]
 /// Zustand des Auswahl-Fensters.
+#[expect(clippy::module_name_repetitions, reason = "Beheben benötigt Änderung des public API.")]
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuswahlZustand<S> {
     /// Hinzufügen/Verändern eines [`Streckenabschnittes`](steuerung::streckenabschnitt::Streckenabschnitt).
@@ -133,21 +131,21 @@ impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
     }
 }
 
-#[expect(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 /// `AuswahlNachricht` für die Steuerung einer [Weiche], [Kreuzung] und [`SKurvenWeiche`].
 pub type WeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::gerade::Richtung,
     zugkontrolle_gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
-#[expect(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 /// `AuswahlNachricht` für die Steuerung einer [`DreiwegeWeiche`].
 pub type DreiwegeWeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::dreiwege::RichtungInformation,
     zugkontrolle_gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
-#[expect(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 /// `AuswahlNachricht` für die Steuerung einer [`KurvenWeiche`].
 pub type KurvenWeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::kurve::Richtung,
