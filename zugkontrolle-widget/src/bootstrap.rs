@@ -26,11 +26,11 @@ impl Bootstrap {
     /// Erzeuge einen [&str](str), das den [char] für das gewünschte Symbol enthält.
     fn als_str(self) -> &'static str {
         match self {
-            Bootstrap::Feather => "\u{F7BF}",
+            Bootstrap::Feather => "\u{f7bf}",
             Bootstrap::FileEarmark => "\u{f392}",
             Bootstrap::Floppy => "\u{f7d8}",
-            Bootstrap::ExclamationTriangle => "\u{F33B}",
-            Bootstrap::Trash => "\u{F5DE}",
+            Bootstrap::ExclamationTriangle => "\u{f33b}",
+            Bootstrap::Trash => "\u{f5de}",
         }
     }
 }

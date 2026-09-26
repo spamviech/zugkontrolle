@@ -8,6 +8,7 @@
 - `input::Pin::lese` gibt direkt `Level` zurück.
 - Neue `Channel`-Varianten `Pwm2` und `Pwm3` für Hardware-Pwm.
 - Das `Bewegen`-Widget zeigt die Richtung an, die gedrückt, oder über die die Maus gehalten wird.
+- Aktualisiere bootstrap icons auf version `v1.13.1`.
 
 ## 5.0.0
 
