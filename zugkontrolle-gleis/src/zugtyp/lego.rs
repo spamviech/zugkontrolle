@@ -1,8 +1,6 @@
 //! Dieses Modul definiert alle Lego (9V) Gleise, die ich zur Verfügung habe.
 
-use std::{f32::consts::PI, marker::PhantomData, time::Duration};
-
-use once_cell::sync::Lazy;
+use std::{f32::consts::PI, marker::PhantomData, sync::LazyLock, time::Duration};
 
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::{
@@ -28,7 +26,7 @@ use crate::{
 };
 
 /// Alle bekannten Gleise und Eigenschaften für eine Lego-Eisenbahn.
-static LEGO: Lazy<Zugtyp<Zweileiter>> = Lazy::new(|| {
+static LEGO: LazyLock<Zugtyp<Zweileiter>> = LazyLock::new(|| {
     let geraden = [gerade()];
     let kurven = [kurve()];
     let weichen = [];

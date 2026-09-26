@@ -2,6 +2,16 @@
 
 ## Unreleased changes
 
+## 5.1.0
+
+- Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.
+- Zeige bei Geschwindigkeitsauswahl immer die Widgets für eine neue Geschwindigkeit an.
+- Aktualisiere dependencies und rust edition auf 2024.
+- `input::Pin::lese` gibt direkt `Level` zurück.
+- Neue `Channel`-Varianten `Pwm2` und `Pwm3` für Hardware-Pwm.
+- Das `Bewegen`-Widget zeigt die Richtung an, die gedrückt, oder über die die Maus gehalten wird.
+- Aktualisiere bootstrap icons auf version `v1.13.1`.
+
 ## 5.0.0
 
 - Aufteilen in mehrere crates. Dazu waren ein paar Anpassungen notwendig:

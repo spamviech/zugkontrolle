@@ -1,26 +1,27 @@
 //! Knopf mit dem jeweiligen Gleis.
 
 use iced::{
+    Element, Length, Point, Rectangle, Renderer,
     mouse::{self, Cursor},
     touch,
     widget::{
+        Action,
         canvas::{
-            event,
+            Canvas, Event, Geometry, Program, Text,
             fill::{self, Fill},
             stroke::{self, Stroke},
-            Canvas, Event, Geometry, Program, Text,
         },
         container::{self, Container},
     },
-    Element, Length, Point, Rectangle, Renderer,
 };
 use log::debug;
 
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{
+    Zeichnen,
     canvas::{
-        pfad::{Pfad, Transformation},
         Cache,
+        pfad::{Pfad, Transformation},
     },
     farbe::Farbe,
     klick_quelle::KlickQuelle,
@@ -28,7 +29,6 @@ use zugkontrolle_typen::{
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,
-    Zeichnen,
 };
 
 use crate::draw::bewege_an_position;
@@ -39,8 +39,7 @@ const STROKE_WIDTH: Skalar = Skalar(1.5);
 const BORDER_WIDTH: u16 = 1;
 /// Das Padding zwischen Gleis und Rand.
 const PADDING: u16 = 2;
-// notwendig wegen const
-#[allow(clippy::as_conversions)]
+#[expect(clippy::as_conversions, reason = "notwendig wegen const")]
 /// Doppelter Wert von [`PADDING`] und [`BORDER_WIDTH`] als [`Skalar`].
 const DOUBLE_PADDING_BORDER_WIDTH: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 
@@ -81,15 +80,19 @@ impl<'t, T: Zeichnen<()>> Knopf<'t, T> {
     ) -> impl Into<Element<'t, Nachricht, Thema, Renderer>>
     where
         Nachricht: 'static,
-        Thema: 't + container::StyleSheet,
+        Thema: 't + container::Catalog,
         Knopf<'t, T>: Program<Nachricht, Thema, Renderer>,
     {
         let größe = self.gleis.rechteck(&(), self.spurweite).größe();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let standard_breite = (STROKE_WIDTH + größe.x).0;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let höhe = (DOUBLE_PADDING_BORDER_WIDTH + STROKE_WIDTH + größe.y).0;
         // account for lines right at the edge
         let canvas: Canvas<_, Nachricht, Thema, Renderer> = Canvas::new(self)
@@ -114,7 +117,7 @@ impl<Gleis, N, T> Program<N, T, Renderer> for Knopf<'_, Gleis>
 where
     Gleis: Zeichnen<()>,
     N: Nachricht<GleisId<Gleis>>,
-    T: Clone + Into<u8> + PartialEq + Thema,
+    T: Clone + Into<u8> + PartialEq + Catalog,
     u8: TryInto<T>,
 {
     type State = Zustand;
@@ -149,21 +152,27 @@ where
             let rechteck = self.gleis.rechteck(&(), spurweite);
             let rechteck_position = rechteck.position();
             frame.transformation(&Transformation::Translation(
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[expect(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 {
                     -rechteck_position
                 },
             ));
             let größe = rechteck.größe();
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let maximale_breite = bounds_vector.x - DOUBLE_PADDING_BORDER_WIDTH;
             if maximale_breite > größe.x {
                 // horizontal zentrieren
                 frame.transformation(&Transformation::Translation(
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[expect(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     {
                         Skalar(0.5) * (bounds_vector - größe)
                     },
@@ -171,15 +180,19 @@ where
             } else {
                 // skaliere zu vorhandener Breite
                 frame.transformation(&Transformation::Skalieren(
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[expect(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     {
                         maximale_breite / größe.x
                     },
                 ));
                 frame.transformation(&Transformation::Translation(
-                    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[expect(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                    )]
                     {
                         Skalar(0.5)
                             * Vektor {
@@ -190,8 +203,6 @@ where
                 ));
             }
             for path in self.gleis.zeichne(&(), spurweite) {
-                // frame related über `with_save`
-                #[allow(clippy::shadow_unrelated)]
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
@@ -206,8 +217,6 @@ where
             if let (relative_position, Some(content), _unit_name) =
                 self.gleis.beschreibung_und_name(&(), spurweite)
             {
-                // frame related über `with_save`
-                #[allow(clippy::shadow_unrelated)]
                 frame.with_save(|frame| {
                     bewege_an_position(frame, &relative_position);
                     frame.fill_text(Text {
@@ -223,10 +232,10 @@ where
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<N>) {
+    ) -> Option<Action<N>> {
         /// Reagiere darauf, dass der [`Knopf`] angeklickt wurde.
         fn pressed<Gleis, N>(
             definition: &GleisId<Gleis>,
@@ -234,22 +243,22 @@ where
             state: &mut Zustand,
             bounds: Rectangle,
             cursor: Cursor,
-        ) -> (event::Status, Option<N>)
+        ) -> Option<Action<N>>
         where
             N: Nachricht<GleisId<Gleis>>,
         {
             if let Some(Point { x, y }) = cursor.position_in(bounds) {
                 state.cursor_grabbed = true;
-                (
-                    event::Status::Captured,
-                    Some(<N as Nachricht<GleisId<Gleis>>>::nachricht(
+                Some(
+                    Action::publish(<N as Nachricht<GleisId<Gleis>>>::nachricht(
                         definition,
                         klick_quelle,
                         Vektor { x: Skalar(x), y: Skalar(y) },
-                    )),
+                    ))
+                    .and_capture(),
                 )
             } else {
-                (event::Status::Ignored, None)
+                None
             }
         }
         let in_bounds = cursor.is_over(bounds);
@@ -266,20 +275,22 @@ where
                 debug!("{event:?}");
                 pressed(
                     &self.definition,
-                    KlickQuelle::Touch(id),
+                    KlickQuelle::Touch(*id),
                     state,
                     bounds,
-                    Cursor::Available(position),
+                    Cursor::Available(*position),
                 )
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 debug!("{event:?}");
                 state.cursor_grabbed = false;
-                (event::Status::Ignored, None)
+                None
             },
-            Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {
-                (event::Status::Ignored, None)
-            },
+            Event::Mouse(_)
+            | Event::Touch(_)
+            | Event::Keyboard(_)
+            | Event::Window(_)
+            | Event::InputMethod(_) => None,
         }
     }
 
@@ -310,7 +321,7 @@ pub trait Nachricht<Definition> {
 }
 
 /// Anforderung für ein Thema, damit es für einen [`Knopf`] unterstützt wird.
-pub trait Thema {
+pub trait Catalog {
     /// Die Standard-Schriftart, Größe und Ausrichtung für Text auf einem Canvas.
     #[must_use]
     fn standard_text(&self) -> Text;

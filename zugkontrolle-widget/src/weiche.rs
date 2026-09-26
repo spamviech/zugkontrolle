@@ -3,22 +3,19 @@
 use std::fmt::{Debug, Display};
 
 use iced_aw::{
+    style::number_input,
     tab_bar,
-    widgets::{
-        card::{self, Card},
-        number_input,
-    },
+    widgets::card::{self, Card},
 };
 use iced_core::{
-    event, text as text_core,
+    Element, Font, Length, Renderer, text as text_core,
     widget::text::{self, Text},
-    Element, Font, Length, Renderer,
 };
 use iced_widget::{
+    Column, Row,
     button::{self, Button},
     container, radio, scrollable,
     text_input::{self, TextInput},
-    Column, Row,
 };
 
 use zugkontrolle_anschluss::OutputSerialisiert;
@@ -29,7 +26,7 @@ use zugkontrolle_typen::nachschlagen::Nachschlagen;
 use crate::{
     anschluss,
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{self, sammlung::Sammlung},
 };
 
 /// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
@@ -46,7 +43,7 @@ struct Zustand<AnschlüsseSerialisiert> {
 impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> {
     /// Erstelle einen neuen [`Zustand`], potentiell mit voreingestellten Anschlüssen.
     fn neu<Richtung>(
-        option_weiche: &Option<WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
+        option_weiche: Option<&WeicheSerialisiert<Richtung, AnschlüsseSerialisiert>>,
         hat_steuerung: bool,
     ) -> Self {
         let (name, anschlüsse) =
@@ -104,17 +101,19 @@ where
     RichtungInformation: 't + Clone + Default,
     R: 't + Renderer + text_core::Renderer<Font = Font>,
     Thema: 't
-        + button::StyleSheet
-        + card::StyleSheet
-        + container::StyleSheet
-        + number_input::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + tab_bar::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + card::Catalog
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + number_input::Catalog
+        + number_input::ExtendedCatalog
+        + radio::Catalog
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+        + text::Catalog
+        + text_input::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
+    style::tab_bar::TabBar: style::tab_bar::StyleProvider<'t, Thema>,
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu(
@@ -128,9 +127,7 @@ where
             Self::erzeuge_element(weichen_art, zustand, scrollable_style, settings)
         };
         let mapper = |interne_nachricht: InterneNachricht<Richtung>,
-                      zustand: &mut Zustand<AnschlüsseSerialisiert>,
-                      status: &mut event::Status| {
-            *status = event::Status::Captured;
+                      zustand: &mut Zustand<AnschlüsseSerialisiert>| {
             match interne_nachricht {
                 InterneNachricht::Name(name) => {
                     zustand.name = name;
@@ -153,7 +150,11 @@ where
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
             }
         };
-        Auswahl(MapMitZustand::neu(Zustand::neu(weiche, hat_steuerung), erzeuge_element, mapper))
+        Auswahl(MapMitZustand::neu(
+            Zustand::neu(weiche.as_ref(), hat_steuerung),
+            erzeuge_element,
+            mapper,
+        ))
     }
 
     /// Erzeuge die Widget-Hierarchie.
@@ -199,7 +200,7 @@ impl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>
     From<Auswahl<'t, Richtung, RichtungInformation, AnschlüsseSerialisiert, Thema, R>>
     for Element<'t, Nachricht<RichtungInformation, AnschlüsseSerialisiert>, Thema, R>
 where
-    AnschlüsseSerialisiert: 'static + Clone,
+    AnschlüsseSerialisiert: 'static + Clone + PartialEq,
     Richtung: 't,
     RichtungInformation: 't,
     Thema: 't,

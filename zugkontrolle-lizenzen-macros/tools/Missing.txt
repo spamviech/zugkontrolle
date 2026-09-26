@@ -1,0 +1,21 @@
+block-0.1.6: MIT
+    http://github.com/SSheldon/rust-block
+    None in repository
+    objc from the same author has a copy of the MIT license
+    https://github.com/SSheldon/rust-objc
+    https://github.com/SSheldon/rust-block/issues/13
+
+dispatch-0.2.0: MIT
+    None in repository
+    http://github.com/SSheldon/rust-dispatch
+    objc from the same author has a copy of the MIT license
+    https://github.com/SSheldon/rust-objc
+    https://github.com/SSheldon/rust-dispatch/issues/18
+
+iced_fonts_macros-0.3.0: MIT
+    Repository doesn't exist anymore
+    Repository: https://github.com/Redhawk18/iced_fonts
+    Announced License: MIT
+    It shows iced.rs as the homepage.
+    The rest of the iced-project has a MIT-license bundled with the code.
+    Additionally, iced_fonts ships a copy of the MIT license.

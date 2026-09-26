@@ -27,7 +27,7 @@ pub trait BekannterZugtyp: BekannterLeiter {
 ///
 /// Explizit definiert, anstelle [`nonempty::NonEmpty`],
 /// damit die [`Deserialize`]-Implementierung übereinstimmt.
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub(in crate::daten::v2) struct NonEmpty<T> {
     /// Das erste Element.
     head: T,
@@ -36,13 +36,11 @@ pub(in crate::daten::v2) struct NonEmpty<T> {
 }
 
 /// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
-#[derive(Deserialize)]
-#[allow(missing_debug_implementations)]
+#[derive(Debug, Deserialize)]
 pub struct MittelleiterSerialisiert(MittelleiterSerialisiertEnum);
 
 /// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
-#[derive(Deserialize)]
-#[allow(variant_size_differences)]
+#[derive(Debug, Deserialize)]
 pub(in crate::daten::v2) enum MittelleiterSerialisiertEnum {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -56,7 +54,7 @@ pub(in crate::daten::v2) enum MittelleiterSerialisiertEnum {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<OutputSerialisiert>,
         /// Der letzte eingestellte Wert.
-        #[allow(dead_code)]
+        #[expect(dead_code, reason = "Nicht relevant für neu geladene Geschwindigkeit.")]
         letzter_wert: usize,
         /// Der Anschluss mit Überspannung zum Umdrehen der Fahrtrichtung.
         umdrehen: OutputSerialisiert,
@@ -93,13 +91,11 @@ impl From<MittelleiterSerialisiert> for v4::MittelleiterSerialisiert {
 }
 
 /// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
-#[derive(Deserialize)]
-#[allow(missing_debug_implementations)]
+#[derive(Debug, Deserialize)]
 pub struct ZweileiterSerialisiert(ZweileiterSerialisiertEnum);
 
 /// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
-#[derive(Deserialize)]
-#[allow(variant_size_differences)]
+#[derive(Debug, Deserialize)]
 pub(in crate::daten::v2) enum ZweileiterSerialisiertEnum {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -115,7 +111,7 @@ pub(in crate::daten::v2) enum ZweileiterSerialisiertEnum {
         /// Die Anschlüsse.
         geschwindigkeit: NonEmpty<OutputSerialisiert>,
         /// Der letzte eingestellte Wert.
-        #[allow(dead_code)]
+        #[expect(dead_code, reason = "Nicht relevant für geladene Geschwindigkeit.")]
         letzter_wert: usize,
         /// Anschluss zur Steuerung der Fahrtrichtung.
         fahrtrichtung: OutputSerialisiert,

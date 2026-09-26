@@ -4,8 +4,8 @@ use std::{
     fmt::Debug,
     hash::Hash,
     mem,
-    sync::{mpsc::Sender, Arc},
-    thread::{sleep, JoinHandle},
+    sync::{Arc, mpsc::Sender},
+    thread::{JoinHandle, sleep},
     time::Duration,
 };
 
@@ -14,11 +14,11 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    Fehler, Lager, OutputAnschluss,
     de_serialisieren::{self, Anschlüsse, Reserviere, Serialisiere},
     polarität::Fließend,
-    Fehler, Lager, OutputAnschluss,
 };
-use zugkontrolle_typen::{nachschlagen::Nachschlagen, MitName};
+use zugkontrolle_typen::{MitName, nachschlagen::Nachschlagen};
 
 use crate::{
     steuerung::aktualisieren::{self, SomeAktualisierenSender},
@@ -162,13 +162,13 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
         }
         // Reserviere die Anschlüsse bis der gesamte Schaltvorgang abgeschlossen ist.
         let mut anschlüsse_guard = anschlüsse.lock();
-        bei_fehler_zurücksetzen!(anschlüsse_guard
-            .erhalte_mut(&neue_richtung)
-            .einstellen(Fließend::Fließend));
+        bei_fehler_zurücksetzen!(
+            anschlüsse_guard.erhalte_mut(&neue_richtung).einstellen(Fließend::Fließend)
+        );
         sleep(schalten_zeit);
-        bei_fehler_zurücksetzen!(anschlüsse_guard
-            .erhalte_mut(&neue_richtung)
-            .einstellen(Fließend::Gesperrt));
+        bei_fehler_zurücksetzen!(
+            anschlüsse_guard.erhalte_mut(&neue_richtung).einstellen(Fließend::Gesperrt)
+        );
         Ok(())
     }
 }
@@ -205,8 +205,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
                     }
                 }
             });
-        // Selber Wert, übergeben als Argument.
-        #[allow(clippy::shadow_unrelated)]
+        #[expect(clippy::shadow_unrelated, reason = "Selber Wert, übergeben als Argument.")]
         let schalten_aux = |(richtung, anschlüsse): &mut _,
                             neue_richtung,
                             schalten_zeit,
@@ -234,8 +233,7 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
     }
 }
 
-// Folge Konvention TypName->TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[expect(clippy::module_name_repetitions, reason = "Folge Konvention TypName->TypNameSerialisiert")]
 /// Serialisierbare Repräsentation der Steuerung einer [`Weiche`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WeicheSerialisiert<Richtung, Anschlüsse> {
@@ -298,8 +296,6 @@ where
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
         let WeicheSerialisiert { name, richtung, anschlüsse } = self;
-        // Selber Wert `anschlüsse`, als Ergebnis von `reserviere`.
-        #[allow(clippy::shadow_unrelated)]
         anschlüsse
             .reserviere(lager, bekannte_anschlüsse, (), ref_arg, mut_ref_arg)
             .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, sender))

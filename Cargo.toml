@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle"
-version = "5.0.0"
+version = "5.1.0"
 authors.workspace = true
 readme.workspace = true
 edition.workspace = true
@@ -17,6 +17,7 @@ members = [
     "zugkontrolle-gleis",
     "zugkontrolle-gleise",
     "zugkontrolle-lizenzen",
+    "zugkontrolle-lizenzen-macros",
     "zugkontrolle-macros",
     "zugkontrolle-typen",
     "zugkontrolle-util",
@@ -27,10 +28,10 @@ resolver = "2"
 [workspace.package]
 authors = ["spamviech <spamviech@web.de>"]
 readme = "README.md"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 publish = false
-rust-version = "1.77.0"
+rust-version = "1.98.1"
 repository = "https://github.com/spamviech/zugkontrolle"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -45,9 +46,11 @@ lto = "thin"
 panic = "abort"
 
 [features]
-default = []
+default = ["wgpu"]
 # Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
 raspi = ["zugkontrolle-anschluss/raspi"]
+# Add the iced wgpu feature for rendering.
+wgpu = ["zugkontrolle-application/wgpu"]
 
 [lints]
 workspace = true
@@ -56,15 +59,14 @@ workspace = true
 [dependencies]
 zugkontrolle-anschluss.workspace = true
 zugkontrolle-application.workspace = true
-zugkontrolle-widget.workspace = true
 zugkontrolle-gleis.workspace = true
 zugkontrolle-argumente.workspace = true
 flexi_logger.workspace = true
-iced.workspace = true
 log.workspace = true
+parking_lot.workspace = true
 
 # can't be used on non-raspi systems
-[dependencies.rppal]
+[dependencies.rpi-pal]
 workspace = true
 optional = true
 
@@ -80,7 +82,7 @@ embed-resource.workspace = true
 absolute_paths_not_starting_with_crate = "warn"
 elided_lifetimes_in_paths = "warn"
 explicit_outlives_requirements = "warn"
-keyword_idents = "warn"
+keyword_idents = { level = "warn", priority = -1 }
 macro_use_extern_crate = "warn"
 meta_variable_misuse = "warn"
 missing_abi = "warn"
@@ -88,7 +90,6 @@ missing_copy_implementations = "warn"
 missing_debug_implementations = "warn"
 missing_docs = "warn"
 noop_method_call = "warn"
-pointer_structural_match = "warn"
 rust_2021_incompatible_closure_captures = "warn"
 rust_2021_incompatible_or_patterns = "warn"
 rust_2021_prefixes_incompatible_syntax = "warn"
@@ -106,24 +107,23 @@ unused_lifetimes = "warn"
 unused_qualifications = "warn"
 unused_results = "warn"
 variant_size_differences = "warn"
-box_pointers = "allow"
 non_ascii_idents = "allow"
 unstable_features = "allow"
 
 [workspace.lints.clippy]
-correctness = "deny"
-suspicious = "warn"
-complexity = "warn"
-perf = "warn"
-style = "warn"
-cargo = "warn"
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
 # pedantic group lints
-pedantic = "warn"
-implicit_hasher = "allow" # benötigt Typ-Signatur als disambiguator bei Verwendung
+pedantic = { level = "warn", priority = -1 }
+implicit_hasher = "allow" # benötigt Typ-Signatur bei Verwendung
 # restriction group lints
 absolute_paths = "warn"
 alloc_instead_of_core = "warn"
-allow_attributes = "allow"               # expect-attribute still experimental
+allow_attributes = "allow"                 # expect-attribute still experimental
 allow_attributes_without_reason = "warn"
 arithmetic_side_effects = "warn"
 as_conversions = "warn"
@@ -134,35 +134,35 @@ clone_on_ref_ptr = "warn"
 create_dir = "warn"
 dbg_macro = "warn"
 decimal_literal_representation = "warn"
-default_numeric_fallback = "allow"       # nervig
+default_numeric_fallback = "allow"         # nervig
 default_union_representation = "warn"
-deref_by_slicing = "allow"               # bin anderer Meinung
-disallowed_script_idents = "allow"       # keine Einschränkung für Namensgebung
+deref_by_slicing = "allow"                 # bin anderer Meinung
+disallowed_script_idents = "allow"         # keine Einschränkung für Namensgebung
 else_if_without_else = "warn"
 empty_drop = "warn"
 empty_structs_with_brackets = "warn"
 error_impl_error = "warn"
-exhaustive_enums = "allow"               # exhaustive sollte der Standard sein
-exhaustive_structs = "allow"             # exhaustive sollte der Standard sein
+exhaustive_enums = "allow"                 # exhaustive sollte der Standard sein
+exhaustive_structs = "allow"               # exhaustive sollte der Standard sein
 exit = "warn"
-expect_used = "allow"                    # expect wird öfter verwendet um Invarianten auszunutzen
+expect_used = "allow"                      # expect wird öfter verwendet um Invarianten auszunutzen
 filetype_is_file = "warn"
-float_arithmetic = "allow"               # float-Berechnungen sind kein Problem
+float_arithmetic = "allow"                 # float-Berechnungen sind kein Problem
 float_cmp_const = "warn"
 fn_to_numeric_cast_any = "warn"
 format_push_string = "warn"
 get_unwrap = "warn"
 host_endian_bytes = "warn"
 if_then_some_else_none = "warn"
-impl_trait_in_params = "allow"           # Erlaubt manche Typ-Parameter nicht zu benennen
-implicit_return = "allow"                # idiomatic rust
+impl_trait_in_params = "allow"             # Erlaubt manche Typ-Parameter nicht zu benennen
+implicit_return = "allow"                  # idiomatic rust
 indexing_slicing = "warn"
 inline_asm_x86_att_syntax = "warn"
 inline_asm_x86_intel_syntax = "warn"
 integer_division = "warn"
 large_include_file = "warn"
-let_underscore_must_use = "allow"        # wird verwendet, um die must_use-Warnung auszuschalten
-let_underscore_untyped = "allow"         # nervig, jede Typ-Anpassung der aufgerufenen Funktion muss dupliziert werden
+let_underscore_must_use = "allow"          # wird verwendet, um die must_use-Warnung auszuschalten
+let_underscore_untyped = "allow"           # nervig, jede Typ-Anpassung der aufgerufenen Funktion muss dupliziert werden
 little_endian_bytes = "warn"
 lossy_float_literal = "warn"
 map_err_ignore = "warn"
@@ -171,48 +171,47 @@ min_ident_chars = "warn"
 missing_assert_message = "warn"
 missing_asserts_for_indexing = "warn"
 missing_docs_in_private_items = "warn"
-missing_inline_in_public_items = "allow" # die meisten functions sind groß genug, dass inline nicht zwingend Sinn macht
-missing_trait_methods = "allow"          # soll nicht global aktiviert werden
+missing_inline_in_public_items = "allow"   # die meisten functions sind groß genug, dass inline nicht zwingend Sinn macht
+missing_trait_methods = "allow"            # soll nicht global aktiviert werden
 mixed_read_write_in_expression = "warn"
 mod_module_files = "deny"
-modulo_arithmetic = "allow"              # nur ein Problem, sobald FFI involviert ist
-multiple_inherent_impl = "allow"         # aufteilen erlaubt, Hilfsfunktionen/-Typen nah an z.B. trait-implementieren zu schreiben.
+modulo_arithmetic = "allow"                # nur ein Problem, sobald FFI involviert ist
+multiple_inherent_impl = "allow"           # aufteilen erlaubt, Hilfsfunktionen/-Typen nah an z.B. trait-implementieren zu schreiben.
 multiple_unsafe_ops_per_block = "warn"
 mutex_atomic = "warn"
 needless_raw_strings = "warn"
-non_ascii_literal = "allow"              # wenn ein Editor kein unicode kann sollte er nicht verwendet werden...
+non_ascii_literal = "allow"                # wenn ein Editor kein unicode kann sollte er nicht verwendet werden...
 panic = "warn"
 panic_in_result_fn = "warn"
 partial_pub_fields = "warn"
-pattern_type_mismatch = "allow"          # benötigt viel boilerplate um match-statements
+pattern_type_mismatch = "allow"            # benötigt viel boilerplate um match-statements
 print_stderr = "warn"
 print_stdout = "warn"
 pub_use = "warn"
-pub_with_shorthand = "allow"             # pub_without_shorthand aktiviert
+pub_with_shorthand = "allow"               # pub_without_shorthand aktiviert
 pub_without_shorthand = "warn"
-question_mark_used = "allow"             # ?-operator ist super
+question_mark_used = "allow"               # ?-operator ist super
 rc_buffer = "warn"
 rc_mutex = "warn"
 redundant_type_annotations = "warn"
 ref_patterns = "warn"
 rest_pat_in_fully_bound_structs = "warn"
 same_name_method = "warn"
-self_named_module_files = "allow"        # mod_module_files aktiviert
+self_named_module_files = "allow"          # mod_module_files aktiviert
 semicolon_inside_block = "warn"
-semicolon_outside_block = "allow"        # semicolon_inside_block aktiviert
+semicolon_outside_block = "allow"          # semicolon_inside_block aktiviert
 separated_literal_suffix = "warn"
-shadow_reuse = "allow"                   # common rust pattern, führt sonst zu a1 = a0 + 3, ...
-shadow_same = "allow"                    # nützlich, wenn die ursprüngliche mutability/ownership/... nicht mehr gebraucht wird
+shadow_reuse = "allow"                     # common rust pattern, führt sonst zu a1 = a0 + 3, ...
+shadow_same = "allow"                      # nützlich, wenn die ursprüngliche mutability/ownership/... nicht mehr gebraucht wird
 shadow_unrelated = "warn"
-single_call_fn = "allow"                 # single use Funktionen verbessern die Code-Struktur
-single_char_lifetime_names = "allow"     # einzelner Buchstabe ist "üblich"
-std_instead_of_alloc = "allow"           # kein no_std-crate
-std_instead_of_core = "allow"            # kein no_std-crate
+single_call_fn = "allow"                   # single use Funktionen verbessern die Code-Struktur
+single_char_lifetime_names = "allow"       # einzelner Buchstabe ist "üblich"
+std_instead_of_alloc = "allow"             # kein no_std-crate
+std_instead_of_core = "allow"              # kein no_std-crate
 str_to_string = "warn"
 string_add = "warn"
-string_lit_chars_any = "allow"           # lint existiert aus Performance-Gründen, app ist nicht Performance-kritisch
+string_lit_chars_any = "allow"             # lint existiert aus Performance-Gründen, app ist nicht Performance-kritisch
 string_slice = "warn"
-string_to_string = "warn"
 suspicious_xor_used_as_pow = "warn"
 tests_outside_test_module = "warn"
 todo = "warn"
@@ -222,7 +221,7 @@ unimplemented = "warn"
 unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 unnecessary_self_imports = "warn"
-unneeded_field_pattern = "allow"         # Explizit Felder zu ignorieren hilft um Änderungen nich zu "verpassen"
+unneeded_field_pattern = "allow"         # Explizit Felder zu ignorieren hilft um Änderungen nicht zu "verpassen"
 unreachable = "allow"                    # unreachable wird verwendet um Invarianten auszunutzen
 unseparated_literal_suffix = "allow"     # separated_literal_suffix aktiviert
 unwrap_in_result = "allow"               # führt nur dazu nicht-behandelbare Fehler-Varianten hinzufügen zu müssen
@@ -230,155 +229,163 @@ unwrap_used = "warn"
 use_debug = "warn"
 verbose_file_reads = "warn"
 wildcard_enum_match_arm = "warn"
+empty_enum_variants_with_brackets = "warn"
+infinite_loop = "warn"
+integer_division_remainder_used = "allow"  # gedacht für Kryptographischen Kontext
+iter_over_hash_type = "allow"              # Reihenfolge nicht relevant, wenn HashMap/Set verwendet wird
 
 # workspace dependencies
-[workspace.dependencies.zugkontrolle-macros]
-path = "zugkontrolle-macros"
-version = "5.0.0"
-
 [workspace.dependencies.zugkontrolle-anschluss]
 path = "zugkontrolle-anschluss"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-util]
-path = "zugkontrolle-util"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-argumente]
-path = "zugkontrolle-argumente"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-typen]
-path = "zugkontrolle-typen"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-id]
-path = "zugkontrolle-id"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-lizenzen]
-path = "zugkontrolle-lizenzen"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-steuerung]
-path = "zugkontrolle-steuerung"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-gleis]
-path = "zugkontrolle-gleis"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-gleise]
-path = "zugkontrolle-gleise"
-version = "1.0.0"
-
-[workspace.dependencies.zugkontrolle-widget]
-path = "zugkontrolle-widget"
-version = "1.0.0"
+version = "1.1.0"
 
 [workspace.dependencies.zugkontrolle-application]
 path = "zugkontrolle-application"
-version = "1.0.0"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-argumente]
+path = "zugkontrolle-argumente"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-gleis]
+path = "zugkontrolle-gleis"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-gleise]
+path = "zugkontrolle-gleise"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-id]
+path = "zugkontrolle-id"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-lizenzen]
+path = "zugkontrolle-lizenzen"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-lizenzen-macros]
+path = "zugkontrolle-lizenzen-macros"
+version = "1.1.0"
+features = []
+
+[workspace.dependencies.zugkontrolle-macros]
+path = "zugkontrolle-macros"
+version = "5.1.0"
 
 [workspace.dependencies.zugkontrolle-test-util]
 path = "zugkontrolle-test-util"
-version = "1.0.0"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-typen]
+path = "zugkontrolle-typen"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-util]
+path = "zugkontrolle-util"
+version = "1.1.0"
+
+[workspace.dependencies.zugkontrolle-widget]
+path = "zugkontrolle-widget"
+version = "1.1.0"
 
 [workspace.dependencies]
 associated_list = "0.2.0"
 async-io = "2.3.0"
-bincode = "1.3.3"
-cargo_metadata = "0.18.1"
+cargo_metadata = "0.23.1"
 dyn-clonable = "0.9.0"
 either = "1.6.1"
-embed-resource = "2.1.1"
-enum-iterator = "1.4.1"
+embed-resource = "3.0.11"
+enum-iterator = "2.3.0"
+heck = "0.5.0"
 int-enum = "1.0.0"
-itertools = "0.12.0"
+itertools = "0.15.0"
 log = "0.4.14"
 num-traits = "0.2.14"
-once_cell = "1.17.1"
 parking_lot = "0.12.0"
 proc-macro-crate = "3.1.0"
 proc-macro2 = "1.0.36"
 quote = "1.0.15"
-rstar = "0.12.0"
+rstar = "0.13.0"
 take_mut = "0.2.2"
-thiserror = "1.0.58"
+thiserror = "2.0.20"
 unicase = "2.6.0"
 
 [workspace.dependencies.kommandozeilen_argumente]
 version = "0.2.1"
-default_features = false
+default-features = false
 features = ["derive"]
 
+[workspace.dependencies.bincode-next]
+version = "3.1.1"
+default-features = false
+features = ["std", "serde"]
+
 [workspace.dependencies.nonempty]
-version = "0.9.0"
-default_features = false
+version = "0.12.0"
+default-features = false
 features = ["serialize"]
 
 [workspace.dependencies.rfd]
-version = "0.14.1"
-default_features = false
-features = ["xdg-portal", "async-std"]
+version = "0.17.2"
+default-features = false
+features = ["xdg-portal"]
 
 [workspace.dependencies.serde]
 version = "1.0.136"
-default_features = false
+default-features = false
 features = ["derive"]
 
 [workspace.dependencies.flexi_logger]
-version = "0.27.3"
-default_features = false
+version = "0.31.10"
+default-features = false
 features = ["colors"]
 
-[workspace.dependencies.heck]
-version = "0.4.0"
-default-features = false
-features = ["unicode"]
-
 [workspace.dependencies.iced]
-version = "0.12.1"
+version = "0.14.0"
 default-features = false
-features = ["canvas", "lazy", "async-std"]
+features = ["canvas", "lazy", "x11", "wayland", "smol"]
 
 [workspace.dependencies.iced_core]
-version = "0.12.3"
+version = "0.14.0"
 default-features = false
 
 [workspace.dependencies.iced_futures]
-version = "0.12.0"
+version = "0.14.0"
 default-features = false
 
 [workspace.dependencies.iced_widget]
-version = "0.12.3"
+version = "0.14.0"
 default-features = false
 features = ["lazy"]
 
 [workspace.dependencies.iced_graphics]
-version = "0.12.1"
+version = "0.14.0"
 default-features = false
 features = ["geometry"]
 
 [workspace.dependencies.iced_renderer]
-version = "0.12.1"
+version = "0.14.0"
 default-features = false
 features = ["geometry"]
 
 [workspace.dependencies.iced_aw]
-version = "0.8.0"
+version = "0.14.1"
 default-features = false
-features = ["card", "tab_bar", "tabs", "number_input", "icons"]
-git = "https://github.com/iced-rs/iced_aw"
-rev = "9ed46bffd0d819f22e07db6c282fbef733007df5"
+features = ["card", "tab_bar", "tabs", "number_input"]
 
-[workspace.dependencies.rppal]
-default_features = false
-version = "0.17.1"
+[profile.dev.package.iced_aw]
+# x86_64-pc-windows-gnu has linker issues without this when enabling the "wgpu" feature
+# mingw32/bin/ld.exe: error: export ordinal too large: 78666
+opt-level = 2
+debug = false
+
+[workspace.dependencies.rpi-pal]
+default-features = false
+version = "0.22.3"
 
 [workspace.dependencies.syn]
-version = "2.0.15"
-default_features = false
+version = "3.0.5"
+default-features = false
 features = ["parsing", "full", "extra-traits"]
 
 #[workspace.dependencies.libcamera]

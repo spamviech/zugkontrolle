@@ -1,23 +1,30 @@
 //! [`Application`] für die Gleis-Anzeige.
 
-// Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![expect(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 use std::{
     convert::identity,
     fmt::{Debug, Display},
     hash::Hash,
-    sync::mpsc::{channel, Sender},
+    sync::{
+        Arc,
+        mpsc::{Sender, channel},
+    },
     time::Instant,
 };
 
 use flexi_logger::FlexiLoggerError;
-use iced::{application::Application, executor, Command, Element, Renderer, Subscription};
+use iced::{Element, Renderer, Settings, Size, Subscription, Task, window};
+use iced_futures::subscription;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
-    de_serialisieren::{Reserviere, Serialisiere},
     InitFehler, Lager,
+    de_serialisieren::{Reserviere, Serialisiere},
 };
 use zugkontrolle_argumente::{Argumente, I2cSettings};
 use zugkontrolle_gleis::steuerung::{
@@ -25,19 +32,19 @@ use zugkontrolle_gleis::steuerung::{
     streckenabschnitt::Name as StreckenabschnittName,
 };
 use zugkontrolle_gleis::zugtyp::Zugtyp;
-use zugkontrolle_gleise::{daten::v2::geschwindigkeit::BekannterZugtyp, Gleise};
+use zugkontrolle_gleise::{Gleise, daten::v2::geschwindigkeit::BekannterZugtyp};
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
 use zugkontrolle_widget::{
     auswahl::AuswahlZustand,
-    bewegen,
-    bewegen::{Bewegen, Bewegung},
+    bewegen::{self, Bewegen, Bewegung},
     drehen::Drehen,
+    fonts,
     geschwindigkeit::LeiterAnzeige,
     speichern_laden,
     style::{self, thema::Thema},
 };
 
-use crate::{empfänger::Empfänger, nachricht::Nachricht};
+use crate::{empfänger::Empfänger, icon::icon, nachricht::Nachricht};
 
 #[path = "empfänger.rs"]
 pub mod empfänger;
@@ -49,9 +56,9 @@ pub mod view;
 /// Anzeige einer Meldung.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MessageBox {
-    /// Titel der MessageBox.
+    /// Titel der [`MessageBox`].
     titel: String,
-    /// Nachricht der MessageBox.
+    /// Nachricht der [`MessageBox`].
     nachricht: String,
 }
 
@@ -66,7 +73,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     /// Alle Gleise, Streckenabschnitte, und Geschwindigkeiten.
     gleise: Gleise<L, Nachricht<L, S>>,
     /// Noch verfügbare Anschlüsse.
-    lager: Lager,
+    lager: Arc<RwLock<Lager>>,
     /// Der Stil für verwendete [`Scrollable-Widgets`](iced::widget::Scrollable)
     scrollable_style: style::sammlung::Sammlung,
     /// Aktivierte [`I2C-Busse`](crate::anschluss::pcf8574::I2cBus).
@@ -108,10 +115,7 @@ pub enum Fehler {
     Anschluss(InitFehler),
 }
 
-/// Flags für den [`Application`]-Trait.
-pub type Flags<L> = (Argumente, Lager, &'static Zugtyp<L>);
-
-impl<L, S> Application for Zugkontrolle<L, S>
+impl<L, S> Zugkontrolle<L, S>
 where
     L: 'static
         + Debug
@@ -133,32 +137,69 @@ where
     S: From<<L as BekannterZugtyp>::V2>,
     for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
 {
-    type Executor = executor::Default;
-    type Flags = Flags<L>;
-    type Message = Nachricht<L, S>;
-    type Theme = Thema;
+    /// Erzeuge eine [`iced::Application`], konfiguriert für die [`Zugkontrolle`]-Logik.
+    pub fn application(
+        argumente: Argumente,
+        lager: Arc<RwLock<Lager>>,
+        zugtyp: &Zugtyp<L>,
+    ) -> iced::Application<impl iced::Program<State = Self, Message = Nachricht<L, S>, Theme = Thema>>
+    {
+        iced::application(
+            move || Zugkontrolle::new(argumente.clone(), Arc::clone(&lager), zugtyp.clone()),
+            Zugkontrolle::update,
+            Zugkontrolle::view,
+        )
+        .title(Zugkontrolle::title)
+        .theme(Zugkontrolle::theme)
+        .subscription(Zugkontrolle::subscription)
+        .settings(Settings {
+            default_font: fonts::REGULAR,
+            fonts: fonts::benötigte_font_bytes(),
+            ..Settings::default()
+        })
+        .window(window::Settings {
+            size: Size { width: 800., height: 480. },
+            icon: icon(),
+            ..window::Settings::default()
+        })
+        .centered()
+    }
 
-    fn new((argumente, lager, zugtyp): Self::Flags) -> (Self, Command<Self::Message>) {
+    /// Initializes the [`Application`] with the flags provided to
+    /// [`run`] as part of the [`Settings`].
+    ///
+    /// Here is where you should return the initial state of your app.
+    ///
+    /// Additionally, you can return a [`Command`] if you need to perform some
+    /// async action in the background on startup. This is useful if you want to
+    /// load state from a file, perform an initial HTTP request, etc.
+    ///
+    /// [`run`]: Self::run
+    pub fn new(
+        argumente: Argumente,
+        lager: Arc<RwLock<Lager>>,
+        zugtyp: Zugtyp<L>,
+    ) -> (Self, Task<Nachricht<L, S>>) {
         let Argumente { pfad, modus, thema, zoom, x, y, winkel, i2c_settings, .. } = argumente;
 
-        let lade_zustand: Command<Self::Message>;
+        let lade_zustand: Task<Nachricht<L, S>>;
         let initialer_pfad: String;
         if let Some(pfad) = pfad {
-            lade_zustand = Nachricht::Laden(pfad.clone()).als_command();
+            lade_zustand = Nachricht::Laden(pfad.clone()).als_task();
             initialer_pfad = pfad.clone();
         } else {
-            lade_zustand = Command::none();
+            lade_zustand = Task::none();
             initialer_pfad = {
                 let mut standard_pfad = zugtyp.name.clone();
                 standard_pfad.push_str(".zug");
                 standard_pfad
             };
-        };
+        }
 
         let (sender, receiver) = channel();
 
         let gleise = Gleise::neu(
-            zugtyp.clone(),
+            zugtyp,
             modus.into(),
             Position { punkt: Vektor { x, y }, winkel },
             zoom,
@@ -187,12 +228,23 @@ where
         (zugkontrolle, lade_zustand)
     }
 
-    fn title(&self) -> String {
+    /// Returns the current title of the [`Application`].
+    ///
+    /// This title can be dynamic! The runtime will automatically update the
+    /// title of your application when necessary.
+    pub fn title(&self) -> String {
         format!("Zugkontrolle {}", env!("zugkontrolle_version"))
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        let mut command = Command::none();
+    /// Handles a __message__ and updates the state of the [`Application`].
+    ///
+    /// This is where you define your __update logic__. All the __messages__,
+    /// produced by either user interactions or commands, will be handled by
+    /// this method.
+    ///
+    /// Any [`Command`] returned will be executed immediately in the background.
+    pub fn update(&mut self, message: Nachricht<L, S>) -> Task<Nachricht<L, S>> {
+        let mut command = Task::none();
 
         match message {
             Nachricht::Gleis { definition_steuerung, klick_quelle, klick_höhe } => {
@@ -235,7 +287,7 @@ where
             },
             Nachricht::ZeigeDateiDialog(zeige_datei_dialog) => {
                 command =
-                    Command::perform(zeige_datei_dialog.0, identity).map(
+                    Task::perform(zeige_datei_dialog.0, identity).map(
                         |nachricht| match nachricht {
                             speichern_laden::Nachricht::Speichern(file_handle) => {
                                 Nachricht::Speichern(
@@ -289,15 +341,29 @@ where
         command
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Thema, Renderer> {
+    /// Returns the widgets to display in the [`Application`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    pub fn view(&self) -> Element<'_, Nachricht<L, S>, Thema, Renderer> {
         self.view_impl()
     }
 
-    fn theme(&self) -> Self::Theme {
+    /// Returns the current [`Theme`] of the [`Application`].
+    ///
+    /// [`Theme`]: Self::Theme
+    pub fn theme(&self) -> Thema {
         self.thema
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
-        Subscription::from_recipe(self.empfänger.clone())
+    /// Returns the event [`Subscription`] for the current state of the
+    /// application.
+    ///
+    /// A [`Subscription`] will be kept alive as long as you keep returning it,
+    /// and the __messages__ produced will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// By default, this method returns an empty [`Subscription`].
+    pub fn subscription(&self) -> Subscription<Nachricht<L, S>> {
+        subscription::from_recipe(self.empfänger.clone())
     }
 }

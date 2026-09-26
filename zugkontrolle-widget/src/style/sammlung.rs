@@ -1,15 +1,15 @@
 //! Style-Strukturen für ein [`iced::widget::Scrollable`].
 
-use iced::{
+use iced_core::{
+    Background, Color,
     border::{self, Border},
-    widget::{
-        container,
-        scrollable::{Appearance, Scrollbar, Scroller, StyleSheet},
-    },
-    Color,
 };
+use iced_widget::scrollable::{self, Rail, Scroller};
 
 use crate::style::thema::Thema;
+
+#[doc(inline)]
+pub use scrollable::{Style, StyleFn};
 
 /// Style-Struktur für ein [`iced::widget::Scrollable`]
 /// mit fester [`Scroller-Breite`](iced_native::widget::scrollable::Properties::scroller_width).
@@ -37,56 +37,43 @@ impl Sammlung {
     pub fn breite(&self) -> f32 {
         self.breite
     }
-
-    /// Erhalte den [Scrollbar]-Style mit dem gegebenen `grey_value`.
-    #[must_use]
-    fn scrollbar(self, grey_value: f32) -> Scrollbar {
-        let scroller_color = Color::from_rgb(grey_value, grey_value, grey_value);
-        Scrollbar {
-            background: None,
-            border: Border { radius: border::Radius::from(0.), width: 0., color: Color::BLACK },
-            scroller: Scroller {
-                color: scroller_color,
-                border: Border {
-                    radius: border::Radius::from(0.25 * self.breite),
-                    width: 0.,
-                    color: scroller_color,
-                },
-            },
-        }
-    }
-
-    /// [`Self::scrollbar`], mit `container` und `gap` als [`Default::default`]-Werten.
-    #[must_use]
-    fn appearance(self, grey_value: f32) -> Appearance {
-        Appearance {
-            scrollbar: self.scrollbar(grey_value),
-            container: container::Appearance::default(),
-            gap: None,
-        }
-    }
 }
 
-impl StyleSheet for Thema {
-    type Style = Sammlung;
+/// Erlaube Verwendung in [`iced_widget::Scrollable::style`]).
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: scrollable::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
+    #[must_use]
+    fn style_fn(self) -> StyleFn<'static, Thema>;
+}
 
-    fn active(&self, style: &Self::Style) -> Appearance {
-        match self {
-            Thema::Hell => style.appearance(0.7),
-            Thema::Dunkel => style.appearance(0.3),
-        }
-    }
-
-    fn hovered(&self, style: &Self::Style, _is_mouse_over_scrollbar: bool) -> Appearance {
-        match self {
-            Thema::Hell => style.appearance(0.6),
-            Thema::Dunkel => style.appearance(0.4),
-        }
-    }
-
-    fn dragging(&self, style: &Self::Style) -> Appearance {
-        match self {
-            Thema::Hell | Thema::Dunkel => style.appearance(0.5),
-        }
+impl StyleProvider<'_, Thema> for Sammlung {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
+        Box::new(move |thema, status| {
+            let mut style = <Thema as scrollable::Catalog>::default()(thema, status);
+            let (grey_border, grey_background) = match thema {
+                Thema::Hell => (0.7, 0.6),
+                Thema::Dunkel => (0.3, 0.2),
+            };
+            style.vertical_rail = Rail {
+                background: None,
+                border: Border { radius: border::Radius::from(0.), width: 0., color: Color::BLACK },
+                scroller: Scroller {
+                    border: Border {
+                        radius: border::Radius::from(0.25 * self.breite),
+                        width: 0.,
+                        color: Color::from_rgb(grey_border, grey_border, grey_border),
+                    },
+                    background: Background::Color(Color::from_rgb(
+                        grey_background,
+                        grey_background,
+                        grey_background,
+                    )),
+                },
+            };
+            style
+        })
     }
 }

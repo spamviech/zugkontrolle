@@ -23,11 +23,11 @@ pub struct KurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisiert
     pub radius: Skalar,
     /// Der Winkel der Kurven.
     pub winkel: Winkel,
-    /// Die Orientierung der KurvenWeiche.
+    /// Die Orientierung der [`KurvenWeiche`].
     pub orientierung: Orientierung,
-    /// Eine allgemeine Beschreibung der KurvenWeiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der [`KurvenWeiche`], z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der KurvenWeiche.
+    /// Die Anschlüsse zum Schalten der [`KurvenWeiche`].
     pub steuerung: Anschlüsse,
 }
 
@@ -72,10 +72,9 @@ impl From<v4::KurvenWeicheUnit> for KurvenWeicheUnit {
 
 /// Mögliche Richtungen zum Schalten.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Richtung {
-    #[allow(missing_docs)]
     Innen,
-    #[allow(missing_docs)]
     Außen,
 }
 

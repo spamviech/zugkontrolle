@@ -1,17 +1,19 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Container`].
 
-use iced::{
+use iced_core::{
+    Background, Color,
     border::{self, Border},
-    theme,
-    widget::container,
-    Background, Color, Theme,
+    theme::Base as _,
 };
+use iced_widget::container;
 
 use crate::style::thema::Thema;
 
+#[doc(inline)]
+pub use container::{Style, StyleFn};
+
 /// Weißer Hintergrund.
-#[allow(non_upper_case_globals)]
-pub const WEIß: Container = Container::hintergrund_grau(1.);
+pub const WEIẞ: Container = Container::hintergrund_grau(1.);
 /// Schwarzer Hintergrund.
 pub const SCHWARZ: Container = Container::hintergrund_grau(0.);
 /// Roter Hintergrund.
@@ -27,6 +29,8 @@ pub enum Container {
     /// Die Standard-Darstellung des korrespondierenden [`iced::Theme`].
     #[default]
     Standard,
+    /// Ändere die Hintergrundfarbe ausgehend vom Thema.
+    HintergrundThema,
     /// Ändere die Hintergrundfarbe.
     Hintergrund {
         /// Die Hintergrundfarbe.
@@ -77,37 +81,33 @@ impl Container {
     }
 }
 
-impl container::StyleSheet for Thema {
-    type Style = Container;
+/// Erlaube Verwendung in [`iced_widget::Container::style`]).
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: container::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
+    #[must_use]
+    fn style_fn(self) -> StyleFn<'static, Thema>;
+}
 
-    fn appearance(&self, style: &Self::Style) -> container::Appearance {
-        match (self, style) {
-            (Thema::Hell, Container::Standard) => {
-                container::StyleSheet::appearance(&Theme::Light, &theme::Container::default())
-            },
-            (Thema::Dunkel, Container::Standard) => {
-                container::StyleSheet::appearance(&Theme::Dark, &theme::Container::default())
-            },
-            (Thema::Hell | Thema::Dunkel, Container::Hintergrund { farbe }) => {
-                container::Appearance {
-                    background: Some(Background::Color(*farbe)),
-                    ..container::Appearance::default()
-                }
-            },
-            (Thema::Hell | Thema::Dunkel, Container::Rand { farbe, breite, radius }) => {
-                container::Appearance {
-                    border: Border { color: *farbe, width: *breite, radius: *radius },
-                    ..container::Appearance::default()
-                }
-            },
-            (Thema::Hell, Container::Pcf8574Beschreibung) => container::Appearance {
-                text_color: Some(Color::BLACK),
-                ..container::Appearance::default()
-            },
-            (Thema::Dunkel, Container::Pcf8574Beschreibung) => container::Appearance {
-                text_color: Some(Color::WHITE),
-                ..container::Appearance::default()
-            },
-        }
+impl StyleProvider<'_, Thema> for Container {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
+        Box::new(move |thema| {
+            let default_style = <Thema as container::Catalog>::default()(thema);
+            match self {
+                Container::Standard => default_style,
+                Container::HintergrundThema => {
+                    default_style.background(thema.base().background_color)
+                },
+                Container::Hintergrund { farbe } => {
+                    default_style.background(Background::Color(farbe))
+                },
+                Container::Rand { farbe, breite, radius } => {
+                    default_style.border(Border { color: farbe, width: breite, radius })
+                },
+                Container::Pcf8574Beschreibung => default_style.color(thema.base().text_color),
+            }
+        })
     }
 }

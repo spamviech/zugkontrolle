@@ -6,15 +6,14 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
+    Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     pin::Pin as EinPin,
     polarität::Polarität,
-    rppal::{gpio, pwm},
-    Lager,
+    rpi_pal::{gpio, pwm},
 };
 
 /// Hard- oder Software-erzeugtes Pwm-Signal. Erlaubt exklusive Steuerung der zugehörigen Pins.
-#[allow(variant_size_differences)]
 #[derive(Debug)]
 pub(in crate::pin) enum Pwm {
     /// Hardware-Pwm.
@@ -134,8 +133,10 @@ impl Pin {
                 // konfiguration.zeit wird hier kopiert, ein verändern ist demnach kein Problem
                 let Zeit { frequenz, mut betriebszyklus } = konfiguration.zeit;
                 if konfiguration.polarität == Polarität::Invertiert {
-                    // NullBisEins hat eine saturating Add-Implementierung
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[expect(
+                        clippy::arithmetic_side_effects,
+                        reason = "NullBisEins hat eine saturating Add-Implementierung"
+                    )]
                     {
                         betriebszyklus = NullBisEins::MAX - betriebszyklus;
                     }
@@ -188,8 +189,7 @@ pub enum Fehler {
 }
 
 /// Serialisierbare Informationen einen Pwm-Pins.
-#[allow(missing_copy_implementations)]
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
 
 impl Serialisiere<Serialisiert> for Pin {

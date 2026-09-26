@@ -6,7 +6,7 @@ use std::{
 };
 
 use iced_core::{Point, Radians};
-use iced_graphics::geometry::{path, Path};
+use iced_graphics::geometry::{Path, path};
 
 use crate::{
     skalar::Skalar,
@@ -17,7 +17,7 @@ use crate::{
 /// Pfad auf dem Canvas.
 ///
 /// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pfad {
     /// Der beschriebene Pfad.
     pub(crate) pfad: Path,
@@ -29,8 +29,10 @@ impl Pfad {
     /// Erzeuge ein Rechteck der gegebenen `größe` unter den gegebenen `transformationen`.
     #[must_use]
     pub fn rechteck(größe: Vektor, transformationen: Vec<Transformation>) -> Self {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         Erbauer::neu()
             .move_to_chain(Vektor::null_vektor())
             .line_to_chain(größe.x * Vektor::EX)
@@ -81,7 +83,7 @@ pub struct YAchse;
 pub struct Invertiert<T, Achse>(T, PhantomData<*const Achse>);
 
 impl<T, Achse> From<T> for Invertiert<T, Achse> {
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars, reason = "t: T")]
     fn from(t: T) -> Self {
         Invertiert(t, PhantomData)
     }
@@ -90,8 +92,10 @@ impl<T, Achse> From<T> for Invertiert<T, Achse> {
 impl<P: Into<Vektor>> From<Invertiert<P, XAchse>> for Vektor {
     fn from(invertiert: Invertiert<P, XAchse>) -> Self {
         let mut vektor = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             vektor.x = -vektor.x;
         }
@@ -102,8 +106,10 @@ impl<P: Into<Vektor>> From<Invertiert<P, XAchse>> for Vektor {
 impl<P: Into<Vektor>> From<Invertiert<P, YAchse>> for Vektor {
     fn from(invertiert: Invertiert<P, YAchse>) -> Self {
         let mut vektor = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             vektor.y = -vektor.y;
         }
@@ -114,8 +120,10 @@ impl<P: Into<Vektor>> From<Invertiert<P, YAchse>> for Vektor {
 impl<A: Into<Winkel>> From<Invertiert<A, XAchse>> for Winkel {
     fn from(invertiert: Invertiert<A, XAchse>) -> Self {
         let w = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             winkel::PI - w
         }
@@ -125,8 +133,10 @@ impl<A: Into<Winkel>> From<Invertiert<A, XAchse>> for Winkel {
 impl<A: Into<Winkel>> From<Invertiert<A, YAchse>> for Winkel {
     fn from(invertiert: Invertiert<A, YAchse>) -> Self {
         let w = invertiert.0.into();
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             -w
         }
@@ -161,7 +171,7 @@ where
 pub struct Erbauer<V, B> {
     /// Der Builder.
     builder: path::Builder,
-    /// [PhantomData] um [Vektor] und [Bogen] unter Berücksichtigung von [`Invertiert`] zu verwenden.
+    /// [`PhantomData`] um [`Vektor`] und [`Bogen`] unter Berücksichtigung von [`Invertiert`] zu verwenden.
     phantom_data: PhantomData<fn() -> (V, B)>,
 }
 

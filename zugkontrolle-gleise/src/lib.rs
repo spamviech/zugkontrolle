@@ -1,14 +1,21 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem [`Canvas`](iced::widget::canvas::Canvas).
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![expect(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 use std::{collections::HashMap, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant};
 
+use bincode_next::error::EncodeError;
 use iced::{
-    mouse::{self, Cursor},
-    widget::canvas::{event, Event, Geometry, Program},
     Rectangle, Renderer,
+    mouse::{self, Cursor},
+    widget::{
+        Action,
+        canvas::{Event, Geometry, Program},
+    },
 };
 use nonempty::NonEmpty;
 
@@ -168,8 +175,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Bewege aktuellen Pivot-Punkt um `bewegung`.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         {
             self.pivot.punkt += bewegung;
         }
@@ -189,8 +198,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Drehe die aktuelle Darstellung um `winkel`.
     pub fn drehen(&mut self, winkel: Winkel) {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         {
             self.pivot.winkel += winkel;
         }
@@ -210,8 +221,10 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
 
     /// Multipliziere die aktuelle Darstellung mit `skalieren`.
     pub fn skalieren(&mut self, skalieren: Skalar) {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         {
             self.skalieren *= skalieren;
         }
@@ -351,7 +364,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub fn aus_allen_geschwindigkeiten<T, C>(
         &self,
-        mut funktion: impl for<'s> FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
+        mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
     ) -> C
     where
         C: FromIterator<T>,
@@ -398,7 +411,7 @@ impl<L, AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Thema, Rende
 where
     L: Leiter,
     AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
-    Thema: Clone + Into<u8> + PartialEq + knopf::Thema,
+    Thema: Clone + Into<u8> + PartialEq + knopf::Catalog,
     u8: TryInto<Thema>,
 {
     type State = ();
@@ -417,10 +430,10 @@ where
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<NonEmpty<Nachricht>>) {
+    ) -> Option<Action<NonEmpty<Nachricht>>> {
         self.update_impl(state, event, bounds, cursor)
     }
 
@@ -438,17 +451,15 @@ where
             },
             ModusDaten::Bauen { .. } | ModusDaten::Fahren => {
                 let mut interaction = mouse::Interaction::default();
-                if cursor.is_over(bounds) {
-                    if let Some(canvas_pos) =
+                if cursor.is_over(bounds)
+                    && let Some(canvas_pos) =
                         berechne_canvas_position(&bounds, &cursor, &self.pivot, self.skalieren)
-                    {
-                        if self.zustand.gleis_an_position(canvas_pos).is_some() {
-                            interaction = match &self.modus {
-                                ModusDaten::Bauen { .. } => mouse::Interaction::Grab,
-                                ModusDaten::Fahren => mouse::Interaction::Pointer,
-                            };
-                        }
-                    }
+                    && self.zustand.gleis_an_position(canvas_pos).is_some()
+                {
+                    interaction = match &self.modus {
+                        ModusDaten::Bauen { .. } => mouse::Interaction::Grab,
+                        ModusDaten::Fahren => mouse::Interaction::Pointer,
+                    };
                 }
                 interaction
             },
@@ -457,24 +468,12 @@ where
 }
 
 /// Fehler, die bei Interaktion mit den [`Gleisen`](Gleise) auftreten können.
-#[derive(Debug)]
+#[derive(Debug, zugkontrolle_macros::From)]
 pub enum Fehler {
     /// Ein IO-Fehler.
     IO(io::Error),
     /// Fehler beim Serialisieren (speichern) der Gleise.
-    BincodeSerialisieren(bincode::Error),
+    BincodeSerialisieren(EncodeError),
     /// Ein Fehler bei Interaktion mit einem [`Anschluss`](anschluss::Anschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),
-}
-
-impl From<io::Error> for Fehler {
-    fn from(error: io::Error) -> Self {
-        Fehler::IO(error)
-    }
-}
-
-impl From<zugkontrolle_anschluss::Fehler> for Fehler {
-    fn from(error: zugkontrolle_anschluss::Fehler) -> Self {
-        Fehler::Anschluss(error)
-    }
 }

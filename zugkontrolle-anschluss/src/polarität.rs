@@ -5,7 +5,7 @@ use std::ops::Not;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{level::Level, rppal};
+use crate::{level::Level, rpi_pal};
 
 /// Bei welchem [`Level`] fließt der Strom an einem Anschluss.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -32,20 +32,20 @@ impl Display for Polarität {
     }
 }
 
-impl From<Polarität> for rppal::pwm::Polarity {
+impl From<Polarität> for rpi_pal::pwm::Polarity {
     fn from(polarität: Polarität) -> Self {
         match polarität {
-            Polarität::Normal => rppal::pwm::Polarity::Normal,
-            Polarität::Invertiert => rppal::pwm::Polarity::Inverse,
+            Polarität::Normal => rpi_pal::pwm::Polarity::Normal,
+            Polarität::Invertiert => rpi_pal::pwm::Polarity::Inverse,
         }
     }
 }
 
-impl From<rppal::pwm::Polarity> for Polarität {
-    fn from(polarity: rppal::pwm::Polarity) -> Self {
+impl From<rpi_pal::pwm::Polarity> for Polarität {
+    fn from(polarity: rpi_pal::pwm::Polarity) -> Self {
         match polarity {
-            rppal::pwm::Polarity::Normal => Polarität::Normal,
-            rppal::pwm::Polarity::Inverse => Polarität::Invertiert,
+            rpi_pal::pwm::Polarity::Normal => Polarität::Normal,
+            rpi_pal::pwm::Polarity::Inverse => Polarität::Invertiert,
         }
     }
 }

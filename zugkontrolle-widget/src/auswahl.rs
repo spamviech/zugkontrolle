@@ -51,29 +51,28 @@ pub enum WeichenId {
     Kreuzung(GleisId<Kreuzung>),
 }
 
-// Beinhaltet SKurveWeiche und Kreuzung (identische Richtungen)
-#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`Weiche`], [`SKurvenWeiche`] oder [`Kreuzung`].
+/// Beinhaltet [`SKurvenWeiche`] und [`Kreuzung`] (identische Richtungen).
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 type WeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::gerade::Richtung,
     zugkontrolle_gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
-#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`DreiwegeWeiche`].
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 type DreiwegeWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::dreiwege::RichtungInformation,
     zugkontrolle_gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
-#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
 /// Serialisierte Steuerung für eine [`KurvenWeiche`].
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
     zugkontrolle_gleis::weiche::kurve::Richtung,
     zugkontrolle_gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-// Beheben benötigt Änderung des public API.
-#[allow(clippy::module_name_repetitions)]
 /// Zustand des Auswahl-Fensters.
+#[expect(clippy::module_name_repetitions, reason = "Beheben benötigt Änderung des public API.")]
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuswahlZustand<S> {
     /// Hinzufügen/Verändern eines [`Streckenabschnittes`](steuerung::streckenabschnitt::Streckenabschnitt).
@@ -132,21 +131,21 @@ impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
     }
 }
 
-#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 /// `AuswahlNachricht` für die Steuerung einer [Weiche], [Kreuzung] und [`SKurvenWeiche`].
 pub type WeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::gerade::Richtung,
     zugkontrolle_gleis::weiche::gerade::RichtungAnschlüsseSerialisiert,
 >;
 
-#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 /// `AuswahlNachricht` für die Steuerung einer [`DreiwegeWeiche`].
 pub type DreiwegeWeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::dreiwege::RichtungInformation,
     zugkontrolle_gleis::weiche::dreiwege::RichtungAnschlüsseSerialisiert,
 >;
 
-#[allow(clippy::absolute_paths)] // Notwendig, da `weiche` bereits in scope ist.
+#[expect(clippy::absolute_paths, reason = "Notwendig, da `weiche` bereits in scope ist.")]
 /// `AuswahlNachricht` für die Steuerung einer [`KurvenWeiche`].
 pub type KurvenWeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::kurve::Richtung,
@@ -155,7 +154,7 @@ pub type KurvenWeicheNachricht = weiche::Nachricht<
 
 impl<S> AuswahlZustand<S> {
     /// Anzeige des Auswahlfensters
-    pub fn view<'t, L, Nachricht: 't, AktualisierenNachricht>(
+    pub fn view<'t, L, Nachricht, AktualisierenNachricht>(
         &self,
         gleise: &'t Gleise<L, AktualisierenNachricht>,
         scrollable_style: Sammlung,
@@ -164,7 +163,8 @@ impl<S> AuswahlZustand<S> {
     where
         L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
         S: 'static + Clone + Default,
-        Nachricht: From<streckenabschnitt::AuswahlNachricht>
+        Nachricht: 't
+            + From<streckenabschnitt::AuswahlNachricht>
             + From<geschwindigkeit::AuswahlNachricht<S>>
             + From<(kontakt::Nachricht, KontaktId)>
             + From<(WeicheNachricht, WeichenId)>
@@ -173,17 +173,22 @@ impl<S> AuswahlZustand<S> {
             + From<lizenzen::Nachricht>,
     {
         match self {
-            AuswahlZustand::Streckenabschnitt(startwert) => Element::from(
-                streckenabschnitt::Auswahl::neu(startwert, gleise, scrollable_style, i2c_settings),
-            )
-            .map(Nachricht::from),
+            AuswahlZustand::Streckenabschnitt(startwert) => {
+                Element::from(streckenabschnitt::Auswahl::neu(
+                    startwert.as_ref(),
+                    gleise,
+                    scrollable_style,
+                    i2c_settings,
+                ))
+                .map(Nachricht::from)
+            },
             AuswahlZustand::Geschwindigkeit(startwert) => {
                 let geschwindigkeiten =
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
                         (name.clone(), geschwindigkeit.serialisiere())
                     });
                 Element::from(<L as LeiterAnzeige<S, Thema, Renderer>>::auswahl_neu(
-                    startwert,
+                    startwert.as_ref(),
                     geschwindigkeiten,
                     scrollable_style,
                     i2c_settings,

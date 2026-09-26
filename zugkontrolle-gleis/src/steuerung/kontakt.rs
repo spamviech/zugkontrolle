@@ -3,8 +3,8 @@
 use std::{
     fmt::Debug,
     sync::{
-        mpsc::{channel, Receiver, RecvError, SendError, Sender},
         Arc,
+        mpsc::{Receiver, RecvError, SendError, Sender, channel},
     },
 };
 
@@ -15,10 +15,10 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    Fehler, InputAnschluss, InputSerialisiert, Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     level::Level,
     trigger::Trigger,
-    Fehler, InputAnschluss, InputSerialisiert, Lager,
 };
 use zugkontrolle_typen::MitName;
 use zugkontrolle_util::erstelle_sender_trait_existential;
@@ -59,8 +59,7 @@ pub struct Kontakt {
 /// Entferne den Anschluss aus dem Either und ersetzte ihn durch seine serialisierbare Repräsentation.
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
     let serialisiert = serialisiere_anschluss(either);
-    // std::mem::replace soll offensichtlich sein.
-    #[allow(clippy::absolute_paths)]
+    #[expect(clippy::absolute_paths, reason = "std::mem::replace soll offensichtlich sein.")]
     std::mem::replace(either, Either::Right(serialisiert))
 }
 
@@ -97,6 +96,10 @@ impl Kontakt {
     /// ## Errors
     ///
     /// Fehler beim setzen des async Interrupt callbacks.
+    ///
+    /// ## Panics
+    ///
+    /// Programmierfehler, die zu verletzten Invarianten führen.
     pub fn neu(
         name: Name,
         mut anschluss: InputAnschluss,
@@ -113,16 +116,15 @@ impl Kontakt {
         let letztes_level_clone = Arc::clone(&letztes_level);
         let aktualisieren_sender = Mutex::new(aktualisieren_sender);
         let set_async_interrupt_result =
-            anschluss.setze_async_interrupt(Trigger::Both, move |level| {
-                let callback_aufrufen = {
+            anschluss.setze_async_interrupt(Trigger::Both, move |event| {
+                let neues_level = event.trigger.neues_level()
+                    .expect("Unexpected Trigger value.");
+                {
                     let mut guard = letztes_level_clone.lock();
                     let letztes_level_mut = guard.as_mut();
-                    let callback_aufrufen = letztes_level_mut
-                        .map(|bisher| trigger_copy.callback_aufrufen(level, bisher))
-                        .unwrap_or(true);
-                    *letztes_level_mut = Some(level);
-                    callback_aufrufen
-                };
+                    *letztes_level_mut = Some(neues_level);
+                }
+                let callback_aufrufen = (trigger_copy & event.trigger) != Trigger::Disabled;
                 if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren) {
                     log::error!(
                         "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
@@ -136,9 +138,8 @@ impl Kontakt {
                     let mut next = aktuelle_senders.len().checked_sub(1);
                     while let Some(index) = next {
                         // 0 <= index < senders.len()
-                        // range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.
-                        #[allow(clippy::indexing_slicing)]
-                        match aktuelle_senders[index].send(level) {
+                        #[expect(clippy::indexing_slicing, reason = "range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.")]
+                        match aktuelle_senders[index].send(neues_level) {
                             Ok(()) => next = index.checked_sub(1),
                             Err(SendError(_level)) => {
                                 // channel was disconnected, so no need to send to it anymore.
@@ -207,8 +208,10 @@ impl MitName for Kontakt {
     }
 }
 
-// Folge der Konvention TypName->TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[expect(
+    clippy::module_name_repetitions,
+    reason = "Folge der Konvention TypName->TypNameSerialisiert"
+)]
 /// Serialisierbare Variante eines [`Kontaktes`](Kontakt).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct KontaktSerialisiert {
@@ -261,8 +264,6 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
-        // anschlüsse ist die selbe Struktur nach ausführen von `reserviere`.
-        #[allow(clippy::shadow_unrelated)]
         let (mut anschluss, fehler, mut anschlüsse) =
             match self.anschluss.reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg) {
                 Wert { anschluss, anschlüsse } => (anschluss, None, anschlüsse),
@@ -304,8 +305,7 @@ impl MitName for KontaktSerialisiert {
     }
 }
 
-// Wird nicht qualifiziert verwendet.
-#[allow(clippy::module_name_repetitions)]
+#[expect(clippy::module_name_repetitions, reason = "Wird nicht qualifiziert verwendet.")]
 /// Trait für Typen mit einem [`Kontakt`].
 pub trait MitKontakt {
     /// Erhalte das aktuelle [Level] und den gewählten [`Trigger`].

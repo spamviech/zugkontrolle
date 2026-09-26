@@ -328,7 +328,7 @@ Rizzi
 Roozbeh
 Rothfels
 Roundy
-rppal
+rpi_pal
 rstar
 rstern
 rustc

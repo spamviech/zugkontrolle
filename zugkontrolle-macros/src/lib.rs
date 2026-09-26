@@ -94,13 +94,3 @@ pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStr
 
     alias::alias_serialisiert_unit(&attr.into(), &ast).into()
 }
-
-mod lizenzen;
-#[proc_macro]
-/// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten
-/// und füge die Lizenz hinzu.
-/// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
-/// Die targets werden über `rustc --print target-list` ausgelesen.
-pub fn target_crate_lizenzen(input: TokenStream) -> TokenStream {
-    lizenzen::target_crate_lizenzen(&input.into()).into()
-}

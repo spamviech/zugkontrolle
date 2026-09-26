@@ -1,37 +1,37 @@
 //! Struktur zum Speichern aller Gleise.
 
 use std::{
-    any::{type_name, TypeId},
+    any::{TypeId, type_name},
     collections::hash_map::HashMap,
     fmt::{self, Debug, Display, Formatter},
 };
 
 use iced::{
+    Color,
     widget::canvas::{
+        Text,
         fill::{self, Fill},
         stroke::{self, Stroke},
-        Text,
     },
-    Color,
 };
 use log::error;
-use nonempty::{nonempty, NonEmpty};
+use nonempty::{NonEmpty, nonempty};
 use rstar::{
+    RTree, RTreeObject,
     primitives::{GeomWithData, Rectangle},
-    RTree, RTreeObject, SelectionFunction, AABB,
 };
 
 use thiserror::Error;
 use zugkontrolle_anschluss::{
+    Fehler, Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     polarität::Fließend,
-    Fehler, Lager,
 };
 use zugkontrolle_gleis::{
     gerade::Gerade,
     id::{
-        erzeuge_any_enum, mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung,
-        AnyGleisDefinitionId, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert, DefinitionId,
+        AnyDefinitionId, AnyDefinitionIdSteuerung, AnyGleisDefinitionId, AnyId, AnyIdSteuerung,
+        AnyIdSteuerungSerialisiert, DefinitionId, erzeuge_any_enum, mit_any_id,
     },
     kreuzung::Kreuzung,
     kurve::Kurve,
@@ -46,11 +46,12 @@ use zugkontrolle_gleis::{
     },
     zugtyp::Zugtyp,
 };
-use zugkontrolle_id::{eindeutig::KeineIdVerfügbar, GleisId};
+use zugkontrolle_id::{GleisId, eindeutig::KeineIdVerfügbar};
 use zugkontrolle_typen::{
+    Innerhalb, Transparenz, Zeichnen,
     canvas::{
-        pfad::{self, Transformation},
         Frame, Position,
+        pfad::{self, Transformation},
     },
     farbe::Farbe,
     mm::Spurweite,
@@ -60,7 +61,6 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::{self, Verbindung},
     winkel::{self, Winkel},
-    Innerhalb, Transparenz, Zeichnen,
 };
 
 use crate::knopf;
@@ -415,7 +415,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(crate) fn darstellen_aller_gleise<Thema: knopf::Thema>(
+    pub(crate) fn darstellen_aller_gleise<Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
@@ -438,23 +438,13 @@ impl<L: Leiter> Zustand<L> {
 
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt
     /// des Gleises an der gesuchten Position.
-    pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_, L>> {
+    pub(crate) fn gleis_an_position(&self, canvas_pos: Vektor) -> Option<GleisAnPosition<'_>> {
         let (id_steuerung, position, winkel, streckenabschnitt_id) =
             self.gleise.gleis_an_position(&self.zugtyp, canvas_pos)?;
-        // streckenabschnitt_id, geschwindigkeit_id related über `and_then`
-        #[allow(clippy::shadow_unrelated)]
         let streckenabschnitt = streckenabschnitt_id.and_then(|streckenabschnitt_name| {
-            self.streckenabschnitte.get(&streckenabschnitt_name).map(
-                |(streckenabschnitt, geschwindigkeit_name)| AssoziierterStreckenabschnitt {
-                    name: streckenabschnitt_name,
-                    streckenabschnitt,
-                    geschwindigkeit: geschwindigkeit_name.as_ref().and_then(|geschwindigkeit_id| {
-                        self.geschwindigkeiten
-                            .get(geschwindigkeit_id)
-                            .map(|geschwindigkeit| (geschwindigkeit_id.clone(), geschwindigkeit))
-                    }),
-                },
-            )
+            self.streckenabschnitte
+                .get(&streckenabschnitt_name)
+                .map(|(streckenabschnitt, _geschwindigkeit_name)| streckenabschnitt)
         });
         Some(GleisAnPosition { id_steuerung, position, winkel, streckenabschnitt })
     }
@@ -462,29 +452,15 @@ impl<L: Leiter> Zustand<L> {
 
 /// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
 /// Informationen über das Gleis an der gesuchten Position.
-pub(crate) struct GleisAnPosition<'t, L> {
+pub(crate) struct GleisAnPosition<'t> {
     /// Id, Steuerung
     pub(crate) id_steuerung: AnyIdSteuerung,
-    /// relative Klick-Position
+    /// Relative Klick-Position
     pub(crate) position: Vektor,
     /// Winkel
     pub(crate) winkel: Winkel,
     /// Streckenabschnitt
-    pub(crate) streckenabschnitt: Option<AssoziierterStreckenabschnitt<'t, L>>,
-}
-
-/// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
-/// Informationen über den [Streckenabschnitt] des Gleises an der gesuchten Position.
-pub(crate) struct AssoziierterStreckenabschnitt<'t, L> {
-    // TODO Methoden/Datentyp public machen?
-    #[allow(dead_code)]
-    /// Der Name des Streckenabschnittes.
-    pub(crate) name: streckenabschnitt::Name,
-    /// Der Streckenabschnitt.
-    pub(crate) streckenabschnitt: &'t Streckenabschnitt,
-    #[allow(dead_code)]
-    /// Die assoziierte [Geschwindigkeit].
-    pub(crate) geschwindigkeit: Option<(geschwindigkeit::Name, &'t Geschwindigkeit<L>)>,
+    pub(crate) streckenabschnitt: Option<&'t Streckenabschnitt>,
 }
 
 /// Alle Gleise, sowie das Rechteck zum speichern im [`RStern`] mit ihrer Id.
@@ -500,19 +476,19 @@ pub(crate) type RStern = RTree<RSternEintrag>;
 /// Alle aktuell bekannten Gleise.
 #[derive(Debug)]
 pub(crate) struct GleiseDaten {
-    /// Alle bekannten Geraden.
+    /// Alle bekannten [`Geraden`](Gerade).
     geraden: GleisMap<Gerade>,
-    /// Alle bekannten Kurven.
+    /// Alle bekannten [`Kurven`](Kurve).
     kurven: GleisMap<Kurve>,
-    /// Alle bekannten Weichen.
+    /// Alle bekannten [`Weichen`](Weiche).
     weichen: GleisMap<Weiche>,
-    /// Alle bekannten DreiwegeWeichen.
+    /// Alle bekannten [`DreiwegeWeichen`](DreiwegeWeiche).
     dreiwege_weichen: GleisMap<DreiwegeWeiche>,
-    /// Alle bekannten KurvenWeichen.
+    /// Alle bekannten [`KurvenWeichen`](KurvenWeiche).
     kurven_weichen: GleisMap<KurvenWeiche>,
-    /// Alle bekannten SKurvenWeichen.
+    /// Alle bekannten [`SKurvenWeichen`](SKurvenWeiche).
     s_kurven_weichen: GleisMap<SKurvenWeiche>,
-    /// Alle bekannten Kreuzungen.
+    /// Alle bekannten [`Kreuzungen`](Kreuzung).
     kreuzungen: GleisMap<Kreuzung>,
     /// Alle Gleise/GleisIds, optimiert für die örtliche Suche,
     /// z.B. alle Einträge innerhalb eines Rechtecks.
@@ -553,14 +529,16 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 ) -> (Vec<Verbindung>, bool) {
     let vektor_genauigkeit =
         Vektor { x: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT, y: ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT };
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+    )]
     let kandidaten_rechteck = Rechteck {
         ecke_a: verbindung.position + vektor_genauigkeit,
         ecke_b: verbindung.position - vektor_genauigkeit,
     };
     let kandidaten =
-        rstern.locate_in_envelope_intersecting(&Rectangle::from(kandidaten_rechteck).envelope());
+        rstern.locate_in_envelope_intersecting(Rectangle::from(kandidaten_rechteck).envelope());
     let mut gehalten = false;
     let überlappend = kandidaten.flat_map(|kandidat| {
         /// Erhalte alle Verbindungen für eine Definition.
@@ -605,8 +583,10 @@ fn überlappende_verbindungen<'t, L: Leiter>(
         .flatten()
         .unwrap_or((Vec::new(), false));
         for kandidat_verbindung in kandidat_verbindungen {
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             if (verbindung.position - kandidat_verbindung.position).länge()
                 < ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT
             {
@@ -620,16 +600,16 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 }
 
 /// Berechne die Einraste-Position für ein Gleis `U` an der `position`,
-/// abhängig von den Gleisen im [`RStern`]:  
+/// abhängig von den Gleisen im [`RStern`]:\
 /// Wenn eine [`Verbindung`] der `definition` mit einer Verbindung aus dem [`RStern`]
 /// [überlappt](ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT) wird die `position` so angepasst,
-/// dass die Verbindungen entgegengesetzt an gleicher Position sind.  
+/// dass die Verbindungen entgegengesetzt an gleicher Position sind.\
 /// Wenn keine Verbindung überlappt, gebe die `position` unverändert zurück.
 fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     rstern: &RStern,
     zugtyp: &Zugtyp<L>,
     definition: &U,
-    id: &Option<AnyId>,
+    id: Option<&AnyId>,
     z: &Z,
     position: Position,
 ) -> Position {
@@ -638,9 +618,7 @@ fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
     verbindungen.für_alle(|verbindung_name, verbindung| {
         if snap.is_none() {
             let (überlappende, _gehalten) =
-                überlappende_verbindungen(rstern, zugtyp, verbindung, id.as_ref(), |_gleis_id| {
-                    false
-                });
+                überlappende_verbindungen(rstern, zugtyp, verbindung, id, |_gleis_id| false);
             snap =
                 überlappende.into_iter().next().map(|überlappend| (verbindung_name, überlappend));
         }
@@ -693,7 +671,7 @@ impl GleiseDaten {
                 // Passe Position an, wenn es eine Verbindung in der Nähe gibt.
                 if einrasten {
                     position =
-                        einraste_position(&self.rstern, zugtyp, definition, &None, &(), position)
+                        einraste_position(&self.rstern, zugtyp, definition, None, &(), position)
                 }
                 // Erzeuge neue Id.
                 let id = GleisId::neu()?;
@@ -772,7 +750,7 @@ impl GleiseDaten {
                                 &self.rstern,
                                 zugtyp,
                                 definition,
-                                &Some(AnyId::from($gleis_id.clone())),
+                                Some(&AnyId::from($gleis_id.clone())),
                                 &(),
                                 neue_position,
                             );
@@ -787,7 +765,7 @@ impl GleiseDaten {
                     None => {
                         return Err(BewegenFehler::DefinitionNichtGefunden(AnyDefinitionId::from(
                             gleis.definition.clone(),
-                        )))
+                        )));
                     },
                 };
                 // Entferne alten Eintrag aus RStern.
@@ -860,12 +838,14 @@ pub struct SetzteStreckenabschnittFehler(AnyId, Option<streckenabschnitt::Name>)
 
 impl Display for SetzteStreckenabschnittFehler {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        // Darstellen der Id nur über Debug möglich.
-        #[allow(clippy::use_debug)]
+        #[expect(clippy::use_debug, reason = "Darstellen der Id nur über Debug möglich.")]
         match &self.1 {
             Some(streckenabschnitt) => {
-                write!(formatter,
-                "Fehler beim setzten den Streckenabschnittes {streckenabschnitt} für Gleis {:?}!",self.0)
+                write!(
+                    formatter,
+                    "Fehler beim setzten den Streckenabschnittes {streckenabschnitt} für Gleis {:?}!",
+                    self.0
+                )
             },
             None => {
                 write!(
@@ -1090,8 +1070,6 @@ fn fülle_gleis<T>(
             )),
         };
         if let Some((Farbe { rot, grün, blau }, alpha)) = farbe_alpha {
-            // related über `Frame::with_save`.
-            #[allow(clippy::shadow_unrelated)]
             frame.with_save(|frame| {
                 let color = Color { r: rot, g: grün, b: blau, a: alpha };
                 frame.fill(
@@ -1118,8 +1096,6 @@ fn zeichne_gleis<T>(
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
 {
     for path in definition.zeichne(steuerung, spurweite) {
-        // related über `Frame::with_save`.
-        #[allow(clippy::shadow_unrelated)]
         frame.with_save(|frame| {
             let alpha =
                 Transparenz::true_reduziert(ist_gehalten(AnyId::from(gleis_id.clone()))).alpha();
@@ -1135,8 +1111,7 @@ fn zeichne_gleis<T>(
     }
 }
 
-// Internes struct
-#[allow(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools, reason = "Internes struct")]
 /// Hilfs-Typ für [`ist_gehalten_und_andere_verbindung`].
 pub(crate) struct GehaltenVerbindung {
     /// Ist die `gleis_id` aktuell gehalten.
@@ -1162,8 +1137,10 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
     let (überlappende, andere_gehalten) =
         überlappende_verbindungen(rstern, zugtyp, &verbindung, Some(gleis_id), &ist_gehalten);
     let andere = !überlappende.is_empty();
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+    )]
     let ist_entgegengesetzt = |überlappend: Verbindung| {
         (winkel::PI + verbindung.richtung - überlappend.richtung).normalisiert().abs() < Winkel(0.1)
     };
@@ -1171,8 +1148,7 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
     GehaltenVerbindung { gehalten, andere, andere_entgegengesetzt, andere_gehalten }
 }
 
-// Alle Argumente benötigt
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
 /// Zeichne die Verbindungen eines Gleises.
 fn zeichne_verbindungen<T, L: Leiter>(
     frame: &mut Frame<'_>,
@@ -1190,8 +1166,10 @@ fn zeichne_verbindungen<T, L: Leiter>(
 {
     // zeichne Verbindungen
     definition.verbindungen(steuerung, zugtyp.spurweite).für_alle(|_name, &verbindung| {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+        )]
         let verbindung_an_position = Verbindung {
             position: position.transformation(verbindung.position),
             richtung: position.winkel + verbindung.richtung,
@@ -1204,26 +1182,32 @@ fn zeichne_verbindungen<T, L: Leiter>(
                 &AnyId::from(gleis_id.clone()),
                 verbindung_an_position,
             );
-        // frame related über with_save
-        #[allow(clippy::shadow_unrelated)]
         frame.with_save(|frame| {
             let alpha = Transparenz::true_reduziert(gehalten).alpha();
             let grün = if andere_entgegengesetzt { 1. } else { 0. };
             let color = Color { r: 0., g: grün, b: 1. - grün, a: alpha };
             let richtung = Vektor::polar_koordinaten(Skalar(5.), verbindung.richtung);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             let richtung_seite = Skalar(0.5) * richtung.rotiert(&winkel::FRAC_PI_2);
             let verbindung_position = verbindung.position;
             let mut path_builder = pfad::Erbauer::neu();
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             path_builder.move_to(verbindung_position + richtung_seite);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             path_builder.line_to(verbindung_position + richtung);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen"
+            )]
             path_builder.line_to(verbindung_position - richtung_seite);
             let path = path_builder.baue();
             frame.stroke(
@@ -1238,8 +1222,7 @@ fn zeichne_verbindungen<T, L: Leiter>(
     });
 }
 
-// Alle Argumente benötigt
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
 /// Erzeuge den Text für Beschreibung und Name eines Gleises.
 fn schreibe_gleis_beschreibung_name<T, Thema>(
     frame: &mut Frame<'_>,
@@ -1255,7 +1238,7 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
     AnyId: From<GleisId<T>>,
     T: MitSteuerung,
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
-    Thema: knopf::Thema,
+    Thema: knopf::Catalog,
 {
     let (relative_position, beschreibung, name) =
         definition.beschreibung_und_name(steuerung, spurweite);
@@ -1265,8 +1248,6 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
         (Some(beschreibung), None) => Some(String::from(beschreibung)),
         (None, None) => None,
     } {
-        // frame related über with_save
-        #[allow(clippy::shadow_unrelated)]
         frame.with_save(|frame| {
             bewege_an_position(frame, &relative_position);
             let alpha =
@@ -1276,8 +1257,10 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
                 color: Color { a: alpha, ..Color::from(farbe) },
                 ..thema.standard_text()
             };
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             {
                 text.size = text.size * skalieren.0;
             }
@@ -1427,7 +1410,7 @@ impl GleiseDaten {
     }
 
     /// Füge die Namen und Beschreibungen aller Gleise dem Frame hinzu.
-    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: knopf::Thema>(
+    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1474,10 +1457,9 @@ impl GleiseDaten {
         }
     }
 
-    // Alle Argumente benötigt
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: knopf::Thema>(
+    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1513,13 +1495,17 @@ impl GleiseDaten {
         canvas_pos: Vektor,
     ) -> Option<(AnyIdSteuerung, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
         let mut ergebnis = None;
-        for geom_with_data in self.rstern.locate_all_at_point(&canvas_pos) {
+        for geom_with_data in self.rstern.locate_all_at_point(canvas_pos) {
             let (gleis_definition_id, position) = &geom_with_data.data;
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let relative_pos = canvas_pos - position.punkt;
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let rotated_pos = relative_pos.rotiert(&(-position.winkel));
             /// Hilfs-Makro für [`mit_any_id`].
             macro_rules! gleis_an_position_aux {
@@ -1557,39 +1543,5 @@ impl GleiseDaten {
             );
         }
         ergebnis
-    }
-}
-
-/// [`SelectionFunction`], die jedes Element akzeptiert.
-/// Haupt-Nutzen ist das vollständiges Leeren eines [`RTree`] (siehe [`GleiseDaten::verschmelze`]).
-struct SelectAll;
-
-impl<T: RTreeObject> SelectionFunction<T> for SelectAll {
-    fn should_unpack_parent(&self, _envelope: &T::Envelope) -> bool {
-        true
-    }
-}
-
-/// [`SelectionFunction`], die einen bestimmten Envelope sucht.
-pub(crate) struct SelectEnvelope(pub(crate) AABB<Vektor>);
-
-impl<T> SelectionFunction<T> for SelectEnvelope
-where
-    T: RTreeObject<Envelope = AABB<Vektor>>,
-{
-    fn should_unpack_parent(&self, envelope: &AABB<Vektor>) -> bool {
-        let self_upper = self.0.upper();
-        let self_lower = self.0.lower();
-        let upper = envelope.upper();
-        let lower = envelope.lower();
-        // der gesuchte Envelope muss komplett in den parent passen
-        lower.x <= self_lower.x
-            && lower.y <= self_lower.y
-            && upper.x >= self_upper.x
-            && upper.y >= self_upper.y
-    }
-
-    fn should_unpack_leaf(&self, leaf: &T) -> bool {
-        self.0 == leaf.envelope()
     }
 }

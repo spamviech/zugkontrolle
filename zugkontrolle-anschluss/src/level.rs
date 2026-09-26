@@ -3,7 +3,7 @@
 use enum_iterator::Sequence;
 use serde::{Deserialize, Serialize};
 
-use crate::rppal::gpio;
+use crate::rpi_pal::gpio;
 
 /// Level eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(

@@ -1,16 +1,15 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Button`].
 
-use iced::{
-    theme::{self, Theme},
-    widget::button,
-    Background, Color,
-};
+use iced_core::{Background, Color};
+use iced_widget::button;
 
 use crate::style::thema::Thema;
 
+#[doc(inline)]
+pub use button::{Style, StyleFn};
+
 /// Weißer Hintergrund.
-#[allow(non_upper_case_globals)]
-pub const WEIß: Button = Button::hintergrund_grau(1.);
+pub const WEIẞ: Button = Button::hintergrund_grau(1.);
 /// Schwarzer Hintergrund.
 pub const SCHWARZ: Button = Button::hintergrund_grau(0.);
 /// Roter Hintergrund.
@@ -65,42 +64,25 @@ impl Button {
     }
 }
 
-impl button::StyleSheet for Thema {
-    type Style = Button;
+/// Erlaube Verwendung in [`iced_widget::Button::style`]).
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: button::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
+    #[must_use]
+    fn style_fn(self) -> StyleFn<'static, Thema>;
+}
 
-    fn active(&self, style: &Self::Style) -> button::Appearance {
-        match (self, style) {
-            (Thema::Hell, Button::Standard) => {
-                button::StyleSheet::active(&Theme::Light, &theme::Button::default())
-            },
-            (Thema::Dunkel, Button::Standard) => {
-                button::StyleSheet::active(&Theme::Dark, &theme::Button::default())
-            },
-            (Thema::Hell | Thema::Dunkel, Button::Hintergrund { farbe }) => button::Appearance {
-                background: Some(Background::Color(*farbe)),
-                ..button::Appearance::default()
-            },
-        }
-    }
-
-    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
-        match self {
-            Thema::Hell => button::StyleSheet::hovered(&Theme::Light, &theme::Button::default()),
-            Thema::Dunkel => button::StyleSheet::hovered(&Theme::Dark, &theme::Button::default()),
-        }
-    }
-
-    fn pressed(&self, _style: &Self::Style) -> button::Appearance {
-        match self {
-            Thema::Hell => button::StyleSheet::pressed(&Theme::Light, &theme::Button::default()),
-            Thema::Dunkel => button::StyleSheet::pressed(&Theme::Dark, &theme::Button::default()),
-        }
-    }
-
-    fn disabled(&self, _style: &Self::Style) -> button::Appearance {
-        match self {
-            Thema::Hell => button::StyleSheet::disabled(&Theme::Light, &theme::Button::default()),
-            Thema::Dunkel => button::StyleSheet::disabled(&Theme::Dark, &theme::Button::default()),
-        }
+impl StyleProvider<'_, Thema> for Button {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
+        Box::new(move |thema, status| {
+            let default_style = <Thema as button::Catalog>::default()(thema, status);
+            if let Button::Hintergrund { farbe } = self {
+                default_style.with_background(Background::Color(farbe))
+            } else {
+                default_style
+            }
+        })
     }
 }

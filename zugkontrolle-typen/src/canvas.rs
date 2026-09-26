@@ -6,14 +6,12 @@ use std::{
 };
 
 use iced_core::Size;
-use iced_graphics::geometry::{fill::Fill, stroke::Stroke, Text};
-use iced_renderer::{
-    geometry::{self, Geometry},
-    Renderer,
-};
+use iced_graphics::geometry::{Text, fill::Fill, stroke::Stroke};
+use iced_renderer::{Renderer, geometry};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    Zeichnen,
     canvas::pfad::{Pfad, Transformation},
     mm::Spurweite,
     nachschlagen::Nachschlagen,
@@ -21,7 +19,6 @@ use crate::{
     vektor::Vektor,
     verbindung::{self, Verbindung},
     winkel::{self, Winkel},
-    Zeichnen,
 };
 
 pub mod pfad;
@@ -31,7 +28,7 @@ pub mod pfad;
 /// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [`Frame`](iced_renderer::Frame) liegt.
 /// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
 /// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
-pub struct Frame<'t>(&'t mut geometry::Frame);
+pub struct Frame<'t>(&'t mut geometry::Frame<Renderer>);
 
 impl Debug for Frame<'_> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
@@ -41,12 +38,10 @@ impl Debug for Frame<'_> {
 
 impl<'t> Frame<'t> {
     /// Erzeuge einen neuen [`Frame`].
-    pub fn neu(frame: &'t mut geometry::Frame) -> Self {
+    pub fn neu(frame: &'t mut geometry::Frame<Renderer>) -> Self {
         Frame(frame)
     }
 
-    // elided lifetimes in impl-Traits are experimental
-    #[allow(single_use_lifetimes)]
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Stroke).
     pub fn stroke<'s>(
         &mut self,
@@ -76,7 +71,6 @@ impl<'t> Frame<'t> {
     ///
     /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [`iced::widget::canvas::Frame`]
     /// treten hier ebenfalls auf!
-
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text);
     }
@@ -117,7 +111,7 @@ impl<'t> Frame<'t> {
 #[derive(Debug, Default)]
 pub struct Cache {
     /// Der Cache mit der gespeicherten Geometrie.
-    cache: geometry::Cache,
+    cache: geometry::Cache<Renderer>,
     /// Die [`u8`]-Repräsentation des Themas beim letzten
     /// [`zeichnen_skaliert_von_pivot`](Cache::zeichnen_skaliert_von_pivot)-Aufruf.
     thema: AtomicU8,
@@ -133,7 +127,6 @@ impl Cache {
     }
 
     /// Leere den [`Cache`], so dass er neu gezeichnet wird.
-
     pub fn leeren(&self) {
         self.cache.clear();
     }
@@ -148,7 +141,7 @@ impl Cache {
         pivot: &Position,
         skalieren: Skalar,
         draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> Geometry
+    ) -> <Renderer as geometry::Renderer>::Geometry
     where
         Thema: Clone + Into<u8> + PartialEq,
         u8: TryInto<Thema>,
@@ -164,8 +157,10 @@ impl Cache {
                 transformierter_frame.transformation(&Transformation::Skalieren(skalieren));
                 transformierter_frame.transformation(&Transformation::Rotation(pivot.winkel));
                 transformierter_frame.transformation(&Transformation::Translation(
-                    // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[expect(
+                        clippy::arithmetic_side_effects,
+                        reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+                    )]
                     {
                         -pivot.punkt
                     },
@@ -183,7 +178,7 @@ impl Cache {
         thema: &Thema,
         bounds: Size<f32>,
         draw_fn: impl Fn(&mut Frame<'_>),
-    ) -> Geometry
+    ) -> <Renderer as geometry::Renderer>::Geometry
     where
         Thema: Clone + Into<u8> + PartialEq,
         u8: TryInto<Thema>,
@@ -200,7 +195,7 @@ impl Cache {
 }
 
 /// Position eines Gleises/Textes auf dem Canvas.
-#[allow(missing_copy_implementations)]
+#[expect(missing_copy_implementations, reason = "Zu Groß für Copy.")]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Die linke Obere Ecke auf dem Canvas.
@@ -213,8 +208,10 @@ impl Position {
     /// Vektor nachdem das Objekt an die Position bewegt und um den Winkel gedreht wurde.
     #[must_use]
     pub fn transformation(&self, anchor: Vektor) -> Vektor {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             self.punkt + anchor.rotiert(&self.winkel)
         }
@@ -241,11 +238,15 @@ impl Position {
     {
         let verbindungen = definition.verbindungen(z, spurweite);
         let verbindung = verbindungen.erhalte(verbindung_name);
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         let winkel: Winkel = winkel::PI - verbindung.richtung + ziel_verbindung.richtung;
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         Position {
             punkt: Vektor {
                 x: ziel_verbindung.position.x - verbindung.position.x * winkel.cos()

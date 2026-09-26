@@ -10,28 +10,27 @@ use std::{
 use iced_aw::{
     style::{number_input, tab_bar},
     widgets::{
-        card::{self, Card},
         TabLabel, Tabs,
+        card::{self, Card},
     },
 };
 use iced_core::{
-    event, text as text_core,
+    Element, Font, Length, Renderer, text as text_core,
     widget::text::{self, Text},
-    Element, Font, Length, Renderer,
 };
 use iced_widget::{
+    Column, Container, Row, Space,
     button::{self, Button},
     container,
     radio::{self, Radio},
     scrollable::{self, Scrollable},
     slider::{self, Slider},
     text_input::{self, TextInput},
-    Column, Row, Space,
 };
 use log::error;
 use nonempty::NonEmpty;
 
-use zugkontrolle_anschluss::{pin::pwm, polarität::Polarität, OutputSerialisiert};
+use zugkontrolle_anschluss::{OutputSerialisiert, pin::pwm, polarität::Polarität};
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::{
     geschwindigkeit::{
@@ -46,22 +45,18 @@ use crate::{
     anschluss,
     bootstrap::{Bootstrap, Icon},
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{
+        self,
+        sammlung::Sammlung,
+        tab_bar::{StyleProvider as _, TabBar},
+    },
 };
 
 /// Versuche ein Element vom [`NonEmpty::tail`] zu entfernen.
 fn remove_from_nonempty_tail<T>(non_empty: &mut NonEmpty<T>, ix: NonZeroUsize) -> Option<T> {
     let i = ix.get();
     // no need to check head, since `i` is non-zero
-    (i < non_empty.len()).then(|| {
-        non_empty.tail.remove(
-            // 1 <= i < non_empty.len()
-            #[allow(clippy::arithmetic_side_effects)]
-            {
-                i - 1
-            },
-        )
-    })
+    (i < non_empty.len()).then(|| non_empty.tail.remove(i - 1))
 }
 
 /// Sortierte Map aller Widget zur Anzeige der [`Geschwindigkeiten`](Geschwindigkeit).
@@ -119,7 +114,7 @@ impl<'t, M, Thema, R> Anzeige<'t, M, Thema, R>
 where
     M: 't + Clone,
     R: 't + text_core::Renderer,
-    Thema: 't + radio::StyleSheet + slider::StyleSheet + text::StyleSheet,
+    Thema: 't + radio::Catalog + slider::Catalog + text::Catalog,
 {
     /// Erstelle eine neue [Anzeige] für einen [`Leiter`].
     pub fn neu<'s, L: Leiter>(
@@ -192,7 +187,6 @@ struct AuswahlZustand {
 
 /// Der Startwert für ein [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
-#[allow(variant_size_differences)]
 pub enum AuswahlStartwert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -321,28 +315,34 @@ pub enum FahrtrichtungAnschluss {
     Immer,
 }
 
+/// Höhe für die Auswahl einer neuen Geschwindigkeit.
+const NEUE_GESCHWINDIGKEIT_TAB_HEIGHT: Length = Length::Fixed(100.);
+/// Höhe für die Anzeige der aktuellen Geschwindigkeiten.
+const AKTUELLE_GESCHWINDIGKEITEN_SCROLLABLE_HEIGHT: Length = Length::Fixed(200.);
+
 impl<'t, LeiterSerialisiert, Thema, R> Auswahl<'t, LeiterSerialisiert, Thema, R>
 where
     LeiterSerialisiert: 't + Display + Clone,
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + radio::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + card::StyleSheet,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+        + radio::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + number_input::Catalog
+        + number_input::ExtendedCatalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+        + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
-    // Alle Argumente benötigt.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
     /// Erstelle eine neue [`Auswahl`].
     fn neu<'l, L: LeiterAnzeige<'l, LeiterSerialisiert, Thema, R>>(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<LeiterSerialisiert>>,
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         fahrtrichtung_beschreibung: impl Into<String>,
@@ -393,13 +393,11 @@ where
             NonEmpty<OutputSerialisiert>,
         ) -> LeiterSerialisiert,
     ) -> impl 't
-           + Fn(
+    + Fn(
         InterneAuswahlNachricht,
         &mut AuswahlZustand,
-        &mut event::Status,
     ) -> Vec<AuswahlNachricht<LeiterSerialisiert>> {
-        |interne_nachricht, zustand, status| {
-            *status = event::Status::Captured;
+        |interne_nachricht, zustand| {
             let mut nachrichten = Vec::new();
             match interne_nachricht {
                 InterneAuswahlNachricht::Schließen => {
@@ -442,7 +440,7 @@ where
                     let leiter = match zustand.aktueller_tab {
                         TabId::Pwm => pwm_nachricht(
                             zustand.umdrehen_anschluss.clone(),
-                            zustand.pwm_pin.clone(),
+                            zustand.pwm_pin,
                             zustand.pwm_polarität,
                         ),
                         TabId::KonstanteSpannung => {
@@ -489,7 +487,7 @@ where
                             }
                             zustand.ks_anschlüsse = geschwindigkeit_anschlüsse;
                         },
-                    };
+                    }
                 },
             }
             nachrichten
@@ -520,7 +518,7 @@ where
     fn pwm_auswahl(
         fahrtrichtung_anschluss: FahrtrichtungAnschluss,
         umdrehen_auswahl: impl FnOnce() -> Element<'t, InterneAuswahlNachricht, Thema, R>,
-        pwm_pin: &pwm::Serialisiert,
+        pwm_pin: pwm::Serialisiert,
         pwm_polarität: Polarität,
     ) -> Element<'t, InterneAuswahlNachricht, Thema, R> {
         let make_radio = |polarität: Polarität| {
@@ -537,7 +535,7 @@ where
         }
         pwm_auswahl = pwm_auswahl
             .push(
-                Element::from(anschluss::Pwm::neu_s(Some(pwm_pin.clone())))
+                Element::from(anschluss::Pwm::neu_s(Some(pwm_pin)))
                     .map(InterneAuswahlNachricht::PwmPin),
             )
             .push(
@@ -561,7 +559,7 @@ where
             ks_auswahl = ks_auswahl.push(umdrehen_auswahl());
         }
         ks_auswahl = ks_auswahl
-            .push(Space::with_height(Length::Fixed(1.)))
+            .push(Space::new().height(Length::Fixed(1.)))
             .push(Text::new("Geschwindigkeit"));
         for (i, ks_anschluss) in ks_anschlüsse.iter().enumerate() {
             let mut row = Row::new().height(Length::Shrink).push(
@@ -585,7 +583,7 @@ where
                         .on_press(InterneAuswahlNachricht::NeuerKonstanteSpannungAnschluss),
                 )
             });
-            row = row.push(Space::new(Length::Fixed(7.5), Length::Shrink));
+            row = row.push(Space::new().height(Length::Fixed(7.5)));
             ks_auswahl = ks_auswahl.push(row);
         }
         ks_auswahl.into()
@@ -622,7 +620,8 @@ where
             ks_anschlüsse,
         } = zustand;
         let width = Length::Fixed(950.);
-        let mut neuer_anschluss = Column::new().push(
+
+        let mut neue_geschwindigkeit = Column::new().push(
             TextInput::new("<Name>", neu_name).on_input(InterneAuswahlNachricht::Name).width(width),
         );
         let erzeuge_umdrehen_auswahl = || {
@@ -634,12 +633,12 @@ where
             )
         };
         if let FahrtrichtungAnschluss::Immer = fahrtrichtung_anschluss {
-            neuer_anschluss = neuer_anschluss.push(erzeuge_umdrehen_auswahl());
+            neue_geschwindigkeit = neue_geschwindigkeit.push(erzeuge_umdrehen_auswahl());
         }
         let pwm_auswahl = Self::pwm_auswahl(
             fahrtrichtung_anschluss,
             erzeuge_umdrehen_auswahl,
-            pwm_pin,
+            *pwm_pin,
             *pwm_polarität,
         );
         let ks_auswahl = Self::ks_auswahl(
@@ -651,11 +650,15 @@ where
         );
         let tabs = Tabs::new_with_tabs(
             vec![
-                (TabId::Pwm, TabLabel::Text("Pwm".to_owned()), pwm_auswahl),
+                (
+                    TabId::Pwm,
+                    TabLabel::Text("Pwm".to_owned()),
+                    Container::new(pwm_auswahl).height(NEUE_GESCHWINDIGKEIT_TAB_HEIGHT).into(),
+                ),
                 (
                     TabId::KonstanteSpannung,
                     TabLabel::Text("Konstante Spannung".to_owned()),
-                    Scrollable::new(ks_auswahl).height(Length::Fixed(150.)).into(),
+                    Scrollable::new(ks_auswahl).height(NEUE_GESCHWINDIGKEIT_TAB_HEIGHT).into(),
                 ),
             ],
             InterneAuswahlNachricht::WähleTab,
@@ -663,11 +666,13 @@ where
         .set_active_tab(aktueller_tab)
         .width(width)
         .height(Length::Shrink)
-        .tab_bar_style(TabBar.into());
-        let neuer_anschluss = neuer_anschluss.push(tabs);
-        let mut column = Column::new().push(neuer_anschluss).push(
-            Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen),
-        );
+        .tab_bar_style(TabBar.style_fn());
+        let hinzufügen =
+            Button::new(Text::new("Hinzufügen")).on_press(InterneAuswahlNachricht::Hinzufügen);
+        neue_geschwindigkeit = neue_geschwindigkeit.push(tabs).push(hinzufügen);
+        let neue_geschwindigkeit = neue_geschwindigkeit;
+
+        let mut aktuelle_geschwindigkeiten = Column::new();
         for (name, (anschlüsse_str, anschlüsse)) in geschwindigkeiten {
             let bearbeiten = Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                 InterneAuswahlNachricht::Bearbeiten(
@@ -680,14 +685,23 @@ where
             let löschen = Button::new(Icon::neu(Bootstrap::Trash))
                 .on_press(InterneAuswahlNachricht::Löschen(name.clone().into_inner()));
             let geschwindigkeit = Column::new()
-                .push(Text::new(name.as_ref().to_owned()))
-                .push(Text::new(anschlüsse_str.clone()))
-                .push(Row::new().push(bearbeiten).push(löschen));
-            column = column.push(geschwindigkeit);
+                .push(
+                    Row::new()
+                        .push(Text::new(String::from(name.as_ref())))
+                        .push(Space::new().width(Length::Fixed(2.)))
+                        .push(bearbeiten)
+                        .push(löschen),
+                )
+                .push(Text::new(anschlüsse_str.clone()));
+            aktuelle_geschwindigkeiten = aktuelle_geschwindigkeiten.push(geschwindigkeit);
         }
+        let aktuelle_geschwindigkeiten = Scrollable::new(aktuelle_geschwindigkeiten)
+            .height(AKTUELLE_GESCHWINDIGKEITEN_SCROLLABLE_HEIGHT)
+            .width(Length::Shrink);
+
         let card = Card::new(
             Text::new("Geschwindigkeit"),
-            Scrollable::new(column).height(Length::Fixed(400.)).width(Length::Shrink),
+            Column::new().push(neue_geschwindigkeit).push(aktuelle_geschwindigkeiten),
         )
         .on_close(InterneAuswahlNachricht::Schließen)
         .width(Length::Shrink);
@@ -717,7 +731,7 @@ pub trait LeiterAnzeige<'t, S, Thema, R>: Leiter + Sized {
 
     /// Erstelle eine neue [`Auswahl`].
     fn auswahl_neu(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<S>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<S>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<S>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -738,18 +752,20 @@ impl<'t, Thema, R> LeiterAnzeige<'t, MittelleiterSerialisiert, Thema, R> for Mit
 where
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + radio::StyleSheet
-        + slider::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + card::StyleSheet,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+        + radio::Catalog
+        + slider::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + number_input::Catalog
+        + number_input::ExtendedCatalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+        + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
     fn anzeige_neu(
         name: &Name,
@@ -776,7 +792,7 @@ where
     }
 
     fn auswahl_neu(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<MittelleiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -802,7 +818,7 @@ where
         match &serialisiert.leiter {
             MittelleiterSerialisiert::Pwm { pin, polarität } => AuswahlStartwert::Pwm {
                 umdrehen_anschluss: None,
-                pwm_pin: pin.clone(),
+                pwm_pin: *pin,
                 polarität: *polarität,
             },
             MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
@@ -828,18 +844,20 @@ impl<'t, Thema, R> LeiterAnzeige<'t, ZweileiterSerialisiert, Thema, R> for Zweil
 where
     R: 't + text_core::Renderer<Font = Font>,
     Thema: 't
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + radio::StyleSheet
-        + slider::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + card::StyleSheet,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+        + radio::Catalog
+        + slider::Catalog
+        + text::Catalog
+        + text_input::Catalog
+        + number_input::Catalog
+        + number_input::ExtendedCatalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+        + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
     fn anzeige_neu(
         name: &Name,
@@ -878,7 +896,7 @@ where
     }
 
     fn auswahl_neu(
-        startwert: &Option<(Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>)>,
+        startwert: Option<&(Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert<ZweileiterSerialisiert>>,
         scrollable_style: Sammlung,
         settings: I2cSettings,
@@ -909,7 +927,7 @@ where
             ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
                 AuswahlStartwert::Pwm {
                     umdrehen_anschluss: Some(fahrtrichtung.clone()),
-                    pwm_pin: geschwindigkeit.clone(),
+                    pwm_pin: *geschwindigkeit,
                     polarität: *polarität,
                 }
             },

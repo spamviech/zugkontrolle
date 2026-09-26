@@ -1,18 +1,18 @@
 //! Erzeuge eindeutige [`Ids`](Id).
 
 use std::{
-    any::{type_name, TypeId},
+    any::{TypeId, type_name},
     cmp::Ordering,
     collections::{
-        btree_map::{BTreeMap, Entry},
         BTreeSet,
+        btree_map::{BTreeMap, Entry},
     },
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
 
 use log::{error, trace};
-use parking_lot::{const_mutex, MappedMutexGuard, Mutex, MutexGuard};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard, const_mutex};
 use thiserror::Error;
 
 /// Zahlen-typ, der über [`Id::repräsentation`] erhalten werden kann.
@@ -42,7 +42,7 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<Repräsentation>>
 pub struct Id<T: 'static> {
     /// Der Zahlenwert für die Unterscheidung unterschiedlicher [`Ids`](Id).
     id: Repräsentation,
-    /// PhantomData
+    /// [`PhantomData`]
     phantom: PhantomData<fn() -> T>,
 }
 
@@ -94,10 +94,8 @@ impl<T> Drop for Id<T> {
 #[error("Es ist keine Id für den Typ {type_name} verfügbar!")]
 pub struct KeineIdVerfügbar {
     /// Die [`TypeId`] des Typs für den eine [`Id`] gewünscht wurde.
-    #[allow(dead_code)]
     type_id: TypeId,
     /// Der [`Typ-Name`](type_name) des Typs für den eine [`Id`] gewünscht wurde.
-    #[allow(dead_code)]
     type_name: &'static str,
 }
 
@@ -155,7 +153,7 @@ mod test {
 
     use std::collections::HashSet;
 
-    use zugkontrolle_test_util::{expect_eq, expect_true, init_test_logging, Expectation};
+    use zugkontrolle_test_util::{Expectation, expect_eq, expect_true, init_test_logging};
 
     #[test]
     fn eindeutig() -> Result<(), Expectation> {

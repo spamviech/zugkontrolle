@@ -1,7 +1,6 @@
 //! Alle Eigenschaften und bekannte Gleise für einen [`Zugtyp`].
 
-// only way to export macros from a module
-#![allow(clippy::pub_use)]
+#![expect(clippy::pub_use, reason = "only way to export macros from a module")]
 
 use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
@@ -69,7 +68,6 @@ pub struct Zugtyp<L: Leiter> {
 macro_rules! erzeuge_zugtyp_maps {
     ($id_maps: expr => $($gleise: ident : $typ: ty),* $(,)?) => {
         $(
-        #[allow(unused_qualifications)]
         let ($gleise, ids) = $gleise
             .into_iter()
             .fold(
@@ -91,7 +89,6 @@ macro_rules! erzeuge_zugtyp_maps {
         )*
     };
     ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)? : $error: ty) => {$(
-        #[allow(unused_qualifications)]
         let $gleise = $gleise
             .into_iter()
             .map(|definition| Ok(($crate::id::DefinitionId::<$typ>::neu()?, definition)) )

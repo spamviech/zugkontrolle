@@ -2,10 +2,10 @@
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReturnType, Signature};
+use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReceiverKind, ReturnType, Signature};
 
+#[expect(clippy::single_call_fn, reason = "Implementierung von make_chain")]
 /// [`crate::make_chain`]
-#[allow(clippy::single_call_fn)]
 pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
@@ -20,7 +20,7 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
             Signature {
                 constness,
                 asyncness,
-                unsafety,
+                safety,
                 ident,
                 generics,
                 inputs,
@@ -42,12 +42,15 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
         errors.push(String::from("no variadic supported."));
     }
     let mut inputs_iter = inputs.iter();
-    if let Some(FnArg::Receiver(Receiver { reference, mutability, .. })) = inputs_iter.next() {
-        if reference.is_none() || mutability.is_none() {
-            errors.push(String::from("first argument must be &mut self."));
-        }
+    let first = inputs_iter.next();
+    if let Some(FnArg::Receiver(Receiver {
+        kind: ReceiverKind::Reference(_and, _lifetime, Some(_mut)),
+        ..
+    })) = &first
+    {
+        // &mut self
     } else {
-        errors.push(String::from("first argument must be &mut self."));
+        errors.push(format!("first argument must be &mut self. Found: {first:?}"));
     }
     // collect to vec, to strictly evaluate errors
     let other_input_names: Vec<_> = inputs_iter
@@ -58,12 +61,11 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
                     Some(id)
                 } else {
                     errors
-                        .push(format!("only literal arguments supported, but {pat:?} was given.",));
+                        .push(format!("only literal arguments supported, but {pat:?} was given."));
                     None
                 }
             } else {
-                errors
-                    .push(format!("only literal arguments supported, but {fn_arg:?} was given.",));
+                errors.push(format!("only literal arguments supported, but {fn_arg:?} was given."));
                 None
             }
         })
@@ -82,7 +84,7 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
         #ast
 
         #(#docstrings)*
-        #vis #constness #asyncness #unsafety fn #chain_ident #generics(mut self, #(#inputs_iter),*) -> Self {
+        #vis #constness #asyncness #safety fn #chain_ident #generics(mut self, #(#inputs_iter),*) -> Self {
             self.#ident(#(#other_input_names),*);
             self
         }

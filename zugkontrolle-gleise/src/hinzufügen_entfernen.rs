@@ -14,11 +14,11 @@ use zugkontrolle_gleis::{
 use zugkontrolle_typen::{canvas::Position, klick_quelle::KlickQuelle, vektor::Vektor};
 
 use crate::{
+    Gehalten, Gleise, ModusDaten,
     daten::{
         AnyGleis, BewegenFehler, EntfernenFehler, GleisNichtGefunden, HinzufügenFehler,
         SetzteStreckenabschnittFehler, SteuerungAktualisierenFehler,
     },
-    Gehalten, Gleise, ModusDaten,
 };
 
 impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
@@ -61,11 +61,15 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let punkt = self.letzte_maus_position - halte_position;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let winkel = -self.pivot.winkel;
         let gleis_id = self.hinzufügen(
             definition_steuerung.clone(),
@@ -137,18 +141,19 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         klick_quelle: &KlickQuelle,
         canvas_pos: Vektor,
     ) -> Result<(), BewegenFehler> {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
-            if let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
+        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus
+            && let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
                 gehalten.get_mut(klick_quelle)
-            {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
-                let punkt = canvas_pos - halte_position;
-                let id = gleis_steuerung.id();
-                self.zustand.bewegen(id, Position { punkt, winkel: *winkel }, true)?;
-                *bewegt = true;
-                self.erzwinge_neuzeichnen();
-            }
+        {
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
+            let punkt = canvas_pos - halte_position;
+            let id = gleis_steuerung.id();
+            self.zustand.bewegen(id, Position { punkt, winkel: *winkel }, true)?;
+            *bewegt = true;
+            self.erzwinge_neuzeichnen();
         }
         Ok(())
     }

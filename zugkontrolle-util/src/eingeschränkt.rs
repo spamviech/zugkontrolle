@@ -35,7 +35,7 @@ macro_rules! definiere_u8_typ {
             Serialize,
             Deserialize,
         )]
-        #[allow(non_camel_case_types)]
+        #[expect(non_camel_case_types, reason = "Angelehnt an u8, u16, ...")]
         pub struct $ident(u8);
 
         impl From<$ident> for u8 {
@@ -87,11 +87,7 @@ macro_rules! definiere_u8_typ {
 
             fn add(self, other: Self) -> Self::Output {
                 let u8 = self.0.saturating_add(other.0);
-                if u8 > Self::MAX.0 {
-                    Self::MAX
-                } else {
-                    Self(u8)
-                }
+                if u8 > Self::MAX.0 { Self::MAX } else { Self(u8) }
             }
         }
 
@@ -120,11 +116,7 @@ macro_rules! definiere_u8_typ {
             ///
             /// Der Wert war zu groß.
             pub const fn neu(wert: u8) -> Result<Self, InvaliderWert<u8>> {
-                if wert > $ident::MAX.0 {
-                    Err(InvaliderWert(wert))
-                } else {
-                    Ok($ident(wert))
-                }
+                if wert > $ident::MAX.0 { Err(InvaliderWert(wert)) } else { Ok($ident(wert)) }
             }
 
             /// Iterator über alle Werte.

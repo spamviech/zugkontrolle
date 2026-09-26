@@ -1,18 +1,22 @@
 //! Widget zum Anpassen des Pivot Punktes.
 
 use iced::{
+    Point, Rectangle, Renderer, Size,
     mouse::{self, Cursor},
     touch,
-    widget::canvas::{event, Event, Geometry, Program, Stroke, Style},
-    Point, Rectangle, Renderer, Size,
+    widget::canvas::{Event, Geometry, Program, Stroke, Style},
+};
+use iced_widget::{
+    Action,
+    canvas::{Fill, fill::Rule},
 };
 use itertools::{Itertools, MinMaxResult};
 
-use zugkontrolle_gleise::knopf::Thema as _;
+use zugkontrolle_gleise::knopf;
 use zugkontrolle_typen::{
     canvas::{
-        pfad::{self, Bogen},
         Cache,
+        pfad::{self, Bogen, Pfad},
     },
     klick_quelle::KlickQuelle,
     skalar::Skalar,
@@ -23,7 +27,7 @@ use zugkontrolle_typen::{
 use crate::style::thema::Thema;
 
 /// Mögliche Bewegungen.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Bewegung {
     /// Vertikale Bewegung nach oben.
     Oben,
@@ -57,15 +61,17 @@ impl Bewegung {
             Bewegung::Oben => 1.5,
             Bewegung::ObenRechts => 1.75,
         };
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let gradmaß = bogenmaß * winkel::PI;
         Vektor::polar_koordinaten(länge, gradmaß)
     }
 }
 
 /// Nachricht des [`Bewegen`]-Widgets.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Nachricht {
     /// Beginne eine kontinuierliche Bewegung.
     StarteBewegung(Bewegung),
@@ -93,40 +99,25 @@ impl Bewegen {
 }
 
 /// Wichtige Punkte und Größen für die Darstellung und Interaktion mit dem Widget.
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct WichtigeWerte {
-    #[allow(clippy::missing_docs_in_private_items)]
     links: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     rechts: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     oben: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     unten: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     zentrum: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_links_oben: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_links_unten: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_rechts_oben: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_rechts_unten: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_oben_links: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_oben_rechts: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_unten_links: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     ende_unten_rechts: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     links_oben: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     links_unten: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     rechts_oben: Vektor,
-    #[allow(clippy::missing_docs_in_private_items)]
     rechts_unten: Vektor,
     /// Der Radius für den Zurücksetzen-Kreis.
     radius: Skalar,
@@ -135,6 +126,10 @@ struct WichtigeWerte {
 impl WichtigeWerte {
     /// Erzeuge alle [`WichtigenPunkte`] innerhalb der gegebenen Bounds.
     #[must_use]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     fn aus_size(size: Size) -> Self {
         let padding_x = Skalar(0.05 * size.width);
         let padding_y = Skalar(0.05 * size.height);
@@ -144,90 +139,43 @@ impl WichtigeWerte {
         let half_height = height.halbiert();
         // Startpunkte
         let links = Vektor { x: padding_x, y: half_height };
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let rechts = Vektor { x: width - padding_x, y: half_height };
         let oben = Vektor { x: half_width, y: padding_y };
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let unten = Vektor { x: half_width, y: height - padding_y };
         let zentrum = Vektor { x: half_width, y: half_height };
         // relative Bewegung
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let diagonale_länge = (links - oben).länge();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let bein_länge = diagonale_länge / Skalar(3.);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let diagonal_runter =
             bein_länge * Vektor { x: half_width, y: half_height }.einheitsvektor();
-        let diagonal_hoch = Vektor {
-            x: diagonal_runter.x,
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
-            y: -diagonal_runter.y,
-        };
+        let diagonal_hoch = Vektor { x: diagonal_runter.x, y: -diagonal_runter.y };
         // Zielpunkte
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_links_oben = links + diagonal_hoch;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_links_unten = links + diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_rechts_oben = rechts - diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_rechts_unten = rechts - diagonal_hoch;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_oben_links = oben - diagonal_hoch;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_oben_rechts = oben + diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_unten_links = unten - diagonal_runter;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let ende_unten_rechts = unten + diagonal_hoch;
 
         // Diagonale Start-Werte
         let abstand_diagonale = Skalar(
             ((bein_länge.0.powf(2.)) - ((0.5 - (1. / 3.)) * diagonale_länge.0).powf(2.)).sqrt(),
         );
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let links_nach_oben = oben - links;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let links_oben = links
             + Skalar(0.5) * links_nach_oben
             + abstand_diagonale * links_nach_oben.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let links_nach_unten = unten - links;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let links_unten = links
             + Skalar(0.5) * links_nach_unten
             + abstand_diagonale * links_nach_unten.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let rechts_nach_oben = oben - rechts;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let rechts_oben = rechts
             + Skalar(0.5) * rechts_nach_oben
             + abstand_diagonale * rechts_nach_oben.rotiert(&winkel::FRAC_PI_2).einheitsvektor();
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let rechts_nach_unten = unten - rechts;
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let rechts_unten = rechts
             + Skalar(0.5) * rechts_nach_unten
             + abstand_diagonale * rechts_nach_unten.rotiert(&(-winkel::FRAC_PI_2)).einheitsvektor();
@@ -235,8 +183,6 @@ impl WichtigeWerte {
         // Zurücksetzen
         // Inkreis-Radius r = 2A/u
         // https://de.wikipedia.org/wiki/Inkreis
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
         let radius = Skalar(0.75) * (half_width * half_height) / (width + height);
 
         WichtigeWerte {
@@ -262,8 +208,7 @@ impl WichtigeWerte {
     }
 }
 
-// Gibt es bessere Namen für die Ecken eines Dreiecks?
-#[allow(clippy::min_ident_chars)]
+#[expect(clippy::min_ident_chars, reason = "Gibt es bessere Namen für die Ecken eines Dreiecks?")]
 /// Liegt der `punkt` innerhalb des Dreiecks `a`-`b`-`c`.
 ///
 /// <https://prlbr.de/2014/liegt-der-punkt-im-dreieck/>
@@ -273,29 +218,41 @@ fn punkt_innerhalb_dreieck(punkt: Vektor, a: Vektor, b: Vektor, c: Vektor) -> bo
     fn winkel_ordnung(vektor: Vektor) -> Skalar {
         let Vektor { x, y } = vektor;
         let faktor = if y >= Skalar(0.) { Skalar(1.) } else { Skalar(-1.) };
-        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             faktor * (Skalar(1.) - (x / (x.abs() + y.abs())))
         }
     }
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let schwerpunkt = (a + b + c) / Skalar(3.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let punkt_rel = punkt - schwerpunkt;
     let punkt_foo = winkel_ordnung(punkt_rel);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let a_rel = a - schwerpunkt;
     let a_foo = winkel_ordnung(a_rel);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let b_rel = b - schwerpunkt;
     let b_foo = winkel_ordnung(b_rel);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let c_rel = c - schwerpunkt;
     let c_foo = winkel_ordnung(c_rel);
     let dreieck_winkel_ordnung_werte = [(a_foo, a), (b_foo, b), (c_foo, c)];
@@ -323,25 +280,21 @@ fn punkt_innerhalb_dreieck(punkt: Vektor, a: Vektor, b: Vektor, c: Vektor) -> bo
     let Vektor { x: x2, y: y2 } = kleinstes_größer.unwrap_or(kleinstes);
     let Vektor { x: xp, y: yp } = punkt;
     let Vektor { x: xs, y: ys } = schwerpunkt;
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let sgn1 = (((yp - y2) * (x1 - x2)) - ((y1 - y2) * (xp - x2))).signum();
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let sgn2 = (((ys - y2) * (x1 - x2)) - ((y1 - y2) * (xs - x2))).signum();
     sgn1 == sgn2
 }
 
-/// Hilfs-Funktion für update: Reagiere auf einen Maus- oder Touch-Klick.
-fn pressed(
-    state: &mut Option<KlickQuelle>,
-    bounds: Rectangle,
-    position: Point,
-    klick_quelle: KlickQuelle,
-) -> Option<Nachricht> {
-    if state.is_some() {
-        return None;
-    }
+/// Hilfs-Funktion für update und view: Nachricht wenn an aktueller Position geklickt würde.
+fn nachricht_an_position(bounds: Rectangle, position: Point) -> Option<Nachricht> {
     let size = bounds.size();
     let WichtigeWerte {
         links,
@@ -363,33 +316,27 @@ fn pressed(
         rechts_unten,
         radius,
     } = WichtigeWerte::aus_size(size);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let klick_radius = (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
     let punkt = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
     if punkt_innerhalb_dreieck(punkt, links, ende_links_oben, ende_links_unten) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Links))
     } else if punkt_innerhalb_dreieck(punkt, rechts, ende_rechts_oben, ende_rechts_unten) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Rechts))
     } else if punkt_innerhalb_dreieck(punkt, oben, ende_oben_links, ende_oben_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Oben))
     } else if punkt_innerhalb_dreieck(punkt, unten, ende_unten_links, ende_unten_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Unten))
     } else if punkt_innerhalb_dreieck(punkt, links_oben, ende_links_oben, ende_oben_links) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::ObenLinks))
     } else if punkt_innerhalb_dreieck(punkt, links_unten, ende_links_unten, ende_unten_links) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::UntenLinks))
     } else if punkt_innerhalb_dreieck(punkt, rechts_oben, ende_rechts_oben, ende_oben_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::ObenRechts))
     } else if punkt_innerhalb_dreieck(punkt, rechts_unten, ende_rechts_unten, ende_unten_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::UntenRechts))
     } else if klick_radius < radius {
         Some(Nachricht::Zurücksetzen)
@@ -399,16 +346,49 @@ fn pressed(
     }
 }
 
+/// Hilfs-Funktion für update: Reagiere auf einen Maus- oder Touch-Klick.
+fn pressed(
+    state: &mut Option<KlickQuelle>,
+    bounds: Rectangle,
+    position: Point,
+    klick_quelle: KlickQuelle,
+) -> Option<Nachricht> {
+    if state.is_some() {
+        return None;
+    }
+    let nachricht = nachricht_an_position(bounds, position);
+    if nachricht.is_some() {
+        *state = Some(klick_quelle);
+    }
+    nachricht
+}
+
+/// Erzeuge den Pfad für ein Dreieck.
+#[expect(clippy::min_ident_chars, reason = "Gibt es bessere Namen für die Ecken eines Dreiecks?")]
+fn dreieck(a: Vektor, b: Vektor, c: Vektor) -> Pfad {
+    pfad::Erbauer::neu().move_to_chain(a).line_to_chain(b).line_to_chain(c).baue()
+}
+
+/// Aktueller Zustand eines [`Bewegen`] Widgets.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Zustand {
+    /// Wie wurde die letzte Aktion ausgelöst.
+    klick_quelle: Option<KlickQuelle>,
+    /// Die Nachricht für einen Klick auf die aktuelle [`Cursor`]-Position.
+    /// Wird verwendet um ein Neuzeichnen des Canvas auszulösen.
+    maus_nachricht: Option<Nachricht>,
+}
+
 impl Program<Nachricht, Thema, Renderer> for Bewegen {
-    type State = Option<KlickQuelle>;
+    type State = Zustand;
 
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         renderer: &Renderer,
         thema: &Thema,
         bounds: Rectangle,
-        _cursor: Cursor,
+        cursor: Cursor,
     ) -> Vec<Geometry> {
         let size = bounds.size();
         let WichtigeWerte {
@@ -432,85 +412,135 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
             radius,
         } = WichtigeWerte::aus_size(size);
 
-        // erzeuge Pfad
-        let mut erbauer = pfad::Erbauer::neu();
+        let nachricht =
+            cursor.position_in(bounds).and_then(|position| nachricht_an_position(bounds, position));
+        let mut füll_pfad = None;
         // links
-        erbauer.move_to(ende_links_unten);
-        erbauer.line_to(links);
-        erbauer.line_to(ende_links_oben);
+        let links = dreieck(ende_links_unten, links, ende_links_oben);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Links)) {
+            füll_pfad = Some(links.clone());
+        }
         // links-oben
-        erbauer.line_to(links_oben);
-        erbauer.line_to(ende_oben_links);
+        let oben_links = dreieck(ende_links_oben, links_oben, ende_oben_links);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::ObenLinks)) {
+            füll_pfad = Some(oben_links.clone());
+        }
         // oben
-        erbauer.line_to(oben);
-        erbauer.line_to(ende_oben_rechts);
+        let oben = dreieck(ende_oben_links, oben, ende_oben_rechts);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Oben)) {
+            füll_pfad = Some(oben.clone());
+        }
         // rechts-oben
-        erbauer.line_to(rechts_oben);
-        erbauer.line_to(ende_rechts_oben);
+        let oben_rechts = dreieck(ende_oben_rechts, rechts_oben, ende_rechts_oben);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::ObenRechts)) {
+            füll_pfad = Some(oben_rechts.clone());
+        }
         // rechts
-        erbauer.line_to(rechts);
-        erbauer.line_to(ende_rechts_unten);
+        let rechts = dreieck(ende_rechts_oben, rechts, ende_rechts_unten);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Rechts)) {
+            füll_pfad = Some(rechts.clone());
+        }
         // rechts-unten
-        erbauer.line_to(rechts_unten);
-        erbauer.line_to(ende_unten_rechts);
+        let unten_rechts = dreieck(ende_rechts_unten, rechts_unten, ende_unten_rechts);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::UntenRechts)) {
+            füll_pfad = Some(unten_rechts.clone());
+        }
         // unten
-        erbauer.line_to(unten);
-        erbauer.line_to(ende_unten_links);
+        let unten = dreieck(ende_unten_rechts, unten, ende_unten_links);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Unten)) {
+            füll_pfad = Some(unten.clone());
+        }
         // links-unten
-        erbauer.line_to(links_unten);
-        erbauer.close();
-
+        let unten_links = dreieck(ende_unten_links, links_unten, ende_links_unten);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::UntenLinks)) {
+            füll_pfad = Some(unten_links.clone());
+        }
         // zurücksetzen
-        erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
+        let zurücksetzten = pfad::Erbauer::neu()
+            .arc_chain(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU })
+            .baue();
+        if nachricht == Some(Nachricht::Zurücksetzen) {
+            füll_pfad = Some(zurücksetzten.clone());
+        }
 
-        let pfad = erbauer.baue();
+        let pfade = [
+            links,
+            oben_links,
+            oben,
+            oben_rechts,
+            rechts,
+            unten_rechts,
+            unten,
+            unten_links,
+            zurücksetzten,
+        ];
+        let strich = <Thema as knopf::Catalog>::strich(thema);
+        let von_maus_gehalten = state.klick_quelle == Some(KlickQuelle::Maus);
+        let füllen = <Thema as knopf::Catalog>::hintergrund(thema, von_maus_gehalten, true);
         vec![self.0.zeichnen(renderer, thema, size, |frame| {
-            frame.stroke(
-                &pfad,
-                Stroke { style: Style::Solid(thema.strich().into()), ..Stroke::default() },
-            );
+            for pfad in &pfade {
+                frame.stroke(
+                    pfad,
+                    Stroke { style: Style::Solid(strich.into()), ..Stroke::default() },
+                );
+            }
+            if let Some(füll_pfad) = &füll_pfad {
+                frame.fill(
+                    füll_pfad,
+                    Fill { style: Style::Solid(füllen.into()), rule: Rule::NonZero },
+                );
+            }
         })]
     }
 
     fn update(
         &self,
         state: &mut Self::State,
-        event: Event,
+        event: &Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Nachricht>) {
+    ) -> Option<Action<Nachricht>> {
+        let Zustand { klick_quelle, maus_nachricht } = state;
         let mut nachricht = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(bounds) {
-                    nachricht = pressed(state, bounds, position, KlickQuelle::Maus);
+                    nachricht = pressed(klick_quelle, bounds, position, KlickQuelle::Maus);
                 }
             },
             Event::Touch(touch::Event::FingerPressed { id, position }) => {
-                nachricht = pressed(state, bounds, position, KlickQuelle::Touch(id));
+                nachricht = pressed(klick_quelle, bounds, *position, KlickQuelle::Touch(*id));
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-                if *state == Some(KlickQuelle::Maus) =>
+                if *klick_quelle == Some(KlickQuelle::Maus) =>
             {
                 // Beende nur mit der Maus gestartete Bewegungen
-                *state = None;
+                *klick_quelle = None;
                 nachricht = Some(Nachricht::BeendeBewegung);
             },
             Event::Touch(
                 touch::Event::FingerLifted { id, position: _ }
                 | touch::Event::FingerLost { id, position: _ },
-            ) if *state == Some(KlickQuelle::Touch(id)) => {
+            ) if *klick_quelle == Some(KlickQuelle::Touch(*id)) => {
                 // Beende nur mit dem selben Finger gestartete Bewegungen
-                *state = None;
+                *klick_quelle = None;
                 nachricht = Some(Nachricht::BeendeBewegung);
             },
-            Event::Mouse(_) | Event::Touch(_) | Event::Keyboard(_) => {},
+            Event::Mouse(_)
+            | Event::Touch(_)
+            | Event::Keyboard(_)
+            | Event::Window(_)
+            | Event::InputMethod(_) => {},
         }
+        let aktuelle_maus_nachricht = cursor
+            .position_in(bounds)
+            .and_then(|maus_position| nachricht_an_position(bounds, maus_position));
+        if nachricht.is_some() || (maus_nachricht != &aktuelle_maus_nachricht) {
+            self.0.leeren();
+        }
+        *maus_nachricht = aktuelle_maus_nachricht;
 
-        let status =
-            if nachricht.is_some() { event::Status::Captured } else { event::Status::Ignored };
-
-        (status, nachricht)
+        nachricht.map(Action::publish)
     }
 
     fn mouse_interaction(
@@ -519,52 +549,12 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
-        let mut interaction = mouse::Interaction::default();
-        if let Some(position) = cursor.position_in(bounds) {
-            let size = bounds.size();
-            let WichtigeWerte {
-                links,
-                rechts,
-                oben,
-                unten,
-                zentrum,
-                ende_links_oben,
-                ende_links_unten,
-                ende_rechts_oben,
-                ende_rechts_unten,
-                ende_oben_links,
-                ende_oben_rechts,
-                ende_unten_links,
-                ende_unten_rechts,
-                links_oben,
-                links_unten,
-                rechts_oben,
-                rechts_unten,
-                radius,
-            } = WichtigeWerte::aus_size(size);
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
-            let klick_radius =
-                (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
-            let punkt = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
-            if punkt_innerhalb_dreieck(punkt, links, ende_links_oben, ende_links_unten)
-                || punkt_innerhalb_dreieck(punkt, rechts, ende_rechts_oben, ende_rechts_unten)
-                || punkt_innerhalb_dreieck(punkt, oben, ende_oben_links, ende_oben_rechts)
-                || punkt_innerhalb_dreieck(punkt, unten, ende_unten_links, ende_unten_rechts)
-                || punkt_innerhalb_dreieck(punkt, links_oben, ende_links_oben, ende_oben_links)
-                || punkt_innerhalb_dreieck(punkt, links_unten, ende_links_unten, ende_unten_links)
-                || punkt_innerhalb_dreieck(punkt, rechts_oben, ende_rechts_oben, ende_oben_rechts)
-                || punkt_innerhalb_dreieck(
-                    punkt,
-                    rechts_unten,
-                    ende_rechts_unten,
-                    ende_unten_rechts,
-                )
-                || (klick_radius < radius)
-            {
-                interaction = mouse::Interaction::Pointer;
-            }
+        if let Some(position) = cursor.position_in(bounds)
+            && nachricht_an_position(bounds, position).is_some()
+        {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
         }
-        interaction
     }
 }

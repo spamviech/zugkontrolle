@@ -1,12 +1,12 @@
 //! Style Strukturen für eine [`iced::widget::Rule`].
 
-use iced::{
-    border,
-    widget::rule::{Appearance, FillMode, StyleSheet},
-    Color,
-};
+use iced_core::Color;
+use iced_widget::rule;
 
 use crate::style::thema::Thema;
+
+#[doc(inline)]
+pub use rule::{Style, StyleFn};
 
 /// Style-Struktur für eine Trennlinie.
 pub const TRENNLINIE: Linie = Linie { farbe: None, breite: 1, radius: 0. };
@@ -22,15 +22,25 @@ pub struct Linie {
     pub radius: f32,
 }
 
-impl StyleSheet for Thema {
-    type Style = Linie;
+/// Erlaube Verwendung in [`iced_widget::Rule::style`]).
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: rule::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
+    #[must_use]
+    fn style_fn(self) -> StyleFn<'static, Thema>;
+}
 
-    fn appearance(&self, style: &Self::Style) -> Appearance {
-        let Linie { farbe, breite: width, radius } = *style;
-        let color = farbe.unwrap_or(match self {
-            Thema::Hell => Color::BLACK,
-            Thema::Dunkel => Color::WHITE,
-        });
-        Appearance { color, radius: border::Radius::from(radius), width, fill_mode: FillMode::Full }
+impl StyleProvider<'_, Thema> for Linie {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
+        Box::new(|thema| {
+            let default_style = <Thema as rule::Catalog>::default()(thema);
+            let color = match thema {
+                Thema::Hell => Color::BLACK,
+                Thema::Dunkel => Color::WHITE,
+            };
+            Style { color, ..default_style }
+        })
     }
 }

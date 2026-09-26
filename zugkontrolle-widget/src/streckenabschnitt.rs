@@ -10,22 +10,21 @@ use iced_aw::{
     widgets::card::{self, Card},
 };
 use iced_core::{
-    event, text as text_core,
+    Alignment, Element, Font, Length, Renderer, text as text_core,
     widget::text::{self, Text},
-    Alignment, Element, Font, Length, Renderer,
 };
 use iced_widget::{
+    Column, Row,
     button::{self, Button},
     checkbox::{self, Checkbox},
     container::{self, Container},
     radio,
     scrollable::{self, Scrollable},
     text_input::{self, TextInput},
-    Column, Row,
 };
 
 use zugkontrolle_anschluss::{
-    de_serialisieren::Serialisiere, polarität::Polarität, OutputSerialisiert,
+    OutputSerialisiert, de_serialisieren::Serialisiere, polarität::Polarität,
 };
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::{
@@ -41,7 +40,7 @@ use crate::{
     bootstrap::{Bootstrap, Icon},
     farbwahl::Farbwahl,
     map_mit_zustand::MapMitZustand,
-    style,
+    style::{self, button::StyleProvider as _, container::StyleProvider as _},
 };
 
 /// Eine Nachricht des [`Anzeige`]-Widgets.
@@ -70,13 +69,16 @@ impl<Thema, R> Debug for Anzeige<'_, Thema, R> {
 impl<'a, Thema, R> Anzeige<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
-    Thema:
-        'a + container::StyleSheet + button::StyleSheet + checkbox::StyleSheet + text::StyleSheet,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
+    Thema: 'a
+        + container::Catalog<Class<'a> = style::container::StyleFn<'a, Thema>>
+        + button::Catalog
+        + checkbox::Catalog
+        + text::Catalog,
+    style::container::Container: style::container::StyleProvider<'a, Thema>,
 {
     /// Erstelle eine neue [`Anzeige`].
     #[must_use]
-    pub fn neu(zustand: &'a Option<(Name, Farbe)>, festlegen: bool) -> Self {
+    pub fn neu(zustand: Option<&'a (Name, Farbe)>, festlegen: bool) -> Self {
         let mut children = Vec::new();
         let style = if let Some((streckenabschnitt_name, farbe)) = zustand {
             children.push(Text::new(&streckenabschnitt_name.0).into());
@@ -84,7 +86,7 @@ where
         } else {
             children.push(
                 Container::new(Text::new("<Streckenabschnitt>"))
-                    .style(style::Container::Pcf8574Beschreibung)
+                    .style(style::Container::Pcf8574Beschreibung.style_fn())
                     .into(),
             );
             style::streckenabschnitt::anzeige_deaktiviert()
@@ -93,18 +95,18 @@ where
             Row::new()
                 .push(Button::new(Text::new("Auswählen")).on_press(AnzeigeNachricht::ZeigeOverlay))
                 .push(
-                    Checkbox::new("Festlegen", festlegen)
+                    Checkbox::new(festlegen)
+                        .label("Festlegen")
                         .on_toggle(AnzeigeNachricht::Festlegen)
                         .spacing(0),
                 )
                 .spacing(1)
                 .into(),
         );
-        let container = Container::new(
-            Column::with_children(children).spacing(1).align_items(Alignment::Center),
-        )
-        .padding(1)
-        .style(style);
+        let container =
+            Container::new(Column::with_children(children).spacing(1).align_x(Alignment::Center))
+                .padding(1)
+                .style(style.style_fn());
         Anzeige { element: container.into() }
     }
 }
@@ -131,7 +133,7 @@ struct AuswahlZustand {
 impl AuswahlZustand {
     /// Erstelle einen neuen [`AuswahlZustand`].
     fn neu(
-        startwert: &Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
+        startwert: Option<&(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
     ) -> AuswahlZustand {
         let (name, farbe, anschluss) =
             if let Some((name, streckenabschnitt, _geschwindigkeit)) = startwert {
@@ -191,23 +193,24 @@ impl<'a, Thema, R> Auswahl<'a, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + card::StyleSheet
-        + text::StyleSheet
-        + scrollable::StyleSheet
-        + container::StyleSheet
-        + button::StyleSheet
-        + text_input::StyleSheet
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + radio::StyleSheet,
-    <Thema as button::StyleSheet>::Style: From<style::Button>,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
-    <Thema as scrollable::StyleSheet>::Style: From<style::Sammlung>,
-    <Thema as tab_bar::StyleSheet>::Style: From<style::TabBar>,
+        + card::Catalog
+        + text::Catalog
+        + scrollable::Catalog<Class<'a> = style::sammlung::StyleFn<'a, Thema>>
+        + container::Catalog<Class<'a> = style::container::StyleFn<'a, Thema>>
+        + button::Catalog<Class<'a> = style::button::StyleFn<'a, Thema>>
+        + text_input::Catalog
+        + number_input::Catalog
+        + number_input::ExtendedCatalog
+        + tab_bar::Catalog<Class<'a> = style::tab_bar::StyleFn<'a, Thema>>
+        + radio::Catalog,
+    style::container::Container: style::container::StyleProvider<'a, Thema>,
+    style::button::Button: style::button::StyleProvider<'a, Thema>,
+    style::sammlung::Sammlung: style::sammlung::StyleProvider<'a, Thema>,
+    style::tab_bar::TabBar: style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erstelle eine neue [`Auswahl`].
     pub fn neu<L: Leiter, AktualisierenNachricht>(
-        startwert: &Option<(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
+        startwert: Option<&(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
         gleise: &'a Gleise<L, AktualisierenNachricht>,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
@@ -222,46 +225,41 @@ where
                 settings,
             )
         };
-        let mapper = |interne_nachricht,
-                      zustand: &mut AuswahlZustand,
-                      status: &mut event::Status| {
-            *status = event::Status::Captured;
-            match interne_nachricht {
-                InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
-                InterneAuswahlNachricht::Wähle(wahl) => {
-                    vec![AuswahlNachricht::Wähle(wahl), AuswahlNachricht::Schließe]
-                },
-                InterneAuswahlNachricht::Hinzufügen => {
-                    let nachricht = AuswahlNachricht::Hinzufügen(
-                        None,
-                        Name(zustand.name.clone()),
-                        zustand.farbe,
-                        zustand.anschluss.clone(),
-                    );
-                    vec![nachricht]
-                },
-                InterneAuswahlNachricht::Lösche(name) => {
-                    vec![AuswahlNachricht::Lösche(name)]
-                },
-                InterneAuswahlNachricht::Name(name) => {
-                    zustand.name = name;
-                    Vec::new()
-                },
-                InterneAuswahlNachricht::FarbeBestimmen(farbe) => {
-                    zustand.farbe = farbe;
-                    Vec::new()
-                },
-                InterneAuswahlNachricht::Anschluss(anschluss) => {
-                    zustand.anschluss = anschluss;
-                    Vec::new()
-                },
-                InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
-                    zustand.name = name.0;
-                    zustand.farbe = farbe;
-                    zustand.anschluss = anschluss;
-                    Vec::new()
-                },
-            }
+        let mapper = |interne_nachricht, zustand: &mut AuswahlZustand| match interne_nachricht {
+            InterneAuswahlNachricht::Schließe => vec![AuswahlNachricht::Schließe],
+            InterneAuswahlNachricht::Wähle(wahl) => {
+                vec![AuswahlNachricht::Wähle(wahl), AuswahlNachricht::Schließe]
+            },
+            InterneAuswahlNachricht::Hinzufügen => {
+                let nachricht = AuswahlNachricht::Hinzufügen(
+                    None,
+                    Name(zustand.name.clone()),
+                    zustand.farbe,
+                    zustand.anschluss.clone(),
+                );
+                vec![nachricht]
+            },
+            InterneAuswahlNachricht::Lösche(name) => {
+                vec![AuswahlNachricht::Lösche(name)]
+            },
+            InterneAuswahlNachricht::Name(name) => {
+                zustand.name = name;
+                Vec::new()
+            },
+            InterneAuswahlNachricht::FarbeBestimmen(farbe) => {
+                zustand.farbe = farbe;
+                Vec::new()
+            },
+            InterneAuswahlNachricht::Anschluss(anschluss) => {
+                zustand.anschluss = anschluss;
+                Vec::new()
+            },
+            InterneAuswahlNachricht::Bearbeiten(_geschwindigkeit, name, farbe, anschluss) => {
+                zustand.name = name.0;
+                zustand.farbe = farbe;
+                zustand.anschluss = anschluss;
+                Vec::new()
+            },
         };
         Auswahl(MapMitZustand::neu(AuswahlZustand::neu(startwert), erzeuge_element, mapper))
     }
@@ -287,7 +285,7 @@ where
         let AuswahlZustand { name: neu_name, farbe: neu_farbe, anschluss: neu_anschluss } =
             auswahl_zustand;
 
-        let einstellungen = Row::new()
+        let einstellungen: Row<'_, InterneAuswahlNachricht, Thema, R> = Row::new()
             .push(
                 TextInput::new("<Name>", neu_name)
                     .on_input(InterneAuswahlNachricht::Name)
@@ -308,7 +306,7 @@ where
         let mut column = Column::new()
             .push(
                 Container::new(Column::new().push(einstellungen).push(hinzufügen))
-                    .style(style::streckenabschnitt::auswahl_container(*neu_farbe)),
+                    .style(style::streckenabschnitt::auswahl_container(*neu_farbe).style_fn()),
             )
             .push(Button::new(Text::new("Keinen")).on_press(InterneAuswahlNachricht::Wähle(None)))
             .width(Length::Shrink);
@@ -321,7 +319,7 @@ where
                                 name.clone().into_inner(),
                                 *farbe,
                             ))))
-                            .style(style::streckenabschnitt::auswahl_button(*farbe)),
+                            .style(style::streckenabschnitt::auswahl_button(*farbe).style_fn()),
                     )
                     .push(Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                         InterneAuswahlNachricht::Bearbeiten(

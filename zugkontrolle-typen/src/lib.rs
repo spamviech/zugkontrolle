@@ -1,10 +1,13 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![expect(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 use crate::{
-    canvas::{pfad::Pfad, Position},
+    canvas::{Position, pfad::Pfad},
     farbe::Farbe,
     mm::Spurweite,
     nachschlagen::Nachschlagen,
@@ -41,11 +44,7 @@ impl Transparenz {
     /// ansonsten [`Volle`](Transparenz::Voll) Transparenz.
     #[must_use]
     pub fn true_reduziert(input: bool) -> Transparenz {
-        if input {
-            Transparenz::Reduziert
-        } else {
-            Transparenz::Voll
-        }
+        if input { Transparenz::Reduziert } else { Transparenz::Voll }
     }
 
     /// Kombiniere zwei Transparenz-Werte.
@@ -111,12 +110,11 @@ impl Innerhalb {
 ///
 /// Die Darstellungs-Reihenfolge ist [fülle](Zeichnen::fülle), [`zeichne`](Zeichnen::zeichne),
 /// [`beschreibung_und_name`](Zeichnen::beschreibung_und_name).
+#[expect(clippy::min_ident_chars, reason = "t: T")]
 pub trait Zeichnen<T> {
     /// Einschließendes Rechteck bei Position `(0,0)`.
     fn rechteck(&self, t: &T, spurweite: Spurweite) -> Rechteck;
 
-    // t: T
-    #[allow(clippy::min_ident_chars)]
     /// Einschließendes Rechteck, wenn sich das Gleis an der [`Position`] befindet.
     fn rechteck_an_position(&self, t: &T, spurweite: Spurweite, position: &Position) -> Rechteck {
         self.rechteck(t, spurweite)
@@ -165,8 +163,7 @@ pub trait Zeichnen<T> {
     /// Es wird erwartet, dass sich die Verbindungen innerhalb von `rechteck` befinden.
     fn verbindungen(&self, t: &T, spurweite: Spurweite) -> Self::Verbindungen;
 
-    // t: T
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars, reason = "t: T")]
     /// Absolute Position der Verbindungen, wenn sich das Gleis an der [`Position`] befindet.
     fn verbindungen_an_position(
         &self,
@@ -176,8 +173,10 @@ pub trait Zeichnen<T> {
     ) -> Self::Verbindungen {
         self.verbindungen(t, spurweite).zuordnen(
             |&Verbindung { position: verbindung_position, richtung }| {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[expect(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 let richtung = position.winkel + richtung;
                 Verbindung { position: position.transformation(verbindung_position), richtung }
             },

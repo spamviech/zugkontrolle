@@ -1,61 +1,55 @@
 //! Style-Struktur für eine [`TabBar`](iced_aw::tab_bar::TabBar)
 //! bei der Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 
-use iced::{Background, Color};
-use iced_aw::style::tab_bar::{Appearance, StyleSheet};
-use iced_core::border;
+use iced_aw::style::{self, tab_bar};
+use iced_core::{Background, Color};
 
 use crate::style::thema::Thema;
+
+#[doc(inline)]
+pub use tab_bar::Style;
+
+/// A styling function for a [`TabBar`](iced_aw::tab_bar::TabBar).
+pub type StyleFn<'a, Theme> = style::status::StyleFn<'a, Theme, Style>;
 
 /// Style-Struktur für eine [`TabBar`](iced_aw::tab_bar::TabBar)
 /// bei der Auswahl eines [`Anschlusses`](crate::anschluss::Anschluss).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TabBar;
 
-impl TabBar {
-    /// Erhalte die `TabBar`-[`Appearance`] für die gegebene Hintergrund-Farbe.
-    fn style(tab_label_background: Color) -> Appearance {
-        Appearance {
-            background: Some(Background::Color(Color::WHITE)),
-            border_color: Some(Color::BLACK),
-            border_width: 0.,
-            tab_label_background: Background::Color(tab_label_background),
-            tab_label_border_color: Color::BLACK,
-            tab_label_border_width: 1.,
-            icon_color: Color::BLACK,
-            icon_background: None,
-            icon_border_radius: border::Radius::default(),
-            text_color: Color::BLACK,
-        }
-    }
+/// Erlaube Verwendung in [`iced_aw::TabBar::style`]).
+pub trait StyleProvider<'a, Thema>
+where
+    Thema: tab_bar::Catalog<Class<'a> = StyleFn<'a, Thema>>,
+{
+    /// Gebe die styling function mit den aktuell Einstellungen zurück.
+    #[must_use]
+    fn style_fn(self) -> StyleFn<'static, Thema>;
 }
 
-impl StyleSheet for Thema {
-    type Style = TabBar;
-
-    fn active(&self, _style: &Self::Style, is_active: bool) -> Appearance {
-        match self {
-            Thema::Hell => {
-                let grey_value = if is_active { 0.8 } else { 0.9 };
-                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
-            },
-            Thema::Dunkel => {
-                let grey_value = if is_active { 0.2 } else { 0.1 };
-                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
-            },
-        }
-    }
-
-    fn hovered(&self, _style: &Self::Style, _is_active: bool) -> Appearance {
-        match self {
-            Thema::Hell => {
-                let grey_value = 0.7;
-                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
-            },
-            Thema::Dunkel => {
-                let grey_value = 0.3;
-                Self::Style::style(Color::from_rgb(grey_value, grey_value, grey_value))
-            },
-        }
+impl StyleProvider<'_, Thema> for TabBar {
+    fn style_fn(self) -> StyleFn<'static, Thema> {
+        Box::new(|thema, status| {
+            use style::Status;
+            let default_style = <Thema as tab_bar::Catalog>::default()(thema, status);
+            let grey_value = match (thema, status) {
+                (Thema::Hell, Status::Disabled) => 0.8,
+                (Thema::Hell, Status::Active) => 0.7,
+                (Thema::Hell, Status::Selected | Status::Focused | Status::Hovered) => 0.6,
+                (Thema::Hell | Thema::Dunkel, Status::Pressed) => 0.5,
+                (Thema::Dunkel, Status::Disabled) => 0.1,
+                (Thema::Dunkel, Status::Active) => 0.3,
+                (Thema::Dunkel, Status::Selected | Status::Focused | Status::Hovered) => 0.4,
+            };
+            Style {
+                border_width: 0.,
+                tab_label_border_width: 1.,
+                tab_label_background: Background::Color(Color::from_rgb(
+                    grey_value, grey_value, grey_value,
+                )),
+                icon_background: None,
+                ..default_style
+            }
+        })
     }
 }

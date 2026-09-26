@@ -1,10 +1,14 @@
 //! Mit Raspberry Pi schaltbarer Anschluss.
 
 // Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
+#![expect(
+    clippy::multiple_crate_versions,
+    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
+)]
 
 use std::{
     any::TypeId,
+    convert::identity,
     fmt::{self, Display, Formatter},
 };
 
@@ -18,19 +22,21 @@ use zugkontrolle_util::eingeschränkt::kleiner_8;
 
 use crate::{
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    event::Event,
     level::Level,
-    pin::{input, output, pwm, Pin},
+    pin::{Pin, input, output, pwm},
     polarität::{Fließend, Polarität},
     trigger::Trigger,
 };
 
 pub mod de_serialisieren;
+pub mod event;
 pub mod level;
 pub mod pcf8574;
 pub mod pin;
 #[path = "polarität.rs"]
 pub mod polarität;
-pub mod rppal;
+pub mod rpi_pal;
 pub mod trigger;
 
 /// Verwalten nicht verwendeter [Pin]s und [`Pcf8574-Ports`](pcf8574::Port).
@@ -46,7 +52,7 @@ pub struct Lager {
 #[derive(Debug, zugkontrolle_macros::From)]
 pub enum InitFehler {
     /// Fehler beim Initialisieren des [`Pin-Lagers`](pin::Lager).
-    Pin(rppal::gpio::Error),
+    Pin(rpi_pal::gpio::Error),
     /// Fehler beim Initialisieren des [`Pcf8574-Lagers`](pcf8574::Lager).
     Pcf8574(pcf8574::InitFehler),
 }
@@ -94,7 +100,6 @@ impl Lager {
 
 /// Ein Anschluss.
 #[derive(Debug, zugkontrolle_macros::From)]
-#[allow(variant_size_differences)]
 pub enum Anschluss {
     /// Ein [`Pin`].
     Pin(Pin),
@@ -142,7 +147,10 @@ impl Anschluss {
 
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
-#[allow(variant_size_differences)]
+#[cfg_attr(
+    not(feature = "raspi"),
+    expect(variant_size_differences, reason = "Betrifft nur Mock-Implementierung.")
+)]
 pub enum OutputAnschluss {
     /// Ein [`Pin`](output::Pin).
     Pin {
@@ -167,7 +175,7 @@ impl Display for OutputAnschluss {
                 write!(formatter, "Pin({}, {polarität})", pin.pin())
             },
             OutputAnschluss::Pcf8574Port { port, polarität } => {
-                write!(formatter, "Pcf8574Port({port}, {polarität}")
+                write!(formatter, "Pcf8574Port({port}, {polarität})")
             },
         }
     }
@@ -187,18 +195,14 @@ impl OutputAnschluss {
             OutputAnschluss::Pcf8574Port { port, polarität } => {
                 port.schreibe(fließend.mit_polarität(*polarität))?;
             },
-        };
+        }
         Ok(())
     }
 
     /// Aktuelle Einstellung des [`OutputAnschlusses`](OutputAnschluss).
     #[must_use]
     pub fn fließend(&self) -> Fließend {
-        if self.ist_fließend() {
-            Fließend::Fließend
-        } else {
-            Fließend::Gesperrt
-        }
+        if self.ist_fließend() { Fließend::Fließend } else { Fließend::Gesperrt }
     }
 
     /// Ist der [`OutputAnschluss`] aktuell [`fließend`](Fließend::Fließend).
@@ -232,13 +236,13 @@ impl OutputAnschluss {
         match self {
             OutputAnschluss::Pin { pin, .. } => pin.umschalten(),
             OutputAnschluss::Pcf8574Port { port, .. } => port.umschalten()?,
-        };
+        }
         Ok(())
     }
 }
 
+#[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
 /// Serialisierbare Informationen eines [`OutputAnschlusses`](OutputAnschluss).
-#[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OutputSerialisiert {
     /// Ein [`Pin`](output::Pin).
@@ -272,7 +276,7 @@ impl Display for OutputSerialisiert {
                 write!(formatter, "Pin({pin}, {polarität})")
             },
             OutputSerialisiert::Pcf8574Port { beschreibung, port, polarität } => {
-                write!(formatter, "Pcf8574Port({beschreibung}-{port}, {polarität}")
+                write!(formatter, "Pcf8574Port({beschreibung}-{port}, {polarität})")
             },
         }
     }
@@ -387,7 +391,6 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
 
 /// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
-#[allow(variant_size_differences)]
 pub enum InputAnschluss {
     /// Ein [`Pin`](input::Pin).
     Pin(input::Pin),
@@ -418,10 +421,22 @@ macro_rules! match_method {
         $method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty
         $(, $($docstring: expr),+ $(,)?)?
     ) => {
+        match_method! {$method;identity;$(($($arg : $arg_ty),+))? -> () $(, $($docstring),+)?}
+    };
+    (
+        $method:ident; pin_wrapper:expr$(($($arg:ident : $arg_ty: ty),+))?
+        $(, $($docstring: expr),+ $(,)?)?
+    ) => {
+        match_method! {$method; pin_wrapper;$(($($arg : $arg_ty),+))? -> () $(, $($docstring),+)?}
+    };
+    (
+        $method:ident;$pin_wrapper:expr; $(($($arg:ident : $arg_ty: ty),+))? -> $result:ty
+        $(, $($docstring: expr),+ $(,)?)?
+    ) => {
         $($(#[doc = $docstring])+)?
         pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Fehler> {
             Ok(match self {
-                InputAnschluss::Pin(pin) => pin.$method($($($arg),+)?)?,
+                InputAnschluss::Pin(pin) => $pin_wrapper(pin.$method($($($arg),+)?))?,
                 InputAnschluss::Pcf8574Port(port) => port.$method($($($arg),+)?)?,
             })
         }
@@ -430,8 +445,8 @@ macro_rules! match_method {
 
 impl InputAnschluss {
     match_method! {
-        lese -> Level,
-        "Lese das aktuell am [InputAnschluss] anliegende [Level].",
+        lese; Result::<Level, Fehler>::Ok; -> Level,
+        "Lese das aktuell am [`InputAnschluss`] anliegende [`Level`].",
         "",
         "## Errors",
         "",
@@ -439,7 +454,7 @@ impl InputAnschluss {
     }
 
     match_method! {
-        setze_async_interrupt(trigger: Trigger, callback: impl Fn(Level) + Send + Sync + 'static),
+        setze_async_interrupt(trigger: Trigger, callback: impl Fn(Event) + Send + Sync + 'static),
         "Konfiguriere einen asynchronen Interrupt Trigger.",
         "Bei auftreten wird der callback in einem separaten Thread ausgeführt.",
         "",
@@ -453,14 +468,13 @@ impl InputAnschluss {
         "Setzten des Interrupts schlug fehl.",
         "",
         "## Keine synchronen Interrupts",
-        "Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
+        "Obwohl [`rpi_pal`] prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.",
         "Siehe die Dokumentation der",
-        "[poll_interrupts](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)",
+        "[`poll_interrupts`](https://docs.rs/rpi_pal/0.22.3/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)",
         "Methode.",
-        "> Calling poll_interrupts blocks any other calls to poll_interrupts or",
-        "> InputPin::poll_interrupt until it returns. If you need to poll multiple pins simultaneously",
-        "> on different threads, consider using asynchronous interrupts with",
-        "> InputPin::set_async_interrupt instead.",
+        "> Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or [`InputPin::poll_interrupt`] until",
+        "> it returns. If you need to poll multiple pins simultaneously on different threads, consider using",
+        "> asynchronous interrupts with [`InputPin::set_async_interrupt`] instead.",
     }
 
     match_method! {
@@ -473,8 +487,8 @@ impl InputAnschluss {
     }
 }
 
+#[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
 /// Serialisierbare Informationen eines [`InputAnschlusses`](InputAnschluss).
-#[allow(missing_copy_implementations, variant_size_differences)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InputSerialisiert {
     /// Ein [`Pin`](input::Pin).
@@ -521,11 +535,7 @@ impl InputSerialisiert {
     /// sofern es sich um einen handelt und einer konfiguriert ist.
     #[must_use]
     pub fn interrupt(&self) -> Option<u8> {
-        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self {
-            *interrupt
-        } else {
-            None
-        }
+        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self { *interrupt } else { None }
     }
 }
 
@@ -590,7 +600,7 @@ fn reserviere_input_port(
                         })
                         .map(Fehler::from),
                 )
-                .chain(fehler_interrupt.map(Fehler::from))
+                .chain(fehler_interrupt)
                 .collect();
             if let Ok(non_empty) = NonEmpty::try_from(fehler_vec) {
                 Ergebnis::WertMitWarnungen {
@@ -697,14 +707,13 @@ impl Reserviere<InputAnschluss> for InputSerialisiert {
 
 /// Fehler, die beim reservieren eines [`Anschluss`]es auftreten können.
 #[derive(Debug, Error)]
-#[allow(variant_size_differences)]
 pub enum ReservierenFehler {
     /// Ein Fehler beim reservieren eines [`Pin`]s.
     #[error(transparent)]
     Pin(#[from] pin::ReservierenFehler),
-    /// Ein [`Pcf8574-Port`](pcf8574::Port) wird bereits verwendet.
+    /// Ein Fehler beim reservieren eines [`Pcf8574-Port`](pcf8574::Port)s.
     #[error(transparent)]
-    Pcf8574(#[from] pcf8574::InVerwendung),
+    Pcf8574(#[from] pcf8574::ReservierenFehler),
     /// Der Interrupt-Pin für einen [`Pcf8574`](pcf8574::Pcf8574) wurde angepasst.
     #[error("Interrupt-Pin für Pcf8574 {beschreibung} von {von} zu {zu:?} geändert.")]
     Pcf8574InterruptPinGeändert {
@@ -750,8 +759,8 @@ impl From<pin::ReservierenFehler> for Fehler {
         Fehler::Reservieren(fehler.into())
     }
 }
-impl From<pcf8574::InVerwendung> for Fehler {
-    fn from(fehler: pcf8574::InVerwendung) -> Self {
+impl From<pcf8574::ReservierenFehler> for Fehler {
+    fn from(fehler: pcf8574::ReservierenFehler) -> Self {
         Fehler::Reservieren(fehler.into())
     }
 }

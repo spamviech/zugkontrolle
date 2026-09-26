@@ -1,29 +1,38 @@
 //! Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 
+use std::fmt;
+
 use iced_core::{
+    Element, Length, Rectangle, Shell, Size, Vector,
     clipboard::Clipboard,
-    event::{self, Event},
+    event::Event,
     layout::{self, Layout},
     mouse,
     overlay::{self, Overlay},
     renderer::{self, Renderer},
     widget::{
-        self,
+        self, Widget,
         tree::{self, Tree},
-        Widget,
     },
-    Element, Length, Point, Rectangle, Shell, Size, Vector,
 };
 
-use crate::map_operation::MapOperation;
-
-///  Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
-#[allow(missing_debug_implementations)]
+/// Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
 pub struct FlatMap<'a, A, I, Thema, R> {
     /// Das ursprüngliche Widget.
     element: Element<'a, A, Thema, R>,
     /// Die Funktion zur Transformation der ursprünglichen Nachrichten.
     mapper: Box<dyn Fn(A) -> I + 'a>,
+}
+
+impl<A: fmt::Debug, I: fmt::Debug, Thema: fmt::Debug, R: fmt::Debug> fmt::Debug
+    for FlatMap<'_, A, I, Thema, R>
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FlatMap")
+            .field("element", &"<element>")
+            .field("mapper", &"<closure>")
+            .finish()
+    }
 }
 
 impl<'a, A, I, Thema, R> FlatMap<'a, A, I, Thema, R> {
@@ -63,48 +72,47 @@ where
         self.element.as_widget().size_hint()
     }
 
-    fn layout(&self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        self.element.as_widget().layout(tree, renderer, limits)
+    fn layout(&mut self, tree: &mut Tree, renderer: &R, limits: &layout::Limits) -> layout::Node {
+        self.element.as_widget_mut().layout(tree, renderer, limits)
     }
 
     fn operate(
-        &self,
+        &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &R,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn widget::Operation,
     ) {
-        self.element.as_widget().operate(tree, layout, renderer, &mut MapOperation { operation });
+        self.element.as_widget_mut().operate(tree, layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         tree: &mut Tree,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
         renderer: &R,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let status = self.element.as_widget_mut().on_event(
+        self.element.as_widget_mut().update(
             tree,
             event,
             layout,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             &mut local_shell,
             viewport,
         );
 
-        if let Some(at) = local_shell.redraw_request() {
-            shell.request_redraw(at);
-        }
+        let redraw_request = local_shell.redraw_request();
+        shell.request_redraw_at(redraw_request);
 
         if local_shell.is_layout_invalid() {
             shell.invalidate_layout();
@@ -117,8 +125,6 @@ where
         for message in local_messages.drain(..).flat_map(&self.mapper) {
             shell.publish(message);
         }
-
-        status
     }
 
     fn draw(
@@ -128,46 +134,33 @@ where
         theme: &Thema,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.element.as_widget().draw(
-            tree,
-            renderer,
-            theme,
-            style,
-            layout,
-            cursor_position,
-            viewport,
-        );
+        self.element.as_widget().draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &R,
     ) -> mouse::Interaction {
-        self.element.as_widget().mouse_interaction(
-            tree,
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
+        self.element.as_widget().mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout<'b>,
         renderer: &R,
+        viewport: &Rectangle<f32>,
         translation: Vector,
     ) -> Option<overlay::Element<'b, B, Thema, R>> {
         let mapper = &self.mapper;
-        self.element.as_widget_mut().overlay(tree, layout, renderer, translation).map(
+        self.element.as_widget_mut().overlay(tree, layout, renderer, viewport, translation).map(
             move |overlay| overlay::Element::new(Box::new(OverlayFlatMap::neu(overlay, mapper))),
         )
     }
@@ -212,42 +205,41 @@ where
     Renderer: self::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.content.layout(renderer, bounds)
+        self.content.as_overlay_mut().layout(renderer, bounds)
     }
 
     fn operate(
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn widget::Operation,
     ) {
-        self.content.operate(layout, renderer, &mut MapOperation { operation });
+        self.content.as_overlay_mut().operate(layout, renderer, operation);
     }
 
-    fn on_event(
+    fn update(
         &mut self,
-        event: Event,
+        event: &Event,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
-    ) -> event::Status {
+    ) {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
-        let event_status = self.content.on_event(
+        self.content.as_overlay_mut().update(
             event,
             layout,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             &mut local_shell,
         );
 
-        if let Some(at) = local_shell.redraw_request() {
-            shell.request_redraw(at);
-        }
+        let redraw_request = local_shell.redraw_request();
+        shell.request_redraw_at(redraw_request);
 
         if local_shell.is_layout_invalid() {
             shell.invalidate_layout();
@@ -257,21 +249,24 @@ where
             shell.invalidate_widgets();
         }
 
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
+
+        *shell.input_method_mut() = local_shell.input_method().clone();
+
         for message in local_messages.drain(..).flat_map(self.mapper) {
             shell.publish(message);
         }
-
-        event_status
     }
 
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
-        viewport: &Rectangle,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.mouse_interaction(layout, cursor_position, viewport, renderer)
+        self.content.as_overlay().mouse_interaction(layout, cursor, renderer)
     }
 
     fn draw(
@@ -282,10 +277,17 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        self.content.draw(renderer, theme, style, layout, cursor_position);
+        self.content.as_overlay().draw(renderer, theme, style, layout, cursor_position);
     }
 
-    fn is_over(&self, layout: Layout<'_>, renderer: &Renderer, cursor_position: Point) -> bool {
-        self.content.is_over(layout, renderer, cursor_position)
+    fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'b>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, B, Thema, Renderer>> {
+        let mapper = &self.mapper;
+        self.content.as_overlay_mut().overlay(layout, renderer).map(move |overlay| {
+            overlay::Element::new(Box::new(OverlayFlatMap::neu(overlay, mapper)))
+        })
     }
 }

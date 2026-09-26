@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use crate::{level::Level, rppal::gpio, trigger::Trigger};
+use crate::{event::Event, level::Level, rpi_pal::gpio, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
 #[derive(Debug, PartialEq)]
@@ -17,11 +17,9 @@ impl Pin {
         self.0.pin()
     }
 
-    // FIXME Unnötiges Result<_, Fehler> entfernen. Lesen ist immer erfolgreich!
     /// Lese das aktuell am [Pin] anliegende [`Level`].
-    #[allow(clippy::missing_errors_doc)]
-    pub fn lese(&mut self) -> Result<Level, Fehler> {
-        Ok(self.0.read().into())
+    pub fn lese(&mut self) -> Level {
+        self.0.read().into()
     }
 
     /// Konfiguriere einen asynchronen Interrupt Trigger.
@@ -38,9 +36,9 @@ impl Pin {
     ///
     /// ## Keine synchronen Interrupts
     ///
-    /// Obwohl rppal prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
+    /// Obwohl [`rpi_pal`] prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
     /// Siehe die Dokumentation der
-    /// [`poll_interrupts`](https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html#method.poll_interrupts)
+    /// [`poll_interrupts`](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.
     /// > Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or
     /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins simultaneously
@@ -49,11 +47,11 @@ impl Pin {
     pub fn setze_async_interrupt(
         &mut self,
         trigger: Trigger,
-        mut callback: impl FnMut(Level) + Send + 'static,
+        mut callback: impl FnMut(Event) + Send + 'static,
     ) -> Result<(), Fehler> {
         let pin = self.pin();
         self.0
-            .set_async_interrupt(trigger.into(), move |level| callback(level.into()))
+            .set_async_interrupt(trigger.into(), None, move |event| callback(event.into()))
             .map_err(|fehler| Fehler { pin, fehler })?;
         Ok(())
     }
