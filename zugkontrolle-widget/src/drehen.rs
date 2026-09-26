@@ -12,7 +12,7 @@ use iced::{
 };
 
 use iced_widget::Action;
-use zugkontrolle_gleise::knopf::Thema as _;
+use zugkontrolle_gleise::knopf::Catalog as _;
 use zugkontrolle_typen::{
     canvas::{
         Cache,

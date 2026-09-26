@@ -415,7 +415,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(crate) fn darstellen_aller_gleise<Thema: knopf::Thema>(
+    pub(crate) fn darstellen_aller_gleise<Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
@@ -1238,7 +1238,7 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
     AnyId: From<GleisId<T>>,
     T: MitSteuerung,
     <T as MitSteuerung>::SelfUnit: Zeichnen<<T as MitSteuerung>::Steuerung>,
-    Thema: knopf::Thema,
+    Thema: knopf::Catalog,
 {
     let (relative_position, beschreibung, name) =
         definition.beschreibung_und_name(steuerung, spurweite);
@@ -1410,7 +1410,7 @@ impl GleiseDaten {
     }
 
     /// Füge die Namen und Beschreibungen aller Gleise dem Frame hinzu.
-    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: knopf::Thema>(
+    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,
@@ -1459,7 +1459,7 @@ impl GleiseDaten {
 
     #[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: knopf::Thema>(
+    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
         zugtyp: &Zugtyp<L>,

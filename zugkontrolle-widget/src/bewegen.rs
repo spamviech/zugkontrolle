@@ -6,14 +6,17 @@ use iced::{
     touch,
     widget::canvas::{Event, Geometry, Program, Stroke, Style},
 };
-use iced_widget::Action;
+use iced_widget::{
+    Action,
+    canvas::{Fill, fill::Rule},
+};
 use itertools::{Itertools, MinMaxResult};
 
-use zugkontrolle_gleise::knopf::Thema as _;
+use zugkontrolle_gleise::knopf;
 use zugkontrolle_typen::{
     canvas::{
         Cache,
-        pfad::{self, Bogen},
+        pfad::{self, Bogen, Pfad},
     },
     klick_quelle::KlickQuelle,
     skalar::Skalar,
@@ -24,7 +27,7 @@ use zugkontrolle_typen::{
 use crate::style::thema::Thema;
 
 /// Mögliche Bewegungen.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Bewegung {
     /// Vertikale Bewegung nach oben.
     Oben,
@@ -68,7 +71,7 @@ impl Bewegung {
 }
 
 /// Nachricht des [`Bewegen`]-Widgets.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Nachricht {
     /// Beginne eine kontinuierliche Bewegung.
     StarteBewegung(Bewegung),
@@ -290,16 +293,8 @@ fn punkt_innerhalb_dreieck(punkt: Vektor, a: Vektor, b: Vektor, c: Vektor) -> bo
     sgn1 == sgn2
 }
 
-/// Hilfs-Funktion für update: Reagiere auf einen Maus- oder Touch-Klick.
-fn pressed(
-    state: &mut Option<KlickQuelle>,
-    bounds: Rectangle,
-    position: Point,
-    klick_quelle: KlickQuelle,
-) -> Option<Nachricht> {
-    if state.is_some() {
-        return None;
-    }
+/// Hilfs-Funktion für update und view: Nachricht wenn an aktueller Position geklickt würde.
+fn nachricht_an_position(bounds: Rectangle, position: Point) -> Option<Nachricht> {
     let size = bounds.size();
     let WichtigeWerte {
         links,
@@ -328,28 +323,20 @@ fn pressed(
     let klick_radius = (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
     let punkt = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
     if punkt_innerhalb_dreieck(punkt, links, ende_links_oben, ende_links_unten) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Links))
     } else if punkt_innerhalb_dreieck(punkt, rechts, ende_rechts_oben, ende_rechts_unten) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Rechts))
     } else if punkt_innerhalb_dreieck(punkt, oben, ende_oben_links, ende_oben_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Oben))
     } else if punkt_innerhalb_dreieck(punkt, unten, ende_unten_links, ende_unten_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::Unten))
     } else if punkt_innerhalb_dreieck(punkt, links_oben, ende_links_oben, ende_oben_links) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::ObenLinks))
     } else if punkt_innerhalb_dreieck(punkt, links_unten, ende_links_unten, ende_unten_links) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::UntenLinks))
     } else if punkt_innerhalb_dreieck(punkt, rechts_oben, ende_rechts_oben, ende_oben_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::ObenRechts))
     } else if punkt_innerhalb_dreieck(punkt, rechts_unten, ende_rechts_unten, ende_unten_rechts) {
-        *state = Some(klick_quelle);
         Some(Nachricht::StarteBewegung(Bewegung::UntenRechts))
     } else if klick_radius < radius {
         Some(Nachricht::Zurücksetzen)
@@ -359,16 +346,49 @@ fn pressed(
     }
 }
 
+/// Hilfs-Funktion für update: Reagiere auf einen Maus- oder Touch-Klick.
+fn pressed(
+    state: &mut Option<KlickQuelle>,
+    bounds: Rectangle,
+    position: Point,
+    klick_quelle: KlickQuelle,
+) -> Option<Nachricht> {
+    if state.is_some() {
+        return None;
+    }
+    let nachricht = nachricht_an_position(bounds, position);
+    if nachricht.is_some() {
+        *state = Some(klick_quelle);
+    }
+    nachricht
+}
+
+/// Erzeuge den Pfad für ein Dreieck.
+#[expect(clippy::min_ident_chars, reason = "Gibt es bessere Namen für die Ecken eines Dreiecks?")]
+fn dreieck(a: Vektor, b: Vektor, c: Vektor) -> Pfad {
+    pfad::Erbauer::neu().move_to_chain(a).line_to_chain(b).line_to_chain(c).baue()
+}
+
+/// Aktueller Zustand eines [`Bewegen`] Widgets.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Zustand {
+    /// Wie wurde die letzte Aktion ausgelöst.
+    klick_quelle: Option<KlickQuelle>,
+    /// Die Nachricht für einen Klick auf die aktuelle [`Cursor`]-Position.
+    /// Wird verwendet um ein Neuzeichnen des Canvas auszulösen.
+    maus_nachricht: Option<Nachricht>,
+}
+
 impl Program<Nachricht, Thema, Renderer> for Bewegen {
-    type State = Option<KlickQuelle>;
+    type State = Zustand;
 
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         renderer: &Renderer,
         thema: &Thema,
         bounds: Rectangle,
-        _cursor: Cursor,
+        cursor: Cursor,
     ) -> Vec<Geometry> {
         let size = bounds.size();
         let WichtigeWerte {
@@ -392,43 +412,84 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
             radius,
         } = WichtigeWerte::aus_size(size);
 
-        // erzeuge Pfad
-        let mut erbauer = pfad::Erbauer::neu();
+        let nachricht =
+            cursor.position_in(bounds).and_then(|position| nachricht_an_position(bounds, position));
+        let mut füll_pfad = None;
         // links
-        erbauer.move_to(ende_links_unten);
-        erbauer.line_to(links);
-        erbauer.line_to(ende_links_oben);
+        let links = dreieck(ende_links_unten, links, ende_links_oben);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Links)) {
+            füll_pfad = Some(links.clone());
+        }
         // links-oben
-        erbauer.line_to(links_oben);
-        erbauer.line_to(ende_oben_links);
+        let oben_links = dreieck(ende_links_oben, links_oben, ende_oben_links);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::ObenLinks)) {
+            füll_pfad = Some(oben_links.clone());
+        }
         // oben
-        erbauer.line_to(oben);
-        erbauer.line_to(ende_oben_rechts);
+        let oben = dreieck(ende_oben_links, oben, ende_oben_rechts);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Oben)) {
+            füll_pfad = Some(oben.clone());
+        }
         // rechts-oben
-        erbauer.line_to(rechts_oben);
-        erbauer.line_to(ende_rechts_oben);
+        let oben_rechts = dreieck(ende_oben_rechts, rechts_oben, ende_rechts_oben);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::ObenRechts)) {
+            füll_pfad = Some(oben_rechts.clone());
+        }
         // rechts
-        erbauer.line_to(rechts);
-        erbauer.line_to(ende_rechts_unten);
+        let rechts = dreieck(ende_rechts_oben, rechts, ende_rechts_unten);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Rechts)) {
+            füll_pfad = Some(rechts.clone());
+        }
         // rechts-unten
-        erbauer.line_to(rechts_unten);
-        erbauer.line_to(ende_unten_rechts);
+        let unten_rechts = dreieck(ende_rechts_unten, rechts_unten, ende_unten_rechts);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::UntenRechts)) {
+            füll_pfad = Some(unten_rechts.clone());
+        }
         // unten
-        erbauer.line_to(unten);
-        erbauer.line_to(ende_unten_links);
+        let unten = dreieck(ende_unten_rechts, unten, ende_unten_links);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::Unten)) {
+            füll_pfad = Some(unten.clone());
+        }
         // links-unten
-        erbauer.line_to(links_unten);
-        erbauer.close();
-
+        let unten_links = dreieck(ende_unten_links, links_unten, ende_links_unten);
+        if nachricht == Some(Nachricht::StarteBewegung(Bewegung::UntenLinks)) {
+            füll_pfad = Some(unten_links.clone());
+        }
         // zurücksetzen
-        erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU });
+        let zurücksetzten = pfad::Erbauer::neu()
+            .arc_chain(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU })
+            .baue();
+        if nachricht == Some(Nachricht::Zurücksetzen) {
+            füll_pfad = Some(zurücksetzten.clone());
+        }
 
-        let pfad = erbauer.baue();
+        let pfade = [
+            links,
+            oben_links,
+            oben,
+            oben_rechts,
+            rechts,
+            unten_rechts,
+            unten,
+            unten_links,
+            zurücksetzten,
+        ];
+        let strich = <Thema as knopf::Catalog>::strich(thema);
+        let von_maus_gehalten = state.klick_quelle == Some(KlickQuelle::Maus);
+        let füllen = <Thema as knopf::Catalog>::hintergrund(thema, von_maus_gehalten, true);
         vec![self.0.zeichnen(renderer, thema, size, |frame| {
-            frame.stroke(
-                &pfad,
-                Stroke { style: Style::Solid(thema.strich().into()), ..Stroke::default() },
-            );
+            for pfad in &pfade {
+                frame.stroke(
+                    pfad,
+                    Stroke { style: Style::Solid(strich.into()), ..Stroke::default() },
+                );
+            }
+            if let Some(füll_pfad) = &füll_pfad {
+                frame.fill(
+                    füll_pfad,
+                    Fill { style: Style::Solid(füllen.into()), rule: Rule::NonZero },
+                );
+            }
         })]
     }
 
@@ -439,29 +500,30 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Option<Action<Nachricht>> {
+        let Zustand { klick_quelle, maus_nachricht } = state;
         let mut nachricht = None;
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if let Some(position) = cursor.position_in(bounds) {
-                    nachricht = pressed(state, bounds, position, KlickQuelle::Maus);
+                    nachricht = pressed(klick_quelle, bounds, position, KlickQuelle::Maus);
                 }
             },
             Event::Touch(touch::Event::FingerPressed { id, position }) => {
-                nachricht = pressed(state, bounds, *position, KlickQuelle::Touch(*id));
+                nachricht = pressed(klick_quelle, bounds, *position, KlickQuelle::Touch(*id));
             },
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-                if *state == Some(KlickQuelle::Maus) =>
+                if *klick_quelle == Some(KlickQuelle::Maus) =>
             {
                 // Beende nur mit der Maus gestartete Bewegungen
-                *state = None;
+                *klick_quelle = None;
                 nachricht = Some(Nachricht::BeendeBewegung);
             },
             Event::Touch(
                 touch::Event::FingerLifted { id, position: _ }
                 | touch::Event::FingerLost { id, position: _ },
-            ) if *state == Some(KlickQuelle::Touch(*id)) => {
+            ) if *klick_quelle == Some(KlickQuelle::Touch(*id)) => {
                 // Beende nur mit dem selben Finger gestartete Bewegungen
-                *state = None;
+                *klick_quelle = None;
                 nachricht = Some(Nachricht::BeendeBewegung);
             },
             Event::Mouse(_)
@@ -470,6 +532,13 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
             | Event::Window(_)
             | Event::InputMethod(_) => {},
         }
+        let aktuelle_maus_nachricht = cursor
+            .position_in(bounds)
+            .and_then(|maus_position| nachricht_an_position(bounds, maus_position));
+        if nachricht.is_some() || (maus_nachricht != &aktuelle_maus_nachricht) {
+            self.0.leeren();
+        }
+        *maus_nachricht = aktuelle_maus_nachricht;
 
         nachricht.map(Action::publish)
     }
@@ -480,54 +549,12 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
-        let mut interaction = mouse::Interaction::default();
-        if let Some(position) = cursor.position_in(bounds) {
-            let size = bounds.size();
-            let WichtigeWerte {
-                links,
-                rechts,
-                oben,
-                unten,
-                zentrum,
-                ende_links_oben,
-                ende_links_unten,
-                ende_rechts_oben,
-                ende_rechts_unten,
-                ende_oben_links,
-                ende_oben_rechts,
-                ende_unten_links,
-                ende_unten_rechts,
-                links_oben,
-                links_unten,
-                rechts_oben,
-                rechts_unten,
-                radius,
-            } = WichtigeWerte::aus_size(size);
-            #[expect(
-                clippy::arithmetic_side_effects,
-                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
-            )]
-            let klick_radius =
-                (Vektor { x: Skalar(position.x), y: Skalar(position.y) } - zentrum).länge();
-            let punkt = Vektor { x: Skalar(position.x), y: Skalar(position.y) };
-            if punkt_innerhalb_dreieck(punkt, links, ende_links_oben, ende_links_unten)
-                || punkt_innerhalb_dreieck(punkt, rechts, ende_rechts_oben, ende_rechts_unten)
-                || punkt_innerhalb_dreieck(punkt, oben, ende_oben_links, ende_oben_rechts)
-                || punkt_innerhalb_dreieck(punkt, unten, ende_unten_links, ende_unten_rechts)
-                || punkt_innerhalb_dreieck(punkt, links_oben, ende_links_oben, ende_oben_links)
-                || punkt_innerhalb_dreieck(punkt, links_unten, ende_links_unten, ende_unten_links)
-                || punkt_innerhalb_dreieck(punkt, rechts_oben, ende_rechts_oben, ende_oben_rechts)
-                || punkt_innerhalb_dreieck(
-                    punkt,
-                    rechts_unten,
-                    ende_rechts_unten,
-                    ende_unten_rechts,
-                )
-                || (klick_radius < radius)
-            {
-                interaction = mouse::Interaction::Pointer;
-            }
+        if let Some(position) = cursor.position_in(bounds)
+            && nachricht_an_position(bounds, position).is_some()
+        {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
         }
-        interaction
     }
 }

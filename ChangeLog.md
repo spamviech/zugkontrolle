@@ -7,6 +7,7 @@
 - Aktualisiere dependencies und rust edition auf 2024.
 - `input::Pin::lese` gibt direkt `Level` zurück.
 - Neue `Channel`-Varianten `Pwm2` und `Pwm3` für Hardware-Pwm.
+- Das `Bewegen`-Widget zeigt die Richtung an, die gedrückt, oder über die die Maus gehalten wird.
 
 ## 5.0.0
 

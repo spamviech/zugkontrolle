@@ -17,7 +17,7 @@ use crate::{
 /// Pfad auf dem Canvas.
 ///
 /// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pfad {
     /// Der beschriebene Pfad.
     pub(crate) pfad: Path,

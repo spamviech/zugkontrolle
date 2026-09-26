@@ -46,7 +46,7 @@ impl From<ThemaArgument> for Thema {
     }
 }
 
-impl knopf::Thema for Thema {
+impl knopf::Catalog for Thema {
     fn standard_text(&self) -> Text {
         standard_text()
     }

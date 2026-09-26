@@ -117,7 +117,7 @@ impl<Gleis, N, T> Program<N, T, Renderer> for Knopf<'_, Gleis>
 where
     Gleis: Zeichnen<()>,
     N: Nachricht<GleisId<Gleis>>,
-    T: Clone + Into<u8> + PartialEq + Thema,
+    T: Clone + Into<u8> + PartialEq + Catalog,
     u8: TryInto<T>,
 {
     type State = Zustand;
@@ -321,7 +321,7 @@ pub trait Nachricht<Definition> {
 }
 
 /// Anforderung für ein Thema, damit es für einen [`Knopf`] unterstützt wird.
-pub trait Thema {
+pub trait Catalog {
     /// Die Standard-Schriftart, Größe und Ausrichtung für Text auf einem Canvas.
     #[must_use]
     fn standard_text(&self) -> Text;

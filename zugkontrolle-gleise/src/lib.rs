@@ -411,7 +411,7 @@ impl<L, AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Thema, Rende
 where
     L: Leiter,
     AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
-    Thema: Clone + Into<u8> + PartialEq + knopf::Thema,
+    Thema: Clone + Into<u8> + PartialEq + knopf::Catalog,
     u8: TryInto<Thema>,
 {
     type State = ();

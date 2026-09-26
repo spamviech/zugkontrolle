@@ -45,7 +45,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) -> Vec<Geometry>
     where
         AktualisierenNachricht: 'static + From<Aktualisieren>,
-        Thema: Clone + Into<u8> + PartialEq + knopf::Thema,
+        Thema: Clone + Into<u8> + PartialEq + knopf::Catalog,
         u8: TryInto<Thema>,
         Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
     {
