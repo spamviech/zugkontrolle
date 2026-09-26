@@ -33,13 +33,13 @@ impl StyleProvider<'_, Thema> for TabBar {
             use style::Status;
             let default_style = <Thema as tab_bar::Catalog>::default()(thema, status);
             let grey_value = match (thema, status) {
-                (Thema::Hell, Status::Active) => 0.8,
-                (Thema::Hell, Status::Hovered | Status::Focused | Status::Selected) => 0.85,
-                (Thema::Hell, Status::Pressed) => 0.9,
-                (Thema::Hell | Thema::Dunkel, Status::Disabled) => 0.5,
-                (Thema::Dunkel, Status::Active) => 0.2,
-                (Thema::Dunkel, Status::Hovered | Status::Focused | Status::Selected) => 0.15,
-                (Thema::Dunkel, Status::Pressed) => 0.1,
+                (Thema::Hell, Status::Disabled) => 0.8,
+                (Thema::Hell, Status::Active) => 0.7,
+                (Thema::Hell, Status::Selected | Status::Focused | Status::Hovered) => 0.6,
+                (Thema::Hell | Thema::Dunkel, Status::Pressed) => 0.5,
+                (Thema::Dunkel, Status::Disabled) => 0.1,
+                (Thema::Dunkel, Status::Active) => 0.3,
+                (Thema::Dunkel, Status::Selected | Status::Focused | Status::Hovered) => 0.4,
             };
             Style {
                 border_width: 0.,
