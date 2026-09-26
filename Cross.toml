@@ -7,9 +7,9 @@ dockerfile = "./dockerfiles/Dockerfile.x86_64-windows-gnu"
 xargo = false
 
 [target.aarch64-unknown-linux-gnu]
-dockerfile = "./dockerfiles/docker/Dockerfile.aarch64"
+dockerfile = "./dockerfiles/Dockerfile.aarch64"
 xargo = false
 
 [target.armv7-unknown-linux-gnueabihf]
-dockerfile = "./dockerfiles/docker/Dockerfile.armv7"
+dockerfile = "./dockerfiles/Dockerfile.armv7"
 xargo = false
