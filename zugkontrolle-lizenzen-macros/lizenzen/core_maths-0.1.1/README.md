@@ -7,7 +7,7 @@ with calls to instrinsics replaced by their `libm` equivalents.
 
 # Usage
 ```rust
-#[expect(unused_imports)] // will be unused on std targets
+#[allow(unused_imports)] // will be unused on std targets
 use core_maths::*;
 
 3.9.floor();

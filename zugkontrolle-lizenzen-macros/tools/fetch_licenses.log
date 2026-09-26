@@ -27,7 +27,7 @@ iced_fonts_macros-0.3.0: MIT
 294 / 437: serde_spanned-1.1.1
 315 / 437: swash-0.2.10
 336 / 437: tracing-0.1.44
-357 / 437: wasm-bindgen-macro-0.2.128
+357 / 437: wasm-bindgen-macro-0.2.129
 378 / 437: wgpu-core-deps-windows-linux-android-27.0.0
 399 / 437: windows_aarch64_gnullvm-0.52.6
 420 / 437: zeno-0.3.3
