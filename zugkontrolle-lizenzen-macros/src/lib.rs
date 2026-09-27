@@ -78,8 +78,8 @@ pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<Stri
     let target_crates =
         verwendete_crates.into_iter().map(|package| (package.name, package.version.to_string()));
     let dependencies = [
-        (PackageName::new(String::from("SourceSerif4-Regular")), String::from("4.005")),
-        (PackageName::new(String::from("Bootstrap Icons")), String::from("v1.11.3")),
+        (PackageName::new(String::from("SourceSerif4-Regular")), String::from("4.005R")),
+        (PackageName::new(String::from("Bootstrap Icons")), String::from("v1.13.1")),
     ]
     .into_iter()
     .chain(target_crates);
