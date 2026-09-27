@@ -205,6 +205,15 @@ def copy_fixed_licenses(src_dir, dst_dir, log_file):
         src = os.path.join(src_dir, filename)
         dst = os.path.join(dst_dir, filename)
         shutil.copy(src, dst)
+    # make sure directories exist
+    keep_dirs = ["SourceSerif4-Regular-4.005R", "Bootstrap Icons-v1.13.1"]
+    for keep_dir in keep_dirs:
+        dst = os.path.join(dst_dir, keep_dir)
+        os.makedirs(dst, exist_ok=True)
+        keep = os.path.join(dst, ".keep")
+        # make sure file exists
+        with open(keep, "a"):
+            pass
 
 def copy_or_download_licenses(show_percent = 5):
     packages = collect_cargo_lock_packages()
