@@ -1,8 +1,11 @@
 //! Tests für [`GleisId`].
 
-use std::collections::{BTreeSet, HashSet};
+use std::{
+    collections::{BTreeSet, HashSet},
+    iter::repeat_with,
+};
 
-use zugkontrolle_test_util::{expect_eq, expect_gt, expect_ne, init_test_logging, Expectation};
+use zugkontrolle_test_util::{Expectation, expect_eq, expect_gt, expect_ne, init_test_logging};
 
 use crate::GleisId;
 
@@ -31,9 +34,10 @@ fn eindeutig() -> Result<(), Expectation> {
 fn repräsentation_eindeutig() -> Result<(), Expectation> {
     init_test_logging();
 
-    let ids: Vec<_> = (0..32)
-        .map(|_i| GleisId::<()>::neu().expect("test verwendet weniger als usize::MAX Ids."))
-        .collect();
+    let ids: Vec<_> =
+        repeat_with(|| GleisId::<()>::neu().expect("test verwendet weniger als usize::MAX Ids."))
+            .take(32)
+            .collect();
     let repräsentationen: Vec<_> = ids.iter().map(GleisId::repräsentation).collect();
     let num = repräsentationen.len();
     let set: BTreeSet<_> = repräsentationen.into_iter().collect();
@@ -77,7 +81,8 @@ fn clone() -> Result<(), Expectation> {
     drop(id);
 
     let mut neue_ids =
-        (0..32).map(|_i| GleisId::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!"));
+        repeat_with(|| GleisId::<()>::neu().expect("Test verwendet weniger als usize::MAX Ids!"))
+            .take(32);
 
     // alle erzeugten Ids haben einen anderen Wert.
     neue_ids.try_for_each(|neue_id| expect_ne(id_clone.clone(), neue_id))?;

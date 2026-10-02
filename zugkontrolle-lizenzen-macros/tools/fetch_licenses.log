@@ -1,0 +1,47 @@
+Fetch 437 licenses...
+21 / 437: async-signal-0.2.14
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\block-0.1.6
+block-0.1.6: MIT
+	Repository: http://github.com/SSheldon/rust-block
+	Announced License: MIT
+42 / 437: calloop-wayland-source-0.4.1
+63 / 437: core_maths-0.1.1
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\dispatch-0.2.0
+dispatch-0.2.0: MIT
+	Repository: http://github.com/SSheldon/rust-dispatch
+	Announced License: MIT
+84 / 437: equivalent-1.0.2
+105 / 437: futures-channel-0.3.34
+126 / 437: guillotiere-0.6.2
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\iced_fonts_macros-0.3.0
+iced_fonts_macros-0.3.0: MIT
+	Repository: https://github.com/Redhawk18/iced_fonts
+	Announced License: MIT
+147 / 437: iced_graphics-0.14.0
+168 / 437: khronos_api-3.1.0
+189 / 437: malloc_buf-0.0.6
+210 / 437: objc2-cloud-kit-0.2.2
+231 / 437: ordered-float-5.5.0
+252 / 437: presser-0.3.1
+273 / 437: renderdoc-sys-1.1.0
+294 / 437: serde_spanned-1.1.1
+315 / 437: swash-0.2.10
+336 / 437: tracing-0.1.44
+357 / 437: wasm-bindgen-macro-0.2.129
+378 / 437: wgpu-core-deps-windows-linux-android-27.0.0
+399 / 437: windows_aarch64_gnullvm-0.52.6
+420 / 437: zeno-0.3.3
+Skip zugkontrolle-5.1.0
+Skip zugkontrolle-anschluss-1.1.0
+Skip zugkontrolle-application-1.1.0
+Skip zugkontrolle-argumente-1.1.0
+Skip zugkontrolle-gleis-1.1.0
+Skip zugkontrolle-gleise-1.1.0
+Skip zugkontrolle-id-1.1.0
+Skip zugkontrolle-lizenzen-1.1.0
+Skip zugkontrolle-lizenzen-macros-1.1.0
+Skip zugkontrolle-macros-5.1.0
+Skip zugkontrolle-test-util-1.1.0
+Skip zugkontrolle-typen-1.1.0
+Skip zugkontrolle-util-1.1.0
+Skip zugkontrolle-widget-1.1.0

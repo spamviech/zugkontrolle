@@ -3,14 +3,14 @@
 use std::fmt::{self, Debug, Formatter};
 
 use iced_core::{
+    Background, Clipboard, Color, Element, Event, Length, Rectangle, Shadow, Shell, Size, Vector,
+    Widget,
     border::{self, Border},
-    event::{self, Event},
     layout::{self, Layout},
     mouse,
     renderer::{Quad, Renderer, Style},
     touch,
     widget::tree::Tree,
-    Background, Clipboard, Color, Element, Length, Rectangle, Shadow, Shell, Size, Vector, Widget,
 };
 
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel};
@@ -45,8 +45,10 @@ impl<'a, M> Farbwahl<'a, M> {
     /// Ändere den Radius der [`Farbwahl`].
     #[must_use]
     pub fn radius(mut self, radius: u16) -> Self {
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         {
             self.durchmesser = 2 * radius;
         }
@@ -68,19 +70,25 @@ impl<'a, M> Farbwahl<'a, M> {
         (länge <= radius).then(|| {
             let e_r = Vektor { x: Skalar(1.), y: Skalar(0.) };
             let e_g = {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[expect(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 let winkel_g = winkel::TAU / 3.;
                 Vektor { x: winkel_g.cos(), y: winkel_g.sin() }
             };
             let e_b = {
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[expect(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 let winkel_b = winkel::TAU * 2. / 3.;
                 Vektor { x: winkel_b.cos(), y: winkel_b.sin() }
             };
-            // Wie f32: Schlimmstenfalls wird ein Nan-Wert erzeugt.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls wird ein Nan-Wert erzeugt."
+            )]
             let skaliert = vr / halber_radius;
             if länge <= halber_radius {
                 Farbe {
@@ -91,8 +99,10 @@ impl<'a, M> Farbwahl<'a, M> {
             } else {
                 let einheitsvektor = vr.einheitsvektor();
                 // skaliert um schwarzen äußeren Ring zu verhindern
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[expect(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 let reduziert = Skalar(0.8) * skaliert - einheitsvektor;
                 let anpassen = |vektor: Vektor, e_vektor: Vektor| {
                     let x = vektor.skalarprodukt(&e_vektor).0;
@@ -116,7 +126,12 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         }
     }
 
-    fn layout(&self, _tree: &mut Tree, _renderer: &R, _limits: &layout::Limits) -> layout::Node {
+    fn layout(
+        &mut self,
+        _tree: &mut Tree,
+        _renderer: &R,
+        _limits: &layout::Limits,
+    ) -> layout::Node {
         let durchmesser = f32::from(self.durchmesser);
         layout::Node::new(Size { width: durchmesser, height: durchmesser })
     }
@@ -137,8 +152,10 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         for x in 0..self.durchmesser {
             for y in 0..self.durchmesser {
                 let vektor = Vektor { x: Skalar(f32::from(x)), y: Skalar(f32::from(y)) };
-                // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-                #[allow(clippy::arithmetic_side_effects)]
+                #[expect(
+                    clippy::arithmetic_side_effects,
+                    reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+                )]
                 let vr = vektor - center;
                 if let Some(farbe) = self.farbe(vr) {
                     let quad = Quad {
@@ -158,6 +175,7 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
                             offset: Vector::default(),
                             blur_radius: 0.,
                         },
+                        snap: false,
                     };
                     let background = Background::Color(farbe.into());
                     renderer.fill_quad(quad, background);
@@ -166,38 +184,37 @@ impl<M, Thema, R: Renderer> Widget<M, Thema, R> for Farbwahl<'_, M> {
         }
     }
 
-    fn on_event(
+    fn update(
         &mut self,
-        _state: &mut Tree,
-        event: Event,
+        _tree: &mut Tree,
+        event: &Event,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
         _renderer: &R,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, M>,
         _viewport: &Rectangle,
-    ) -> event::Status {
-        let mut status = event::Status::Ignored;
+    ) {
         let bounds = layout.bounds();
-        let position = match (event, cursor_position) {
+        let position = match (event, cursor) {
             (
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
                 mouse::Cursor::Available(position),
-            )
-            | (Event::Touch(touch::Event::FingerPressed { id: _, position }), _) => Some(position),
+            ) => Some(position),
+            (Event::Touch(touch::Event::FingerPressed { id: _, position }), _) => Some(*position),
             _ => None,
         };
         if let Some(position) = position {
-            // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-            #[allow(clippy::arithmetic_side_effects)]
+            #[expect(
+                clippy::arithmetic_side_effects,
+                reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+            )]
             let vr = Vektor { x: Skalar(position.x), y: Skalar(position.y) }
                 - Vektor { x: Skalar(bounds.center_x()), y: Skalar(bounds.center_y()) };
             if let Some(farbe) = self.farbe(vr) {
                 shell.publish((self.nachricht)(farbe));
-                status = event::Status::Captured;
             }
         }
-        status
     }
 }
 

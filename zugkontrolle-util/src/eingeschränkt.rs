@@ -35,7 +35,7 @@ macro_rules! definiere_u8_typ {
             Serialize,
             Deserialize,
         )]
-        #[allow(non_camel_case_types)]
+        #[expect(non_camel_case_types, reason = "Angelehnt an u8, u16, ...")]
         pub struct $ident(u8);
 
         impl From<$ident> for u8 {
@@ -87,11 +87,7 @@ macro_rules! definiere_u8_typ {
 
             fn add(self, other: Self) -> Self::Output {
                 let u8 = self.0.saturating_add(other.0);
-                if u8 > Self::MAX.0 {
-                    Self::MAX
-                } else {
-                    Self(u8)
-                }
+                if u8 > Self::MAX.0 { Self::MAX } else { Self(u8) }
             }
         }
 
@@ -120,11 +116,7 @@ macro_rules! definiere_u8_typ {
             ///
             /// Der Wert war zu groß.
             pub const fn neu(wert: u8) -> Result<Self, InvaliderWert<u8>> {
-                if wert > $ident::MAX.0 {
-                    Err(InvaliderWert(wert))
-                } else {
-                    Ok($ident(wert))
-                }
+                if wert > $ident::MAX.0 { Err(InvaliderWert(wert)) } else { Ok($ident(wert)) }
             }
 
             /// Iterator über alle Werte.
@@ -260,11 +252,11 @@ definiere_f64_typ! {
 impl Mul for NullBisEins {
     type Output = Self;
 
-    fn mul(self, other: Self) -> Self::Output {
+    fn mul(self, rhs: Self) -> Self::Output {
         // Beide Werte sind im Bereich 0 <= x <= 1.
         // Das Ergebnis ist definitiv im selben Bereich:
         // wird nur kleiner, minimal 0, oder bleibt gleich.
-        NullBisEins(self.0 * other.0)
+        NullBisEins(self.0 * rhs.0)
     }
 }
 

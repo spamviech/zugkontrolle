@@ -1,16 +1,17 @@
-//! Derive of `zugkontrolle::lookup::Lookup` from an enum by creating an associated Elements struct
+//! Derive of `zugkontrolle::lookup::Lookup` from an enum by creating an associated Elements struct.
 
-use heck::ToSnakeCase;
+use heck::ToSnakeCase as _;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
-use syn::{punctuated::Punctuated, token::Comma, ItemEnum, Path};
+use syn::{ItemEnum, Path, punctuated::Punctuated, token::Comma};
 
-/// [`crate::nachschlagen`]
+/// [`crate::nachschlagen`].
 pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
-    let ItemEnum { vis, variants, ident, .. } = &item;
+    let ItemEnum { vis, variants, ident, attrs: _, enum_token: _, generics: _, brace_token: _ } =
+        &item;
     let dummy: Punctuated<Path, Comma> = Punctuated::new();
     let (element, struct_name, derives) = if args.len() < 2 {
         errors.push(if args.is_empty() {
@@ -18,14 +19,10 @@ pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum)
         } else {
             String::from("Collection missing!")
         });
-        // Skip, damit die Iterator-Typen übereinstimmen.
-        #[allow(clippy::iter_skip_zero)]
+        #[expect(clippy::iter_skip_zero, reason = "Skip, damit die Iterator-Typen übereinstimmen.")]
         (None, None, dummy.iter().skip(0))
     } else {
-        // sichergestellt durch `arg.len() < 2` check
-        #[allow(clippy::indexing_slicing)]
         let fst = &args[0];
-        #[allow(clippy::indexing_slicing)]
         let snd = &args[1];
         let derives = args.iter().skip(2);
         (Some(fst), Some(snd), derives)

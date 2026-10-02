@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_gleis::steuerung::geschwindigkeit::Leiter;
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::mm::Spurweite;
-use zugkontrolle_util::{eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt};
+use zugkontrolle_util::{
+    eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt as _
+};
 
 use crate::daten::{
     v3::{
@@ -22,8 +24,10 @@ use crate::daten::{
     v4,
 };
 
-// Folge Konvention TypName -> TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[expect(
+    clippy::module_name_repetitions,
+    reason = "Folge Konvention TypName -> TypNameSerialisiert"
+)]
 /// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
@@ -37,7 +41,7 @@ pub struct ZugtypSerialisiert<L: Leiter> {
     pub name: String,
     /// Der [Name der Leiter-Art](BekannterLeiter::NAME) des Zugtyps.
     pub leiter: String,
-    /// Spurweite
+    /// [`Spurweite`].
     pub spurweite: Spurweite,
     /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: Vec<GeradeUnit>,

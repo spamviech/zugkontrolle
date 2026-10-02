@@ -31,8 +31,10 @@ impl From<RichtungInformation> for v4::RichtungInformation {
 type AnschlüsseSerialisiert =
     steuerung::WeicheSerialisiert<RichtungInformation, RichtungAnschlüsseSerialisiert>;
 
-// Folge Konvention TypName -> TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[expect(
+    clippy::module_name_repetitions,
+    reason = "Folge Konvention TypName -> TypNameSerialisiert"
+)]
 /// Definition einer Dreiwege-Weiche.
 ///
 /// Bei extremen Winkeln (`<0°`, `>180°`) wird in negativen x-Werten gezeichnet!
@@ -44,14 +46,13 @@ pub struct DreiwegeWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisie
     pub radius: Skalar,
     /// Der Winkel der Kurven.
     pub winkel: Winkel,
-    /// Eine allgemeine Beschreibung der DreiwegeWeiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der [`DreiwegeWeiche`], z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der DreiwegeWeiche.
+    /// Die Anschlüsse zum Schalten der [`DreiwegeWeiche`].
     pub steuerung: Anschlüsse,
 }
 
-// Folge Konvention TypName -> TypNameUnit
-#[allow(clippy::module_name_repetitions)]
+#[expect(clippy::module_name_repetitions, reason = "Folge Konvention TypName -> TypNameUnit")]
 /// Eine Variante ohne Anschlüsse.
 pub type DreiwegeWeicheUnit = DreiwegeWeicheSerialisiert<()>;
 
@@ -68,14 +69,12 @@ impl From<v4::DreiwegeWeicheUnit> for DreiwegeWeicheUnit {
     }
 }
 
-#[doc = r" Mögliche Richtungen zum Schalten."]
+/// Mögliche Richtungen zum Schalten."
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[expect(missing_docs, reason = "Namen sind aussagekräftig genug.")]
 pub enum Richtung {
-    #[allow(missing_docs)]
     Gerade,
-    #[allow(missing_docs)]
     Links,
-    #[allow(missing_docs)]
     Rechts,
 }
 
@@ -89,14 +88,14 @@ impl From<Richtung> for v4::Richtung {
     }
 }
 
-#[doc = "Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder."]
+/// Eine Struktur mit von [Richtung]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    #[doc = "[Richtung::Gerade]"]
+    #[doc = "[`Richtung::Gerade`]"]
     pub gerade: OutputSerialisiert,
-    #[doc = "[Richtung::Links]"]
+    #[doc = "[`Richtung::Links`]"]
     pub links: OutputSerialisiert,
-    #[doc = "[Richtung::Rechts]"]
+    #[doc = "[`Richtung::Rechts`]"]
     pub rechts: OutputSerialisiert,
 }
 

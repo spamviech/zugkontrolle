@@ -1,17 +1,27 @@
 //! Gpio [`Pin`] in verschiedenen Konfigurationen.
 
+use std::sync::LazyLock;
+
 use thiserror::Error;
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
-use crate::{level::Level, pwm::Pwm, rppal};
+use crate::{
+    level::Level,
+    pwm::Pwm,
+    rpi_pal::{self, system::DeviceInfo},
+};
 
 pub mod input;
 pub mod output;
 pub mod pwm;
 
+/// Das aktuelle Geräte-Modell.
+static DEVICE_MODEL: LazyLock<DeviceInfo> =
+    LazyLock::new(|| DeviceInfo::new().expect("Failed to get DeviceInfo!"));
+
 /// Verwalten aller nicht verwendeten [`Pins`](Pin).
 #[derive(Debug)]
-pub struct Lager(rppal::gpio::Gpio);
+pub struct Lager(rpi_pal::gpio::Gpio);
 
 impl Lager {
     /// Erstelle ein neues [`Lager`].
@@ -19,8 +29,8 @@ impl Lager {
     /// ## Errors
     ///
     /// Zugriff auf Gpio-Pins nicht möglich.
-    pub fn neu() -> Result<Lager, rppal::gpio::Error> {
-        rppal::gpio::Gpio::new().map(Lager)
+    pub fn neu() -> Result<Lager, rpi_pal::gpio::Error> {
+        rpi_pal::gpio::Gpio::new().map(Lager)
     }
 
     /// Reserviere den gewählten Gpio [`Pin`].
@@ -43,12 +53,12 @@ pub struct ReservierenFehler {
     /// Der gewünschte [`Pin`].
     pub pin: u8,
     /// Der aufgetretene Fehler.
-    pub fehler: rppal::gpio::Error,
+    pub fehler: rpi_pal::gpio::Error,
 }
 
 /// Ein Gpio Pin.
 #[derive(Debug, PartialEq, Eq)]
-pub struct Pin(rppal::gpio::Pin);
+pub struct Pin(rpi_pal::gpio::Pin);
 
 impl Pin {
     /// Erhalte die GPIO [`Pin`] Nummer.
@@ -63,7 +73,7 @@ impl Pin {
     /// und deaktiviere die eingebauten pull-up/pull-down Widerstände des [`Pin`]s.
     #[must_use]
     pub fn als_input(self) -> input::Pin {
-        input::Pin(self.0.into_input())
+        input::Pin::neu(self.0.into_input())
     }
 
     /// Konsumiere den [`Pin`], gebe einen [`input::Pin`] zurück, setze seinen Modus auf Input
@@ -72,7 +82,7 @@ impl Pin {
     /// Der pull-down Widerstand wird deaktiviert, wenn der [`input::Pin`] out of scope geht.
     #[must_use]
     pub fn als_input_pulldown(self) -> input::Pin {
-        input::Pin(self.0.into_input_pulldown())
+        input::Pin::neu(self.0.into_input_pulldown())
     }
 
     /// Konsumiere den [`Pin`], gebe einen [`input::Pin`] zurück, setze seinen Modus als Input
@@ -81,25 +91,43 @@ impl Pin {
     /// Der pull-up Widerstand wird deaktiviert, wenn der [`input::Pin`] out of scope geht.
     #[must_use]
     pub fn als_input_pullup(self) -> input::Pin {
-        input::Pin(self.0.into_input_pullup())
+        input::Pin::neu(self.0.into_input_pullup())
     }
 
     /// Konsumiere den [`Pin`], geben einen [`output::Pin`] und setze seinen Modus auf Output
-    /// mit dem übergebenen [`Level`]
+    /// mit dem übergebenen [`Level`].
     #[must_use]
     pub fn als_output(self, level: Level) -> output::Pin {
         let modus_ändern = match level {
-            Level::Low => rppal::gpio::Pin::into_output_low,
-            Level::High => rppal::gpio::Pin::into_output_high,
+            Level::Low => rpi_pal::gpio::Pin::into_output_low,
+            Level::High => rpi_pal::gpio::Pin::into_output_high,
         };
-        output::Pin(modus_ändern(self.0))
+        output::Pin::neu(modus_ändern(self.0))
     }
 
     /// Erhalte den zum Pin gehörigen [`pwm::Channel`].
-    fn pwm_channel(&self) -> Option<rppal::pwm::Channel> {
+    ///
+    /// The `BCM283x SoC` supports 2 hardware PWM channels. By default, the channels are
+    /// mapped as follows:
+    ///
+    /// * [Pwm0](Channel::Pwm0) = GPIO12/GPIO18
+    /// * [Pwm1](Channel::Pwm1) = GPIO13/GPIO19
+    ///
+    /// ### Newer models (Raspberry Pi 5 and later)
+    ///
+    /// The Raspberry Pi 5 and other recent models support 4 hardware PWM channels. By
+    /// default, the channels are mapped as follows:
+    ///
+    /// * [Pwm0](Channel::Pwm0) = GPIO12
+    /// * [Pwm1](Channel::Pwm1) = GPIO13
+    /// * [Pwm2](Channel::Pwm2) = GPIO18
+    /// * [Pwm3](Channel::Pwm3) = GPIO19
+    fn pwm_channel(&self) -> Option<rpi_pal::pwm::Channel> {
         match self.0.pin() {
-            18 => Some(rppal::pwm::Channel::Pwm0),
-            19 => Some(rppal::pwm::Channel::Pwm1),
+            18 => Some(rpi_pal::pwm::Channel::Pwm0),
+            19 => Some(rpi_pal::pwm::Channel::Pwm1),
+            12 if DEVICE_MODEL.pwm_channels() > 2 => Some(rpi_pal::pwm::Channel::Pwm2),
+            13 if DEVICE_MODEL.pwm_channels() > 2 => Some(rpi_pal::pwm::Channel::Pwm3),
             _ => None,
         }
     }
@@ -107,14 +135,14 @@ impl Pin {
     /// Konsumiere den [`Pin`] und geben einen [`pwm::Pin`] zurück.
     #[must_use]
     pub fn als_pwm(self) -> pwm::Pin {
-        if let Some(pwm) = self.pwm_channel().and_then(|channel| rppal::pwm::Pwm::new(channel).ok())
+        if let Some(pwm) =
+            self.pwm_channel().and_then(|channel| rpi_pal::pwm::Pwm::new(channel).ok())
         {
             let konfiguration = pwm
                 .polarity()
                 .and_then(|polarity| {
-                    pwm.frequency().and_then(|frequency| {
-                        pwm.duty_cycle().map(|duty_cycle| (polarity, frequency, duty_cycle))
-                    })
+                    let frequency = pwm.frequency()?;
+                    pwm.duty_cycle().map(|duty_cycle| (polarity, frequency, duty_cycle))
                 })
                 .ok()
                 .and_then(|(polarity, frequency, duty_cycle)| {
@@ -128,10 +156,10 @@ impl Pin {
                         polarität: polarity.into(),
                     })
                 });
-            pwm::Pin { pin: Pwm::Hardware(pwm, self.0), konfiguration }
+            pwm::Pin::neu(Pwm::Hardware(pwm, self.0), konfiguration)
         } else {
             // fallback software pwm
-            pwm::Pin { pin: Pwm::Software(self.0.into_output()), konfiguration: None }
+            pwm::Pin::neu(Pwm::Software(self.0.into_output()), None)
         }
     }
 }

@@ -30,11 +30,11 @@ pub struct SKurvenWeicheSerialisiert<Anschlüsse = Option<AnschlüsseSerialisier
     pub radius_kurve_nach_innen: Skalar,
     /// Der Winkel der Kurve nach innen.
     pub winkel_kurve_nach_innen: Winkel,
-    /// Die Orientierung der SKurvenWeiche.
+    /// Die Orientierung der [`SKurvenWeiche`].
     pub orientierung: Orientierung,
-    /// Eine allgemeine Beschreibung der SKurvenWeiche, z.B. die Produktnummer.
+    /// Eine allgemeine Beschreibung der [`SKurvenWeiche`], z.B. die Produktnummer.
     pub beschreibung: Option<String>,
-    /// Die Anschlüsse zum Schalten der SKurvenWeiche.
+    /// Die Anschlüsse zum Schalten der [`SKurvenWeiche`].
     pub steuerung: Anschlüsse,
 }
 

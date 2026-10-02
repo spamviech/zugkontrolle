@@ -1,8 +1,8 @@
 //! Erzeuge Richtung enum und RichtungAnschlüsse(Serialisiert) Strukturen mit Lookup-Implementierung.
 
-use heck::ToSnakeCase;
+use heck::ToSnakeCase as _;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{Ident, ItemEnum, Variant, Visibility};
 
@@ -13,7 +13,7 @@ fn erzeuge_enum_definition(
     enum_variants: &[&Ident],
     default_variant: &Ident,
     struct_fields: &[Ident],
-    stacked_unit_tuple_args: &Option<TokenStream>,
+    stacked_unit_tuple_args: Option<&TokenStream>,
 ) -> TokenStream {
     let enum_variants_str = enum_variants.iter().map(ToString::to_string);
     quote! {
@@ -23,7 +23,7 @@ fn erzeuge_enum_definition(
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
         #vis enum Richtung {
             #(
-                #[allow(missing_docs)]
+                #[expect(missing_docs)]
                 #enum_variants
             ),*
         }
@@ -41,7 +41,7 @@ fn erzeuge_enum_definition(
                 )
             }
         }
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         impl crate::steuerung::weiche::MitRichtung<Richtung> for Richtung {
             fn aktuelle_richtung(&self) -> Option<Richtung> {
                 Some(*self)
@@ -74,7 +74,7 @@ fn erzeuge_enum_definition(
                 _mut_ref_arg: &mut Self::MutRefArg,
             ) -> #crate_ident::de_serialisieren::Ergebnis<RichtungAnschlüsse> {
                 let RichtungAnschlüsseSerialisiert { #(#struct_fields),* } = self;
-                #[allow(unused_parens)]
+                #[expect(unused_parens)]
                 (#(#struct_fields),*)
                     .reserviere(lager, anschlüsse, #stacked_unit_tuple_args, &#stacked_unit_tuple_args, &mut #stacked_unit_tuple_args)
                     .konvertiere(|(#(#struct_fields),*)| RichtungAnschlüsse { #(#struct_fields),* })
@@ -90,13 +90,14 @@ fn erzeuge_enum_definition(
     }
 }
 
-/// [`crate::erstelle_richtung`]
+/// [`crate::erstelle_richtung`].
 pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
-    let ItemEnum { vis, variants, .. } = &item;
+    let ItemEnum { vis, variants, attrs: _, enum_token: _, ident: _, generics: _, brace_token: _ } =
+        &item;
     if !args.is_empty() {
-        errors.push(format!("No args supported, but {args:?} was given!",));
+        errors.push(format!("No args supported, but {args:?} was given!"));
     }
 
     let mut enum_definition = None;
@@ -108,7 +109,11 @@ pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStr
 
         let enum_variants: Vec<_> = variants
             .iter()
-            .filter_map(|Variant { ident, .. }| if ident == "Anfang" { None } else { Some(ident) })
+            .filter_map(
+                |Variant { ident, attrs: _, fields: _, discriminant: _ }| {
+                    if ident == "Anfang" { None } else { Some(ident) }
+                },
+            )
             .collect();
         if let Some(default_variant) = enum_variants.first() {
             let struct_fields: Vec<Ident> = enum_variants
@@ -129,7 +134,7 @@ pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStr
                 &enum_variants,
                 default_variant,
                 &struct_fields,
-                &stacked_unit_tuple_args,
+                stacked_unit_tuple_args.as_ref(),
             ));
         } else {
             errors.push(String::from("Mindestens eine Variante benötigt!"));

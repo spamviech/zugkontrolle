@@ -3,32 +3,29 @@
 use std::fmt::Debug;
 
 use iced_aw::{
+    style::number_input,
     tab_bar,
-    widgets::{
-        card::{self, Card},
-        number_input,
-    },
+    widgets::card::{self, Card},
 };
 use iced_core::{
-    event, text as text_core,
+    Element, Font, Length, Renderer, text as text_core,
     widget::text::{self, Text},
-    Element, Font, Length, Renderer,
 };
 use iced_widget::{
+    Column, Row,
     button::{self, Button},
     container, radio, scrollable,
     text_input::{self, TextInput},
-    Column, Row,
 };
 
-use zugkontrolle_anschluss::{trigger::Trigger, InputSerialisiert};
+use zugkontrolle_anschluss::{InputSerialisiert, trigger::Trigger};
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::kontakt::{KontaktSerialisiert, Name};
 
 use crate::{
     anschluss::{self, make_radios},
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{self, sammlung::Sammlung, tab_bar::TabBar},
 };
 
 /// Zustand eines Widgets zur [`Auswahl`] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
@@ -48,7 +45,7 @@ struct Zustand {
 
 impl Zustand {
     /// Erstelle einen neuen [`Zustand`], potentiell mit voreingestellten Anschlüssen.
-    fn neu(option_kontakt: &Option<KontaktSerialisiert>, hat_steuerung: bool) -> Self {
+    fn neu(option_kontakt: Option<&KontaktSerialisiert>, hat_steuerung: bool) -> Self {
         let (name, anschluss, trigger) =
             if let Some(KontaktSerialisiert { name, anschluss, trigger }) = option_kontakt {
                 (name.0.clone(), anschluss.clone(), *trigger)
@@ -61,7 +58,6 @@ impl Zustand {
 
 /// Interne Nachricht für Interaktion mit einem [`Auswahl`]-Widget.
 #[derive(Debug, Clone)]
-#[allow(variant_size_differences)]
 enum InterneNachricht {
     /// Neuer gewählter Name.
     Name(String),
@@ -94,17 +90,20 @@ impl<'t, Thema, R> Auswahl<'t, Thema, R>
 where
     R: 't + Renderer + text_core::Renderer<Font = Font>,
     Thema: 't
-        + button::StyleSheet
-        + card::StyleSheet
-        + container::StyleSheet
-        + number_input::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + tab_bar::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as tab_bar::StyleSheet>::Style: From<TabBar>,
+        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+        + number_input::Catalog
+        + number_input::ExtendedCatalog
+        + radio::Catalog
+        + scrollable::Catalog
+        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+        + text::Catalog
+        + text_input::Catalog
+        + card::Catalog,
+    style::container::Container: style::container::StyleProvider<'t, Thema>,
+    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
 {
     /// Erstelle eine neue [`Auswahl`].
     #[must_use]
@@ -118,11 +117,8 @@ where
         let erzeuge_element = move |zustand: &_| {
             Self::erzeuge_element(gleis_art, zustand, scrollable_style, settings)
         };
-        let mapper = |interne_nachricht: InterneNachricht,
-                      zustand: &mut Zustand,
-                      status: &mut event::Status| {
-            *status = event::Status::Captured;
-            match interne_nachricht {
+        let mapper =
+            |interne_nachricht: InterneNachricht, zustand: &mut Zustand| match interne_nachricht {
                 InterneNachricht::Name(name) => {
                     zustand.name = name;
                     Vec::new()
@@ -146,9 +142,12 @@ where
                     vec![Nachricht::Festlegen(None)]
                 },
                 InterneNachricht::Schließen => vec![Nachricht::Schließen],
-            }
-        };
-        Auswahl(MapMitZustand::neu(Zustand::neu(kontakt, hat_steuerung), erzeuge_element, mapper))
+            };
+        Auswahl(MapMitZustand::neu(
+            Zustand::neu(kontakt.as_ref(), hat_steuerung),
+            erzeuge_element,
+            mapper,
+        ))
     }
 
     /// Erzeuge die Widget-Hierarchie für ein [`Auswahl`]-Widget.
