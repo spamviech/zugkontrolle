@@ -112,9 +112,9 @@ impl Argumente {
 #[derive(Debug, Clone, Copy, EnumArgument)]
 #[kommandozeilen_argumente(case: insensitive)]
 pub enum ZugtypArgument {
-    /// [`Märklin`](crate::zugtyp::Zugtyp::märklin)
+    /// [`Märklin`](zugkontrolle-gleis::zugtyp::märklin::MÄRKLIN).
     Märklin,
-    /// [`Lego`](crate::zugtyp::Zugtyp::lego)
+    /// [`Lego`](zugkontrolle-gleis::zugtyp::lego::LEGO).
     Lego,
 }
 

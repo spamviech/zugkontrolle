@@ -16,7 +16,7 @@ use crate::daten::{v2::anschluss::OutputSerialisiert, v3, v4::ZugtypSerialisiert
 /// - [`Mittelleiter`] mit "Märklin".
 /// - [`Zweileiter`] mit "Lego".
 pub trait BekannterZugtyp: BekannterLeiter {
-    /// Serialisierbare Repräsentation in v2.*
+    /// Serialisierbare Repräsentation in "v2.*".
     type V2;
 
     /// Erzeuge einen Zugtyp mit der entsprechenden Leiter-Art, ausgehend von seinem Namen.

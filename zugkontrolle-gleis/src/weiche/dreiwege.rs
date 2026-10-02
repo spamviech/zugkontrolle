@@ -137,14 +137,12 @@ impl Steuerung<Richtung> for RichtungInformation {
     }
 }
 
-impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschlüsse2>
-    for DreiwegeWeiche<Anschlüsse>
-{
+impl<Anschlüsse, T: MitName + MitRichtung<Richtung>> Zeichnen<T> for DreiwegeWeiche<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
-        let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
+    fn rechteck(&self, _t: &T, spurweite: Spurweite) -> Rechteck {
+        let DreiwegeWeiche { länge, radius, winkel, beschreibung: _, steuerung: _ } = *self;
         let rechteck_gerade = gerade::rechteck(spurweite, länge);
         let rechteck_kurve = kurve::rechteck(spurweite, radius, winkel);
         let beschränkung = spurweite.beschränkung();
@@ -161,9 +159,9 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             .einschließend(&rechteck_kurve_verschoben)
     }
 
-    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
+    fn zeichne(&self, t: &T, spurweite: Spurweite) -> Vec<Pfad> {
         // utility sizes
-        let size = self.rechteck(anschlüsse, spurweite).ecke_max();
+        let size = self.rechteck(t, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let beschränkung = spurweite.beschränkung();
         #[expect(
@@ -206,13 +204,9 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         vec![gerade, links, rechts]
     }
 
-    fn fülle(
-        &self,
-        anschlüsse: &Anschlüsse2,
-        spurweite: Spurweite,
-    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+    fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
         // utility sizes
-        let size = self.rechteck(anschlüsse, spurweite).ecke_max();
+        let size = self.rechteck(t, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let beschränkung = spurweite.beschränkung();
         #[expect(
@@ -228,7 +222,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
         let links_transformationen =
             vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         let (gerade_transparenz, links_transparenz, rechts_transparenz) =
-            match anschlüsse.aktuelle_richtung() {
+            match t.aktuelle_richtung() {
                 None => (Transparenz::Voll, Transparenz::Voll, Transparenz::Voll),
                 Some(Richtung::Gerade) => {
                     (Transparenz::Voll, Transparenz::Reduziert, Transparenz::Reduziert)
@@ -279,10 +273,10 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
 
     fn beschreibung_und_name<'s, 't>(
         &'s self,
-        anschlüsse: &'t Anschlüsse2,
+        t: &'t T,
         spurweite: Spurweite,
     ) -> (Position, Option<&'s str>, Option<&'t str>) {
-        let size = self.rechteck(anschlüsse, spurweite).ecke_max();
+        let size = self.rechteck(t, spurweite).ecke_max();
         let half_height = size.y.halbiert();
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         #[expect(
@@ -300,19 +294,19 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
                 winkel: winkel::ZERO,
             },
             self.beschreibung.as_deref(),
-            anschlüsse.name(),
+            t.name(),
         )
     }
 
     fn innerhalb(
         &self,
-        anschlüsse: &Anschlüsse2,
+        t: &T,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
     ) -> Innerhalb {
         // utility sizes
-        let Vektor { x: _, y: height } = self.rechteck(anschlüsse, spurweite).ecke_max();
+        let Vektor { x: _, y: height } = self.rechteck(t, spurweite).ecke_max();
         let half_height = height.halbiert();
         let beschränkung = spurweite.beschränkung();
         #[expect(
@@ -348,8 +342,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitRichtung<Richtung>> Zeichnen<Anschl
             ))
     }
 
-    fn verbindungen(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Self::Verbindungen {
-        let height: Skalar = self.rechteck(anschlüsse, spurweite).ecke_max().y;
+    fn verbindungen(&self, t: &T, spurweite: Spurweite) -> Self::Verbindungen {
+        let height: Skalar = self.rechteck(t, spurweite).ecke_max().y;
         let half_height = height.halbiert();
         let länge: Skalar = self.länge;
         let radius: Skalar = self.radius;

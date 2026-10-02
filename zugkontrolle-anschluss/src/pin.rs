@@ -73,7 +73,7 @@ impl Pin {
     /// und deaktiviere die eingebauten pull-up/pull-down Widerstände des [`Pin`]s.
     #[must_use]
     pub fn als_input(self) -> input::Pin {
-        input::Pin(self.0.into_input())
+        input::Pin::neu(self.0.into_input())
     }
 
     /// Konsumiere den [`Pin`], gebe einen [`input::Pin`] zurück, setze seinen Modus auf Input
@@ -82,7 +82,7 @@ impl Pin {
     /// Der pull-down Widerstand wird deaktiviert, wenn der [`input::Pin`] out of scope geht.
     #[must_use]
     pub fn als_input_pulldown(self) -> input::Pin {
-        input::Pin(self.0.into_input_pulldown())
+        input::Pin::neu(self.0.into_input_pulldown())
     }
 
     /// Konsumiere den [`Pin`], gebe einen [`input::Pin`] zurück, setze seinen Modus als Input
@@ -91,18 +91,18 @@ impl Pin {
     /// Der pull-up Widerstand wird deaktiviert, wenn der [`input::Pin`] out of scope geht.
     #[must_use]
     pub fn als_input_pullup(self) -> input::Pin {
-        input::Pin(self.0.into_input_pullup())
+        input::Pin::neu(self.0.into_input_pullup())
     }
 
     /// Konsumiere den [`Pin`], geben einen [`output::Pin`] und setze seinen Modus auf Output
-    /// mit dem übergebenen [`Level`]
+    /// mit dem übergebenen [`Level`].
     #[must_use]
     pub fn als_output(self, level: Level) -> output::Pin {
         let modus_ändern = match level {
             Level::Low => rpi_pal::gpio::Pin::into_output_low,
             Level::High => rpi_pal::gpio::Pin::into_output_high,
         };
-        output::Pin(modus_ändern(self.0))
+        output::Pin::neu(modus_ändern(self.0))
     }
 
     /// Erhalte den zum Pin gehörigen [`pwm::Channel`].
@@ -141,9 +141,8 @@ impl Pin {
             let konfiguration = pwm
                 .polarity()
                 .and_then(|polarity| {
-                    pwm.frequency().and_then(|frequency| {
-                        pwm.duty_cycle().map(|duty_cycle| (polarity, frequency, duty_cycle))
-                    })
+                    let frequency = pwm.frequency()?;
+                    pwm.duty_cycle().map(|duty_cycle| (polarity, frequency, duty_cycle))
                 })
                 .ok()
                 .and_then(|(polarity, frequency, duty_cycle)| {
@@ -157,10 +156,10 @@ impl Pin {
                         polarität: polarity.into(),
                     })
                 });
-            pwm::Pin { pin: Pwm::Hardware(pwm, self.0), konfiguration }
+            pwm::Pin::neu(Pwm::Hardware(pwm, self.0), konfiguration)
         } else {
             // fallback software pwm
-            pwm::Pin { pin: Pwm::Software(self.0.into_output()), konfiguration: None }
+            pwm::Pin::neu(Pwm::Software(self.0.into_output()), None)
         }
     }
 }

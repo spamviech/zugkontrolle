@@ -11,14 +11,14 @@ use zugkontrolle_typen::{klick_quelle::KlickQuelle, vektor::Vektor, winkel::Wink
 /// Ein aktuell gehaltenes Gleis.
 #[derive(Debug)]
 pub(crate) struct Gehalten {
-    /// Das [`GleisId`](crate::gleise::id::GleisId) und Steuerung des Gleises.
-    pub(crate) gleis_steuerung: AnyIdSteuerung,
+    /// Das [`GleisId`](zugkontrolle-id::GleisId) und Steuerung des Gleises.
+    pub gleis_steuerung: AnyIdSteuerung,
     /// Die relative Position, wo das gleis Gehalten wird.
-    pub(crate) halte_position: Vektor,
+    pub halte_position: Vektor,
     /// Der aktuelle Winkel des Gleises auf dem Canvas.
-    pub(crate) winkel: Winkel,
+    pub winkel: Winkel,
     /// Wurde das Gleis bewegt.
-    pub(crate) bewegt: bool,
+    pub bewegt: bool,
 }
 
 /// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem [`Canvas`](iced::widget::canvas::Canvas).
@@ -43,7 +43,14 @@ pub enum Nachricht {
 
 /// Eine GUI-Nachricht für Änderungen interner Attribute.
 #[derive(Debug)]
-pub struct ZustandAktualisieren(pub(crate) ZustandAktualisierenEnum);
+pub struct ZustandAktualisieren(ZustandAktualisierenEnum);
+
+impl ZustandAktualisieren {
+    /// Erhalte das enthaltene [`ZustandAktualisierenEnum`].
+    pub(crate) fn zustand_aktualisieren_enum(self) -> ZustandAktualisierenEnum {
+        self.0
+    }
+}
 
 /// Interne Nachricht, wie der [`Zustand`](crate::gleise::Zustand) aktualisiert werden soll.
 #[derive(Debug)]

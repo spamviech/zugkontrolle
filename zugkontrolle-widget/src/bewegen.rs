@@ -10,7 +10,7 @@ use iced_widget::{
     Action,
     canvas::{Fill, fill::Rule},
 };
-use itertools::{Itertools, MinMaxResult};
+use itertools::{Itertools as _, MinMaxResult};
 
 use zugkontrolle_gleise::knopf;
 use zugkontrolle_typen::{
@@ -99,6 +99,7 @@ impl Bewegen {
 }
 
 /// Wichtige Punkte und Größen für die Darstellung und Interaktion mit dem Widget.
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct WichtigeWerte {
@@ -212,7 +213,7 @@ impl WichtigeWerte {
 /// Liegt der `punkt` innerhalb des Dreiecks `a`-`b`-`c`.
 ///
 /// <https://prlbr.de/2014/liegt-der-punkt-im-dreieck/>
-/// Ansatz 4
+/// Ansatz 4.
 fn punkt_innerhalb_dreieck(punkt: Vektor, a: Vektor, b: Vektor, c: Vektor) -> bool {
     /// Ordnung identisch zum Winkel zwischen `vektor` und positiver x-Achse.
     fn winkel_ordnung(vektor: Vektor) -> Skalar {
@@ -386,7 +387,7 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
         &self,
         state: &Self::State,
         renderer: &Renderer,
-        thema: &Thema,
+        theme: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
@@ -474,10 +475,10 @@ impl Program<Nachricht, Thema, Renderer> for Bewegen {
             unten_links,
             zurücksetzten,
         ];
-        let strich = <Thema as knopf::Catalog>::strich(thema);
+        let strich = <Thema as knopf::Catalog>::strich(theme);
         let von_maus_gehalten = state.klick_quelle == Some(KlickQuelle::Maus);
-        let füllen = <Thema as knopf::Catalog>::hintergrund(thema, von_maus_gehalten, true);
-        vec![self.0.zeichnen(renderer, thema, size, |frame| {
+        let füllen = <Thema as knopf::Catalog>::hintergrund(theme, von_maus_gehalten, true);
+        vec![self.0.zeichnen(renderer, theme, size, |frame| {
             for pfad in &pfade {
                 frame.stroke(
                     pfad,

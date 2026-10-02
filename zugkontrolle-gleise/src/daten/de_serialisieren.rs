@@ -54,7 +54,7 @@ use crate::{
 /// [`bincode`]-Optionen, bei denen trailing bytes abgelehnt werden.
 ///
 /// Im Gegensatz zu [`DefaultOptions`] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
-/// <https://docs.rs/bincode/1.3.3/bincode/config/index.html#options-struct-vs-bincode-functions>
+/// <https://docs.rs/bincode/1.3.3/bincode/config/index.html#options-struct-vs-bincode-functions>.
 const BINCODE_OPTIONS: Configuration<
     LittleEndian,
     Fixint,
@@ -143,7 +143,7 @@ impl<S> From<KeineIdVerfügbar> for LadenFehler<S> {
 }
 
 impl GleiseDaten {
-    /// Erzeuge eine Serialisierbare Repräsentation
+    /// Erzeuge eine Serialisierbare Repräsentation.
     fn serialisiere(&self) -> GleiseDatenSerialisiert {
         /// Konvertiere die [`GleisMaps`](GleisMap) in ihre serialisierbare Repräsentation.
         macro_rules! konvertiere_maps {
@@ -262,6 +262,7 @@ where
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [`DefinitionId`].
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct DefinitionIdMaps {
@@ -291,6 +292,7 @@ impl DefinitionIdMaps {
 
 /// Mapping von der Zahl aus der serialisierten Darstellung zur [`GleisId`].
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct IdMaps {
@@ -576,6 +578,7 @@ impl<L: Leiter> Zustand<L> {
         /// Erzeuge eine serialisierbare Darstellung für die jeweiligen [`HashMaps`](HashMap).
         macro_rules! serialisiere_maps {
             ($(($($matching: ident),*): $map: ident - $serialize_id: ident),* $(,)?) => {$(
+                #[expect(clippy::allow_attributes, reason = "unused_parens nur bei Aufruf mit einem einzelnen Argument.")]
                 #[allow(unused_parens, reason = "Aufruf mit einem einzelnen Argument.")]
                 let $map = $map
                     .iter()
@@ -626,6 +629,7 @@ impl<L: Leiter> Zustand<L> {
         /// Auf das erste pattern-argument wird [`Serialisiere::anschlüsse`] aufgerufen.
         macro_rules! collect_anschlüsse {
             (($($matching: ident),+) : $map: ident) => {
+                #[expect(clippy::allow_attributes, reason = "unused_parens")]
                 #[allow(unused_parens, reason = "Aufruf mit einem einzelnen Argument.")]
                 for (_id, ($($matching),+)) in $map.drain() {
                     anschlüsse.anhängen(head!($($matching),+).anschlüsse());
@@ -670,6 +674,7 @@ where
         /// Reserviere die benötigten Anschlüsse für die übergebenen [`HashMaps`](HashMap).
         macro_rules! reserviere_maps {
             ($anschlüsse: ident => $($elemente: ident $(, $extra_info: ident - $hash_eq_steuerung: ident)?);* $(;)? ) => {$(
+                #[expect(clippy::allow_attributes, reason = "unused_parens")]
                 #[allow(unused_parens, reason = "Aufruf mit einem einzelnen Argument.")]
                 let ($elemente, $anschlüsse) = $elemente.into_iter().fold(
                     (HashMap::new(), $anschlüsse),

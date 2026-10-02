@@ -234,8 +234,8 @@ impl OutputAnschluss {
     /// Fehler in der I2C-Kommunikation für einen [`Pcf8574-Port`](pcf8574::Port).
     pub fn umschalten(&mut self) -> Result<(), Fehler> {
         match self {
-            OutputAnschluss::Pin { pin, .. } => pin.umschalten(),
-            OutputAnschluss::Pcf8574Port { port, .. } => port.umschalten()?,
+            OutputAnschluss::Pin { pin, polarität: _ } => pin.umschalten(),
+            OutputAnschluss::Pcf8574Port { port, polarität: _ } => port.umschalten()?,
         }
         Ok(())
     }
@@ -287,15 +287,20 @@ impl OutputSerialisiert {
     #[must_use]
     pub fn selber_anschluss(&self, other: &OutputSerialisiert) -> bool {
         match (self, other) {
-            (OutputSerialisiert::Pin { pin: p0, .. }, OutputSerialisiert::Pin { pin: p1, .. }) => {
-                p0 == p1
-            },
+            (
+                OutputSerialisiert::Pin { pin: p0, polarität: _ },
+                OutputSerialisiert::Pin { pin: p1, polarität: _ },
+            ) => p0 == p1,
             (
                 OutputSerialisiert::Pcf8574Port {
-                    beschreibung: beschreibung_a, port: port_a, ..
+                    beschreibung: beschreibung_a,
+                    port: port_a,
+                    polarität: _,
                 },
                 OutputSerialisiert::Pcf8574Port {
-                    beschreibung: beschreibung_b, port: port_b, ..
+                    beschreibung: beschreibung_b,
+                    port: port_b,
+                    polarität: _,
                 },
             ) => beschreibung_a == beschreibung_b && port_a == port_b,
             _ => false,
@@ -344,8 +349,10 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         _mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<OutputAnschluss> {
         let neue_polarität = match self {
-            OutputSerialisiert::Pin { polarität, .. }
-            | OutputSerialisiert::Pcf8574Port { polarität, .. } => polarität,
+            OutputSerialisiert::Pin { polarität, pin: _ }
+            | OutputSerialisiert::Pcf8574Port { polarität, beschreibung: _, port: _ } => {
+                polarität
+            },
         };
         let (mut gesucht, andere): (Vec<_>, Vec<_>) = output_anschlüsse
             .into_iter()
@@ -355,8 +362,10 @@ impl Reserviere<OutputAnschluss> for OutputSerialisiert {
         let anschlüsse = Anschlüsse { pwm_pins, output_anschlüsse: gesucht, input_anschlüsse };
         if let Some(mut anschluss) = ein_gesuchter {
             match &mut anschluss {
-                OutputAnschluss::Pin { polarität, .. }
-                | OutputAnschluss::Pcf8574Port { polarität, .. } => *polarität = neue_polarität,
+                OutputAnschluss::Pin { polarität, pin: _ }
+                | OutputAnschluss::Pcf8574Port { polarität, port: _ } => {
+                    *polarität = neue_polarität;
+                },
             }
             Ergebnis::Wert { anschluss, anschlüsse }
         } else {
@@ -521,10 +530,14 @@ impl InputSerialisiert {
             (InputSerialisiert::Pin { pin: p0 }, InputSerialisiert::Pin { pin: p1 }) => p0 == p1,
             (
                 InputSerialisiert::Pcf8574Port {
-                    beschreibung: beschreibung_a, port: port_a, ..
+                    beschreibung: beschreibung_a,
+                    port: port_a,
+                    interrupt: _,
                 },
                 InputSerialisiert::Pcf8574Port {
-                    beschreibung: beschreibung_b, port: port_b, ..
+                    beschreibung: beschreibung_b,
+                    port: port_b,
+                    interrupt: _,
                 },
             ) => beschreibung_a == beschreibung_b && port_a == port_b,
             _ => false,
@@ -535,7 +548,11 @@ impl InputSerialisiert {
     /// sofern es sich um einen handelt und einer konfiguriert ist.
     #[must_use]
     pub fn interrupt(&self) -> Option<u8> {
-        if let InputSerialisiert::Pcf8574Port { interrupt, .. } = self { *interrupt } else { None }
+        if let InputSerialisiert::Pcf8574Port { interrupt, beschreibung: _, port: _ } = self {
+            *interrupt
+        } else {
+            None
+        }
     }
 }
 

@@ -121,7 +121,7 @@ implicit_hasher = "allow" # benötigt Typ-Signatur bei Verwendung
 # restriction group lints
 absolute_paths = "warn"
 alloc_instead_of_core = "warn"
-allow_attributes = "allow"                 # expect-attribute still experimental
+allow_attributes = "warn"
 allow_attributes_without_reason = "warn"
 arithmetic_side_effects = "warn"
 as_conversions = "warn"
@@ -229,8 +229,29 @@ verbose_file_reads = "warn"
 wildcard_enum_match_arm = "warn"
 empty_enum_variants_with_brackets = "warn"
 infinite_loop = "warn"
-integer_division_remainder_used = "allow"  # gedacht für Kryptographischen Kontext
-iter_over_hash_type = "allow"              # Reihenfolge nicht relevant, wenn HashMap/Set verwendet wird
+integer_division_remainder_used = "allow"   # gedacht für Kryptographischen Kontext
+iter_over_hash_type = "allow"               # Reihenfolge nicht relevant, wenn HashMap/Set verwendet wird
+renamed_function_params = "warn"
+cfg_not_test = "warn"
+field_scoped_visibility_modifiers = "warn"
+unused_result_ok = "warn"
+pathbuf_init_then_push = "warn"
+unused_trait_names = "warn"
+non_zero_suggestions = "warn"
+arbitrary_source_item_ordering = "warn"
+map_with_unused_argument_over_ranges = "warn"
+as_pointer_underscore = "warn"
+doc_include_without_cfg = "warn"
+return_and_then = "warn"
+precedence_bits = "warn"
+redundant_test_prefix = "warn"
+pointer_format = "warn"
+doc_paragraphs_missing_punctuation = "warn"
+inline_trait_bounds = "allow"               # bevorzuge inline solange alles in eine Zeile passt
+inline_modules = "warn"
+definition_in_module_root = "allow"         # kein Effekt in Kombination mit mod_module_files
+rest_pattern_accessible_field = "warn"
+unnecessary_rest_pattern = "warn"
 
 # workspace dependencies
 [workspace.dependencies.zugkontrolle-anschluss]

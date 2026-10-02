@@ -259,7 +259,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
         self,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
-        aktualisieren_sender: Self::MoveArg,
+        move_arg: Self::MoveArg,
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Kontakt> {
@@ -273,6 +273,7 @@ impl Reserviere<Kontakt> for KontaktSerialisiert {
                 Fehler { fehler, anschlüsse } => return Fehler { fehler, anschlüsse },
             };
         let letztes_level = anschluss.lese().ok();
+        let aktualisieren_sender = move_arg;
         match (
             Kontakt::neu(
                 self.name,

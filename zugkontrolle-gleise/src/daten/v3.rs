@@ -56,20 +56,21 @@ pub struct Gleis<T> {
 
 /// Die serialisierte Darstellung aller Gleise, wie sie in Version 3 verwendet wurde.
 #[derive(Debug, Deserialize)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct GleiseDatenSerialisiert {
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
+    pub geraden: Vec<Gleis<GeradeSerialisiert>>,
+    pub kurven: Vec<Gleis<KurveSerialisiert>>,
+    pub weichen: Vec<Gleis<WeicheSerialisiert>>,
+    pub dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
+    pub kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
+    pub s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
+    pub kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
 impl GleiseDatenSerialisiert {
-    /// Erzeuge ein neues, leeres [`GleiseDatenSerialisiert`]
+    /// Erzeuge ein neues, leeres [`GleiseDatenSerialisiert`].
     pub(crate) const fn neu() -> GleiseDatenSerialisiert {
         GleiseDatenSerialisiert {
             geraden: Vec::new(),
@@ -86,6 +87,7 @@ impl GleiseDatenSerialisiert {
 /// Mapping von der serialisierten Darstellung zur assoziierten [`id::Repräsentation`]
 /// für eine Definition. Verwendet in [`GleiseDatenSerialisiert::v4`].
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct DefinitionMaps {
@@ -118,8 +120,9 @@ impl DefinitionMaps {
     }
 }
 
-/// Die nächste freie [`id::Repräsentation`] für eine Definition.
+/// Die nächste freie [`zugkontrolle_id::Repräsentation`] für eine Definition.
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct NächsteDefinitionIds {
@@ -133,7 +136,7 @@ struct NächsteDefinitionIds {
 }
 
 impl NächsteDefinitionIds {
-    /// Erzeuge eine neue [`NächsteDefinitionIds`], die alle mit [`Some(0)`] initialisiert wurden.
+    /// Erzeuge eine neue [`NächsteDefinitionIds`], die alle mit [`Some(0)`](Some) initialisiert wurden.
     fn neu() -> NächsteDefinitionIds {
         NächsteDefinitionIds {
             geraden: Some(0),
@@ -147,8 +150,9 @@ impl NächsteDefinitionIds {
     }
 }
 
-/// Die nächste freie [`id::Repräsentation`] für ein Gleis oder eine Definition.
+/// Die nächste freie [`zugkontrolle_id::Repräsentation`] für ein Gleis oder eine Definition.
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct NächsteIds {
@@ -163,7 +167,7 @@ struct NächsteIds {
 }
 
 impl NächsteIds {
-    /// Erzeuge eine neue [`NächsteIds`], die alle mit [`Some(0)`] initialisiert wurden.
+    /// Erzeuge eine neue [`NächsteIds`], die alle mit [`Some(0)`](Some) initialisiert wurden.
     fn neu() -> NächsteIds {
         NächsteIds {
             geraden: Some(0),
@@ -272,15 +276,15 @@ pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> = H
 ))]
 pub(crate) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
-    pub(crate) zugtyp: ZugtypSerialisiert<L>,
+    pub zugtyp: ZugtypSerialisiert<L>,
     /// Gleise ohne einen assoziierten Streckenabschnitt.
-    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
+    pub ohne_streckenabschnitt: GleiseDatenSerialisiert,
     /// Streckenabschnitte ohne assoziierte Geschwindigkeit, sowie zugehörige Gleise.
-    pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
+    pub ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     /// Geschwindigkeiten und assoziierte Streckenabschnitte und Gleise.
-    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
+    pub geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
     /// Pläne.
-    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
+    pub pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
 impl<L: Leiter, S> ZustandSerialisiert<L, S> {

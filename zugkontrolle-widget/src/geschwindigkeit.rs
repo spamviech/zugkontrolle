@@ -179,7 +179,7 @@ struct AuswahlZustand {
     umdrehen_anschluss: OutputSerialisiert,
     /// Der aktuell gewählte Pin zur Steuerung über ein Pwm-Signal.
     pwm_pin: pwm::Serialisiert,
-    /// Die aktuell gewählte Polarität des Pwm-Signals
+    /// Die aktuell gewählte Polarität des Pwm-Signals.
     pwm_polarität: Polarität,
     /// Die aktuell gewählten Anschlüsse zur Steuerung über konstante Spannungswerte.
     ks_anschlüsse: NonEmpty<OutputSerialisiert>,

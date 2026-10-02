@@ -64,7 +64,7 @@ static LEGO: LazyLock<Zugtyp<Zweileiter>> = LazyLock::new(|| {
 });
 
 impl Zugtyp<Zweileiter> {
-    /// Lego
+    /// [Lego](LEGO).
     #[must_use]
     pub fn lego() -> &'static Zugtyp<Zweileiter> {
         &LEGO

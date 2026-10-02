@@ -64,16 +64,16 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for Gerade<Anschlüsse> {
+impl<Anschlüsse, T: MitName + MitKontakt> Zeichnen<T> for Gerade<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &T, spurweite: Spurweite) -> Rechteck {
         rechteck(spurweite, self.länge)
     }
 
-    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
-        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+    fn zeichne(&self, t: &T, spurweite: Spurweite) -> Vec<Pfad> {
+        let level_und_trigger = t.aktuelles_level_und_trigger();
         let mut pfade =
             vec![zeichne(spurweite, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)];
         if level_und_trigger.is_some() {
@@ -87,12 +87,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         pfade
     }
 
-    fn fülle(
-        &self,
-        anschlüsse: &Anschlüsse2,
-        spurweite: Spurweite,
-    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
-        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+    fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+        let level_und_trigger = t.aktuelles_level_und_trigger();
         let gleis_pfad = fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis);
         let mut pfade = vec![(gleis_pfad, None, Transparenz::Voll)];
         if let Some((Some(level), trigger)) = level_und_trigger {
@@ -111,7 +107,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
 
     fn beschreibung_und_name<'s, 't>(
         &'s self,
-        anschlüsse: &'t Anschlüsse2,
+        t: &'t T,
         spurweite: Spurweite,
     ) -> (Position, Option<&'s str>, Option<&'t str>) {
         (
@@ -122,13 +118,13 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_deref(),
-            anschlüsse.name(),
+            t.name(),
         )
     }
 
     fn innerhalb(
         &self,
-        _anschlüsse: &Anschlüsse2,
+        _anschlüsse: &T,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
@@ -136,9 +132,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         innerhalb(spurweite, self.länge, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(
-        &self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite
-    ) -> Self::Verbindungen {
+    fn verbindungen(&self, _anschlüsse: &T, spurweite: Spurweite) -> Self::Verbindungen {
         let gleis_links = Skalar(0.);
         #[expect(
             clippy::arithmetic_side_effects,
@@ -159,7 +153,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
     }
 }
 
-/// Erzeuge das durch die Gleise der Geraden definierte [`Rechteck`]
+/// Erzeuge das durch die Gleise der Geraden definierte [`Rechteck`].
 #[must_use]
 pub(crate) fn rechteck(spurweite: Spurweite, länge: Skalar) -> Rechteck {
     Rechteck::mit_größe(Vektor { x: länge, y: spurweite.beschränkung() })

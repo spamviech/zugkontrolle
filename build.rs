@@ -1,4 +1,4 @@
-//! Build-Script für zugkontrolle: erzeuge raspi cfg und setze windows binary icon
+//! Build-Script für zugkontrolle: erzeuge raspi cfg und setze windows binary icon.
 
 use std::env;
 

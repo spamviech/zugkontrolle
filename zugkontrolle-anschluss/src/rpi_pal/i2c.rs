@@ -62,7 +62,7 @@ pub use rpi_pal::i2c::I2c;
 pub struct I2c {
     /// Der I2C-Bus.
     bus: u8,
-    /// [`I2C::set_slave_address`]
+    /// [`I2c::set_slave_address`].
     slave_address: u16,
 }
 

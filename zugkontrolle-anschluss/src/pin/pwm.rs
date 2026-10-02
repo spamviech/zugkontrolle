@@ -56,12 +56,18 @@ pub struct Zeit {
 #[derive(Debug, PartialEq)]
 pub struct Pin {
     /// Der Pin.
-    pub(in crate::pin) pin: Pwm,
-    /// Das aktuell anliegende Pwm-Signal
-    pub(in crate::pin) konfiguration: Option<Konfiguration>,
+    pin: Pwm,
+    /// Das aktuell anliegende Pwm-Signal.
+    konfiguration: Option<Konfiguration>,
 }
 
 impl Pin {
+    /// Erzeuge einen neuen [`pwm::Pin`](Pin).
+    #[must_use]
+    pub(in crate::pin) fn neu(pin: Pwm, konfiguration: Option<Konfiguration>) -> Pin {
+        Pin { pin, konfiguration }
+    }
+
     /// Erhalte die GPIO [`Pin`] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
@@ -113,12 +119,15 @@ impl Pin {
             Pwm::Hardware(pwm_channel, _pin) => {
                 let map_fehler = |fehler| Fehler::Pwm { pin, fehler };
                 // update nur, sofern sich Parameter geändert haben.
-                if self.konfiguration.as_ref().map(|Konfiguration { polarität, .. }| polarität)
+                if self
+                    .konfiguration
+                    .as_ref()
+                    .map(|Konfiguration { polarität, zeit: _ }| polarität)
                     != Some(&konfiguration.polarität)
                 {
                     pwm_channel.set_polarity(konfiguration.polarität.into()).map_err(map_fehler)?;
                 }
-                if self.konfiguration.as_ref().map(|Konfiguration { zeit, .. }| zeit)
+                if self.konfiguration.as_ref().map(|Konfiguration { zeit, polarität: _ }| zeit)
                     != Some(&konfiguration.zeit)
                 {
                     let Zeit { frequenz, betriebszyklus } = konfiguration.zeit;

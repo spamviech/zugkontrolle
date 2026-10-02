@@ -20,9 +20,9 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Pfad {
     /// Der beschriebene Pfad.
-    pub(crate) pfad: Path,
+    pfad: Path,
     /// Unter welchen Transformationen wird der Pfad beschreiben.
-    pub(crate) transformationen: Vec<Transformation>,
+    transformationen: Vec<Transformation>,
 }
 
 impl Pfad {
@@ -41,6 +41,18 @@ impl Pfad {
             .close_chain()
             .baue_unter_transformationen(transformationen)
     }
+
+    /// Gebe den zugrundeliegenden [`Path`] zurück.
+    #[must_use]
+    pub(crate) fn path(&self) -> &Path {
+        &self.pfad
+    }
+
+    /// Gebe die zugrundeliegenden [`Transformation`]en zurück.
+    #[must_use]
+    pub(crate) fn transformations(&self) -> &[Transformation] {
+        &self.transformationen
+    }
 }
 
 /// Unterstützte Transformationen.
@@ -57,7 +69,7 @@ pub enum Transformation {
 /// Variante von [`iced::widget::canvas::path::Arc`] mit [`Invertiert`]-Implementierung.
 ///
 /// Beschreibt einen Bogen um `zentrum` mit `radius` von Winkel `anfang` bis `ende`
-/// (im Uhrzeigersinn, y-Achse wächst nach Unten)
+/// (im Uhrzeigersinn, y-Achse wächst nach Unten).
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Bogen {
     /// Der Zentrum des Bogens.

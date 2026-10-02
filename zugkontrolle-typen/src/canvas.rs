@@ -14,7 +14,7 @@ use crate::{
     Zeichnen,
     canvas::pfad::{Pfad, Transformation},
     mm::Spurweite,
-    nachschlagen::Nachschlagen,
+    nachschlagen::Nachschlagen as _,
     skalar::Skalar,
     vektor::Vektor,
     verbindung::{self, Verbindung},
@@ -43,26 +43,22 @@ impl<'t> Frame<'t> {
     }
 
     /// Zeichne den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Stroke).
-    pub fn stroke<'s>(
-        &mut self,
-        Pfad { pfad, transformationen }: &Pfad,
-        stroke: impl Into<Stroke<'s>>,
-    ) {
+    pub fn stroke<'s>(&mut self, pfad: &Pfad, stroke: impl Into<Stroke<'s>>) {
         self.with_save(|frame| {
-            for transformation in transformationen {
+            for transformation in pfad.transformations() {
                 frame.transformation(transformation);
             }
-            frame.0.stroke(pfad, stroke);
+            frame.0.stroke(pfad.path(), stroke);
         });
     }
 
     /// Fülle den gegebenen [Pfad] auf den [Frame] im gewünschten [`Stil`](Fill).
-    pub fn fill(&mut self, Pfad { pfad, transformationen }: &Pfad, fill: impl Into<Fill>) {
+    pub fn fill(&mut self, pfad: &Pfad, fill: impl Into<Fill>) {
         self.with_save(|frame| {
-            for transformation in transformationen {
+            for transformation in pfad.transformations() {
                 frame.transformation(transformation);
             }
-            frame.0.fill(pfad, fill);
+            frame.0.fill(pfad.path(), fill);
         });
     }
 
@@ -90,9 +86,9 @@ impl<'t> Frame<'t> {
     /// **vor** allen bisherigen ausgeführt.
     ///
     /// Links zum Implementierung verfolgen:
-    /// <https://github.com/hecrj/iced/blob/master/graphics/src/widget/canvas/frame.rs#L234>
-    /// <https://docs.rs/lyon/0.17.5/lyon/math/type.Transform.html>
-    /// <https://docs.rs/euclid/0.22.3/euclid/struct.Transform2D.html#method.pre_rotate>
+    /// - <https://github.com/hecrj/iced/blob/master/graphics/src/widget/canvas/frame.rs#L234>
+    /// - <https://docs.rs/lyon/0.17.5/lyon/math/type.Transform.html>
+    /// - <https://docs.rs/euclid/0.22.3/euclid/struct.Transform2D.html#method.pre_rotate>
     pub fn transformation(&mut self, transformation: &Transformation) {
         match transformation {
             Transformation::Translation(Vektor { x, y }) => {

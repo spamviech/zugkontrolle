@@ -77,8 +77,17 @@ impl<L: Leiter> From<Zugtyp<L>> for Einstellungen<L> {
             stopp_zeit,
             umdrehen_zeit,
             schalten_zeit,
-            ..
-        } = zugtyp;
+            name: _,
+            leiter: _,
+            spurweite: _,
+            geraden: _,
+            kurven: _,
+            weichen: _,
+            dreiwege_weichen: _,
+            kurven_weichen: _,
+            s_kurven_weichen: _,
+            kreuzungen: _,
+        }: Zugtyp<L> = zugtyp;
         Einstellungen {
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
@@ -97,7 +106,16 @@ impl<L: Leiter> From<&Zugtyp<L>> for Einstellungen<L> {
             stopp_zeit,
             umdrehen_zeit,
             schalten_zeit,
-            ..
+            name: _,
+            leiter: _,
+            spurweite: _,
+            geraden: _,
+            kurven: _,
+            weichen: _,
+            dreiwege_weichen: _,
+            kurven_weichen: _,
+            s_kurven_weichen: _,
+            kreuzungen: _,
         } = zugtyp;
         Einstellungen {
             pwm_frequenz: *pwm_frequenz,
@@ -277,7 +295,7 @@ where
 pub type PlanSerialisiert<L, S> = PlanEnum<AktionSerialisiert<L, S>>;
 
 impl<L: Leiter> Plan<L> {
-    /// Serialisiere einen [`Plan`]
+    /// Serialisiere einen [`Plan`].
     pub fn serialisiere<S>(&self) -> PlanSerialisiert<L, S>
     where
         L: Serialisiere<S>,
@@ -293,10 +311,10 @@ impl<L: Leiter> Plan<L> {
 }
 
 /// Die Steuerung einer [`Weiche`](weiche::gerade::Weiche),
-/// [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche) und [`Kreuzung`](crate::gleis::kreuzung::Kreuzung).
+/// [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche) und [`Kreuzung`](crate::kreuzung::Kreuzung).
 pub(crate) type GeradeWeiche = Weiche<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsse>;
 /// Die serialisierbare Steuerung einer [`Weiche`](weiche::gerade::Weiche),
-/// [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche) und [`Kreuzung`](crate::gleis::kreuzung::Kreuzung)
+/// [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche) und [`Kreuzung`](crate::kreuzung::Kreuzung).
 pub(crate) type GeradeWeicheSerialisiert =
     WeicheSerialisiert<weiche::gerade::Richtung, weiche::gerade::RichtungAnschlüsseSerialisiert>;
 /// Die Steuerung einer [`KurvenWeiche`](weiche::kurve::KurvenWeiche).

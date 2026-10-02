@@ -442,6 +442,7 @@ macro_rules! impl_serialisiere_tuple {
         }
 
         #[expect(clippy::min_ident_chars, reason = "macro_rules interne Variablen")]
+        #[expect(clippy::allow_attributes, reason = "Expect nicht möglich: Nur bei Aufruf mit einem Argument.")]
         impl<A0, S0, $($type, $serialisiert),+> Reserviere<(A0, $($type),+)> for (S0, $($serialisiert),+)
         where
             A0: Serialisiere<S0>,

@@ -144,7 +144,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Aktueller Modus.
     pub fn modus(&self) -> Modus {
         match self.modus {
-            ModusDaten::Bauen { .. } => Modus::Bauen,
+            ModusDaten::Bauen { gehalten: _, letzter_klick: _ } => Modus::Bauen,
             ModusDaten::Fahren => Modus::Fahren,
         }
     }
@@ -157,12 +157,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Gibt es ein zur [`KlickQuelle`] gehörendes gehaltenes Gleis.
     pub fn hat_gehaltenes_gleis(&self, klick_quelle: KlickQuelle) -> bool {
         match &self.modus {
-            ModusDaten::Bauen { gehalten, .. } => gehalten.contains_key(&klick_quelle),
+            ModusDaten::Bauen { gehalten, letzter_klick: _ } => {
+                gehalten.contains_key(&klick_quelle)
+            },
             ModusDaten::Fahren => false,
         }
     }
 
-    /// Aktuelle Pivot-Punkt und Dreh-Winkel
+    /// Aktuelle Pivot-Punkt und Dreh-Winkel.
     pub fn pivot(&self) -> &Position {
         &self.pivot
     }
@@ -420,11 +422,11 @@ where
         &self,
         state: &Self::State,
         renderer: &Renderer,
-        thema: &Thema,
+        theme: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        self.draw_impl(state, renderer, thema, bounds, cursor)
+        self.draw_impl(state, renderer, theme, bounds, cursor)
     }
 
     fn update(
@@ -444,12 +446,12 @@ where
         cursor: Cursor,
     ) -> mouse::Interaction {
         match &self.modus {
-            ModusDaten::Bauen { gehalten, .. }
+            ModusDaten::Bauen { gehalten, letzter_klick: _ }
                 if gehalten.contains_key(&KlickQuelle::Maus) && cursor.is_over(bounds) =>
             {
                 mouse::Interaction::Grabbing
             },
-            ModusDaten::Bauen { .. } | ModusDaten::Fahren => {
+            ModusDaten::Bauen { gehalten: _, letzter_klick: _ } | ModusDaten::Fahren => {
                 let mut interaction = mouse::Interaction::default();
                 if cursor.is_over(bounds)
                     && let Some(canvas_pos) =
@@ -457,7 +459,9 @@ where
                     && self.zustand.gleis_an_position(canvas_pos).is_some()
                 {
                     interaction = match &self.modus {
-                        ModusDaten::Bauen { .. } => mouse::Interaction::Grab,
+                        ModusDaten::Bauen { gehalten: _, letzter_klick: _ } => {
+                            mouse::Interaction::Grab
+                        },
                         ModusDaten::Fahren => mouse::Interaction::Pointer,
                     };
                 }

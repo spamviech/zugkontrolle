@@ -297,7 +297,7 @@ impl Pwm {
         Ok(())
     }
 
-    /// Returns wether the pwm pulse is currently enabled
+    /// Returns wether the pwm pulse is currently enabled.
     pub fn is_enabled(&self) -> Result<bool> {
         Ok(self.enabled)
     }

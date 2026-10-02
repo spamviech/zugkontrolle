@@ -1,4 +1,4 @@
-//! Take a sum-type enum and produce an associated enum without any data
+//! Take a sum-type enum and produce an associated enum without any data.
 
 use std::iter::once;
 
@@ -53,7 +53,7 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     if errors.is_empty() { Ok((arg_vis, arg_ident)) } else { Err(errors) }
 }
 
-/// [`crate::erstelle_enum`]
+/// [`crate::erstelle_enum`].
 pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
     let (arg_vis, arg_ident) = match parse_args(args) {
         Ok(vid_ident) => vid_ident,
@@ -70,12 +70,12 @@ pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
         #[kommandozeilen_argumente(case: insensitive)]
     );
 
-    let ItemEnum { vis, ident, variants, attrs, .. } = &ast;
+    let ItemEnum { vis, ident, variants, attrs, enum_token: _, generics: _, brace_token: _ } = &ast;
     let enum_vis = arg_vis.unwrap_or(vis.clone());
     let enum_ident = arg_ident.unwrap_or(format_ident!("{}Enum", ident));
     let (enum_variants, enum_variants_docstrings): (Vec<Ident>, Vec<TokenStream>) = variants
         .iter()
-        .map(|Variant { ident: var_ident, attrs: var_attrs, .. }| {
+        .map(|Variant { ident: var_ident, attrs: var_attrs, fields: _, discriminant: _ }| {
             let docstrings = var_attrs.iter().filter(|attr| attr.path().is_ident("doc")).cloned();
             (var_ident.clone(), quote!(#(#docstrings)*))
         })

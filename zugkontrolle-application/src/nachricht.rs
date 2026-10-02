@@ -119,7 +119,7 @@ where
     L: Leiter,
 {
     fn nachricht(
-        id: &T,
+        definition: &T,
         klick_quelle: KlickQuelle,
         klick_position: Vektor,
     ) -> NachrichtClone<L, S> {
@@ -129,7 +129,7 @@ where
                 AnyDefinitionIdSteuerung::from(($id, None))
             };
         }
-        let any_id = id.clone().into();
+        let any_id = definition.clone().into();
         NachrichtClone::Gleis {
             definition_steuerung: mit_any_id!({}, [AnyDefinitionId => id] any_id => erhalte_nachricht!()),
             klick_quelle,

@@ -6,9 +6,15 @@ use crate::{event::Event, level::Level, rpi_pal::gpio, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
 #[derive(Debug, PartialEq)]
-pub struct Pin(pub(super) gpio::InputPin);
+pub struct Pin(gpio::InputPin);
 
 impl Pin {
+    /// Erzeuge einen neuen [`input::Pin`](Pin).
+    #[must_use]
+    pub(in crate::pin) fn neu(pin: gpio::InputPin) -> Pin {
+        Pin(pin)
+    }
+
     /// Erhalte die GPIO [`Pin`] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.

@@ -3,9 +3,16 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, punctuated::Punctuated};
 
-pub(crate) mod util;
-
+mod alias;
+mod chain;
+mod clone;
 mod debug;
+mod erstelle_enum;
+mod from;
+mod nachschlagen;
+mod richtung;
+mod util;
+
 #[proc_macro_derive(Debug, attributes(zugkontrolle_debug))]
 /// Erzeuge eine [`Debug`]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn debug_derive(input: TokenStream) -> TokenStream {
@@ -17,7 +24,6 @@ pub fn debug_derive(input: TokenStream) -> TokenStream {
     debug::impl_debug(&ast).into()
 }
 
-mod clone;
 #[proc_macro_derive(Clone, attributes(zugkontrolle_clone))]
 /// Erzeuge eine [`Clone`]-Implementierung, ohne Constraints für Generics vorauszusetzen.
 pub fn clone_derive(input: TokenStream) -> TokenStream {
@@ -29,7 +35,6 @@ pub fn clone_derive(input: TokenStream) -> TokenStream {
     clone::impl_clone(&ast).into()
 }
 
-mod from;
 #[proc_macro_derive(From)]
 /// Erzeuge [`From`]-Implementierung für alle Varianten eines Enums, die genau ein Element halten.
 pub fn from_derive(from_derive: TokenStream) -> TokenStream {
@@ -38,7 +43,6 @@ pub fn from_derive(from_derive: TokenStream) -> TokenStream {
     from::impl_from(ast).into()
 }
 
-mod nachschlagen;
 #[proc_macro_attribute]
 /// Erzeuge eine Struktur und zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Implementierung für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -48,7 +52,6 @@ pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
     nachschlagen::impl_nachschlagen(&args, &ast).into()
 }
 
-mod erstelle_enum;
 #[proc_macro_attribute]
 /// Erzeuge ein Enum mit identischen Varianten, ohne assoziierte Daten.
 pub fn erstelle_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -58,17 +61,15 @@ pub fn erstelle_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
     erstelle_enum::erstelle_enum(args, &ast).into()
 }
 
-mod chain;
 #[proc_macro_attribute]
 /// Erzeuge eine identische Methode mit /_chain/-Suffix, die Method-chaining erlaubt.
 pub fn chain(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr);
     let ast = parse_macro_input!(item);
 
-    chain::make_chain(&args, &ast).into()
+    chain::chain(&args, &ast).into()
 }
 
-mod richtung;
 #[proc_macro_attribute]
 /// Erzeuge ein Richtung-Enum mit identischen Varianten bis auf /Anfang/,
 /// sowie eine zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Struktur.
@@ -79,7 +80,6 @@ pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
     richtung::erstelle_richtung(&args, &ast).into()
 }
 
-mod alias;
 #[proc_macro_attribute]
 /// Erzeuge /*Serialisiert/ und /'Unit/ Typ-Synonyme,
 /// sowie `zugkontrolle::anschluss::de_serialisieren::Serialisiere`

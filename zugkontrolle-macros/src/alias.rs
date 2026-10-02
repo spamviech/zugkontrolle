@@ -13,17 +13,24 @@ fn partition_generic_fields<'f>(
     generic: &Ident,
     named_fields: &'f Punctuated<Field, Comma>,
 ) -> (Vec<&'f Field>, Vec<&'f Field>) {
-    named_fields.iter().partition(|Field { ty, .. }| {
-        if let Type::Path(TypePath { path: Path { segments, .. }, .. }) = ty {
-            if let Some(PathSegment { ident, .. }) = segments.first() {
-                ident == generic
+    named_fields.iter().partition(
+        |Field { ty, attrs: _, vis: _, modifiers: _, ident: _, colon_token: _, default: _ }| {
+            if let Type::Path(TypePath {
+                path: Path { segments, leading_colon: _ },
+                attrs: _,
+                qself: _,
+            }) = ty
+            {
+                if let Some(PathSegment { ident, arguments: _ }) = segments.first() {
+                    ident == generic
+                } else {
+                    false
+                }
             } else {
                 false
             }
-        } else {
-            false
-        }
-    })
+        },
+    )
 }
 
 /// Erzeuge den [`TokenStream`] für die neuen Definitionen.
@@ -127,7 +134,8 @@ fn erzeuge_typ_definitionen(
 pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> TokenStream {
     let mut errors = Vec::new();
 
-    let ItemStruct { vis, ident, fields, generics, .. } = &item;
+    let ItemStruct { vis, ident, fields, generics, attrs: _, struct_token: _, semi_token: _ } =
+        &item;
     let mut type_definitionen = None;
 
     if let Ok(zugkontrolle_anschluss) = crate_name("zugkontrolle-anschluss") {
@@ -139,12 +147,14 @@ pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> T
             GenericParam::Type(TypeParam {
                 ident: generic,
                 default: Some((_eq, default_type)),
-                ..
+                attrs: _,
+                colon_token: _,
+                bounds: _,
             }),
             params,
         )) = generics.params.iter().collect::<Vec<_>>().split_last()
         {
-            if let Fields::Named(FieldsNamed { named, .. }) = fields {
+            if let Fields::Named(FieldsNamed { named, brace_token: _ }) = fields {
                 let (param_fields, other_fields) = partition_generic_fields(generic, named);
                 let param_fields: Vec<_> =
                     param_fields.into_iter().map(|field| &field.ident).collect();

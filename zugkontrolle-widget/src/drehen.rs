@@ -67,12 +67,12 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
         &self,
         state: &Self::State,
         renderer: &Renderer,
-        thema: &Thema,
+        theme: &Thema,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
         let size = bounds.size();
-        vec![self.0.zeichnen(renderer, thema, size, |frame| {
+        vec![self.0.zeichnen(renderer, theme, size, |frame| {
             let min_width_height = Skalar(size.width.min(size.height));
             let half_min_width_height = min_width_height.halbiert();
             let kreis_zentrum = Vektor { x: half_min_width_height, y: half_min_width_height };
@@ -92,7 +92,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
             frame.stroke(
                 &kreis_pfad,
                 Stroke {
-                    style: stroke::Style::Solid(thema.strich().into()),
+                    style: stroke::Style::Solid(theme.strich().into()),
                     width: 1.,
                     ..Default::default()
                 },
@@ -116,7 +116,7 @@ impl Program<Winkel, Thema, Renderer> for Drehen {
                     ende: winkel::TAU,
                 })
                 .baue();
-            let hintergrund = thema.hintergrund(
+            let hintergrund = theme.hintergrund(
                 state.grabbed.is_some(),
                 cursor.position_in(bounds).is_some_and(|position| {
                     #[expect(

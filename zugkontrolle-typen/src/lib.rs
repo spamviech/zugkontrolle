@@ -10,7 +10,7 @@ use crate::{
     canvas::{Position, pfad::Pfad},
     farbe::Farbe,
     mm::Spurweite,
-    nachschlagen::Nachschlagen,
+    nachschlagen::Nachschlagen as _,
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,

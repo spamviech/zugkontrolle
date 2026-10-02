@@ -72,16 +72,16 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for Kurve<Anschlüsse> {
+impl<Anschlüsse, T: MitName + MitKontakt> Zeichnen<T> for Kurve<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &T, spurweite: Spurweite) -> Rechteck {
         rechteck(spurweite, self.radius, self.winkel)
     }
 
-    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
-        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+    fn zeichne(&self, t: &T, spurweite: Spurweite) -> Vec<Pfad> {
+        let level_und_trigger = t.aktuelles_level_und_trigger();
         let mut pfade = vec![zeichne(
             spurweite,
             self.radius,
@@ -102,12 +102,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         pfade
     }
 
-    fn fülle(
-        &self,
-        anschlüsse: &Anschlüsse2,
-        spurweite: Spurweite,
-    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
-        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+    fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+        let level_und_trigger = t.aktuelles_level_und_trigger();
         let mut pfade = vec![(
             fülle(
                 spurweite,
@@ -136,7 +132,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
 
     fn beschreibung_und_name<'s, 't>(
         &'s self,
-        anschlüsse: &'t Anschlüsse2,
+        t: &'t T,
         spurweite: Spurweite,
     ) -> (Position, Option<&'s str>, Option<&'t str>) {
         #[expect(
@@ -162,13 +158,13 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_deref(),
-            anschlüsse.name(),
+            t.name(),
         )
     }
 
     fn innerhalb(
         &self,
-        _anschlüsse: &Anschlüsse2,
+        _anschlüsse: &T,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
@@ -176,9 +172,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         innerhalb(spurweite, self.radius, self.winkel, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(
-        &self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite
-    ) -> Self::Verbindungen {
+    fn verbindungen(&self, _anschlüsse: &T, spurweite: Spurweite) -> Self::Verbindungen {
         let halbe_beschränkung = spurweite.beschränkung().halbiert();
         Verbindungen {
             anfang: Verbindung {

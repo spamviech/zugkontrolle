@@ -49,7 +49,16 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         u8: TryInto<Thema>,
         Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
     {
-        let Gleise { canvas, modus, .. } = self;
+        let Gleise {
+            canvas,
+            modus,
+            pivot: _,
+            skalieren: _,
+            zustand: _,
+            letzte_maus_position: _,
+            letzte_canvas_größe: _,
+            sender: _,
+        } = self;
         vec![canvas.zeichnen_skaliert_von_pivot(
             renderer,
             thema,
@@ -61,12 +70,20 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 let gehalten_ids: HashSet<AnyId>;
                 let modus_bauen: bool;
                 match modus {
-                    ModusDaten::Bauen { gehalten, .. } => {
+                    ModusDaten::Bauen { gehalten, letzter_klick: _ } => {
                         gehalten_ids = gehalten
                             .iter()
-                            .map(|(_klick_quelle, Gehalten { gleis_steuerung, .. })| {
-                                gleis_steuerung.id()
-                            })
+                            .map(
+                                |(
+                                    _klick_quelle,
+                                    Gehalten {
+                                        gleis_steuerung,
+                                        halte_position: _,
+                                        winkel: _,
+                                        bewegt: _,
+                                    },
+                                )| { gleis_steuerung.id() },
+                            )
                             .collect();
                         modus_bauen = true;
                     },

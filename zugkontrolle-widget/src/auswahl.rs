@@ -153,7 +153,7 @@ pub type KurvenWeicheNachricht = weiche::Nachricht<
 >;
 
 impl<S> AuswahlZustand<S> {
-    /// Anzeige des Auswahlfensters
+    /// Anzeige des Auswahlfensters.
     pub fn view<'t, L, Nachricht, AktualisierenNachricht>(
         &self,
         gleise: &'t Gleise<L, AktualisierenNachricht>,

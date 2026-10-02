@@ -17,10 +17,10 @@ pub const PI: Winkel = Winkel(consts::PI);
 /// π / 2., eine viertel Umdrehung.
 pub const FRAC_PI_2: Winkel = Winkel(consts::FRAC_PI_2);
 
-/// 0
+/// 0.
 pub const ZERO: Winkel = Winkel(0.);
 
-/// Winkel \[`Bogenmaß\`]
+/// Winkel \[`Bogenmaß\`].
 ///
 /// Die [`PartialEq`]- und [`PartialOrd`]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
 /// bevor sie verglichen werden.
@@ -64,37 +64,37 @@ impl Winkel {
         self
     }
 
-    /// Kosinus
+    /// Kosinus.
     #[must_use]
     pub fn cos(&self) -> Skalar {
         Skalar(self.0.cos())
     }
 
-    /// Sinus
+    /// Sinus.
     #[must_use]
     pub fn sin(&self) -> Skalar {
         Skalar(self.0.sin())
     }
 
-    /// Tangens
+    /// Tangens.
     #[must_use]
     pub fn tan(&self) -> Skalar {
         Skalar(self.0.tan())
     }
 
-    /// Inverser Kosinus
+    /// Inverser Kosinus.
     #[must_use]
     pub fn acos(input: Skalar) -> Self {
         Winkel(input.0.acos())
     }
 
-    /// Inverser Sinus
+    /// Inverser Sinus.
     #[must_use]
     pub fn asin(input: Skalar) -> Self {
         Winkel(input.0.asin())
     }
 
-    /// Inverser Tangens
+    /// Inverser Tangens.
     #[must_use]
     pub fn atan(input: Skalar) -> Self {
         Winkel(input.0.atan())
@@ -140,13 +140,13 @@ where
 {
     type Output = Self;
 
-    fn add(mut self, other: T) -> Winkel {
+    fn add(mut self, rhs: T) -> Winkel {
         #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         {
-            self += other;
+            self += rhs;
         }
         self
     }
@@ -191,13 +191,13 @@ where
 {
     type Output = Self;
 
-    fn sub(mut self, other: T) -> Self::Output {
+    fn sub(mut self, rhs: T) -> Self::Output {
         #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         {
-            self -= other;
+            self -= rhs;
         }
         self
     }
@@ -220,13 +220,13 @@ impl MulAssign<f32> for Winkel {
 impl Mul<f32> for Winkel {
     type Output = Self;
 
-    fn mul(mut self, other: f32) -> Self {
+    fn mul(mut self, rhs: f32) -> Self {
         #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         {
-            self *= other;
+            self *= rhs;
         }
         self
     }
@@ -235,13 +235,13 @@ impl Mul<f32> for Winkel {
 impl Mul<Winkel> for f32 {
     type Output = Winkel;
 
-    fn mul(self, other: Winkel) -> Winkel {
+    fn mul(self, rhs: Winkel) -> Winkel {
         #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
         )]
         {
-            other * self
+            rhs * self
         }
     }
 }
@@ -255,13 +255,13 @@ impl DivAssign<f32> for Winkel {
 impl Div<f32> for Winkel {
     type Output = Self;
 
-    fn div(mut self, other: f32) -> Self {
+    fn div(mut self, rhs: f32) -> Self {
         #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt."
         )]
         {
-            self /= other;
+            self /= rhs;
         }
         self
     }
@@ -270,13 +270,13 @@ impl Div<f32> for Winkel {
 impl Div<Winkel> for f32 {
     type Output = Winkel;
 
-    fn div(self, other: Winkel) -> Winkel {
+    fn div(self, rhs: Winkel) -> Winkel {
         #[expect(
             clippy::arithmetic_side_effects,
             reason = "Wie f32: Schlimmstenfalls wird eine NaN-Wert erzeugt."
         )]
         {
-            other / self
+            rhs / self
         }
     }
 }

@@ -7,8 +7,8 @@ use cargo_metadata::{MetadataCommand, Package, PackageName};
 use proc_macro2::TokenStream;
 use quote::quote;
 
-/// [`crate::verwendete_crates`]
-pub(crate) fn verwendete_crates(target: String) -> Result<Vec<Package>, String> {
+/// Verwendete crates für das `target`.
+fn verwendete_crates(target: String) -> Result<Vec<Package>, String> {
     let metadata_res = MetadataCommand::new()
         .other_options([String::from("--filter-platform"), target, String::from("--all-features")])
         .exec();
@@ -22,8 +22,8 @@ pub(crate) fn verwendete_crates(target: String) -> Result<Vec<Package>, String> 
     Ok(metadata.packages)
 }
 
-/// [`crate::target_crates`]
-pub(crate) fn bekannte_targets() -> Result<Vec<String>, String> {
+/// Alle bekannten targets für die aktuelle `rustc`-Version.
+fn bekannte_targets() -> Result<Vec<String>, String> {
     let stdout = match Command::new("rustc").args(["--print", "target-list"]).output() {
         Ok(output) if output.status.success() => output.stdout,
         Ok(output) => {
@@ -69,8 +69,8 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
     .collect()
 }
 
-/// [`crate::target_crate_lizenzen`]
-pub(crate) fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<String>) {
+/// [`crate::target_crate_lizenzen`].
+fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<String>) {
     let verwendete_crates = match verwendete_crates(String::from(target)) {
         Ok(crates) => crates,
         Err(fehlermeldung) => return (quote!([]), vec![fehlermeldung]),
@@ -171,8 +171,8 @@ fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
     }};
 }
 
-/// [`crate::target_crate_lizenzen`]
-pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> TokenStream {
+/// [`crate::target_crate_lizenzen`].
+fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> TokenStream {
     if !input.is_empty() {
         let fehlermeldung =
             quote_fehlermeldung(&format!("No argument supported, but \"{input}\" was given."));
@@ -213,8 +213,11 @@ pub(crate) fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> T
 #[proc_macro]
 /// Parse `cargo metadata` um verwendete crates für das verwendete target zu erhalten
 /// und füge die Lizenz hinzu.
-/// Dazu werden viele über cfg-Aufrufe von [`verwendete_crates!`] erzeugt.
+///
 /// Die targets werden über `rustc --print target-list` ausgelesen.
+///
+/// Das aktuelle target muss über `build.rs` als `cargo::rustc-cfg=zugkontrolle_target=...`
+/// bereitgestellt werden.
 pub fn target_crate_lizenzen(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     target_crate_lizenzen_oder_compile_error(&input.into()).into()
 }

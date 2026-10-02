@@ -95,7 +95,7 @@ impl<T, F> LazyMutex<T, F> {
 
 #[cfg(not(feature = "raspi"))]
 impl<T, F: FnOnce() -> T> LazyMutex<T, F> {
-    /// [`Mutex::lock`]
+    /// [`Mutex::lock`].
     fn lock(&self) -> MappedMutexGuard<'_, T> {
         let mut write_guard = self.0.lock();
         // Stelle sicher, dass das Element initialisiert ist (write-Berechtigung wird sowieso benötigt).

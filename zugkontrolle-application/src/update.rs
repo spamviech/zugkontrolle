@@ -2,7 +2,7 @@
 
 use std::{
     convert::identity,
-    fmt::{Debug, Display, Write},
+    fmt::{Debug, Display, Write as _},
     hash::Hash,
     thread,
     time::{Duration, Instant},
@@ -161,9 +161,11 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
             &(),
             &mut (),
         ) {
-            Wert { anschluss, .. } => (Some(anschluss), None),
-            WertMitWarnungen { anschluss, fehler, .. } => (Some(anschluss), Some(fehler)),
-            Fehler { fehler, .. } => (None, Some(fehler)),
+            Wert { anschluss, anschlüsse: _ } => (Some(anschluss), None),
+            WertMitWarnungen { anschluss, fehler, anschlüsse: _ } => {
+                (Some(anschluss), Some(fehler))
+            },
+            Fehler { fehler, anschlüsse: _ } => (None, Some(fehler)),
         };
 
         let mut fehlermeldung = fehler.map(|fehler| {
@@ -408,7 +410,7 @@ where
             reason = "anschlüsse, geschwindigkeit related über `reserviere`"
         )]
         let (fehler, anschlüsse) = match reserviert {
-            Wert { anschluss: geschwindigkeit, .. } => {
+            Wert { anschluss: geschwindigkeit, anschlüsse: _ } => {
                 if let Some(serialisiert) = alt_serialisiert {
                     self.aktualisiere_message_box(Some(MessageBox {
                         titel: format!("Geschwindigkeit {} anpassen", name.0),
@@ -437,11 +439,11 @@ where
             let (ursprüngliche_geschwindigkeit, fehler_wiederherstellen) = match serialisiert
                 .reserviere(&mut self.lager.write(), anschlüsse, (), &(), &mut ())
             {
-                Wert { anschluss, .. } => (Some(anschluss), None),
-                WertMitWarnungen { anschluss, fehler: fehler_wiederherstellen, .. } => {
+                Wert { anschluss, anschlüsse: _ } => (Some(anschluss), None),
+                WertMitWarnungen { anschluss, fehler: fehler_wiederherstellen, anschlüsse: _ } => {
                     (Some(anschluss), Some(fehler_wiederherstellen))
                 },
-                Fehler { fehler: fehler_wiederherstellen, .. } => {
+                Fehler { fehler: fehler_wiederherstellen, anschlüsse: _ } => {
                     (None, Some(fehler_wiederherstellen))
                 },
             };

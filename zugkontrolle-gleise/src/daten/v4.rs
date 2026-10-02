@@ -46,15 +46,15 @@ pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
 ))]
 pub(crate) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
-    pub(crate) zugtyp: ZugtypSerialisiert<L>,
+    pub zugtyp: ZugtypSerialisiert<L>,
     /// Die serialisierbaren Geschwindigkeiten.
-    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
+    pub geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
     /// Die serialisierbaren Streckenabschnitte.
-    pub(crate) streckenabschnitte: StreckenabschnittMapSerialisiert,
+    pub streckenabschnitte: StreckenabschnittMapSerialisiert,
     /// Die serialisierbaren Gleise.
-    pub(crate) gleise: GleiseDatenSerialisiert,
+    pub gleise: GleiseDatenSerialisiert,
     /// Die serialisierbaren Pläne.
-    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
+    pub pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
 /// Eine Map aller Gleise eines Typs, ansprechbar über ihrer Id.
@@ -81,16 +81,17 @@ pub struct GleisSerialisiert<T: MitSteuerung> {
 
 /// Serialisierbare Darstellung aller Gleise, wie sie in Version 4 verwendet wird.
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct GleiseDatenSerialisiert {
-    pub(crate) geraden: GleisMapSerialisiert<Gerade>,
-    pub(crate) kurven: GleisMapSerialisiert<Kurve>,
-    pub(crate) weichen: GleisMapSerialisiert<Weiche>,
-    pub(crate) dreiwege_weichen: GleisMapSerialisiert<DreiwegeWeiche>,
-    pub(crate) kurven_weichen: GleisMapSerialisiert<KurvenWeiche>,
-    pub(crate) s_kurven_weichen: GleisMapSerialisiert<SKurvenWeiche>,
-    pub(crate) kreuzungen: GleisMapSerialisiert<Kreuzung>,
+    pub geraden: GleisMapSerialisiert<Gerade>,
+    pub kurven: GleisMapSerialisiert<Kurve>,
+    pub weichen: GleisMapSerialisiert<Weiche>,
+    pub dreiwege_weichen: GleisMapSerialisiert<DreiwegeWeiche>,
+    pub kurven_weichen: GleisMapSerialisiert<KurvenWeiche>,
+    pub s_kurven_weichen: GleisMapSerialisiert<SKurvenWeiche>,
+    pub kreuzungen: GleisMapSerialisiert<Kreuzung>,
 }
 
 impl GleiseDatenSerialisiert {
@@ -114,7 +115,7 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
+/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone, Serialize, Deserialize)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
@@ -127,7 +128,7 @@ pub struct ZugtypSerialisiert<L: Leiter> {
     pub name: String,
     /// Der [Name der Leiter-Art](BekannterLeiter::NAME) des Zugtyps.
     pub leiter: String,
-    /// Spurweite
+    /// [`Spurweite`].
     pub spurweite: Spurweite,
     /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: HashMap<u32, GeradeUnit>,

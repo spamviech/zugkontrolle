@@ -126,24 +126,24 @@ where
         &self,
         state: &Self::State,
         renderer: &Renderer,
-        thema: &T,
+        theme: &T,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
-        vec![state.canvas.zeichnen(renderer, thema, bounds.size(), |frame| {
+        vec![state.canvas.zeichnen(renderer, theme, bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
             let border_path = Pfad::rechteck(bounds_vector, Vec::new());
             frame.fill(
                 &border_path,
                 Fill {
-                    style: fill::Style::Solid(thema.hintergrund(false, state.in_bounds).into()),
+                    style: fill::Style::Solid(theme.hintergrund(false, state.in_bounds).into()),
                     rule: fill::Rule::EvenOdd,
                 },
             );
             frame.stroke(
                 &border_path,
                 Stroke {
-                    style: stroke::Style::Solid(thema.strich().into()),
+                    style: stroke::Style::Solid(theme.strich().into()),
                     width: BORDER_WIDTH.into(),
                     ..Default::default()
                 },
@@ -207,7 +207,7 @@ where
                     frame.stroke(
                         &path,
                         Stroke {
-                            style: stroke::Style::Solid(thema.strich().into()),
+                            style: stroke::Style::Solid(theme.strich().into()),
                             width: STROKE_WIDTH.0,
                             ..Default::default()
                         },
@@ -221,8 +221,8 @@ where
                     bewege_an_position(frame, &relative_position);
                     frame.fill_text(Text {
                         content: String::from(content),
-                        color: thema.strich().into(),
-                        ..thema.standard_text()
+                        color: theme.strich().into(),
+                        ..theme.standard_text()
                     });
                 });
             }

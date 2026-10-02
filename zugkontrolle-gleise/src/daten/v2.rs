@@ -45,6 +45,7 @@ pub(in crate::daten::v2) struct Gleis<T> {
 
 /// Der serialisierbare Zustand, wie er in Version 2 verwendet wurde.
 #[derive(Deserialize)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
 #[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
 #[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct GleiseVecs<LeiterV2> {

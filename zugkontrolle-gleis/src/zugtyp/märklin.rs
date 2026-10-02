@@ -89,7 +89,7 @@ static MÄRKLIN: LazyLock<Zugtyp<Mittelleiter>> = LazyLock::new(|| {
 });
 
 impl Zugtyp<Mittelleiter> {
-    /// Märklin
+    /// [Märklin](MÄRKLIN).
     #[must_use]
     pub fn märklin() -> &'static Zugtyp<Mittelleiter> {
         &MÄRKLIN
@@ -99,9 +99,9 @@ impl Zugtyp<Mittelleiter> {
 // Märklin Kurven-Radien
 /// Radius für Industrie-Gleise.
 const RADIUS_INDUSTRIE: Radius = Radius::neu(286.);
-/// R1 Kurven-Radius..
+/// R1 Kurven-Radius.
 const RADIUS_R1: Radius = Radius::neu(360.);
-/// R2 Kurven-Radius..
+/// R2 Kurven-Radius.
 const RADIUS_R2: Radius = Radius::neu(437.4);
 
 /*

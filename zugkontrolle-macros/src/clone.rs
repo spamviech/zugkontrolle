@@ -22,8 +22,8 @@ fn erzeuge_body(
     generics: &mut PartitionierteGenericParameter<'_>,
 ) -> TokenStream {
     match data {
-        Data::Struct(DataStruct { fields, .. }) => match fields {
-            Fields::Named(FieldsNamed { named, .. }) => {
+        Data::Struct(DataStruct { fields, struct_token: _, semi_token: _ }) => match fields {
+            Fields::Named(FieldsNamed { named, brace_token: _ }) => {
                 mark_fields_generic(named.iter(), &mut generics.types);
                 let fs_iter = named.iter().map(|field| &field.ident);
                 let fs_vec: Vec<&Option<Ident>> = fs_iter.clone().collect();
@@ -34,7 +34,7 @@ fn erzeuge_body(
                     }
                 }
             },
-            Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => {
+            Fields::Unnamed(FieldsUnnamed { unnamed, paren_token: _ }) => {
                 mark_fields_generic(unnamed.iter(), &mut generics.types);
                 let fs_iter = unnamed.iter().map(|field| &field.ident);
                 let fs_str: Vec<Ident> =
@@ -46,34 +46,36 @@ fn erzeuge_body(
             },
             Fields::Unit => quote! {#ident},
         },
-        Data::Enum(DataEnum { variants, .. }) => {
+        Data::Enum(DataEnum { variants, enum_token: _, brace_token: _ }) => {
             let token_streams: Vec<TokenStream> = variants
                 .iter()
-                .map(|Variant { ident: variant_ident, fields, .. }| match fields {
-                    Fields::Named(FieldsNamed { named, .. }) => {
-                        mark_fields_generic(named.iter(), &mut generics.types);
-                        let fs_iter = named.iter().map(|field| &field.ident);
-                        let fs_vec: Vec<&Option<Ident>> = fs_iter.clone().collect();
-                        quote! {
-                            #ident::#variant_ident {#(#fs_iter),*} => {
-                                #ident::#variant_ident {
-                                    #(#fs_vec: #fs_vec.clone()),*
+                .map(|Variant { ident: variant_ident, fields, attrs: _, discriminant: _ }| {
+                    match fields {
+                        Fields::Named(FieldsNamed { named, brace_token: _ }) => {
+                            mark_fields_generic(named.iter(), &mut generics.types);
+                            let fs_iter = named.iter().map(|field| &field.ident);
+                            let fs_vec: Vec<&Option<Ident>> = fs_iter.clone().collect();
+                            quote! {
+                                #ident::#variant_ident {#(#fs_iter),*} => {
+                                    #ident::#variant_ident {
+                                        #(#fs_vec: #fs_vec.clone()),*
+                                    }
                                 }
                             }
-                        }
-                    },
-                    Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => {
-                        mark_fields_generic(unnamed.iter(), &mut generics.types);
-                        let fs_iter = unnamed.iter().map(|field| &field.ident);
-                        let fs_str: Vec<Ident> =
-                            fs_iter.enumerate().map(|(i, _)| format_ident!("i{}", i)).collect();
-                        quote! {
-                            #ident::#variant_ident (#(#fs_str),*) => {
-                                #ident::#variant_ident (#(#fs_str.clone()),*)
+                        },
+                        Fields::Unnamed(FieldsUnnamed { unnamed, paren_token: _ }) => {
+                            mark_fields_generic(unnamed.iter(), &mut generics.types);
+                            let fs_iter = unnamed.iter().map(|field| &field.ident);
+                            let fs_str: Vec<Ident> =
+                                fs_iter.enumerate().map(|(i, _)| format_ident!("i{}", i)).collect();
+                            quote! {
+                                #ident::#variant_ident (#(#fs_str),*) => {
+                                    #ident::#variant_ident (#(#fs_str.clone()),*)
+                                }
                             }
-                        }
-                    },
-                    Fields::Unit => quote! {#ident::#variant_ident => #ident::#variant_ident},
+                        },
+                        Fields::Unit => quote! {#ident::#variant_ident => #ident::#variant_ident},
+                    }
                 })
                 .collect();
             quote! {
@@ -91,9 +93,9 @@ fn erzeuge_body(
     }
 }
 
-/// [`crate::clone`]
+/// [`crate::clone`].
 pub(crate) fn impl_clone(ast: &DeriveInput) -> TokenStream {
-    let DeriveInput { ident, data, generics, attrs, .. } = ast;
+    let DeriveInput { ident, data, generics, attrs, vis: _ } = ast;
 
     let where_predicates = parse_attributes!(attrs, "zugkontrolle_clone");
     let mut where_clause = generics.where_clause.clone().unwrap_or(WhereClause {

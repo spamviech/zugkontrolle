@@ -77,7 +77,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             streckenabschnitt,
             einrasten,
         )?;
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+        if let ModusDaten::Bauen { gehalten, letzter_klick: _ } = &mut self.modus {
             let gleis_steuerung = match (&gleis_id, definition_steuerung) {
                 (AnyId::Gerade(id), AnyDefinitionIdSteuerung::Gerade(_definition, steuerung)) => {
                     AnyIdSteuerung::Gerade(id.clone(), steuerung)
@@ -141,7 +141,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         klick_quelle: &KlickQuelle,
         canvas_pos: Vektor,
     ) -> Result<(), BewegenFehler> {
-        if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus
+        if let ModusDaten::Bauen { gehalten, letzter_klick: _ } = &mut self.modus
             && let Some(Gehalten { gleis_steuerung, halte_position, winkel, bewegt }) =
                 gehalten.get_mut(klick_quelle)
         {

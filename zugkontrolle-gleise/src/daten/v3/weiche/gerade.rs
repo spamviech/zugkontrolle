@@ -83,9 +83,9 @@ impl From<Richtung> for v4::Richtung {
 /// Eine Struktur mit von [`Richtung`]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    /// [`Richtung::Gerade`]
+    /// [`Richtung::Gerade`].
     pub gerade: OutputSerialisiert,
-    /// [`Richtung::Kurve`]
+    /// [`Richtung::Kurve`].
     pub kurve: OutputSerialisiert,
 }
 

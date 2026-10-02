@@ -1,16 +1,17 @@
-//! Derive of `zugkontrolle::lookup::Lookup` from an enum by creating an associated Elements struct
+//! Derive of `zugkontrolle::lookup::Lookup` from an enum by creating an associated Elements struct.
 
-use heck::ToSnakeCase;
+use heck::ToSnakeCase as _;
 use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{ItemEnum, Path, punctuated::Punctuated, token::Comma};
 
-/// [`crate::nachschlagen`]
+/// [`crate::nachschlagen`].
 pub(crate) fn impl_nachschlagen(args: &Punctuated<Path, Comma>, item: &ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
-    let ItemEnum { vis, variants, ident, .. } = &item;
+    let ItemEnum { vis, variants, ident, attrs: _, enum_token: _, generics: _, brace_token: _ } =
+        &item;
     let dummy: Punctuated<Path, Comma> = Punctuated::new();
     let (element, struct_name, derives) = if args.len() < 2 {
         errors.push(if args.is_empty() {

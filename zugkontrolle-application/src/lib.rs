@@ -74,7 +74,7 @@ pub struct Zugkontrolle<L: Leiter, S> {
     gleise: Gleise<L, Nachricht<L, S>>,
     /// Noch verfügbare Anschlüsse.
     lager: Arc<RwLock<Lager>>,
-    /// Der Stil für verwendete [`Scrollable-Widgets`](iced::widget::Scrollable)
+    /// Der Stil für verwendete [`Scrollable-Widgets`](iced::widget::Scrollable).
     scrollable_style: style::sammlung::Sammlung,
     /// Aktivierte [`I2C-Busse`](crate::anschluss::pcf8574::I2cBus).
     i2c_settings: I2cSettings,
@@ -180,7 +180,19 @@ where
         lager: Arc<RwLock<Lager>>,
         zugtyp: Zugtyp<L>,
     ) -> (Self, Task<Nachricht<L, S>>) {
-        let Argumente { pfad, modus, thema, zoom, x, y, winkel, i2c_settings, .. } = argumente;
+        let Argumente {
+            pfad,
+            modus,
+            thema,
+            zoom,
+            x,
+            y,
+            winkel,
+            i2c_settings,
+            zugtyp: _,
+            verbose: _,
+            log_datei: _,
+        } = argumente;
 
         let lade_zustand: Task<Nachricht<L, S>>;
         let initialer_pfad: String;

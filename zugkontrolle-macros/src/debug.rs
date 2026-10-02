@@ -22,8 +22,8 @@ fn erzeuge_body(
 ) -> TokenStream {
     let ident_str = &ident.to_string();
     match data {
-        Data::Struct(DataStruct { fields, .. }) => match fields {
-            Fields::Named(FieldsNamed { named, .. }) => {
+        Data::Struct(DataStruct { fields, struct_token: _, semi_token: _ }) => match fields {
+            Fields::Named(FieldsNamed { named, brace_token: _ }) => {
                 mark_fields_generic(named.iter(), &mut generics.types);
                 let fs_iter = named.iter().map(|field| &field.ident);
                 let fs_str = fs_iter.clone().map(|mid| match mid {
@@ -36,7 +36,7 @@ fn erzeuge_body(
                         .finish()
                 }
             },
-            Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => {
+            Fields::Unnamed(FieldsUnnamed { unnamed, paren_token: _ }) => {
                 mark_fields_generic(unnamed.iter(), &mut generics.types);
                 let range = (0..unnamed.len()).map(Index::from);
                 quote! {
@@ -49,13 +49,13 @@ fn erzeuge_body(
                 write!(f, "{}", #ident_str)?;
             },
         },
-        Data::Enum(DataEnum { variants, .. }) => {
+        Data::Enum(DataEnum { variants, enum_token: _, brace_token: _ }) => {
             let token_streams: Vec<TokenStream> = variants
                 .iter()
-                .map(|Variant { ident: variant_ident, fields, .. }| {
+                .map(|Variant { ident: variant_ident, fields, attrs: _, discriminant: _ }| {
                     let variant_ident_str = variant_ident.to_string();
                     match fields {
-                        Fields::Named(FieldsNamed { named, .. }) => {
+                        Fields::Named(FieldsNamed { named, brace_token: _ }) => {
                             mark_fields_generic(named.iter(), &mut generics.types);
                             let fs_iter = named.iter().map(|field| &field.ident);
                             let fs_vec: Vec<&Option<Ident>> = fs_iter.collect();
@@ -71,7 +71,7 @@ fn erzeuge_body(
                                 }
                             }
                         },
-                        Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => {
+                        Fields::Unnamed(FieldsUnnamed { unnamed, paren_token: _ }) => {
                             mark_fields_generic(unnamed.iter(), &mut generics.types);
                             let fs_iter = unnamed.iter().map(|field| &field.ident);
                             let fs_str: Vec<Ident> =
@@ -106,9 +106,9 @@ fn erzeuge_body(
     }
 }
 
-/// [`crate::debug`]
+/// [`crate::debug`].
 pub(crate) fn impl_debug(ast: &DeriveInput) -> TokenStream {
-    let DeriveInput { ident, data, generics, attrs, .. } = ast;
+    let DeriveInput { ident, data, generics, attrs, vis: _ } = ast;
 
     let where_predicates = parse_attributes!(attrs, "zugkontrolle_debug");
     let mut where_clause = generics.where_clause.clone().unwrap_or(WhereClause {

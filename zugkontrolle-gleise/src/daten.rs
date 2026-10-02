@@ -17,7 +17,7 @@ use iced::{
 use log::error;
 use nonempty::{NonEmpty, nonempty};
 use rstar::{
-    RTree, RTreeObject,
+    RTree, RTreeObject as _,
     primitives::{GeomWithData, Rectangle},
 };
 
@@ -55,7 +55,7 @@ use zugkontrolle_typen::{
     },
     farbe::Farbe,
     mm::Spurweite,
-    nachschlagen::Nachschlagen,
+    nachschlagen::Nachschlagen as _,
     rechteck::Rechteck,
     skalar::Skalar,
     vektor::Vektor,
@@ -133,9 +133,9 @@ where
         self,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
-        move_arg_steuerung: Self::MoveArg,
-        bekannte_definition_ids: &Self::RefArg,
-        mut_ref_arg_steuerung: &mut Self::MutRefArg,
+        move_arg: Self::MoveArg,
+        ref_arg: &Self::RefArg,
+        mut_ref_arg: &mut Self::MutRefArg,
     ) -> Ergebnis<Gleis<T>> {
         let GleisSerialisiert {
             definition,
@@ -143,7 +143,7 @@ where
             steuerung: steuerung_serialisiert,
             streckenabschnitt,
         } = self;
-        let Some(id) = bekannte_definition_ids.get(&definition) else {
+        let Some(id) = ref_arg.get(&definition) else {
             return Ergebnis::Fehler {
                 fehler: nonempty![Fehler::UnbekannteGespeicherteDefinition {
                     id: definition,
@@ -154,7 +154,7 @@ where
             };
         };
         steuerung_serialisiert
-            .reserviere(lager, anschlüsse, move_arg_steuerung, &(), mut_ref_arg_steuerung)
+            .reserviere(lager, anschlüsse, move_arg, &(), mut_ref_arg)
             .konvertiere(|steuerung| Gleis {
                 definition: id.clone(),
                 position,
@@ -453,14 +453,14 @@ impl<L: Leiter> Zustand<L> {
 /// Hilfs-Struktur für [`Zustand::gleis_an_position`]:
 /// Informationen über das Gleis an der gesuchten Position.
 pub(crate) struct GleisAnPosition<'t> {
-    /// Id, Steuerung
-    pub(crate) id_steuerung: AnyIdSteuerung,
-    /// Relative Klick-Position
-    pub(crate) position: Vektor,
-    /// Winkel
-    pub(crate) winkel: Winkel,
-    /// Streckenabschnitt
-    pub(crate) streckenabschnitt: Option<&'t Streckenabschnitt>,
+    /// Id, Steuerung.
+    pub id_steuerung: AnyIdSteuerung,
+    /// Relative Klick-Position.
+    pub position: Vektor,
+    /// Winkel.
+    pub winkel: Winkel,
+    /// Streckenabschnitt.
+    pub streckenabschnitt: Option<&'t Streckenabschnitt>,
 }
 
 /// Alle Gleise, sowie das Rechteck zum speichern im [`RStern`] mit ihrer Id.
@@ -493,7 +493,7 @@ pub(crate) struct GleiseDaten {
     /// Alle Gleise/GleisIds, optimiert für die örtliche Suche,
     /// z.B. alle Einträge innerhalb eines Rechtecks.
     ///
-    /// Invariante: Jeder Eintrag hat einen zur Position passenden Eintrag in der RStern-Struktur
+    /// Invariante: Jeder Eintrag hat einen zur Position passenden Eintrag in der RStern-Struktur.
     rstern: RStern,
 }
 
@@ -950,7 +950,7 @@ impl GleiseDaten {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! steuerung_aktualisieren_aux {
             ($gleise: expr, $gleis_id: expr, $anschlüsse_serialisiert: expr) => {{
-                let (Gleis { steuerung, .. }, _rectangle) =
+                let (Gleis { steuerung, definition: _, position: _, streckenabschnitt: _ }, _rectangle) =
                     $gleise.get_mut(&$gleis_id).ok_or(
                         SteuerungAktualisierenFehler::GleisNichtGefunden(AnyId::from($gleis_id)),
                     )?;
@@ -972,7 +972,7 @@ impl GleiseDaten {
                         &(),
                         &mut ()
                     ) {
-                        Ergebnis::Wert { anschluss, .. } => {
+                        Ergebnis::Wert { anschluss, anschlüsse: _ } => {
                             let _ = steuerung.insert(anschluss);
                             return Ok(());
                         },
@@ -986,14 +986,14 @@ impl GleiseDaten {
                 if let Some(steuerung_serialisiert) = steuerung_serialisiert {
                     let serialisiert_string = format!("{steuerung_serialisiert:?}");
                     match steuerung_serialisiert.reserviere(lager, anschlüsse, sender, &(), &mut ()) {
-                        Ergebnis::Wert { anschluss, .. } => {
+                        Ergebnis::Wert { anschluss, anschlüsse: _ } => {
                             let _ = steuerung.insert(anschluss);
                         },
-                        Ergebnis::WertMitWarnungen { anschluss, fehler, .. } => {
+                        Ergebnis::WertMitWarnungen { anschluss, fehler, anschlüsse: _ } => {
                             let _ = steuerung.insert(anschluss);
                             wiederherstellen_fehler = Some((fehler, serialisiert_string));
                         },
-                        Ergebnis::Fehler { fehler, .. } => {
+                        Ergebnis::Fehler { fehler, anschlüsse: _ } => {
                             wiederherstellen_fehler = Some((fehler, serialisiert_string))
                         },
                     }
@@ -1016,8 +1016,10 @@ impl GleiseDaten {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! hat_steuerung_aux {
             ($gleise: expr, $gleis_id: expr) => {{
-                let (Gleis { steuerung, .. }, _rectangle) =
-                    $gleise.get(&$gleis_id).ok_or(GleisNichtGefunden(AnyId::from($gleis_id)))?;
+                let (
+                    Gleis { steuerung, definition: _, position: _, streckenabschnitt: _ },
+                    _rectangle,
+                ) = $gleise.get(&$gleis_id).ok_or(GleisNichtGefunden(AnyId::from($gleis_id)))?;
                 Ok(steuerung.is_some())
             }};
         }

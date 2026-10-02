@@ -21,7 +21,7 @@ use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_util::{
     eingeschränkt::{kleiner_8, kleiner_128},
-    enumerate_checked::EnumerateCheckedExt,
+    enumerate_checked::EnumerateCheckedExt as _,
 };
 
 use crate::{
@@ -276,7 +276,7 @@ impl I2cBus {
 /// Ein Fehler beim reservieren eines [`Pcf8574-Port`](pcf8574::Port)s.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum ReservierenFehler {
-    /// Der [`I2cBus`] ist nicht aktiviert
+    /// Der [`I2cBus`] ist nicht aktiviert.
     #[error("I2cBus des Pcf8574-Ports {beschreibung}-{port} ist deaktiviert!")]
     I2cBusDeaktiviert {
         /// [Beschreibung] des [`Pcf8574`]s.
@@ -337,7 +337,7 @@ impl PartialEq for Modus {
     fn eq(&self, other: &Modus) -> bool {
         matches!(
             (self, other),
-            (Modus::Input { .. }, Modus::Input { .. })
+            (Modus::Input { trigger: _, callback: _ }, Modus::Input { trigger: _, callback: _ })
                 | (Modus::High, Modus::High)
                 | (Modus::Low, Modus::Low)
         )
@@ -456,9 +456,14 @@ impl Pcf8574 {
         }
     }
 
-    /// 7-bit i2c-Adresse ohne R/W-Bit
+    /// 7-bit i2c-Adresse ohne R/W-Bit.
     fn i2c_adresse(&self) -> kleiner_128 {
-        let Pcf8574 { beschreibung: Beschreibung { i2c_bus: _, a0, a1, a2, variante }, .. } = self;
+        let Pcf8574 {
+            beschreibung: Beschreibung { i2c_bus: _, a0, a1, a2, variante },
+            ports: _,
+            interrupt: _,
+            i2c: _,
+        } = self;
         let mut adresse = match variante {
             Variante::Normal => 0x20,
             Variante::A => 0x38,
@@ -508,7 +513,7 @@ impl Pcf8574 {
             let port_bit = 2u8.pow(port_u32);
             #[expect(clippy::indexing_slicing, reason = "0-7 < 8 == result.len()")]
             {
-                result[port] = if let Modus::Input { .. } = modus {
+                result[port] = if let Modus::Input { trigger: _, callback: _ } = modus {
                     Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
                 } else {
                     None
@@ -552,7 +557,7 @@ impl Pcf8574 {
         let mut wert = 0;
         for (it_port, modus) in self.ports.iter().enumerate_checked() {
             wert |= match modus {
-                Modus::Input { .. } | Modus::High => {
+                Modus::Input { trigger: _, callback: _ } | Modus::High => {
                     let it_port = it_port.expect("port passt nicht in u32!");
                     2u8.pow(it_port)
                 },
@@ -618,7 +623,7 @@ impl Eq for Port {}
 
 impl Display for Port {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        let Port { beschreibung, port, .. } = self;
+        let Port { beschreibung, port, pcf8574: _, lager: _ } = self;
         write!(formatter, "{beschreibung}-{port}")
     }
 }
@@ -741,7 +746,7 @@ impl OutputPort {
             match modus {
                 Modus::High => Level::Low,
                 Modus::Low => Level::High,
-                Modus::Input { .. } => {
+                Modus::Input { trigger: _, callback: _ } => {
                     error!("Output pin configured as input: {self:?}");
                     Level::Low
                 },

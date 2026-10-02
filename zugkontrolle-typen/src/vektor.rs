@@ -65,7 +65,8 @@ impl Vektor {
 
     /// Einheitsvektor mit identischer Richtung.
     ///
-    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [`Länge`](Vektor::länge) `0` angewendet wird.
+    /// Erzeugt einen [NaN](f32::NAN)-Wert,
+    /// wenn die Methode auf einen Vektor mit [`Länge`](Vektor::länge) `0` angewendet wird.
     #[must_use]
     pub fn einheitsvektor(mut self) -> Self {
         self.normalisiere();
@@ -75,7 +76,7 @@ impl Vektor {
     /// Skalarprodukt zweier Vektoren.
     ///
     /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() * self.winkel(other).cos()`.
-    /// Insbesondere gilt `self.länge() == self.skalarprodukt(self).sqrt()`
+    /// Insbesondere gilt `self.länge() == self.skalarprodukt(self).sqrt()`.
     #[must_use]
     pub fn skalarprodukt(&self, other: &Self) -> Skalar {
         #[expect(

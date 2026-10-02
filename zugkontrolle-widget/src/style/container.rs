@@ -87,7 +87,7 @@ where
     Thema: container::Catalog<Class<'a> = StyleFn<'a, Thema>>,
 {
     /// Gebe die styling function mit den aktuell Einstellungen zurück.
-    #[must_use]
+    #[must_use = "Intended to be passed to a .style()-method."]
     fn style_fn(self) -> StyleFn<'static, Thema>;
 }
 

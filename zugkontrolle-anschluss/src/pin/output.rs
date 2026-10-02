@@ -4,9 +4,15 @@ use crate::{level::Level, rpi_pal::gpio};
 
 /// Ein Gpio Pin konfiguriert für Output.
 #[derive(Debug, PartialEq)]
-pub struct Pin(pub(super) gpio::OutputPin);
+pub struct Pin(gpio::OutputPin);
 
 impl Pin {
+    /// Erzeuge einen neuen [`output::Pin`](Pin).
+    #[must_use]
+    pub(in crate::pin) fn neu(pin: gpio::OutputPin) -> Pin {
+        Pin(pin)
+    }
+
     /// Erhalte die GPIO [`Pin`] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.

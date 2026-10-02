@@ -11,7 +11,7 @@ use iced::{
     },
 };
 use iced_widget::{PickList, rule, scrollable::Scrollbar};
-use itertools::Itertools;
+use itertools::Itertools as _;
 use log::debug;
 
 use zugkontrolle_anschluss::de_serialisieren::Serialisiere;

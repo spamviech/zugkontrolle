@@ -26,7 +26,7 @@ pub mod märklin;
 /// Die Definitionen für den Typ `T`.
 pub type DefinitionMap<T> = HashMap<DefinitionId<T>, <T as MitSteuerung>::SelfUnit>;
 
-/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
+/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
@@ -35,7 +35,7 @@ pub struct Zugtyp<L: Leiter> {
     pub name: String,
     /// Die Leiter-Art des Zugtyps.
     pub leiter: PhantomData<fn() -> L>,
-    /// Spurweite
+    /// [`Spurweite`].
     pub spurweite: Spurweite,
     /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: DefinitionMap<Gerade>,

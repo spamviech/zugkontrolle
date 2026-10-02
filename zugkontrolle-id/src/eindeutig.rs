@@ -42,7 +42,7 @@ fn type_set<'t, T: 'static>() -> MappedMutexGuard<'t, BTreeSet<Repräsentation>>
 pub struct Id<T: 'static> {
     /// Der Zahlenwert für die Unterscheidung unterschiedlicher [`Ids`](Id).
     id: Repräsentation,
-    /// [`PhantomData`]
+    /// [`PhantomData`].
     phantom: PhantomData<fn() -> T>,
 }
 
@@ -151,7 +151,7 @@ impl<T> Id<T> {
 mod test {
     use super::*;
 
-    use std::collections::HashSet;
+    use std::{collections::HashSet, iter::repeat_with};
 
     use zugkontrolle_test_util::{Expectation, expect_eq, expect_true, init_test_logging};
 
@@ -180,9 +180,11 @@ mod test {
     fn repräsentation_eindeutig() -> Result<(), Expectation> {
         init_test_logging();
 
-        let ids: Vec<_> = (0..32)
-            .map(|_i| Id::<()>::neu().expect("Test verwendet weniger als Repräsentation::MAX Ids."))
-            .collect();
+        let ids: Vec<_> = repeat_with(|| {
+            Id::<()>::neu().expect("Test verwendet weniger als Repräsentation::MAX Ids.")
+        })
+        .take(32)
+        .collect();
         let repräsentationen: Vec<_> = ids.iter().map(Id::repräsentation).collect();
         let num = repräsentationen.len();
         let set: BTreeSet<_> = repräsentationen.into_iter().collect();
@@ -200,9 +202,10 @@ mod test {
 
         init_test_logging();
 
-        let ids: Vec<_> = (0..32)
-            .map(|_i| Id::<Dummy>::neu().expect("Test verwendet weniger als usize::MAX Ids!"))
-            .collect();
+        let ids: Vec<_> =
+            repeat_with(|| Id::<Dummy>::neu().expect("Test verwendet weniger als usize::MAX Ids!"))
+                .take(32)
+                .collect();
         drop(ids);
 
         // nach drop der Ids können wieder neue mit ihrem Wert erzeugt werden

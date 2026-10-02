@@ -49,6 +49,10 @@ pub fn ausführen(argumente: Argumente) -> Result<(), Fehler> {
         logger.start()
     }
 
+    #[expect(
+        clippy::rest_pattern_accessible_field,
+        reason = "Nur notwendige Argumente. Der Rest wird in Zugkontrolle::application verwendet."
+    )]
     let Argumente { i2c_settings, zugtyp, verbose, log_datei, .. } = argumente;
     let lager = Arc::new(RwLock::new(Lager::neu(i2c_settings)?));
 

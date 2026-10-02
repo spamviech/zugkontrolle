@@ -290,14 +290,15 @@ where
     fn reserviere(
         self,
         lager: &mut Lager,
-        bekannte_anschlüsse: Anschlüsse,
-        sender: SomeAktualisierenSender,
+        anschlüsse: Anschlüsse,
+        move_arg: SomeAktualisierenSender,
         ref_arg: &Self::RefArg,
         mut_ref_arg: &mut Self::MutRefArg,
     ) -> de_serialisieren::Ergebnis<Weiche<Richtung, R>> {
-        let WeicheSerialisiert { name, richtung, anschlüsse } = self;
-        anschlüsse
-            .reserviere(lager, bekannte_anschlüsse, (), ref_arg, mut_ref_arg)
+        let WeicheSerialisiert { name, richtung, anschlüsse: serialisiert } = self;
+        let sender = move_arg;
+        serialisiert
+            .reserviere(lager, anschlüsse, (), ref_arg, mut_ref_arg)
             .konvertiere(|anschlüsse| Weiche::neu(name, richtung, anschlüsse, sender))
     }
 }

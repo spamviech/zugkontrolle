@@ -47,7 +47,7 @@ impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> 
         hat_steuerung: bool,
     ) -> Self {
         let (name, anschlüsse) =
-            if let Some(WeicheSerialisiert { name, anschlüsse, .. }) = option_weiche {
+            if let Some(WeicheSerialisiert { name, anschlüsse, richtung: _ }) = option_weiche {
                 (name.0.clone(), anschlüsse.clone())
             } else {
                 (String::new(), AnschlüsseSerialisiert::default())
@@ -61,7 +61,7 @@ impl<AnschlüsseSerialisiert: Default + Clone> Zustand<AnschlüsseSerialisiert> 
 enum InterneNachricht<Richtung> {
     /// Neuer aktuell gewählter Name.
     Name(String),
-    /// Neuer aktuell gewählter Anschluss,
+    /// Neuer aktuell gewählter Anschluss.
     Anschluss(Richtung, OutputSerialisiert),
     /// Steuerung einer Weiche anpassen.
     Festlegen,

@@ -1,6 +1,6 @@
 //! Erzeuge Richtung enum und RichtungAnschlüsse(Serialisiert) Strukturen mit Lookup-Implementierung.
 
-use heck::ToSnakeCase;
+use heck::ToSnakeCase as _;
 use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -90,11 +90,12 @@ fn erzeuge_enum_definition(
     }
 }
 
-/// [`crate::erstelle_richtung`]
+/// [`crate::erstelle_richtung`].
 pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStream {
     let mut errors = Vec::new();
 
-    let ItemEnum { vis, variants, .. } = &item;
+    let ItemEnum { vis, variants, attrs: _, enum_token: _, ident: _, generics: _, brace_token: _ } =
+        &item;
     if !args.is_empty() {
         errors.push(format!("No args supported, but {args:?} was given!"));
     }
@@ -108,7 +109,11 @@ pub(crate) fn erstelle_richtung(args: &TokenStream, item: &ItemEnum) -> TokenStr
 
         let enum_variants: Vec<_> = variants
             .iter()
-            .filter_map(|Variant { ident, .. }| if ident == "Anfang" { None } else { Some(ident) })
+            .filter_map(
+                |Variant { ident, attrs: _, fields: _, discriminant: _ }| {
+                    if ident == "Anfang" { None } else { Some(ident) }
+                },
+            )
             .collect();
         if let Some(default_variant) = enum_variants.first() {
             let struct_fields: Vec<Ident> = enum_variants

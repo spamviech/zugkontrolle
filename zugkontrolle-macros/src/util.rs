@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use syn::{
     Attribute, Error, Field, GenericParam, Generics, Ident, LifetimeParam, Meta, MetaList, Path,
-    PathSegment, Token, Type, TypeParamBound, TypePath, WherePredicate, parse::Parser,
+    PathSegment, Token, Type, TypeParamBound, TypePath, WherePredicate, parse::Parser as _,
     punctuated::Punctuated, token::Plus,
 };
 
@@ -14,8 +14,12 @@ pub(crate) fn mark_fields_generic<'t, T>(
     generic_types: &mut HashMap<&Ident, (T, bool)>,
 ) {
     for field in fields {
-        if let Type::Path(TypePath { path: Path { segments, .. }, .. }) = &field.ty
-            && let Some(PathSegment { ident, .. }) = segments.first()
+        if let Type::Path(TypePath {
+            path: Path { segments, leading_colon: _ },
+            attrs: _,
+            qself: _,
+        }) = &field.ty
+            && let Some(PathSegment { ident, arguments: _ }) = segments.first()
             && let Some((_, gefunden)) = generic_types.get_mut(ident)
         {
             *gefunden = true;
@@ -25,12 +29,13 @@ pub(crate) fn mark_fields_generic<'t, T>(
 
 /// Relevante Informationen aus [`Generics`], partitioniert nach ihrer Art.
 pub(crate) struct PartitionierteGenericParameter<'t> {
-    /// Lifetime-Parameter
-    pub(crate) lifetimes: Vec<&'t LifetimeParam>,
-    /// Typ-Parameter mit Trait-Bounds. Der [bool]-eintrag wird u.a. in [`mark_fields_generic`] verwendet.
-    pub(crate) types: HashMap<&'t Ident, (&'t Punctuated<TypeParamBound, Plus>, bool)>,
-    /// Typ-Parameter ohne Trait-Bounds
-    pub(crate) type_names: Vec<&'t Ident>,
+    /// Lifetime-Parameter.
+    pub lifetimes: Vec<&'t LifetimeParam>,
+    /// Typ-Parameter mit Trait-Bounds.
+    /// Der [bool]-eintrag wird u.a. in [`mark_fields_generic`] verwendet.
+    pub types: HashMap<&'t Ident, (&'t Punctuated<TypeParamBound, Plus>, bool)>,
+    /// Typ-Parameter ohne Trait-Bounds.
+    pub type_names: Vec<&'t Ident>,
 }
 
 /// Extrahiere relevante Informationen aus den [`Generics`] und partitioniere sie nach ihrer Art.
@@ -66,8 +71,15 @@ pub(crate) fn parse_attributes_fn(
         .iter()
         .filter_map(|attr| match attr {
             Attribute {
-                meta: Meta::List(MetaList { path: Path { segments, .. }, tokens, .. }),
-                ..
+                meta:
+                    Meta::List(MetaList {
+                        path: Path { segments, leading_colon: _ },
+                        tokens,
+                        delimiter: _,
+                    }),
+                pound_token: _,
+                style: _,
+                bracket_token: _,
             } if segments.len() == 1 && segments[0].ident == name => {
                 let parser = Punctuated::parse_terminated;
                 Some(parser.parse2(tokens.clone()))

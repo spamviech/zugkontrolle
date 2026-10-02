@@ -55,12 +55,12 @@ impl knopf::Catalog for Thema {
         self.base().text_color.into()
     }
 
-    fn hintergrund(&self, aktiv: bool, in_bounds: bool) -> Farbe {
+    fn hintergrund(&self, aktiv: bool, hovered: bool) -> Farbe {
         let grey_value = match self {
             Thema::Hell | Thema::Dunkel if aktiv => 0.5,
-            Thema::Hell if in_bounds => 0.7,
+            Thema::Hell if hovered => 0.7,
             Thema::Hell => 0.8,
-            Thema::Dunkel if in_bounds => 0.4,
+            Thema::Dunkel if hovered => 0.4,
             Thema::Dunkel => 0.3,
         };
         Farbe { rot: grey_value, grün: grey_value, blau: grey_value }
@@ -166,8 +166,8 @@ impl text::Catalog for Thema {
         Box::new(|thema| <Theme as text::Catalog>::default()(&Theme::from(*thema)))
     }
 
-    fn style(&self, class: &Self::Class<'_>) -> text::Style {
-        class(self)
+    fn style(&self, item: &Self::Class<'_>) -> text::Style {
+        item(self)
     }
 }
 

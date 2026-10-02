@@ -24,7 +24,7 @@ use iced_widget::{
 };
 
 use zugkontrolle_anschluss::{
-    OutputSerialisiert, de_serialisieren::Serialisiere, polarität::Polarität,
+    OutputSerialisiert, de_serialisieren::Serialisiere as _, polarität::Polarität,
 };
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::{

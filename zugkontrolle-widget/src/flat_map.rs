@@ -275,9 +275,9 @@ where
         theme: &Thema,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: mouse::Cursor,
+        cursor: mouse::Cursor,
     ) {
-        self.content.as_overlay().draw(renderer, theme, style, layout, cursor_position);
+        self.content.as_overlay().draw(renderer, theme, style, layout, cursor);
     }
 
     fn overlay<'b>(

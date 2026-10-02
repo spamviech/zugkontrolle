@@ -252,11 +252,11 @@ definiere_f64_typ! {
 impl Mul for NullBisEins {
     type Output = Self;
 
-    fn mul(self, other: Self) -> Self::Output {
+    fn mul(self, rhs: Self) -> Self::Output {
         // Beide Werte sind im Bereich 0 <= x <= 1.
         // Das Ergebnis ist definitiv im selben Bereich:
         // wird nur kleiner, minimal 0, oder bleibt gleich.
-        NullBisEins(self.0 * other.0)
+        NullBisEins(self.0 * rhs.0)
     }
 }
 

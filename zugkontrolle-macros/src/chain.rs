@@ -4,9 +4,9 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReceiverKind, ReturnType, Signature};
 
-#[expect(clippy::single_call_fn, reason = "Implementierung von make_chain")]
-/// [`crate::make_chain`]
-pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
+#[expect(clippy::single_call_fn, reason = "Implementierung von chain")]
+/// [`crate::chain`].
+pub(crate) fn chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !args.is_empty() {
@@ -27,9 +27,11 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
                 output,
                 abi,
                 variadic,
-                ..
+                fn_token: _,
+                paren_token: _,
             },
-        ..
+        modifiers: _,
+        block: _,
     } = &ast;
     let docstrings: Vec<_> = attrs.iter().filter(|attr| attr.path().is_ident("doc")).collect();
     if let ReturnType::Type(_arrow, ty) = output {
@@ -45,7 +47,9 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let first = inputs_iter.next();
     if let Some(FnArg::Receiver(Receiver {
         kind: ReceiverKind::Reference(_and, _lifetime, Some(_mut)),
-        ..
+        attrs: _,
+        mutability: _,
+        self_token: _,
     })) = &first
     {
         // &mut self
@@ -56,7 +60,7 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let other_input_names: Vec<_> = inputs_iter
         .clone()
         .filter_map(|fn_arg| {
-            if let FnArg::Typed(PatType { pat, .. }) = fn_arg {
+            if let FnArg::Typed(PatType { pat, attrs: _, colon_token: _, ty: _ }) = fn_arg {
                 if let Pat::Ident(id) = pat.as_ref() {
                     Some(id)
                 } else {

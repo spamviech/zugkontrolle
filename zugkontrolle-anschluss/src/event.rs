@@ -15,6 +15,12 @@ pub struct Event {
     pub trigger: Trigger,
 }
 
+impl Default for Event {
+    fn default() -> Self {
+        Self { timestamp: Duration::default(), seqno: 0, trigger: Trigger::Both }
+    }
+}
+
 impl From<gpio::Event> for Event {
     fn from(value: gpio::Event) -> Self {
         Event { timestamp: value.timestamp, seqno: value.seqno, trigger: value.trigger.into() }
@@ -28,11 +34,5 @@ impl From<Event> for gpio::Event {
             seqno: value.seqno,
             trigger: value.trigger.into(),
         }
-    }
-}
-
-impl Default for Event {
-    fn default() -> Self {
-        Self { timestamp: Duration::default(), seqno: 0, trigger: Trigger::Both }
     }
 }

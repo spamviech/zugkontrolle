@@ -29,7 +29,7 @@ use zugkontrolle_gleis::{
     weiche,
 };
 use zugkontrolle_typen::{
-    MitName, canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel,
+    MitName as _, canvas::Position, skalar::Skalar, vektor::Vektor, winkel::Winkel,
 };
 use zugkontrolle_util::event_status::EventStatus;
 
@@ -135,7 +135,9 @@ where
                     );
                     Links
                 },
-                RichtungInformation { aktuelle_richtung: Links | Rechts, .. } => Gerade,
+                RichtungInformation { aktuelle_richtung: Links | Rechts, letzte_richtung: _ } => {
+                    Gerade
+                },
             };
             Nachricht::WeicheSchalten(AnyAktionSchalten::SchalteDreiwege(AktionSchalten {
                 weiche: Steuerung::neu(steuerung.clone(), (sender, AktualisierenNachricht::from)),
@@ -251,7 +253,16 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
-        let Gleise { zustand, pivot, skalieren, modus, sender, .. } = self;
+        let Gleise {
+            zustand,
+            pivot,
+            skalieren,
+            modus,
+            sender,
+            canvas: _,
+            letzte_maus_position: _,
+            letzte_canvas_größe: _,
+        } = self;
         let (status, nachrichten) = aktion_gleis_an_position(
             bounds,
             cursor_oder_finger,
@@ -280,8 +291,9 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 (Cursor::Available(position), KlickQuelle::Touch(finger))
             },
         };
-        if let ModusDaten::Bauen { gehalten, .. } = &self.modus
-            && let Some(Gehalten { gleis_steuerung, bewegt, .. }) = gehalten.get(&quelle)
+        if let ModusDaten::Bauen { gehalten, letzter_klick: _ } = &self.modus
+            && let Some(Gehalten { gleis_steuerung, bewegt, halte_position: _, winkel: _ }) =
+                gehalten.get(&quelle)
         {
             let gleis_id = gleis_steuerung.id();
             if *bewegt {
@@ -323,7 +335,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                     canvas_pos,
                 )));
             }
-            if let ModusDaten::Bauen { gehalten, .. } = &self.modus
+            if let ModusDaten::Bauen { gehalten, letzter_klick: _ } = &self.modus
                 && gehalten.contains_key(&quelle)
             {
                 messages.push(Nachricht::from(ZustandAktualisierenEnum::GehaltenBewegen(
@@ -338,7 +350,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         clippy::unnecessary_wraps,
         reason = "Event: Kopiere Signatur von [`Program::update`]."
     )]
-    /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`]
+    /// [update](iced::widget::canvas::Program::update)-Methode für [`Gleise`].
     pub(crate) fn update_impl<Thema>(
         &self,
         _state: &mut <Self as Program<NonEmpty<Nachricht>, Thema, Renderer>>::State,
@@ -434,13 +446,13 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         &mut self,
         nachricht: ZustandAktualisieren,
     ) -> Result<(), AktualisierenFehler> {
-        match nachricht.0 {
+        match nachricht.zustand_aktualisieren_enum() {
             ZustandAktualisierenEnum::LetzteMausPosition(position) => {
                 self.letzte_maus_position = position;
                 Ok(())
             },
             ZustandAktualisierenEnum::LetzterKlick(quelle, zeitpunkt) => {
-                if let ModusDaten::Bauen { letzter_klick, .. } = &mut self.modus {
+                if let ModusDaten::Bauen { letzter_klick, gehalten: _ } = &mut self.modus {
                     *letzter_klick = Some((quelle, zeitpunkt));
                 } else {
                     error!("LetzterKlick-Nachricht im {:?}-Modus!", self.modus);
@@ -452,7 +464,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
                 Ok(())
             },
             ZustandAktualisierenEnum::GehaltenAktualisieren(quelle, wert) => {
-                if let ModusDaten::Bauen { gehalten, .. } = &mut self.modus {
+                if let ModusDaten::Bauen { gehalten, letzter_klick: _ } = &mut self.modus {
                     if let Some(wert) = wert {
                         let bisher = gehalten.insert(quelle, wert);
                         if bisher.is_some() {

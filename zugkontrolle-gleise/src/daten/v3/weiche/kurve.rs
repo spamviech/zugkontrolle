@@ -90,9 +90,9 @@ impl From<Richtung> for v4::Richtung {
 /// Eine Struktur mit von [`Richtung`]-Varianten abgeleiteten Felder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RichtungAnschlüsseSerialisiert {
-    /// [`Richtung::Innen`]
+    /// [`Richtung::Innen`].
     pub innen: OutputSerialisiert,
-    /// [`Richtung::Außen`]
+    /// [`Richtung::Außen`].
     pub außen: OutputSerialisiert,
 }
 

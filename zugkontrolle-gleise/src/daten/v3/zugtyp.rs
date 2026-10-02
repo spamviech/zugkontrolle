@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_gleis::steuerung::geschwindigkeit::Leiter;
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::mm::Spurweite;
-use zugkontrolle_util::{eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt};
+use zugkontrolle_util::{
+    eingeschränkt::NichtNegativ, enumerate_checked::EnumerateCheckedExt as _
+};
 
 use crate::daten::{
     v3::{
@@ -39,7 +41,7 @@ pub struct ZugtypSerialisiert<L: Leiter> {
     pub name: String,
     /// Der [Name der Leiter-Art](BekannterLeiter::NAME) des Zugtyps.
     pub leiter: String,
-    /// Spurweite
+    /// [`Spurweite`].
     pub spurweite: Spurweite,
     /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: Vec<GeradeUnit>,
