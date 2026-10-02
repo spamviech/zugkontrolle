@@ -46,11 +46,9 @@ lto = "thin"
 panic = "abort"
 
 [features]
-default = ["wgpu"]
+default = []
 # Add all raspi-specific dependencies. Without this feature, e.g. pins won't change their output value.
 raspi = ["zugkontrolle-anschluss/raspi"]
-# Add the iced wgpu feature for rendering.
-wgpu = ["zugkontrolle-application/wgpu"]
 
 [lints]
 workspace = true
@@ -343,7 +341,7 @@ features = ["colors"]
 [workspace.dependencies.iced]
 version = "0.14.0"
 default-features = false
-features = ["canvas", "lazy", "x11", "wayland", "smol"]
+features = ["canvas", "lazy", "x11", "wayland", "wgpu", "smol"]
 
 [workspace.dependencies.iced_core]
 version = "0.14.0"
