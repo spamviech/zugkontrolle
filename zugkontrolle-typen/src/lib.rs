@@ -1,11 +1,5 @@
 //! Abstrakte Beschreibungen für z.B. Koordinaten und andere Anzeige-relevanten Parameter.
 
-// Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![expect(
-    clippy::multiple_crate_versions,
-    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
-)]
-
 use crate::{
     canvas::{Position, pfad::Pfad},
     farbe::Farbe,

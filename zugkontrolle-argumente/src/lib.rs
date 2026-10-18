@@ -1,11 +1,5 @@
 //! Kommandozeilen-Argumente.
 
-// Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![expect(
-    clippy::multiple_crate_versions,
-    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
-)]
-
 use std::{
     env,
     fmt::{self, Debug, Display, Formatter},

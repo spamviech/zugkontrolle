@@ -1,9 +1,4 @@
-//! [`Application`] für die Gleis-Anzeige.
-
-#![expect(
-    clippy::multiple_crate_versions,
-    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
-)]
+//! [`Application`](iced::Application) für die Gleis-Anzeige.
 
 use std::{
     convert::identity,

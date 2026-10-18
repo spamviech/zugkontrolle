@@ -1,10 +1,5 @@
 //! Steuerung einer Modell-Eisenbahn über einen Raspberry Pi.
 
-#![expect(
-    clippy::multiple_crate_versions,
-    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
-)]
-
 use std::sync::Arc;
 
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};

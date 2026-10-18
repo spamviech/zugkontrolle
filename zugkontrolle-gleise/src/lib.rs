@@ -1,11 +1,5 @@
 //! Verwalten und Anzeige der Gleis-Definitionen auf einem [`Canvas`](iced::widget::canvas::Canvas).
 
-// Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![expect(
-    clippy::multiple_crate_versions,
-    reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
-)]
-
 use std::{collections::HashMap, fmt::Debug, io, mem, sync::mpsc::Sender, time::Instant};
 
 use bincode_next::error::EncodeError;
