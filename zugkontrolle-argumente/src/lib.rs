@@ -5,7 +5,6 @@
     clippy::multiple_crate_versions,
     reason = "Zu viele/große dependencies, um das wirklich zu vermeiden."
 )]
-#![expect(clippy::shadow_unrelated, reason = "Durch derive-Macro für Parse ausgelöst.")]
 
 use std::{
     env,

@@ -3,7 +3,7 @@
 use std::f32::consts;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use kommandozeilen_argumente::{Beschreibung, ParseArgument, Vergleich};
+use kommandozeilen_argumente::{Compare, Description, ParseArgument};
 use serde::{Deserialize, Serialize};
 
 use crate::skalar::Skalar;
@@ -282,26 +282,26 @@ impl Div<Winkel> for f32 {
 }
 
 impl ParseArgument for Winkel {
-    fn argumente<'t>(
-        beschreibung: Beschreibung<'t, Self>,
-        invertiere_präfix: impl Into<Vergleich<'t>>,
-        invertiere_infix: impl Into<Vergleich<'t>>,
-        wert_infix: impl Into<Vergleich<'t>>,
+    fn arguments<'t>(
+        description: Description<'t, Self>,
+        invert_prefix: impl Into<Compare<'t>>,
+        invert_infix: impl Into<Compare<'t>>,
+        value_infix: impl Into<Compare<'t>>,
         meta_var: &'t str,
-    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
-        kommandozeilen_argumente::Argumente::konvertiere(
+    ) -> kommandozeilen_argumente::Arguments<'t, Self, String> {
+        kommandozeilen_argumente::Arguments::convert(
             Winkel,
-            f32::argumente(
-                beschreibung.konvertiere(|winkel| winkel.0),
-                invertiere_präfix,
-                invertiere_infix,
-                wert_infix,
+            f32::arguments(
+                description.convert(|winkel| winkel.0),
+                invert_prefix,
+                invert_infix,
+                value_infix,
                 meta_var,
             ),
         )
     }
 
-    fn standard() -> Option<Self> {
+    fn default() -> Option<Self> {
         Some(Winkel(0.))
     }
 }

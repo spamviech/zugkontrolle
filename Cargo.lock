@@ -1570,15 +1570,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
@@ -1690,14 +1681,16 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kommandozeilen_argumente"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "491a410be28cda41f691cbff8cb3efef1c0915b6217e2e935c302da7dba2da9b"
+checksum = "feb7a92d42c57d9f602633c42cadccad8eefe71065ed7dbf3cb375924073a00f"
 dependencies = [
+ "dyn-clone",
  "either",
- "itertools 0.10.5",
+ "itertools",
  "kommandozeilen_argumente_derive",
- "nonempty 0.8.1",
+ "nonempty",
+ "paste",
  "unicase",
  "unicode-normalization",
  "unicode-segmentation",
@@ -1706,14 +1699,15 @@ dependencies = [
 
 [[package]]
 name = "kommandozeilen_argumente_derive"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5878cd2a992b0059d396f058a2a5a939b688c54376340bf78d30fddf49b4a789"
+checksum = "c303006b6b3b4750f3c7c30e258f3a1a952575ae14acccae692013bcac507a92"
 dependencies = [
+ "litrs",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
  "unicode-segmentation",
+ "venial",
 ]
 
 [[package]]
@@ -1792,6 +1786,9 @@ name = "litrs"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
+dependencies = [
+ "proc-macro2",
+]
 
 [[package]]
 name = "lock_api"
@@ -1960,12 +1957,6 @@ checksum = "ee6cda3051665f1fb8d9e08fc35c96d5a244fb1be711a03b71118828afc9a873"
 dependencies = [
  "jni-sys 0.3.1",
 ]
-
-[[package]]
-name = "nonempty"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aeaf4ad7403de93e699c191202f017118df734d3850b01e13a3a8b2e6953d3c9"
 
 [[package]]
 name = "nonempty"
@@ -3142,17 +3133,6 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.109"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
-dependencies = [
- "proc-macro2",
- "quote",
- "unicode-ident",
-]
-
-[[package]]
-name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
@@ -3438,6 +3418,16 @@ name = "unty-next"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16062d030850f35054e37746427b9febb74a2f24c9c6dd6fa2d0c13c5f53221e"
+
+[[package]]
+name = "venial"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a42528baceab6c7784446df2a10f4185078c39bf73dc614f154353f1a6b1229"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
 
 [[package]]
 name = "version_check"
@@ -4308,9 +4298,9 @@ version = "1.1.0"
 dependencies = [
  "either",
  "enum-iterator",
- "itertools 0.15.0",
+ "itertools",
  "log",
- "nonempty 0.12.0",
+ "nonempty",
  "num-traits",
  "parking_lot",
  "rpi-pal",
@@ -4337,9 +4327,9 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "iced_widget",
- "itertools 0.15.0",
+ "itertools",
  "log",
- "nonempty 0.12.0",
+ "nonempty",
  "parking_lot",
  "serde",
  "take_mut",
@@ -4368,7 +4358,7 @@ dependencies = [
  "dyn-clonable",
  "either",
  "log",
- "nonempty 0.12.0",
+ "nonempty",
  "parking_lot",
  "serde",
  "zugkontrolle-anschluss",
@@ -4389,7 +4379,7 @@ dependencies = [
  "iced",
  "kommandozeilen_argumente",
  "log",
- "nonempty 0.12.0",
+ "nonempty",
  "rstar",
  "serde",
  "thiserror 2.0.21",
@@ -4488,9 +4478,9 @@ dependencies = [
  "iced_core",
  "iced_widget",
  "int-enum",
- "itertools 0.15.0",
+ "itertools",
  "log",
- "nonempty 0.12.0",
+ "nonempty",
  "rfd",
  "zugkontrolle-anschluss",
  "zugkontrolle-argumente",
