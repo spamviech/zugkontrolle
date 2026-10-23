@@ -1,0 +1,47 @@
+Fetch 435 licenses...
+21 / 435: async-signal-0.2.14
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\block-0.1.6
+block-0.1.6: MIT
+	Repository: http://github.com/SSheldon/rust-block
+	Announced License: MIT
+42 / 435: calloop-wayland-source-0.4.1
+63 / 435: core_maths-0.1.1
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\dispatch-0.2.0
+dispatch-0.2.0: MIT
+	Repository: http://github.com/SSheldon/rust-dispatch
+	Announced License: MIT
+84 / 435: equivalent-1.0.2
+105 / 435: futures-channel-0.3.34
+126 / 435: guillotiere-0.6.2
+Missing License: C:\Users\WolfgangW\dev\spamviech\zugkontrolle\zugkontrolle-lizenzen-macros\tools\..\lizenzen\iced_fonts_macros-0.3.0
+iced_fonts_macros-0.3.0: MIT
+	Repository: https://github.com/Redhawk18/iced_fonts
+	Announced License: MIT
+147 / 435: iced_graphics-0.14.0
+168 / 435: kommandozeilen_argumente-0.3.0
+189 / 435: memchr-2.8.3
+210 / 435: objc2-core-data-0.2.2
+231 / 435: ouroboros_macro-0.18.5
+252 / 435: proc-macro2-1.0.107
+273 / 435: roxmltree-0.20.0
+294 / 435: signal-hook-registry-1.4.8
+315 / 435: syn-3.0.6
+336 / 435: ttf-parser-0.25.1
+357 / 435: wasm-bindgen-shared-0.2.129
+378 / 435: wgpu-types-27.0.1
+399 / 435: windows_i686_gnu-0.52.6
+420 / 435: zerocopy-derive-0.8.59
+Skip zugkontrolle-5.1.0
+Skip zugkontrolle-anschluss-1.1.0
+Skip zugkontrolle-application-1.1.0
+Skip zugkontrolle-argumente-1.1.0
+Skip zugkontrolle-gleis-1.1.0
+Skip zugkontrolle-gleise-1.1.0
+Skip zugkontrolle-id-1.1.0
+Skip zugkontrolle-lizenzen-1.1.0
+Skip zugkontrolle-lizenzen-macros-1.1.0
+Skip zugkontrolle-macros-5.1.0
+Skip zugkontrolle-test-util-1.1.0
+Skip zugkontrolle-typen-1.1.0
+Skip zugkontrolle-util-1.1.0
+Skip zugkontrolle-widget-1.1.0

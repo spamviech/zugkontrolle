@@ -2,7 +2,7 @@
 
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use kommandozeilen_argumente::{Beschreibung, ParseArgument, Vergleich};
+use kommandozeilen_argumente::{Compare, Description, ParseArgument};
 use serde::{Deserialize, Serialize};
 
 /// Skalar-Werte für Größen auf dem Canvas.
@@ -15,8 +15,10 @@ impl Skalar {
     /// Doppelter Wert.
     #[must_use]
     pub fn doppelt(&self) -> Self {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             Skalar(2.) * self
         }
@@ -25,8 +27,10 @@ impl Skalar {
     /// Halber Wert.
     #[must_use]
     pub fn halbiert(&self) -> Self {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             Skalar(0.5) * self
         }
@@ -41,21 +45,13 @@ impl Skalar {
     /// Kopie des größeren Elements.
     #[must_use]
     pub fn max(&self, other: &Self) -> Self {
-        if self > other {
-            *self
-        } else {
-            *other
-        }
+        if self > other { *self } else { *other }
     }
 
     /// Kopie des kleineren Elements.
     #[must_use]
     pub fn min(&self, other: &Self) -> Self {
-        if self < other {
-            *self
-        } else {
-            *other
-        }
+        if self < other { *self } else { *other }
     }
 
     /// Returns a number that represents the sign of self.
@@ -66,11 +62,7 @@ impl Skalar {
     /// - `NaN` if the number is `NaN`
     #[must_use]
     pub fn signum(&self) -> Self {
-        if *self == Skalar(0.) {
-            Skalar(0.)
-        } else {
-            Skalar(self.0.signum())
-        }
+        if *self == Skalar(0.) { Skalar(0.) } else { Skalar(self.0.signum()) }
     }
 }
 
@@ -84,8 +76,10 @@ impl AddAssign<&Self> for Skalar {
 
 impl AddAssign<&mut Self> for Skalar {
     fn add_assign(&mut self, rhs: &mut Self) {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             *self += &*rhs;
         }
@@ -94,8 +88,10 @@ impl AddAssign<&mut Self> for Skalar {
 
 impl AddAssign<Self> for Skalar {
     fn add_assign(&mut self, rhs: Self) {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             *self += &rhs;
         }
@@ -109,8 +105,10 @@ where
     type Output = Self;
 
     fn add(mut self, rhs: T) -> Self::Output {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             self += rhs;
         }
@@ -139,10 +137,14 @@ impl Neg for Skalar {
 
 impl SubAssign<Self> for Skalar {
     fn sub_assign(&mut self, rhs: Self) {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
-        // Der Wert wird vor der Addition negiert.
-        #[allow(clippy::suspicious_op_assign_impl)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
+        #[expect(
+            clippy::suspicious_op_assign_impl,
+            reason = "Der Wert wird vor der Addition negiert."
+        )]
         {
             *self += rhs.neg();
         }
@@ -151,8 +153,10 @@ impl SubAssign<Self> for Skalar {
 
 impl SubAssign<&Self> for Skalar {
     fn sub_assign(&mut self, rhs: &Self) {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             *self -= *rhs;
         }
@@ -161,8 +165,10 @@ impl SubAssign<&Self> for Skalar {
 
 impl SubAssign<&mut Self> for Skalar {
     fn sub_assign(&mut self, rhs: &mut Self) {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             *self -= &*rhs;
         }
@@ -176,8 +182,10 @@ where
     type Output = Self;
 
     fn sub(mut self, rhs: T) -> Self::Output {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             self -= rhs;
         }
@@ -194,8 +202,10 @@ impl MulAssign<&Self> for Skalar {
 
 impl MulAssign<&mut Self> for Skalar {
     fn mul_assign(&mut self, rhs: &mut Self) {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             *self *= &*rhs;
         }
@@ -204,8 +214,10 @@ impl MulAssign<&mut Self> for Skalar {
 
 impl MulAssign<Self> for Skalar {
     fn mul_assign(&mut self, rhs: Self) {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             *self *= &rhs;
         }
@@ -219,8 +231,10 @@ where
     type Output = Self;
 
     fn mul(mut self, rhs: T) -> Self::Output {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             self *= rhs;
         }
@@ -240,8 +254,10 @@ impl Skalar {
 // Inverses Element (via division)
 impl DivAssign<&Self> for Skalar {
     fn div_assign(&mut self, rhs: &Self) {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             *self *= Skalar(1. / rhs.0);
         }
@@ -250,8 +266,10 @@ impl DivAssign<&Self> for Skalar {
 
 impl DivAssign<&mut Self> for Skalar {
     fn div_assign(&mut self, rhs: &mut Self) {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             *self /= &*rhs;
         }
@@ -260,8 +278,10 @@ impl DivAssign<&mut Self> for Skalar {
 
 impl DivAssign<Self> for Skalar {
     fn div_assign(&mut self, rhs: Self) {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             *self /= &rhs;
         }
@@ -275,8 +295,10 @@ where
     type Output = Self;
 
     fn div(mut self, rhs: T) -> Self::Output {
-        // Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             self /= rhs;
         }
@@ -285,26 +307,26 @@ where
 }
 
 impl ParseArgument for Skalar {
-    fn argumente<'t>(
-        beschreibung: Beschreibung<'t, Self>,
-        invertiere_präfix: impl Into<Vergleich<'t>>,
-        invertiere_infix: impl Into<Vergleich<'t>>,
-        wert_infix: impl Into<Vergleich<'t>>,
+    fn arguments<'t>(
+        description: Description<'t, Self>,
+        invert_prefix: impl Into<Compare<'t>>,
+        invert_infix: impl Into<Compare<'t>>,
+        value_infix: impl Into<Compare<'t>>,
         meta_var: &'t str,
-    ) -> kommandozeilen_argumente::Argumente<'t, Self, String> {
-        kommandozeilen_argumente::Argumente::konvertiere(
+    ) -> kommandozeilen_argumente::Arguments<'t, Self, String> {
+        kommandozeilen_argumente::Arguments::convert(
             Skalar,
-            f32::argumente(
-                beschreibung.konvertiere(|winkel| winkel.0),
-                invertiere_präfix,
-                invertiere_infix,
-                wert_infix,
+            f32::arguments(
+                description.convert(|winkel| winkel.0),
+                invert_prefix,
+                invert_infix,
+                value_infix,
                 meta_var,
             ),
         )
     }
 
-    fn standard() -> Option<Self> {
+    fn default() -> Option<Self> {
         None
     }
 }

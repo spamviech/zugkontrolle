@@ -1,10 +1,10 @@
-//! Take a sum-type enum and produce an associated enum without any data
+//! Take a sum-type enum and produce an associated enum without any data.
 
 use std::iter::once;
 
 use proc_macro2::{TokenStream, TokenTree};
 use quote::{format_ident, quote};
-use syn::{parse2, Ident, ItemEnum, Variant, Visibility};
+use syn::{Ident, ItemEnum, Variant, Visibility, parse2};
 
 /// Parse die Macro-Argumente.
 fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), Vec<String>> {
@@ -13,8 +13,10 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     let mut arg_ident: Option<Ident> = None;
     let mut errors = Vec::new();
     let mut parse_acc = |current_acc: &mut TokenStream| {
-        // Unterschiedliche Funktion wegen unterschiedlichem Rückgabetyp.
-        #[allow(clippy::same_functions_in_if_condition)]
+        #[expect(
+            clippy::same_functions_in_if_condition,
+            reason = "Unterschiedliche Funktion wegen unterschiedlichem Rückgabetyp."
+        )]
         if let Ok(vis) = parse2(current_acc.clone()) {
             if arg_vis.is_none() {
                 arg_vis = Some(vis);
@@ -33,8 +35,10 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
         *current_acc = TokenStream::new();
     };
     for tt in args {
-        // if-let-chain ist noch nicht auf stable
-        #[allow(clippy::wildcard_enum_match_arm)]
+        #[expect(
+            clippy::wildcard_enum_match_arm,
+            reason = "if-let-chain ist noch nicht auf stable"
+        )]
         match tt {
             TokenTree::Punct(punct) if punct.as_char() == ',' => {
                 parse_acc(&mut acc);
@@ -46,14 +50,10 @@ fn parse_args(args: TokenStream) -> Result<(Option<Visibility>, Option<Ident>), 
     if !acc.is_empty() {
         parse_acc(&mut acc);
     }
-    if errors.is_empty() {
-        Ok((arg_vis, arg_ident))
-    } else {
-        Err(errors)
-    }
+    if errors.is_empty() { Ok((arg_vis, arg_ident)) } else { Err(errors) }
 }
 
-/// [`crate::erstelle_enum`]
+/// [`crate::erstelle_enum`].
 pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
     let (arg_vis, arg_ident) = match parse_args(args) {
         Ok(vid_ident) => vid_ident,
@@ -70,12 +70,12 @@ pub(crate) fn erstelle_enum(args: TokenStream, ast: &ItemEnum) -> TokenStream {
         #[kommandozeilen_argumente(case: insensitive)]
     );
 
-    let ItemEnum { vis, ident, variants, attrs, .. } = &ast;
+    let ItemEnum { vis, ident, variants, attrs, enum_token: _, generics: _, brace_token: _ } = &ast;
     let enum_vis = arg_vis.unwrap_or(vis.clone());
     let enum_ident = arg_ident.unwrap_or(format_ident!("{}Enum", ident));
     let (enum_variants, enum_variants_docstrings): (Vec<Ident>, Vec<TokenStream>) = variants
         .iter()
-        .map(|Variant { ident: var_ident, attrs: var_attrs, .. }| {
+        .map(|Variant { ident: var_ident, attrs: var_attrs, fields: _, discriminant: _ }| {
             let docstrings = var_attrs.iter().filter(|attr| attr.path().is_ident("doc")).cloned();
             (var_ident.clone(), quote!(#(#docstrings)*))
         })

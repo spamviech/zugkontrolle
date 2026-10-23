@@ -5,10 +5,10 @@ use crate::{nachschlagen, vektor::Vektor, winkel::Winkel};
 /// Ein `Verbindung` repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Verbindung {
-    /// Position des Anschluss
+    /// Position des Anschluss.
     pub position: Vektor,
     /// Ausgehende Richtung des Anschlusses als Winkel zur x-Achse
-    /// (im Uhrzeigersinn, y-Koordinate wächst nach unten)
+    /// (im Uhrzeigersinn, y-Koordinate wächst nach unten).
     pub richtung: Winkel,
 }
 

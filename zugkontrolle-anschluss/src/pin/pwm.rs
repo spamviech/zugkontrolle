@@ -6,15 +6,14 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
+    Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     pin::Pin as EinPin,
     polarität::Polarität,
-    rppal::{gpio, pwm},
-    Lager,
+    rpi_pal::{gpio, pwm},
 };
 
 /// Hard- oder Software-erzeugtes Pwm-Signal. Erlaubt exklusive Steuerung der zugehörigen Pins.
-#[allow(variant_size_differences)]
 #[derive(Debug)]
 pub(in crate::pin) enum Pwm {
     /// Hardware-Pwm.
@@ -57,12 +56,18 @@ pub struct Zeit {
 #[derive(Debug, PartialEq)]
 pub struct Pin {
     /// Der Pin.
-    pub(in crate::pin) pin: Pwm,
-    /// Das aktuell anliegende Pwm-Signal
-    pub(in crate::pin) konfiguration: Option<Konfiguration>,
+    pin: Pwm,
+    /// Das aktuell anliegende Pwm-Signal.
+    konfiguration: Option<Konfiguration>,
 }
 
 impl Pin {
+    /// Erzeuge einen neuen [`pwm::Pin`](Pin).
+    #[must_use]
+    pub(in crate::pin) fn neu(pin: Pwm, konfiguration: Option<Konfiguration>) -> Pin {
+        Pin { pin, konfiguration }
+    }
+
     /// Erhalte die GPIO [`Pin`] Nummer.
     ///
     /// Pins werden über ihre BCM Nummer angesprochen, nicht ihre physische Position.
@@ -114,12 +119,15 @@ impl Pin {
             Pwm::Hardware(pwm_channel, _pin) => {
                 let map_fehler = |fehler| Fehler::Pwm { pin, fehler };
                 // update nur, sofern sich Parameter geändert haben.
-                if self.konfiguration.as_ref().map(|Konfiguration { polarität, .. }| polarität)
+                if self
+                    .konfiguration
+                    .as_ref()
+                    .map(|Konfiguration { polarität, zeit: _ }| polarität)
                     != Some(&konfiguration.polarität)
                 {
                     pwm_channel.set_polarity(konfiguration.polarität.into()).map_err(map_fehler)?;
                 }
-                if self.konfiguration.as_ref().map(|Konfiguration { zeit, .. }| zeit)
+                if self.konfiguration.as_ref().map(|Konfiguration { zeit, polarität: _ }| zeit)
                     != Some(&konfiguration.zeit)
                 {
                     let Zeit { frequenz, betriebszyklus } = konfiguration.zeit;
@@ -134,8 +142,10 @@ impl Pin {
                 // konfiguration.zeit wird hier kopiert, ein verändern ist demnach kein Problem
                 let Zeit { frequenz, mut betriebszyklus } = konfiguration.zeit;
                 if konfiguration.polarität == Polarität::Invertiert {
-                    // NullBisEins hat eine saturating Add-Implementierung
-                    #[allow(clippy::arithmetic_side_effects)]
+                    #[expect(
+                        clippy::arithmetic_side_effects,
+                        reason = "NullBisEins hat eine saturating Add-Implementierung"
+                    )]
                     {
                         betriebszyklus = NullBisEins::MAX - betriebszyklus;
                     }
@@ -188,8 +198,7 @@ pub enum Fehler {
 }
 
 /// Serialisierbare Informationen einen Pwm-Pins.
-#[allow(missing_copy_implementations)]
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Serialisiert(pub u8);
 
 impl Serialisiere<Serialisiert> for Pin {

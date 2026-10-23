@@ -5,17 +5,17 @@ use std::{
     hash::Hash,
     pin::Pin,
     sync::{
-        mpsc::{Receiver, TryRecvError},
         Arc,
+        mpsc::{Receiver, TryRecvError},
     },
     task::{Context, Poll},
 };
 
-use iced_core::{
-    event::{Event, Status},
-    Hasher,
+use iced_futures::{
+    BoxStream,
+    futures::stream::Stream,
+    subscription::{EventStream, Hasher, Recipe},
 };
-use iced_futures::{futures::stream::Stream, subscription::Recipe, BoxStream};
 use log::debug;
 use parking_lot::Mutex;
 
@@ -49,7 +49,7 @@ where
         self.id.hash(state);
     }
 
-    fn stream(self: Box<Self>, _input: BoxStream<(Event, Status)>) -> BoxStream<Self::Output> {
+    fn stream(self: Box<Self>, _input: EventStream) -> BoxStream<Self::Output> {
         Box::pin(self)
     }
 }

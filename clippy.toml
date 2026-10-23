@@ -1,0 +1,14 @@
+# arbitrary_source_item_ordering
+module-items-ordered-within-groupings = "none"
+# Zu spät zum implementieren; verhindert semantisches Gruppieren.
+source-item-ordering = []
+trait-impl-item-order = "trait_item_ordering"
+trait-assoc-item-kinds-order = ["type", "const", "fn"]
+# renamed_function_params
+allow-renamed-params-for = [
+    "core::convert::From",
+    "core::convert::TryFrom",
+    "core::str::FromStr",
+    "core::fmt::Debug",
+    "core::fmt::Display",
+]

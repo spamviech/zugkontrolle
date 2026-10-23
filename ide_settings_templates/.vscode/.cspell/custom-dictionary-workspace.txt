@@ -52,6 +52,7 @@ bytemuck
 byteorder
 calloop
 camino
+cfgs
 chacha
 chibisov
 Chibisov
@@ -282,6 +283,7 @@ Osspial
 ouroboros
 Overby
 palettef
+pathbuf
 pfad
 pfade
 Phantomtyp
@@ -328,7 +330,7 @@ Rizzi
 Roozbeh
 Rothfels
 Roundy
-rppal
+rpi_pal
 rstar
 rstern
 rustc
@@ -366,6 +368,7 @@ skia
 slotmap
 smallvec
 smithay
+smol
 softbuffer
 Soveu
 spamviech
