@@ -1,6 +1,6 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
-use log::{error, info};
+use log::{debug, error};
 
 use zugkontrolle_anschluss::Lager;
 use zugkontrolle_gleis::{
@@ -113,7 +113,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             if let Some(bisher) = bisher {
                 error!("Gehaltenes Gleis für {klick_quelle:?} ersetzt: {bisher:?}");
             } else {
-                info!("Neues gehaltenes Gleis für {klick_quelle:?}.");
+                debug!("Neues gehaltenes Gleis für {klick_quelle:?}.");
             }
         }
         Ok(gleis_id)
