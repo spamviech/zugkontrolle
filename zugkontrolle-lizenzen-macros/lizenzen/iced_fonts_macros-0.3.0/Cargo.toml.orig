@@ -1,0 +1,28 @@
+[package]
+name = "iced_fonts_macros"
+description = "internal macro crate, not recommened to use."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+authors.workspace = true
+
+[features]
+# default = ["_generate_demo"]
+default = []
+advanced_text = []
+_generate_demo = []
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2.workspace = true 
+quote.workspace = true 
+syn.workspace = true
+ttf-parser.workspace = true
+

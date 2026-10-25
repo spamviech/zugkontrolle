@@ -1,0 +1,32 @@
+[package]
+name = "kommandozeilen_argumente_derive"
+version = "0.3.0"
+description = "derive-Macros für das kommandozeilen_argumente crate."
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+categories = ["command-line-interface"]
+keywords = [
+    "argument",
+    "cli",
+    "arg",
+    "parse",
+    "parser",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
+
+[dependencies]
+litrs.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
+unicode-segmentation.workspace = true
+venial.workspace = true
+
+[lints]
+workspace = true

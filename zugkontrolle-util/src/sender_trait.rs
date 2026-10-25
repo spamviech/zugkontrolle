@@ -7,7 +7,7 @@ macro_rules! erstelle_sender_trait_existential {
         #[doc = $trait_doc]
         #[dyn_clonable::clonable]
         #[doc = "Sende eine [$msg]-Nachricht."]
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         $($vis)? trait $trait: Clone + Send {
             #[doc = "Sende eine [$msg]-Nachricht.\n\n## Errors\n\nFehler beim Senden der Nachricht."]
             fn send(&self, msg: $msg) -> Result<(), std::sync::mpsc::SendError<$msg>>;
@@ -16,7 +16,7 @@ macro_rules! erstelle_sender_trait_existential {
             fn debug_fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result;
         }
 
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         impl $trait for std::sync::mpsc::Sender<$msg> {
             fn send(&self, msg: $msg) -> Result<(), std::sync::mpsc::SendError<$msg>> {
                 std::sync::mpsc::Sender::send(self, msg)
@@ -27,7 +27,7 @@ macro_rules! erstelle_sender_trait_existential {
             }
         }
 
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         impl<T: Send, F: Fn($msg) -> T + Clone + Send> $trait for (std::sync::mpsc::Sender<T>, F) {
             fn send(&self, msg: $msg) -> Result<(), std::sync::mpsc::SendError<$msg>> {
                 let (sender, funktion) = self;
@@ -44,7 +44,7 @@ macro_rules! erstelle_sender_trait_existential {
         #[derive(Clone)]
         $($vis)? struct $existential(Box<dyn $trait>);
 
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         impl std::fmt::Debug for $existential {
             fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 formatter.write_str("SomeLevelSender(")?;
@@ -59,7 +59,7 @@ macro_rules! erstelle_sender_trait_existential {
             }
         }
 
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         impl std::ops::Deref for $existential {
             type Target = dyn $trait;
 
@@ -68,7 +68,7 @@ macro_rules! erstelle_sender_trait_existential {
             }
         }
 
-        #[allow(unused_qualifications)]
+        #[expect(unused_qualifications)]
         impl std::ops::DerefMut for $existential {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 self.0.as_mut()

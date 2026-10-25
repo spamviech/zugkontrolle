@@ -2,11 +2,11 @@
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReturnType, Signature};
+use syn::{FnArg, ItemFn, Pat, PatType, Receiver, ReceiverKind, ReturnType, Signature};
 
-/// [`crate::make_chain`]
-#[allow(clippy::single_call_fn)]
-pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
+#[expect(clippy::single_call_fn, reason = "Implementierung von chain")]
+/// [`crate::chain`].
+pub(crate) fn chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
     let mut errors = Vec::new();
 
     if !args.is_empty() {
@@ -20,16 +20,18 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
             Signature {
                 constness,
                 asyncness,
-                unsafety,
+                safety,
                 ident,
                 generics,
                 inputs,
                 output,
                 abi,
                 variadic,
-                ..
+                fn_token: _,
+                paren_token: _,
             },
-        ..
+        modifiers: _,
+        block: _,
     } = &ast;
     let docstrings: Vec<_> = attrs.iter().filter(|attr| attr.path().is_ident("doc")).collect();
     if let ReturnType::Type(_arrow, ty) = output {
@@ -42,28 +44,32 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
         errors.push(String::from("no variadic supported."));
     }
     let mut inputs_iter = inputs.iter();
-    if let Some(FnArg::Receiver(Receiver { reference, mutability, .. })) = inputs_iter.next() {
-        if reference.is_none() || mutability.is_none() {
-            errors.push(String::from("first argument must be &mut self."));
-        }
+    let first = inputs_iter.next();
+    if let Some(FnArg::Receiver(Receiver {
+        kind: ReceiverKind::Reference(_and, _lifetime, Some(_mut)),
+        attrs: _,
+        mutability: _,
+        self_token: _,
+    })) = &first
+    {
+        // &mut self
     } else {
-        errors.push(String::from("first argument must be &mut self."));
+        errors.push(format!("first argument must be &mut self. Found: {first:?}"));
     }
     // collect to vec, to strictly evaluate errors
     let other_input_names: Vec<_> = inputs_iter
         .clone()
         .filter_map(|fn_arg| {
-            if let FnArg::Typed(PatType { pat, .. }) = fn_arg {
+            if let FnArg::Typed(PatType { pat, attrs: _, colon_token: _, ty: _ }) = fn_arg {
                 if let Pat::Ident(id) = pat.as_ref() {
                     Some(id)
                 } else {
                     errors
-                        .push(format!("only literal arguments supported, but {pat:?} was given.",));
+                        .push(format!("only literal arguments supported, but {pat:?} was given."));
                     None
                 }
             } else {
-                errors
-                    .push(format!("only literal arguments supported, but {fn_arg:?} was given.",));
+                errors.push(format!("only literal arguments supported, but {fn_arg:?} was given."));
                 None
             }
         })
@@ -82,7 +88,7 @@ pub(crate) fn make_chain(args: &TokenStream, ast: &ItemFn) -> TokenStream {
         #ast
 
         #(#docstrings)*
-        #vis #constness #asyncness #unsafety fn #chain_ident #generics(mut self, #(#inputs_iter),*) -> Self {
+        #vis #constness #asyncness #safety fn #chain_ident #generics(mut self, #(#inputs_iter),*) -> Self {
             self.#ident(#(#other_input_names),*);
             self
         }

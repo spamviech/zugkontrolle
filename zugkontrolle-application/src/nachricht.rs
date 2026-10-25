@@ -2,13 +2,13 @@
 
 use std::{convert::identity, fmt::Debug, time::Instant};
 
-use iced::Command;
+use iced::Task;
 
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_gleis::{
     gerade::GeradeUnit,
     id::{
-        mit_any_id, AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert,
+        AnyDefinitionId, AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert, mit_any_id,
     },
     kreuzung::KreuzungUnit,
     kurve::KurveUnit,
@@ -26,9 +26,8 @@ use zugkontrolle_gleis::{
     },
 };
 use zugkontrolle_gleise::{
-    self, knopf,
+    self, Modus, knopf,
     nachricht::{Nachricht as GleiseNachricht, ZustandAktualisieren},
-    Modus,
 };
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{
@@ -90,7 +89,7 @@ pub(crate) enum NachrichtClone<L: Leiter, S> {
     Thema(Thema),
     /// Aktualisiere das Auswahl-Modal.
     AuswahlModal(Option<AuswahlZustand<S>>),
-    /// Aktualisiere die MessageBox.
+    /// Aktualisiere die [`MessageBox`].
     MessageBox(Option<MessageBox>),
 }
 
@@ -120,7 +119,7 @@ where
     L: Leiter,
 {
     fn nachricht(
-        id: &T,
+        definition: &T,
         klick_quelle: KlickQuelle,
         klick_position: Vektor,
     ) -> NachrichtClone<L, S> {
@@ -130,7 +129,7 @@ where
                 AnyDefinitionIdSteuerung::from(($id, None))
             };
         }
-        let any_id = id.clone().into();
+        let any_id = definition.clone().into();
         NachrichtClone::Gleis {
             definition_steuerung: mit_any_id!({}, [AnyDefinitionId => id] any_id => erhalte_nachricht!()),
             klick_quelle,
@@ -222,13 +221,13 @@ pub enum Nachricht<L: Leiter, S> {
     Thema(Thema),
     /// Aktualisiere das Auswahl-Modal.
     AuswahlFenster(Option<AuswahlZustand<S>>),
-    /// Aktualisiere die MessageBox.
+    /// Aktualisiere die [`MessageBox`].
     MessageBox(Option<MessageBox>),
-    /// Dummy-Nachricht, damit die [`view`](Application::view)-Methode erneut aufgerufen wird.
+    /// Dummy-Nachricht, damit die [`view`](iced::Application::view)-Methode erneut aufgerufen wird.
     ///
     /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
     AsyncAktualisieren {
-        /// Soll das Canvas der [`Gleise`](crate::gleise::Gleise)-Struktur neu gezeichnet werden.
+        /// Soll das Canvas der [`Gleise`](zugkontrolle_gleise::Gleise)-Struktur neu gezeichnet werden.
         gleise_neuzeichnen: bool,
     },
 }
@@ -432,8 +431,8 @@ where
     <L as Leiter>::Fahrtrichtung: Send,
     S: 'static + Send,
 {
-    /// Konvertiere eine Nachricht in ein [`Command`].
-    pub(crate) fn als_command(self) -> Command<Nachricht<L, S>> {
-        Command::perform(async { identity(self) }, identity)
+    /// Konvertiere eine Nachricht in ein [`Task`].
+    pub(crate) fn als_task(self) -> Task<Nachricht<L, S>> {
+        Task::perform(async { identity(self) }, identity)
     }
 }

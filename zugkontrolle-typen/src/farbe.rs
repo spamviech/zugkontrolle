@@ -21,16 +21,23 @@ pub const SCHWARZ: Farbe = Farbe { rot: 0., grün: 0., blau: 0. };
 /// Eine Farbe im RGB-Schema.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct Farbe {
-    /// Rot
+    /// Rot.
     pub rot: f32,
-    /// Grün
+    /// Grün.
     pub grün: f32,
-    /// Blau
+    /// Blau.
     pub blau: f32,
 }
 
 impl From<Farbe> for Color {
     fn from(Farbe { rot, grün, blau }: Farbe) -> Self {
         Color::from_rgb(rot, grün, blau)
+    }
+}
+
+impl From<Color> for Farbe {
+    #[expect(clippy::min_ident_chars, reason = "third party interface")]
+    fn from(Color { r, g, b, a: _ }: Color) -> Self {
+        Farbe { rot: r, grün: g, blau: b }
     }
 }

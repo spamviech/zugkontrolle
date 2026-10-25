@@ -8,7 +8,6 @@ pub enum Void {}
 
 impl Void {
     /// Ein leeres `match` statement.
-
     pub fn unreachable(self) -> ! {
         match self {}
     }

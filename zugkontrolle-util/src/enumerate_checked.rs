@@ -1,6 +1,6 @@
 //! Ein analog zu [`enumerate`](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
 
-use num_traits::{bounds::LowerBounded, CheckedAdd, One};
+use num_traits::{CheckedAdd, One, bounds::LowerBounded};
 
 /// Ein analog zu [`enumerate`](Iterator::enumerate) funktionierender Iterator, der nach einem Overflow nicht abbricht.
 ///
@@ -14,8 +14,7 @@ pub struct EnumerateChecked<C, I> {
     iterator: I,
 }
 
-// Repetition bewusst gewählt.
-#[allow(clippy::module_name_repetitions)]
+#[expect(clippy::module_name_repetitions, reason = "Repetition bewusst gewählt.")]
 /// Erweiterungs-trait für alle Iteratoren, damit die
 /// [`enumerate_checked`](EnumerateCheckedExt::enumerate_checked)-Methode verfügbar ist.
 pub trait EnumerateCheckedExt<C, I> {

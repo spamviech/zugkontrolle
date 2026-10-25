@@ -1,10 +1,5 @@
 //! Kommandozeilen-Argumente.
 
-// Zu viele/große dependencies, um das wirklich zu vermeiden.
-#![allow(clippy::multiple_crate_versions)]
-// TODO durch derive-Macro für Parse ausgelöst.
-#![allow(clippy::shadow_unrelated)]
-
 use std::{
     env,
     fmt::{self, Debug, Display, Formatter},
@@ -51,7 +46,7 @@ pub struct Argumente {
     #[kommandozeilen_argumente(standard: Winkel(0.), meta_var: WINKEL)]
     pub winkel: Winkel,
 
-    /// I2CSettings für die Programmdauer.
+    /// [`I2cSettings`] für die Programmdauer.
     #[kommandozeilen_argumente(glätten)]
     pub i2c_settings: I2cSettings,
 
@@ -66,7 +61,7 @@ pub struct Argumente {
 /// Einstellung über aktivierte I2c-Channel.
 #[derive(Debug, Clone, Copy, Parse)]
 #[kommandozeilen_argumente(sprache: deutsch)]
-#[allow(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools, reason = "Viele Flags für kommandozeilen_argumente.")]
 pub struct I2cSettings {
     /// I2C channel auf pins 2 und 3 (bus 0 oder 1).
     #[kommandozeilen_argumente(lang: [i2c0_1, i2c0, i2c1])]
@@ -110,9 +105,9 @@ impl Argumente {
 #[derive(Debug, Clone, Copy, EnumArgument)]
 #[kommandozeilen_argumente(case: insensitive)]
 pub enum ZugtypArgument {
-    /// [`Märklin`](crate::zugtyp::Zugtyp::märklin)
+    /// [`Märklin`](zugkontrolle-gleis::zugtyp::märklin::MÄRKLIN).
     Märklin,
-    /// [`Lego`](crate::zugtyp::Zugtyp::lego)
+    /// [`Lego`](zugkontrolle-gleis::zugtyp::lego::LEGO).
     Lego,
 }
 
