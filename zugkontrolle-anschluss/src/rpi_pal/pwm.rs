@@ -25,7 +25,7 @@ use log::{debug, error};
 #[cfg(not(feature = "raspi"))]
 use num_traits::NumCast;
 #[cfg(not(feature = "raspi"))]
-use parking_lot::{RwLock, RwLockWriteGuard, const_rwlock};
+use parking_lot::{RwLock, RwLockWriteGuard};
 
 #[cfg(not(feature = "raspi"))]
 /// Aktuell verfügbare Hardware-[`Pwm`] Kanälen.
@@ -43,7 +43,7 @@ struct PwmStore {
 
 #[cfg(not(feature = "raspi"))]
 /// Globales Singleton mit den aktuell verfügbaren Pwm-Kanälen.
-static PWM: RwLock<PwmStore> = const_rwlock(PwmStore {
+static PWM: RwLock<PwmStore> = RwLock::new(PwmStore {
     pwm0: Some(Pwm::init(Channel::Pwm0)),
     pwm1: Some(Pwm::init(Channel::Pwm1)),
     pwm2: Some(Pwm::init(Channel::Pwm2)),

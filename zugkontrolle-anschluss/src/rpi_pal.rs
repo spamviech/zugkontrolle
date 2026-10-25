@@ -4,7 +4,7 @@
 use std::fmt::{self, Debug, Formatter};
 
 #[cfg(not(feature = "raspi"))]
-use parking_lot::{MappedMutexGuard, Mutex, MutexGuard, const_mutex};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 
 #[cfg(feature = "raspi")]
 // wird nur für die Fallback-Implementierung benötigt.
@@ -89,7 +89,7 @@ struct LazyMutex<T, F = fn() -> T>(Mutex<ElementOderKonstruktor<T, F>>);
 impl<T, F> LazyMutex<T, F> {
     /// Erzeuge einen neuen [`LazyMutex`].
     const fn neu(konstruktor: F) -> LazyMutex<T, F> {
-        LazyMutex(const_mutex(ElementOderKonstruktor::Konstruktor(konstruktor)))
+        LazyMutex(Mutex::new(ElementOderKonstruktor::Konstruktor(konstruktor)))
     }
 }
 

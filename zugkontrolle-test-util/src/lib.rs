@@ -4,12 +4,12 @@ use std::fmt::Debug;
 
 use flexi_logger::{LogSpecBuilder, Logger, LoggerHandle};
 use log::LevelFilter;
-use parking_lot::{Mutex, const_mutex};
+use parking_lot::Mutex;
 use thiserror::Error;
 
 /// Hilfs-Variable für [`init_test_logging`].
 /// Sorgt dafür, dass nur der erste Aufruf einen Logger registriert.
-static LOGGER_HANDLE: Mutex<Option<LoggerHandle>> = const_mutex(None);
+static LOGGER_HANDLE: Mutex<Option<LoggerHandle>> = Mutex::new(None);
 
 /// Initialisiere `FlexiLogger` einmalig, speichere den Handle in einer globalen Variable.
 ///

@@ -12,7 +12,7 @@ use std::{
 };
 
 use log::{error, trace};
-use parking_lot::{MappedMutexGuard, Mutex, MutexGuard, const_mutex};
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use thiserror::Error;
 
 /// Zahlen-typ, der über [`Id::repräsentation`] erhalten werden kann.
@@ -22,7 +22,7 @@ pub type Repräsentation = u32;
 
 /// Alle aktuelle bereits verwendete Ids.
 static VERWENDETE_IDS: Mutex<BTreeMap<TypeId, BTreeSet<Repräsentation>>> =
-    const_mutex(BTreeMap::new());
+    Mutex::new(BTreeMap::new());
 
 /// Erhalte das [Id-Set](VERWENDETE_IDS) für den gewünschten Typ.
 ///
