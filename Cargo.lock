@@ -4324,7 +4324,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-anschluss"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "either",
  "enum-iterator",
@@ -4346,7 +4346,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-application"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "async-io",
  "cargo_metadata",
@@ -4383,7 +4383,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-gleis"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "dyn-clonable",
  "either",
@@ -4400,7 +4400,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-gleise"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "associated_list",
  "bincode-next",
@@ -4435,7 +4435,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-lizenzen"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "cargo_metadata",
  "zugkontrolle-lizenzen-macros",
@@ -4444,7 +4444,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-lizenzen-macros"
-version = "1.1.0"
+version = "1.0.0"
 dependencies = [
  "cargo_metadata",
  "proc-macro2",
@@ -4453,7 +4453,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-macros"
-version = "5.1.0"
+version = "6.0.0"
 dependencies = [
  "cargo_metadata",
  "heck 0.5.0",
@@ -4499,7 +4499,7 @@ dependencies = [
 
 [[package]]
 name = "zugkontrolle-widget"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "cargo_metadata",
  "enum-iterator",
