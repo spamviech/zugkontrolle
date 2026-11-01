@@ -112,7 +112,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Erstelle ein neues, leeres [`Gleise`]-struct.
     #[must_use]
     pub fn neu(
-        zugtyp2: Zugtyp<L>,
+        zugtyp: Zugtyp<L>,
         modus: Modus,
         pivot: Position,
         skalieren: Skalar,
@@ -122,7 +122,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
             canvas: Cache::neu(),
             pivot,
             skalieren,
-            zustand: Zustand::neu(zugtyp2),
+            zustand: Zustand::neu(zugtyp),
             letzte_maus_position: Vektor::null_vektor(),
             letzte_canvas_größe: Vektor::null_vektor(),
             modus: ModusDaten::neu(modus),
