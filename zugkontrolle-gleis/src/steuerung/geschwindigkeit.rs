@@ -4,11 +4,10 @@ use std::{
     fmt::{self, Debug, Display, Formatter},
     hash::Hash,
     marker::PhantomData,
-    ops::DerefMut,
-    sync::{mpsc::Sender, Arc},
-    thread::{sleep, JoinHandle},
+    ops::DerefMut as _,
+    sync::{Arc, mpsc::Sender},
+    thread::{JoinHandle, sleep},
     time::Duration,
-    usize,
 };
 
 use log::{debug, error};
@@ -17,10 +16,10 @@ use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
+    Lager, OutputAnschluss, OutputSerialisiert,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
     pin::pwm,
     polarität::{Fließend, Polarität},
-    Lager, OutputAnschluss, OutputSerialisiert,
 };
 use zugkontrolle_util::{
     eingeschränkt::{NichtNegativ, NullBisEins},
@@ -61,7 +60,7 @@ pub trait Leiter {
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-[`u8::MAX`]
-    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
+    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste).
     ///
     /// ## Errors
     ///
@@ -208,11 +207,11 @@ impl<L: Leiter> Geschwindigkeit<L> {
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
     /// Pwm: 0-[`u8::MAX`]
-    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste)
+    /// Konstante Spannung: 0-#Anschlüsse (geordnete Liste).
     ///
     /// ## Errors
     ///
-    /// [`Leiter::geschwindigkeit`]
+    /// [`Leiter::geschwindigkeit`].
     pub fn geschwindigkeit(
         &mut self,
         wert: u8,
@@ -232,7 +231,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
     ///
     /// ## Errors
     ///
-    /// [`Leiter::umdrehen`]
+    /// [`Leiter::umdrehen`].
     pub fn umdrehen_allgemein(
         &mut self,
         pwm_frequenz: NichtNegativ,
@@ -291,7 +290,7 @@ impl<L: Leiter> Geschwindigkeit<L> {
     ///
     /// ## Errors
     ///
-    /// [`Leiter::fahrtrichtung`]
+    /// [`Leiter::fahrtrichtung`].
     pub fn fahrtrichtung_allgemein(
         &mut self,
         neue_fahrtrichtung: <L as Leiter>::Fahrtrichtung,
@@ -358,8 +357,10 @@ impl<L: Leiter> Geschwindigkeit<L> {
     }
 }
 
-// Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert
-#[allow(clippy::module_name_repetitions)]
+#[expect(
+    clippy::module_name_repetitions,
+    reason = "Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert"
+)]
 /// Serialisierbare Repräsentation einer [`Geschwindigkeit`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
@@ -424,8 +425,7 @@ fn geschwindigkeit_pwm(
 ) -> Result<(), pwm::Fehler> {
     // 0 <= u8 / u8::MAX <= 1
     let verhältnis = NullBisEins::neu_unchecked(f64::from(wert) / f64::from(u8::MAX));
-    // saturating Mult-Implementierung.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(clippy::arithmetic_side_effects, reason = "saturating Mult-Implementierung.")]
     let betriebszyklus = faktor * verhältnis;
     pin.aktiviere_mit_konfiguration(pwm::Konfiguration {
         polarität,
@@ -450,8 +450,7 @@ fn geschwindigkeit_ks(
     if *letzter_wert == 0 {
         // Geschwindigkeit war aus, es muss also kein Anschluss ausgeschaltet werden
     } else if let Some(anschluss) = geschwindigkeit.get_mut(usize::from(
-        // *letzter_wert > 0
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(clippy::arithmetic_side_effects, reason = "*letzter_wert > 0")]
         {
             *letzter_wert - 1
         },
@@ -464,8 +463,7 @@ fn geschwindigkeit_ks(
     }
     // neuen anstellen
     if wert_usize > 0 {
-        // *wert_usize > 0
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(clippy::arithmetic_side_effects, reason = "*wert_usize > 0")]
         let anschluss_index = wert_usize - 1;
         if let Some(anschluss) = geschwindigkeit.get_mut(anschluss_index) {
             anschluss.einstellen(Fließend::Fließend)?;
@@ -528,7 +526,6 @@ impl Display for Mittelleiter {
 
 /// Serialisierbare Repräsentation eines [`Mittelleiters`](Mittelleiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[allow(variant_size_differences)]
 pub enum MittelleiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -631,8 +628,6 @@ impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    // Selber wert zu einem späteren Zeitpunkt
-                    #[allow(clippy::shadow_unrelated)]
                     |geschwindigkeit, umdrehen| Mittelleiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -675,7 +670,7 @@ macro_rules! umdrehen_mittelleiter {
                 sleep($umdrehen_zeit);
                 pin.deaktiviere()?
             },
-            Mittelleiter::KonstanteSpannung { umdrehen, .. } => {
+            Mittelleiter::KonstanteSpannung { umdrehen, geschwindigkeit: _, letzter_wert: _ } => {
                 umdrehen.einstellen(Fließend::Fließend)?;
                 sleep($umdrehen_zeit);
                 umdrehen.einstellen(Fließend::Gesperrt)?
@@ -706,7 +701,7 @@ impl Leiter for Mittelleiter {
                 *polarität,
             )
             .map_err(Fehler::from),
-            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert, umdrehen: _ } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
             },
         }
@@ -714,8 +709,10 @@ impl Leiter for Mittelleiter {
 
     fn aktuelle_geschwindigkeit(&self) -> u8 {
         match self {
-            Mittelleiter::Pwm { letzter_wert, .. }
-            | Mittelleiter::KonstanteSpannung { letzter_wert, .. } => *letzter_wert,
+            Mittelleiter::Pwm { letzter_wert, pin: _, polarität: _ }
+            | Mittelleiter::KonstanteSpannung { letzter_wert, geschwindigkeit: _, umdrehen: _ } => {
+                *letzter_wert
+            },
         }
     }
 
@@ -827,8 +824,10 @@ impl Geschwindigkeit<Mittelleiter> {
     #[must_use]
     pub fn ks_länge(&self) -> Option<usize> {
         match &*self.lock_leiter() {
-            Mittelleiter::Pwm { .. } => None,
-            Mittelleiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
+            Mittelleiter::Pwm { pin: _, letzter_wert: _, polarität: _ } => None,
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen: _ } => {
+                Some(geschwindigkeit.len())
+            },
         }
     }
 }
@@ -897,7 +896,7 @@ impl Leiter for Zweileiter {
         PhantomData: Self::VerhältnisFahrspannungÜberspannung,
     ) -> Result<(), Fehler> {
         match self {
-            Zweileiter::Pwm { geschwindigkeit, letzter_wert, polarität, .. } => {
+            Zweileiter::Pwm { geschwindigkeit, letzter_wert, polarität, fahrtrichtung: _ } => {
                 geschwindigkeit_pwm(
                     geschwindigkeit,
                     letzter_wert,
@@ -908,7 +907,7 @@ impl Leiter for Zweileiter {
                 )
                 .map_err(Fehler::from)
             },
-            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, .. } => {
+            Zweileiter::KonstanteSpannung { geschwindigkeit, letzter_wert, fahrtrichtung: _ } => {
                 geschwindigkeit_ks(geschwindigkeit, letzter_wert, wert)
             },
         }
@@ -916,8 +915,17 @@ impl Leiter for Zweileiter {
 
     fn aktuelle_geschwindigkeit(&self) -> u8 {
         match self {
-            Zweileiter::Pwm { letzter_wert, .. }
-            | Zweileiter::KonstanteSpannung { letzter_wert, .. } => *letzter_wert,
+            Zweileiter::Pwm {
+                letzter_wert,
+                geschwindigkeit: _,
+                polarität: _,
+                fahrtrichtung: _,
+            }
+            | Zweileiter::KonstanteSpannung {
+                letzter_wert,
+                geschwindigkeit: _,
+                fahrtrichtung: _,
+            } => *letzter_wert,
         }
     }
 
@@ -973,8 +981,17 @@ impl Leiter for Zweileiter {
 
     fn aktuelle_fahrtrichtung(&self) -> Option<Self::Fahrtrichtung> {
         let anschluss = match self {
-            Zweileiter::Pwm { fahrtrichtung, .. }
-            | Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::Pwm {
+                fahrtrichtung,
+                geschwindigkeit: _,
+                letzter_wert: _,
+                polarität: _,
+            }
+            | Zweileiter::KonstanteSpannung {
+                fahrtrichtung,
+                geschwindigkeit: _,
+                letzter_wert: _,
+            } => fahrtrichtung,
         };
         Some(anschluss.fließend().into())
     }
@@ -997,8 +1014,8 @@ macro_rules! fahrtrichtung_zweileiter {
         )?
         sleep($stopp_zeit);
         match $self $(.$method())* {
-            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
-            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::Pwm { fahrtrichtung, geschwindigkeit: _, letzter_wert: _, polarität: _ } => fahrtrichtung,
+            Zweileiter::KonstanteSpannung { fahrtrichtung, geschwindigkeit: _, letzter_wert: _ } => fahrtrichtung,
         }.$methode( $($args),* )?;
         Ok(())
     }};
@@ -1169,15 +1186,23 @@ impl Geschwindigkeit<Zweileiter> {
     #[must_use]
     pub fn ks_länge(&self) -> Option<usize> {
         match &*self.lock_leiter() {
-            Zweileiter::Pwm { .. } => None,
-            Zweileiter::KonstanteSpannung { geschwindigkeit, .. } => Some(geschwindigkeit.len()),
+            Zweileiter::Pwm {
+                geschwindigkeit: _,
+                letzter_wert: _,
+                polarität: _,
+                fahrtrichtung: _,
+            } => None,
+            Zweileiter::KonstanteSpannung {
+                geschwindigkeit,
+                letzter_wert: _,
+                fahrtrichtung: _,
+            } => Some(geschwindigkeit.len()),
         }
     }
 }
 
 /// Serialisierbare Repräsentation eines [`Zweileiters`](Zweileiter).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[allow(variant_size_differences)]
 pub enum ZweileiterSerialisiert {
     /// Steuerung über ein Pwm-Signal.
     Pwm {
@@ -1288,8 +1313,6 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    // Gleiche Werte zu einem späteren Zeitpunkt.
-                    #[allow(clippy::shadow_unrelated)]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::Pwm {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1308,8 +1331,6 @@ impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
                     move_arg,
                     ref_arg,
                     mut_ref_arg,
-                    // Gleiche Werte zu einem späteren Zeitpunkt.
-                    #[allow(clippy::shadow_unrelated)]
                     |geschwindigkeit, fahrtrichtung| Zweileiter::KonstanteSpannung {
                         geschwindigkeit,
                         letzter_wert: 0,
@@ -1364,7 +1385,6 @@ impl Display for Fahrtrichtung {
 
 /// Mögliche Fehler beim einstellen der Geschwindigkeit oder Fahrtrichtung.
 #[derive(Debug, zugkontrolle_macros::From)]
-#[allow(variant_size_differences)]
 pub enum Fehler {
     /// Fehler bei Interaktion mit einem [`Anschluss`](OutputAnschluss).
     Anschluss(zugkontrolle_anschluss::Fehler),

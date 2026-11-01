@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 use zugkontrolle_anschluss::{level::Level, trigger::Trigger};
 use zugkontrolle_macros::alias_serialisiert_unit;
 use zugkontrolle_typen::{
+    Innerhalb, MitName, Transparenz, Zeichnen,
     canvas::{
-        pfad::{self, Bogen, Pfad, Transformation},
         Position,
+        pfad::{self, Bogen, Pfad, Transformation},
     },
     farbe::{self, Farbe},
     mm::{Länge, Spurweite},
@@ -19,7 +20,6 @@ use zugkontrolle_typen::{
     vektor::Vektor,
     verbindung::Verbindung,
     winkel::{self, Winkel},
-    Innerhalb, MitName, Transparenz, Zeichnen,
 };
 
 use crate::steuerung::kontakt::{Kontakt, KontaktSerialisiert, MitKontakt};
@@ -64,16 +64,16 @@ pub enum VerbindungName {
     Ende,
 }
 
-impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for Gerade<Anschlüsse> {
+impl<Anschlüsse, T: MitName + MitKontakt> Zeichnen<T> for Gerade<Anschlüsse> {
     type VerbindungName = VerbindungName;
     type Verbindungen = Verbindungen;
 
-    fn rechteck(&self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Rechteck {
+    fn rechteck(&self, _anschlüsse: &T, spurweite: Spurweite) -> Rechteck {
         rechteck(spurweite, self.länge)
     }
 
-    fn zeichne(&self, anschlüsse: &Anschlüsse2, spurweite: Spurweite) -> Vec<Pfad> {
-        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+    fn zeichne(&self, t: &T, spurweite: Spurweite) -> Vec<Pfad> {
+        let level_und_trigger = t.aktuelles_level_und_trigger();
         let mut pfade =
             vec![zeichne(spurweite, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)];
         if level_und_trigger.is_some() {
@@ -87,12 +87,8 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         pfade
     }
 
-    fn fülle(
-        &self,
-        anschlüsse: &Anschlüsse2,
-        spurweite: Spurweite,
-    ) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
-        let level_und_trigger = anschlüsse.aktuelles_level_und_trigger();
+    fn fülle(&self, t: &T, spurweite: Spurweite) -> Vec<(Pfad, Option<Farbe>, Transparenz)> {
+        let level_und_trigger = t.aktuelles_level_und_trigger();
         let gleis_pfad = fülle(spurweite, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis);
         let mut pfade = vec![(gleis_pfad, None, Transparenz::Voll)];
         if let Some((Some(level), trigger)) = level_und_trigger {
@@ -111,7 +107,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
 
     fn beschreibung_und_name<'s, 't>(
         &'s self,
-        anschlüsse: &'t Anschlüsse2,
+        t: &'t T,
         spurweite: Spurweite,
     ) -> (Position, Option<&'s str>, Option<&'t str>) {
         (
@@ -122,13 +118,13 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
                 winkel: Winkel(0.),
             },
             self.beschreibung.as_deref(),
-            anschlüsse.name(),
+            t.name(),
         )
     }
 
     fn innerhalb(
         &self,
-        _anschlüsse: &Anschlüsse2,
+        _anschlüsse: &T,
         spurweite: Spurweite,
         relative_position: Vektor,
         ungenauigkeit: Skalar,
@@ -136,12 +132,12 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
         innerhalb(spurweite, self.länge, relative_position, ungenauigkeit)
     }
 
-    fn verbindungen(
-        &self, _anschlüsse: &Anschlüsse2, spurweite: Spurweite
-    ) -> Self::Verbindungen {
+    fn verbindungen(&self, _anschlüsse: &T, spurweite: Spurweite) -> Self::Verbindungen {
         let gleis_links = Skalar(0.);
-        // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+        )]
         let gleis_rechts = gleis_links + self.länge;
         let beschränkung_mitte = spurweite.beschränkung().halbiert();
         Verbindungen {
@@ -157,7 +153,7 @@ impl<Anschlüsse, Anschlüsse2: MitName + MitKontakt> Zeichnen<Anschlüsse2> for
     }
 }
 
-/// Erzeuge das durch die Gleise der Geraden definierte [`Rechteck`]
+/// Erzeuge das durch die Gleise der Geraden definierte [`Rechteck`].
 #[must_use]
 pub(crate) fn rechteck(spurweite: Spurweite, länge: Skalar) -> Rechteck {
     Rechteck::mit_größe(Vektor { x: länge, y: spurweite.beschränkung() })
@@ -198,18 +194,26 @@ fn zeichne_intern<P, A>(
 {
     // Koordinaten
     let gleis_links = Skalar(0.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let beschränkung_unten = beschränkung_oben + spurweite.beschränkung();
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_oben = beschränkung_oben + spurweite.abstand();
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Beschränkungen
     if beschränkungen {
@@ -259,11 +263,15 @@ fn zeichne_kontakt_intern<P, A>(
     // Koordinaten
     let gleis_links = Skalar(0.);
     let beschränkung_oben = Skalar(0.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
     // Kontakt
     erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
@@ -300,15 +308,21 @@ where
 {
     // Koordinaten
     let gleis_links = Skalar(0.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_rechts = gleis_links + länge;
     let beschränkung_oben = Skalar(0.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_oben = beschränkung_oben + spurweite.abstand();
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let gleis_unten = gleis_oben + spurweite.als_skalar();
     // Zeichne Umriss
     erbauer.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
@@ -360,11 +374,15 @@ where
     // Koordinaten
     let gleis_links = Skalar(0.);
     let beschränkung_oben = Skalar(0.);
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let radius = (Skalar(0.5) * spurweite.abstand()).min(&(Skalar(0.25) * länge));
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     let zentrum = Vektor { x: gleis_links + Skalar(3.) * radius, y: beschränkung_oben };
     // Kontakt
     erbauer.arc(Bogen { zentrum, radius, anfang: winkel::ZERO, ende: winkel::TAU }.into());
@@ -384,8 +402,10 @@ pub(crate) fn innerhalb(
     relative_position: Vektor,
     ungenauigkeit: Skalar,
 ) -> Innerhalb {
-    // Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen.
-    #[allow(clippy::arithmetic_side_effects)]
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Wie f32: Schlimmstenfalls kommt es zu Genauigkeits-Problemen."
+    )]
     if (relative_position.x >= Skalar(0.))
         && (relative_position.x <= länge)
         && (relative_position.y >= spurweite.abstand())

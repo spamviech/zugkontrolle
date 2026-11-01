@@ -23,7 +23,6 @@ impl<S: AsRef<str>> UniCaseOrd<S> {
     /// Erstelle einen neuen [`UniCaseOrd`].
     ///
     /// Anmerkung: Dabei wird überprüft, ob der Text nur aus ASCII-Zeichen besteht.
-
     pub fn neu(string: S) -> Self {
         UniCaseOrd(UniCase::new(string))
     }
@@ -31,7 +30,6 @@ impl<S: AsRef<str>> UniCaseOrd<S> {
 
 impl<S> UniCaseOrd<S> {
     /// Erhalte den in [`UniCaseOrd`] enthaltenen Wert.
-
     pub fn into_inner(self) -> S {
         self.0.into_inner()
     }

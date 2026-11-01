@@ -2,6 +2,22 @@
 
 ## Unreleased changes
 
+## 5.1.0
+
+- Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.
+- Zeige bei Geschwindigkeitsauswahl immer die Widgets für eine neue Geschwindigkeit an.
+- Aktualisiere dependencies und rust edition auf 2024.
+  - Erhöhe benötigte glibc Version für Release-Artefakte auf 2.39.
+  - Aktualisiere iced auf `0.14.0`.
+  - Verwende `iced_aw` von [crates.io].
+  - Ersetze `rppal` durch `rpi-pal`.
+  - Aktualisiere `kommandozeilen_argumente` auf `0.3.0`.
+- `input::Pin::lese` gibt direkt `Level` zurück.
+- Neue `Channel`-Varianten `Pwm2` und `Pwm3` für Hardware-Pwm.
+- Das `Bewegen`-Widget zeigt die Richtung an, die gedrückt, oder über die die Maus gehalten wird.
+- Aktualisiere bootstrap icons auf version `v1.13.1`.
+- Extrahiere `zugkontrolle-lizenzen-macros` als eigenes crate.
+
 ## 5.0.0
 
 - Aufteilen in mehrere crates. Dazu waren ein paar Anpassungen notwendig:

@@ -1,6 +1,8 @@
-//! Build-Script für zugkontrolle: erzeuge raspi cfg und setze windows binary icon
+//! Build-Script für zugkontrolle: erzeuge raspi cfg und setze windows binary icon.
 
 use std::env;
+
+use embed_resource::CompilationResult;
 
 fn main() {
     // cfg is for the build script, but we can use the env variables set by cargo
@@ -9,6 +11,12 @@ fn main() {
     let is_windows = env::var("CARGO_CFG_WINDOWS").is_ok();
     if is_windows {
         // Setup windows binary icon
-        embed_resource::compile("resources.rc", embed_resource::NONE);
+        let result = embed_resource::compile("resources.rc", embed_resource::NONE);
+        if !matches!(result, CompilationResult::Ok) {
+            #[expect(clippy::use_debug, reason = "Report diagnostics in build script.")]
+            {
+                println!("cargo::error={result:?}");
+            }
+        }
     }
 }

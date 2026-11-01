@@ -3,16 +3,15 @@
 use std::borrow::Cow;
 
 use iced_core::{
-    event, text as text_core,
+    Element, Length, text as text_core,
     widget::text::{self, Text},
-    Element, Length,
 };
 use iced_widget::{
+    Column, Row, Space,
     button::{self, Button},
     container::{self, Container},
-    rule::{self, Rule},
+    rule,
     scrollable::{self, Scrollable},
-    Column, Row, Space,
 };
 
 use zugkontrolle_lizenzen::{LizenzenMap, TARGET_LIZENZEN};
@@ -22,7 +21,9 @@ use crate::{
     map_mit_zustand::MapMitZustand,
     style::{
         self,
-        linie::{Linie, TRENNLINIE},
+        container::StyleProvider as _,
+        linie::{StyleProvider as _, TRENNLINIE},
+        sammlung,
     },
 };
 
@@ -73,25 +74,24 @@ pub struct Lizenzen<'a, Thema, R>(
 /// Der [`Abstand`](Space) zwischen Widgets in Pixel.
 const PADDING: f32 = 5.;
 /// Die Breite der [`Trennlinie`](Rule) zwischen der Auswahl-Liste und dem aktuell gezeigten Lizenztext.
-const TRENNLINIE_BREITE: u16 = 1;
+const TRENNLINIE_BREITE: u32 = 1;
 
 impl<'a, Thema, R> Lizenzen<'a, Thema, R>
 where
     R: 'a + text_core::Renderer,
     Thema: 'a
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + rule::StyleSheet
-        + text::StyleSheet,
-    <Thema as rule::StyleSheet>::Style: From<Linie>,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
+        + container::Catalog<Class<'a> = style::container::StyleFn<'a, Thema>>
+        + button::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
+        + rule::Catalog<Class<'a> = style::linie::StyleFn<'a, Thema>>
+        + text::Catalog,
+    style::container::Container: style::container::StyleProvider<'a, Thema>,
+    style::linie::Linie: style::linie::StyleProvider<'a, Thema>,
 {
     /// Erstelle ein neues [`Lizenzen`]-Widget mit den verwendeten Lizenzen.
     pub fn neu_mit_verwendeten_lizenzen<ScrollableStyle>(scrollable_style: ScrollableStyle) -> Self
     where
-        ScrollableStyle: 'a + Clone,
-        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+        ScrollableStyle: 'a + Clone + sammlung::StyleProvider<'a, Thema>,
     {
         Self::neu(&TARGET_LIZENZEN, scrollable_style)
     }
@@ -102,21 +102,17 @@ where
         scrollable_style: ScrollableStyle,
     ) -> Self
     where
-        ScrollableStyle: 'a + Clone,
-        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+        ScrollableStyle: 'a + Clone + sammlung::StyleProvider<'a, Thema>,
     {
         let erzeuge_element = move |zustand: &Zustand| -> Element<'a, InterneNachricht, Thema, R> {
             Self::erzeuge_element(zustand, lizenzen, scrollable_style.clone())
         };
-        let mapper = |interne_nachricht, zustand: &mut Zustand, status: &mut event::Status| {
-            *status = event::Status::Captured;
-            match interne_nachricht {
-                InterneNachricht::Aktuell(name, lizenz_text) => {
-                    zustand.aktuell = Some((name, Cow::Borrowed(lizenz_text)));
-                    Vec::new()
-                },
-                InterneNachricht::Schließen => vec![Nachricht::Schließen],
-            }
+        let mapper = |interne_nachricht, zustand: &mut Zustand| match interne_nachricht {
+            InterneNachricht::Aktuell(name, lizenz_text) => {
+                zustand.aktuell = Some((name, Cow::Borrowed(lizenz_text)));
+                Vec::new()
+            },
+            InterneNachricht::Schließen => vec![Nachricht::Schließen],
         };
         Lizenzen(MapMitZustand::neu(Zustand::neu(lizenzen), erzeuge_element, mapper))
     }
@@ -128,7 +124,7 @@ where
         scrollable_style: ScrollableStyle,
     ) -> Element<'a, InterneNachricht, Thema, R>
     where
-        <Thema as scrollable::StyleSheet>::Style: From<ScrollableStyle>,
+        ScrollableStyle: 'a + Clone + sammlung::StyleProvider<'a, Thema>,
     {
         let Zustand { aktuell } = zustand;
         let mut buttons = Column::new().width(Length::Shrink).height(Length::Shrink);
@@ -147,33 +143,34 @@ where
                 }
             });
         }
-        let buttons = Scrollable::new(buttons).height(Length::Fill).style(scrollable_style);
+        let buttons =
+            Scrollable::new(buttons).height(Length::Fill).style(scrollable_style.style_fn());
         let column = Column::new()
             .push(buttons)
-            .push(Space::with_height(Length::Fixed(PADDING)))
+            .push(Space::new().height(Length::Fixed(PADDING)))
             .push(Button::new(Text::new("Schließen")).on_press(InterneNachricht::Schließen))
             .width(Length::Shrink)
             .height(Length::Fill);
         let mut column_aktuell = Column::new().width(Length::Fill).height(Length::Shrink);
         if let Some(aktuell_text) = aktuell_text {
             let text_mit_horizontalem_padding = Row::new()
-                .push(Space::with_width(Length::Fixed(PADDING)))
+                .push(Space::new().width(Length::Fixed(PADDING)))
                 .push(Text::new(aktuell_text).width(Length::Fill).height(Length::Shrink))
-                .push(Space::with_width(Length::Fixed(PADDING)))
+                .push(Space::new().width(Length::Fixed(PADDING)))
                 .width(Length::Fill)
                 .height(Length::Shrink);
             column_aktuell = column_aktuell
-                .push(Space::with_height(Length::Fixed(PADDING)))
+                .push(Space::new().height(Length::Fixed(PADDING)))
                 .push(text_mit_horizontalem_padding)
-                .push(Space::with_height(Length::Fixed(PADDING)));
+                .push(Space::new().height(Length::Fixed(PADDING)));
         }
         let container = Container::new(
             Row::new()
                 .push(column)
-                .push(Rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE))
+                .push(rule::vertical(TRENNLINIE_BREITE).style(TRENNLINIE.style_fn()))
                 .push(Scrollable::new(column_aktuell)),
         )
-        .style(style::container::WEIß);
+        .style(style::container::Container::HintergrundThema.style_fn());
         container.into()
     }
 }
@@ -182,13 +179,11 @@ impl<'a, Thema, R> From<Lizenzen<'a, Thema, R>> for Element<'a, Nachricht, Thema
 where
     R: 'a + text_core::Renderer,
     Thema: 'a
-        + container::StyleSheet
-        + button::StyleSheet
-        + scrollable::StyleSheet
-        + rule::StyleSheet
-        + text::StyleSheet,
-    <Thema as rule::StyleSheet>::Style: From<Linie>,
-    <Thema as container::StyleSheet>::Style: From<style::Container>,
+        + container::Catalog
+        + button::Catalog
+        + scrollable::Catalog
+        + rule::Catalog
+        + text::Catalog,
 {
     fn from(lizenzen: Lizenzen<'a, Thema, R>) -> Self {
         Element::from(lizenzen.0)

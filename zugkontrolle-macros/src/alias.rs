@@ -1,11 +1,11 @@
 //! Erzeuge Type-Alias für das letzte Generic.
 
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::{
-    punctuated::Punctuated, token::Comma, Field, Fields, FieldsNamed, GenericParam, Ident,
-    ItemStruct, Path, PathSegment, Type, TypeParam, TypePath, Visibility,
+    Field, Fields, FieldsNamed, GenericParam, Ident, ItemStruct, Path, PathSegment, Type,
+    TypeParam, TypePath, Visibility, punctuated::Punctuated, token::Comma,
 };
 
 /// Teile Felder in deren Typ der Generic-Ident vorkommt/nicht vorkommt.
@@ -13,21 +13,28 @@ fn partition_generic_fields<'f>(
     generic: &Ident,
     named_fields: &'f Punctuated<Field, Comma>,
 ) -> (Vec<&'f Field>, Vec<&'f Field>) {
-    named_fields.iter().partition(|Field { ty, .. }| {
-        if let Type::Path(TypePath { path: Path { segments, .. }, .. }) = ty {
-            if let Some(PathSegment { ident, .. }) = segments.first() {
-                ident == generic
+    named_fields.iter().partition(
+        |Field { ty, attrs: _, vis: _, modifiers: _, ident: _, colon_token: _, default: _ }| {
+            if let Type::Path(TypePath {
+                path: Path { segments, leading_colon: _ },
+                attrs: _,
+                qself: _,
+            }) = ty
+            {
+                if let Some(PathSegment { ident, arguments: _ }) = segments.first() {
+                    ident == generic
+                } else {
+                    false
+                }
             } else {
                 false
             }
-        } else {
-            false
-        }
-    })
+        },
+    )
 }
 
 /// Erzeuge den [`TokenStream`] für die neuen Definitionen.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments, reason = "Interne Funktion.")]
 fn erzeuge_typ_definitionen(
     crate_ident: &Ident,
     arg: &TokenStream,
@@ -75,7 +82,7 @@ fn erzeuge_typ_definitionen(
         }
 
         impl<#(#params),*> #crate_ident::de_serialisieren::Reserviere<#ident<#(#params),*>> for #serialisiert_ident<#(#params),*> {
-            #[allow(unused_qualifications)]
+            #[expect(unused_qualifications)]
             type MoveArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::MoveArg;
             type RefArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::RefArg;
             type MutRefArg = <Option<#arg> as #crate_ident::de_serialisieren::Reserviere<#default_type>>::MutRefArg;
@@ -89,8 +96,7 @@ fn erzeuge_typ_definitionen(
                 mut_ref_arg: &mut Self::MutRefArg,
             ) -> #crate_ident::de_serialisieren::Ergebnis<#ident<#(#params),*>> {
                 let #ident { #(#other_fields),*, #(#param_fields),* } = self;
-                // #param_fields related über reserviere/konvertiere
-                #[allow(clippy::shadow_unrelated)]
+                #[expect(clippy::shadow_unrelated, reason = "#param_fields related über reserviere/konvertiere")]
                 (#(#param_fields),*)
                     .reserviere(lager, anschlüsse, move_arg, ref_arg, mut_ref_arg)
                     .konvertiere(|(#(#param_fields),*)| {
@@ -123,12 +129,13 @@ fn erzeuge_typ_definitionen(
     }
 }
 
-/// [`crate::alias_serialisiert_unit`]
-#[allow(clippy::single_call_fn)]
+/// Implementierung von [`crate::alias_serialisiert_unit`].
+#[expect(clippy::single_call_fn, reason = "[`crate::alias_serialisiert_unit`]")]
 pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> TokenStream {
     let mut errors = Vec::new();
 
-    let ItemStruct { vis, ident, fields, generics, .. } = &item;
+    let ItemStruct { vis, ident, fields, generics, attrs: _, struct_token: _, semi_token: _ } =
+        &item;
     let mut type_definitionen = None;
 
     if let Ok(zugkontrolle_anschluss) = crate_name("zugkontrolle-anschluss") {
@@ -137,11 +144,17 @@ pub(crate) fn alias_serialisiert_unit(arg: &TokenStream, item: &ItemStruct) -> T
             FoundCrate::Name(name) => format_ident!("{}", name),
         };
         if let Some((
-            GenericParam::Type(TypeParam { ident: generic, default: Some(default_type), .. }),
+            GenericParam::Type(TypeParam {
+                ident: generic,
+                default: Some((_eq, default_type)),
+                attrs: _,
+                colon_token: _,
+                bounds: _,
+            }),
             params,
         )) = generics.params.iter().collect::<Vec<_>>().split_last()
         {
-            if let Fields::Named(FieldsNamed { named, .. }) = fields {
+            if let Fields::Named(FieldsNamed { named, brace_token: _ }) = fields {
                 let (param_fields, other_fields) = partition_generic_fields(generic, named);
                 let param_fields: Vec<_> =
                     param_fields.into_iter().map(|field| &field.ident).collect();

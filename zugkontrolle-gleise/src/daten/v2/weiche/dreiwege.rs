@@ -41,7 +41,7 @@ pub(in crate::daten::v2) struct DreiwegeWeicheSerialisiert {
     länge: Skalar,
     /// Der Radius der Kurven der Weiche.
     radius: Skalar,
-    /// Der Winkel der Kurven der Weiche
+    /// Der Winkel der Kurven der Weiche.
     winkel: Winkel,
     /// Die Beschreibung der Weiche.
     beschreibung: Option<String>,

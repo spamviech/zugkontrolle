@@ -1,8 +1,9 @@
-//! Utility-Module
+//! Utility-Module.
 
 #[path = "eingeschränkt.rs"]
 pub mod eingeschränkt;
 pub mod enumerate_checked;
+pub mod event_status;
 pub mod unicase_ord;
 pub mod void;
 

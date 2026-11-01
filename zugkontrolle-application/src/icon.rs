@@ -18,7 +18,7 @@ pub fn icon() -> Option<Icon> {
     match icon::from_rgba(Vec::from(DATA), WIDTH, HEIGHT) {
         Ok(icon) => Some(icon),
         Err(fehler) => {
-            error!("Fehler beim Konvertieren des Application Icons: {:?}", fehler);
+            error!("Fehler beim Konvertieren des Application Icons: {fehler:?}");
             None
         },
     }

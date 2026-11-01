@@ -1,7 +1,6 @@
 //! Alle Eigenschaften und bekannte Gleise für einen [`Zugtyp`].
 
-// only way to export macros from a module
-#![allow(clippy::pub_use)]
+#![expect(clippy::pub_use, reason = "only way to export macros from a module")]
 
 use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
@@ -27,7 +26,7 @@ pub mod märklin;
 /// Die Definitionen für den Typ `T`.
 pub type DefinitionMap<T> = HashMap<DefinitionId<T>, <T as MitSteuerung>::SelfUnit>;
 
-/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise
+/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
@@ -36,7 +35,7 @@ pub struct Zugtyp<L: Leiter> {
     pub name: String,
     /// Die Leiter-Art des Zugtyps.
     pub leiter: PhantomData<fn() -> L>,
-    /// Spurweite
+    /// [`Spurweite`].
     pub spurweite: Spurweite,
     /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
     pub geraden: DefinitionMap<Gerade>,
@@ -69,7 +68,6 @@ pub struct Zugtyp<L: Leiter> {
 macro_rules! erzeuge_zugtyp_maps {
     ($id_maps: expr => $($gleise: ident : $typ: ty),* $(,)?) => {
         $(
-        #[allow(unused_qualifications)]
         let ($gleise, ids) = $gleise
             .into_iter()
             .fold(
@@ -91,7 +89,6 @@ macro_rules! erzeuge_zugtyp_maps {
         )*
     };
     ($($gleise: ident : $typ: ty | $expect_msg: literal),* $(,)? : $error: ty) => {$(
-        #[allow(unused_qualifications)]
         let $gleise = $gleise
             .into_iter()
             .map(|definition| Ok(($crate::id::DefinitionId::<$typ>::neu()?, definition)) )

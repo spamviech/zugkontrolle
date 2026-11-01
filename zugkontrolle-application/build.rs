@@ -1,4 +1,4 @@
-//! Build-Script für zugkontrolle-application: Query die workspace version
+//! Build-Script für zugkontrolle-application: Query die workspace version.
 
 use std::env;
 
@@ -7,7 +7,17 @@ use cargo_metadata::{Metadata, MetadataCommand};
 fn main() {
     // Make the current workspace version available in normal modules.
     let (zugkontrolle_version, workspace_root) = match MetadataCommand::new().exec() {
-        Ok(Metadata { packages, workspace_root, .. }) => {
+        Ok(Metadata {
+            packages,
+            workspace_root,
+            workspace_members: _,
+            workspace_default_members: _,
+            resolve: _,
+            target_directory: _,
+            build_directory: _,
+            workspace_metadata: _,
+            ..
+        }) => {
             let zugkontrolle_version =
                 match packages.into_iter().find(|package| package.name == "zugkontrolle") {
                     Some(package) => format!("{}", package.version),

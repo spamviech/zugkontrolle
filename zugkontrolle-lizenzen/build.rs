@@ -1,4 +1,4 @@
-//! Build-Script für zugkontrolle-widget: Query das build-target
+//! Build-Script für zugkontrolle-widget: Query das build-target.
 
 use std::env;
 
@@ -14,7 +14,17 @@ fn main() {
     println!("cargo::rerun-if-env-changed=TARGET");
     // Make the current workspace root available in normal modules.
     let workspace_root = match MetadataCommand::new().exec() {
-        Ok(Metadata { workspace_root, .. }) => String::from(workspace_root),
+        Ok(Metadata {
+            workspace_root,
+            packages: _,
+            workspace_members: _,
+            workspace_default_members: _,
+            resolve: _,
+            target_directory: _,
+            build_directory: _,
+            workspace_metadata: _,
+            ..
+        }) => String::from(workspace_root),
         Err(error) => {
             println!("cargo::warning=Error reading workspace_root metadata entry:\n{error}");
             let mut workspace_root = String::from(env!("CARGO_MANIFEST_DIR"));

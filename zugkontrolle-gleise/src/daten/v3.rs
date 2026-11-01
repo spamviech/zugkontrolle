@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fmt::Debug};
 
-use associated_list::{entry::Entry, AssocList};
+use associated_list::{AssocList, entry::Entry};
 use log::error;
 use serde::Deserialize;
 
@@ -56,25 +56,21 @@ pub struct Gleis<T> {
 
 /// Die serialisierte Darstellung aller Gleise, wie sie in Version 3 verwendet wurde.
 #[derive(Debug, Deserialize)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 pub(crate) struct GleiseDatenSerialisiert {
-    #[allow(clippy::missing_docs_in_private_items)]
-    pub(crate) geraden: Vec<Gleis<GeradeSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
-    pub(crate) kurven: Vec<Gleis<KurveSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
-    pub(crate) weichen: Vec<Gleis<WeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
-    pub(crate) dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
-    pub(crate) kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
-    pub(crate) s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
-    #[allow(clippy::missing_docs_in_private_items)]
-    pub(crate) kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
+    pub geraden: Vec<Gleis<GeradeSerialisiert>>,
+    pub kurven: Vec<Gleis<KurveSerialisiert>>,
+    pub weichen: Vec<Gleis<WeicheSerialisiert>>,
+    pub dreiwege_weichen: Vec<Gleis<DreiwegeWeicheSerialisiert>>,
+    pub kurven_weichen: Vec<Gleis<KurvenWeicheSerialisiert>>,
+    pub s_kurven_weichen: Vec<Gleis<SKurvenWeicheSerialisiert>>,
+    pub kreuzungen: Vec<Gleis<KreuzungSerialisiert>>,
 }
 
 impl GleiseDatenSerialisiert {
-    /// Erzeuge ein neues, leeres [`GleiseDatenSerialisiert`]
+    /// Erzeuge ein neues, leeres [`GleiseDatenSerialisiert`].
     pub(crate) const fn neu() -> GleiseDatenSerialisiert {
         GleiseDatenSerialisiert {
             geraden: Vec::new(),
@@ -91,25 +87,21 @@ impl GleiseDatenSerialisiert {
 /// Mapping von der serialisierten Darstellung zur assoziierten [`id::Repräsentation`]
 /// für eine Definition. Verwendet in [`GleiseDatenSerialisiert::v4`].
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct DefinitionMaps {
-    #[allow(clippy::missing_docs_in_private_items)]
     geraden: AssocList<GeradeSerialisiert, (zugkontrolle_id::Repräsentation, GeradeUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kurven: AssocList<KurveSerialisiert, (zugkontrolle_id::Repräsentation, KurveUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
     weichen: AssocList<WeicheSerialisiert, (zugkontrolle_id::Repräsentation, WeicheUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: AssocList<
         DreiwegeWeicheSerialisiert,
         (zugkontrolle_id::Repräsentation, DreiwegeWeicheUnit),
     >,
-    #[allow(clippy::missing_docs_in_private_items)]
     kurven_weichen:
         AssocList<KurvenWeicheSerialisiert, (zugkontrolle_id::Repräsentation, KurvenWeicheUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
     s_kurven_weichen:
         AssocList<SKurvenWeicheSerialisiert, (zugkontrolle_id::Repräsentation, SKurvenWeicheUnit)>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kreuzungen: AssocList<KreuzungSerialisiert, (zugkontrolle_id::Repräsentation, KreuzungUnit)>,
 }
 
@@ -128,27 +120,23 @@ impl DefinitionMaps {
     }
 }
 
-/// Die nächste freie [`id::Repräsentation`] für eine Definition.
+/// Die nächste freie [`zugkontrolle_id::Repräsentation`] für eine Definition.
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct NächsteDefinitionIds {
-    #[allow(clippy::missing_docs_in_private_items)]
     geraden: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kurven: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<zugkontrolle_id::Repräsentation>,
 }
 
 impl NächsteDefinitionIds {
-    /// Erzeuge eine neue [`NächsteDefinitionIds`], die alle mit [`Some(0)`] initialisiert wurden.
+    /// Erzeuge eine neue [`NächsteDefinitionIds`], die alle mit [`Some(0)`](Some) initialisiert wurden.
     fn neu() -> NächsteDefinitionIds {
         NächsteDefinitionIds {
             geraden: Some(0),
@@ -162,29 +150,24 @@ impl NächsteDefinitionIds {
     }
 }
 
-/// Die nächste freie [`id::Repräsentation`] für ein Gleis oder eine Definition.
+/// Die nächste freie [`zugkontrolle_id::Repräsentation`] für ein Gleis oder eine Definition.
 #[derive(Debug)]
+#[allow(clippy::allow_attributes, reason = "unfulfilled_lint_expectations")]
+#[allow(unfulfilled_lint_expectations, reason = "clippy::missing_docs_in_private_items")]
+#[expect(clippy::missing_docs_in_private_items, reason = "Namen sind aussagekräftig genug.")]
 struct NächsteIds {
-    #[allow(clippy::missing_docs_in_private_items)]
     geraden: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kurven: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     dreiwege_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     s_kurven_weichen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     kreuzungen: Option<zugkontrolle_id::Repräsentation>,
-    #[allow(clippy::missing_docs_in_private_items)]
     definitionen: NächsteDefinitionIds,
 }
 
 impl NächsteIds {
-    /// Erzeuge eine neue [`NächsteIds`], die alle mit [`Some(0)`] initialisiert wurden.
+    /// Erzeuge eine neue [`NächsteIds`], die alle mit [`Some(0)`](Some) initialisiert wurden.
     fn neu() -> NächsteIds {
         NächsteIds {
             geraden: Some(0),
@@ -293,15 +276,15 @@ pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> = H
 ))]
 pub(crate) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
-    pub(crate) zugtyp: ZugtypSerialisiert<L>,
+    pub zugtyp: ZugtypSerialisiert<L>,
     /// Gleise ohne einen assoziierten Streckenabschnitt.
-    pub(crate) ohne_streckenabschnitt: GleiseDatenSerialisiert,
+    pub ohne_streckenabschnitt: GleiseDatenSerialisiert,
     /// Streckenabschnitte ohne assoziierte Geschwindigkeit, sowie zugehörige Gleise.
-    pub(crate) ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
+    pub ohne_geschwindigkeit: StreckenabschnittMapSerialisiert,
     /// Geschwindigkeiten und assoziierte Streckenabschnitte und Gleise.
-    pub(crate) geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
+    pub geschwindigkeiten: GeschwindigkeitMapSerialisiert<S>,
     /// Pläne.
-    pub(crate) pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
+    pub pläne: HashMap<plan::Name, PlanSerialisiert<L, S>>,
 }
 
 impl<L: Leiter, S> ZustandSerialisiert<L, S> {

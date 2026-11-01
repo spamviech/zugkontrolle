@@ -21,6 +21,10 @@
     "rust-analyzer.check.command": "clippy",
     "rust-analyzer.lens.enable": false,
     "rust-analyzer.assist.emitMustUse": true,
+    "rust-analyzer.trace.server": "messages",
+    "rust-analyzer.server.extraEnv": {
+        "RA_LOG": "rust_analyzer=info"
+    },
     "rust-analyzer.check.targets": "aarch64-unknown-linux-gnu",
     "rust-analyzer.cargo.features": [
         "raspi",

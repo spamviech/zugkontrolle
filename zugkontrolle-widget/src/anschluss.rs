@@ -4,28 +4,32 @@ use iced_aw::{
     number_input, style, tab_bar,
     widgets::{NumberInput, TabLabel, Tabs},
 };
-use iced_core::{event, text as text_core, widget::Text, Element, Font, Length, Renderer};
+use iced_core::{Element, Font, Length, Renderer, Widget, text as text_core, widget::Text};
 use iced_widget::{
-    container, radio,
+    Column, Container, Radio, Row, Space, container, radio,
     scrollable::{self, Scrollable},
-    text, text_input, Column, Container, Radio, Row, Space,
+    text, text_input,
 };
 use log::error;
 
 use zugkontrolle_anschluss::{
+    InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     level::Level,
-    pcf8574::{self, Beschreibung, I2cBus, Variante},
+    pcf8574::{Beschreibung, I2cBus, Variante},
     pin::pwm,
     polarität::Polarität,
-    InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
 };
 use zugkontrolle_argumente::I2cSettings;
-use zugkontrolle_util::eingeschränkt::{kleiner_8, InvaliderWert};
+use zugkontrolle_util::eingeschränkt::{InvaliderWert, kleiner_8};
 
 use crate::{
     bootstrap::{Bootstrap, Icon},
     map_mit_zustand::MapMitZustand,
-    style::{sammlung::Sammlung, tab_bar::TabBar},
+    style::{
+        container::StyleProvider as _,
+        sammlung::{self, Sammlung, StyleProvider as _},
+        tab_bar::{StyleProvider as _, TabBar},
+    },
 };
 
 /// Welche Tab-Seite wird angezeigt.
@@ -60,7 +64,7 @@ enum InterneNachricht<T> {
     TabSelected(TabId),
     /// Neuer aktuell gewählter Pin.
     Pin(u8),
-    /// Neuer aktuell gewählter I2cBus für einen Pcf8574.
+    /// Neuer aktuell gewählter [`I2cBus`] für einen Pcf8574.
     I2cBus(I2cBus),
     /// Neues aktuell gewähltes A0-Level für einen Pcf8574.
     A0(Level),
@@ -110,19 +114,22 @@ pub struct Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>(
     MapMitZustand<'a, Zustand<Modus>, InterneNachricht<ModusNachricht>, Serialisiert, Thema, R>,
 );
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Thema, R> Auswahl<'a, u8, InputNachricht, InputSerialisiert, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
+        + radio::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
+        + text::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     #[must_use]
@@ -170,8 +177,6 @@ where
         )
     }
 
-    // Alle Argumente benötigt, evtl. Zusammenfassen aller Startwerte in Hilfs-Struct?
-    #[allow(clippy::too_many_arguments)]
     /// Erstelle ein Widget zur Auswahl eines [`InputAnschluss`](crate::anschluss::InputAnschluss).
     fn neu_input_aux(
         active_tab: TabId,
@@ -186,15 +191,13 @@ where
             ZeigeModus::Pcf8574,
             |pin, _beschreibung| {
                 let interrupt_pin_auswahl = Element::from(
-                    NumberInput::new(*pin, 32, InputNachricht::interrupt).width(Length::Fill),
+                    NumberInput::new(pin, 0..=32, InputNachricht::interrupt).width(Length::Fill),
                 );
+                let interrupt_label = Text::new("Interrupt-Pin");
+                let width = Widget::<InputNachricht, Thema, R>::size(&interrupt_label).width;
                 Element::from(
                     Column::new()
-                        .push(
-                            Container::new(Text::new("Interrupt-Pin"))
-                                .width(Length::Fill)
-                                .center_x(),
-                        )
+                        .push(Container::new(interrupt_label).width(Length::Fill).center_x(width))
                         .push(interrupt_pin_auswahl)
                         .width(Length::Fixed(100.)),
                 )
@@ -210,7 +213,7 @@ where
                 active_tab,
                 pin: start_pin.unwrap_or(0),
                 beschreibung: start_beschreibung.unwrap_or(Beschreibung {
-                    i2c_bus: pcf8574::I2cBus::I2c0_1,
+                    i2c_bus: I2cBus::I2c0_1,
                     a0: Level::Low,
                     a1: Level::Low,
                     a2: Level::Low,
@@ -225,19 +228,22 @@ where
     }
 }
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Thema, R> Auswahl<'a, Polarität, OutputNachricht, OutputSerialisiert, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
+        + radio::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
+        + text::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
@@ -328,7 +334,7 @@ where
                 active_tab,
                 pin: start_pin.unwrap_or(0),
                 beschreibung: start_beschreibung.unwrap_or(Beschreibung {
-                    i2c_bus: pcf8574::I2cBus::I2c0_1,
+                    i2c_bus: I2cBus::I2c0_1,
                     a0: Level::Low,
                     a1: Level::Low,
                     a2: Level::Low,
@@ -352,8 +358,6 @@ enum ZeigeModus {
     Pcf8574,
 }
 
-// anonymous lifetimes in `impl Trait` are unstable
-#[allow(single_use_lifetimes)]
 /// Erstelle einen [`Radio`] für alle `elemente` und füge sie zu einem [`Column`] hinzu.
 pub(crate) fn make_radios<'a, 'b, T, M, Thema, R>(
     aktuell: &T,
@@ -364,7 +368,7 @@ where
     T: Eq + Copy,
     M: 'a + Clone,
     R: 'a + text_core::Renderer,
-    Thema: 'a + radio::StyleSheet + text::StyleSheet,
+    Thema: 'a + radio::Catalog + text::Catalog,
     <R as text_core::Renderer>::Font: From<Font>,
 {
     let mut column = Column::new();
@@ -380,6 +384,7 @@ where
     column
 }
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
 where
@@ -387,18 +392,19 @@ where
     ModusNachricht: 'static + Clone,
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
+        + radio::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
+        + text::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
-    // Alle Argumente werden benötigt.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "Alle Argumente werden benötigt.")]
     /// Erzeuge ein neues [`Auswahl`]-Widget.
     fn neu_mit_modus_view(
         zeige_modus: ZeigeModus,
@@ -413,10 +419,7 @@ where
         let erzeuge_element = move |zustand: &Zustand<Modus>| {
             Self::erzeuge_element(zustand, &view_modus, zeige_modus, scrollable_style, settings)
         };
-        let mapper = move |interne_nachricht,
-                           zustand: &mut Zustand<Modus>,
-                           status: &mut event::Status| {
-            *status = event::Status::Captured;
+        let mapper = move |interne_nachricht, zustand: &mut Zustand<Modus>| {
             match interne_nachricht {
                 InterneNachricht::TabSelected(tab) => zustand.active_tab = tab,
                 InterneNachricht::Pin(pin) => zustand.pin = pin,
@@ -449,21 +452,24 @@ where
 /// Wie viel [`Platz`](Space) soll zwischen Widgets eingefügt werden?
 const PADDING: f32 = 2.5;
 
+#[expect(clippy::absolute_paths, reason = "Name collisions.")]
 impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
 where
     ModusNachricht: 'static + Clone,
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + tab_bar::StyleSheet
-        + container::StyleSheet
-        + radio::StyleSheet
-        + scrollable::StyleSheet
-        + text::StyleSheet
-        + text_input::StyleSheet,
-    <Thema as scrollable::StyleSheet>::Style: From<Sammlung>,
-    <Thema as style::tab_bar::StyleSheet>::Style: From<TabBar>,
+        + number_input::Catalog
+        + tab_bar::Catalog<Class<'a> = crate::style::tab_bar::StyleFn<'a, Thema>>
+        + container::Catalog<Class<'a> = crate::style::container::StyleFn<'a, Thema>>
+        + radio::Catalog
+        + scrollable::Catalog<Class<'a> = sammlung::StyleFn<'a, Thema>>
+        + text::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
+    crate::style::container::Container: crate::style::container::StyleProvider<'a, Thema>,
+    Sammlung: sammlung::StyleProvider<'a, Thema>,
+    TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erzeuge die interne Widget-Hierarchie für ein [`Auswahl`]-Widget.
     fn erzeuge_element(
@@ -481,12 +487,15 @@ where
             |level: &Level, als_nachricht: fn(Level) -> InterneNachricht<ModusNachricht>| {
                 make_radios(level, [("H", Level::High), ("L", Level::Low)], als_nachricht)
             };
+        let port_label = Text::new("Port");
+        let port_label_width =
+            Widget::<InterneNachricht<ModusNachricht>, Thema, R>::size(&port_label).width;
         let pcf8574_row = Row::new()
             .push(
                 Scrollable::new(
                     Row::new()
                         .push(Text::new("I2C"))
-                        .push(Space::with_width(Length::Fixed(PADDING)))
+                        .push(Space::new().width(Length::Fixed(PADDING)))
                         .push(make_radios(
                             i2c_bus,
                             [
@@ -500,10 +509,10 @@ where
                             .filter(|(_label, kandidat)| kandidat.aktiviert(settings)),
                             InterneNachricht::I2cBus,
                         ))
-                        .push(Space::with_width(Length::Fixed(scrollable_style.breite()))),
+                        .push(Space::new().width(Length::Fixed(scrollable_style.breite()))),
                 )
                 .height(Length::Fixed(55.))
-                .style(<Thema as scrollable::StyleSheet>::Style::from(scrollable_style)),
+                .style(scrollable_style.style_fn()),
             )
             .push(high_low_column(a0, InterneNachricht::A0))
             .push(high_low_column(a1, InterneNachricht::A1))
@@ -515,10 +524,10 @@ where
             ))
             .push(
                 Column::new()
-                    .push(Container::new(Text::new("Port")).width(Length::Fill).center_x())
+                    .push(Container::new(port_label).width(Length::Fill).center_x(port_label_width))
                     .push(NumberInput::new(
-                        u8::from(*port),
-                        u8::from(kleiner_8::MAX),
+                        &u8::from(*port),
+                        (u8::from(kleiner_8::MIN))..=u8::from(kleiner_8::MAX),
                         InterneNachricht::Port,
                     ))
                     .width(Length::Fixed(75.)),
@@ -530,7 +539,7 @@ where
                     (
                         TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
-                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 0..=32, InterneNachricht::Pin).into(),
                     ),
                     (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
                         pcf8574_row.push(view_modus_mapped).into()
@@ -538,7 +547,7 @@ where
                 ];
                 let tabs = Tabs::new_with_tabs(tabs, InterneNachricht::TabSelected)
                     .set_active_tab(active_tab)
-                    .tab_bar_style(TabBar.into())
+                    .tab_bar_style(TabBar.style_fn())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs)
@@ -548,7 +557,7 @@ where
                     (
                         TabId::Pin,
                         TabLabel::Text("Pin".to_owned()),
-                        NumberInput::new(*pin, 32, InterneNachricht::Pin).into(),
+                        NumberInput::new(pin, 0..=32, InterneNachricht::Pin).into(),
                     ),
                     (TabId::Pcf8574, TabLabel::Text("Pcf8574-Port".to_owned()), {
                         pcf8574_row.into()
@@ -556,13 +565,15 @@ where
                 ];
                 let tabs = Tabs::new_with_tabs(tabs, InterneNachricht::TabSelected)
                     .set_active_tab(active_tab)
-                    .tab_bar_style(TabBar.into())
+                    .tab_bar_style(TabBar.style_fn())
                     .height(Length::Shrink)
                     .width(width);
                 Row::new().push(tabs).push(view_modus_mapped)
             },
         };
-        row.into()
+        let container = Container::new(row)
+            .style(crate::style::container::Container::HintergrundThema.style_fn());
+        container.into()
     }
 }
 
@@ -570,7 +581,7 @@ impl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>
     From<Auswahl<'a, Modus, ModusNachricht, Serialisiert, Thema, R>>
     for Element<'a, Serialisiert, Thema, R>
 where
-    Modus: 'static + Clone,
+    Modus: 'static + Clone + PartialEq,
     ModusNachricht: 'a,
     Serialisiert: 'a,
     Thema: 'a,
@@ -605,10 +616,11 @@ impl<'a, Thema, R> Pwm<'a, Thema, R>
 where
     R: 'a + text_core::Renderer<Font = Font>,
     Thema: 'a
-        + number_input::StyleSheet
-        + text::StyleSheet
-        + container::StyleSheet
-        + text_input::StyleSheet,
+        + number_input::Catalog
+        + text::Catalog
+        + container::Catalog
+        + text_input::Catalog
+        + style::number_input::ExtendedCatalog,
 {
     /// Erstelle ein Widget zur Auswahl eines [`Pwm-Pins`](pwm::Pin).
     pub fn neu(pin: Option<&'a pwm::Pin>) -> Self {
@@ -624,16 +636,11 @@ where
 
     /// Erzeuge die Widget-Hierarchie für ein [`Pwm`]-Widget.
     fn erzeuge_element(zustand: &PwmZustand) -> Element<'a, pwm::Serialisiert, Thema, R> {
-        NumberInput::new(zustand.pin, 32, pwm::Serialisiert).into()
+        NumberInput::new(&zustand.pin, 0..=32, pwm::Serialisiert).into()
     }
 
     /// Konvertiere die interne Nachricht für ein [`Pwm`]-Widget.
-    fn mapper(
-        nachricht: pwm::Serialisiert,
-        zustand: &mut PwmZustand,
-        status: &mut event::Status,
-    ) -> Vec<pwm::Serialisiert> {
-        *status = event::Status::Captured;
+    fn mapper(nachricht: pwm::Serialisiert, zustand: &mut PwmZustand) -> Vec<pwm::Serialisiert> {
         let pwm::Serialisiert(pin) = nachricht;
         zustand.pin = pin;
         vec![nachricht]

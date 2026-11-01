@@ -1,8 +1,6 @@
 //! Dieses Modul definiert alle Märklin-Gleise, die mir zur Verfügung stehen.
 
-use std::{marker::PhantomData, time::Duration};
-
-use once_cell::sync::Lazy;
+use std::{marker::PhantomData, sync::LazyLock, time::Duration};
 
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::{
@@ -28,7 +26,7 @@ use crate::{
 };
 
 /// Alle bekannten Gleise und Eigenschaften für eine Märklin-Eisenbahn.
-static MÄRKLIN: Lazy<Zugtyp<Mittelleiter>> = Lazy::new(|| {
+static MÄRKLIN: LazyLock<Zugtyp<Mittelleiter>> = LazyLock::new(|| {
     let geraden = [
         gerade_5106(),
         gerade_5107(),
@@ -91,7 +89,7 @@ static MÄRKLIN: Lazy<Zugtyp<Mittelleiter>> = Lazy::new(|| {
 });
 
 impl Zugtyp<Mittelleiter> {
-    /// Märklin
+    /// [Märklin](MÄRKLIN).
     #[must_use]
     pub fn märklin() -> &'static Zugtyp<Mittelleiter> {
         &MÄRKLIN
@@ -101,9 +99,9 @@ impl Zugtyp<Mittelleiter> {
 // Märklin Kurven-Radien
 /// Radius für Industrie-Gleise.
 const RADIUS_INDUSTRIE: Radius = Radius::neu(286.);
-/// R1 Kurven-Radius..
+/// R1 Kurven-Radius.
 const RADIUS_R1: Radius = Radius::neu(360.);
-/// R2 Kurven-Radius..
+/// R2 Kurven-Radius.
 const RADIUS_R2: Radius = Radius::neu(437.4);
 
 /*

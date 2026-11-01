@@ -1,7 +1,6 @@
 //! Ids zur Identifikation der Gleise.
 
-// Erlaubt id::Repräsentation
-#![allow(clippy::pub_use)]
+#![expect(clippy::pub_use, reason = "Erlaubt id::Repräsentation")]
 
 use std::{
     cmp::Ordering,
@@ -18,8 +17,6 @@ mod test;
 
 pub use eindeutig::Repräsentation;
 
-// soll direkt importiert werden
-#[allow(clippy::module_name_repetitions)]
 /// Id für ein Gleis.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct GleisId<T: 'static>(Arc<Id<T>>);

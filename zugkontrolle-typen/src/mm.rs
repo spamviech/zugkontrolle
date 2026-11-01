@@ -37,8 +37,10 @@ impl Spurweite {
     /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes.
     #[must_use]
     pub fn abstand(self) -> Skalar {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             self.als_skalar() / Skalar(3.)
         }
@@ -47,8 +49,10 @@ impl Spurweite {
     /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten).
     #[must_use]
     pub fn beschränkung(self) -> Skalar {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             self.als_skalar() + self.abstand().doppelt()
         }
@@ -57,8 +61,10 @@ impl Spurweite {
     /// Innerster Radius (inklusive Beschränkung) einer Kurve.
     #[must_use]
     pub fn radius_begrenzung_innen(self, radius: Skalar) -> Skalar {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             radius - self.als_skalar().halbiert() - self.abstand()
         }
@@ -67,8 +73,10 @@ impl Spurweite {
     /// Äußerster Radius (inklusive Beschränkung) einer Kurve.
     #[must_use]
     pub fn radius_begrenzung_außen(self, radius: Skalar) -> Skalar {
-        // Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie bei f32: Schlimmstenfalls kommt es zu Genauigkeits-Fehlern."
+        )]
         {
             radius + self.als_skalar().halbiert() + self.abstand()
         }
@@ -89,16 +97,16 @@ impl Länge {
 impl Div<Länge> for Länge {
     type Output = f32;
 
-    fn div(self, other: Länge) -> f32 {
-        self.0 / other.0
+    fn div(self, rhs: Länge) -> f32 {
+        self.0 / rhs.0
     }
 }
 
 impl Div<Radius> for Länge {
     type Output = f32;
 
-    fn div(self, other: Radius) -> f32 {
-        self.0 / other.0
+    fn div(self, rhs: Radius) -> f32 {
+        self.0 / rhs.0
     }
 }
 
@@ -116,15 +124,15 @@ impl Radius {
 impl Div<Radius> for Radius {
     type Output = f32;
 
-    fn div(self, other: Radius) -> f32 {
-        self.0 / other.0
+    fn div(self, rhs: Radius) -> f32 {
+        self.0 / rhs.0
     }
 }
 
 impl Div<Länge> for Radius {
     type Output = f32;
 
-    fn div(self, other: Länge) -> f32 {
-        self.0 / other.0
+    fn div(self, rhs: Länge) -> f32 {
+        self.0 / rhs.0
     }
 }

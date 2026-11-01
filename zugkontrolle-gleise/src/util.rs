@@ -1,6 +1,6 @@
 //! Mehrfach verwendete Utility Funktionen.
 
-use iced::{mouse::Cursor, Rectangle};
+use iced::{Rectangle, mouse::Cursor};
 
 use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor};
 
@@ -16,8 +16,10 @@ pub(crate) fn berechne_canvas_position(
     // dafür muss die Position explizit abgezogen werden.
     cursor.position().map(|pos| {
         let relative_position = Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) };
-        // Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt.
-        #[allow(clippy::arithmetic_side_effects)]
+        #[expect(
+            clippy::arithmetic_side_effects,
+            reason = "Wie f32: Schlimmstenfalls wird ein NaN-Wert erzeugt."
+        )]
         {
             pivot.punkt + (relative_position / skalieren).rotiert(&(-pivot.winkel))
         }
