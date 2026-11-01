@@ -4309,7 +4309,7 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[package]]
 name = "zugkontrolle"
-version = "5.1.0"
+version = "5.2.0"
 dependencies = [
  "embed-resource",
  "flexi_logger",
