@@ -2,17 +2,17 @@
 
 #![expect(clippy::pub_use, reason = "only way to export macros from a module")]
 
-use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use zugkontrolle_typen::mm::Spurweite;
-use zugkontrolle_util::eingeschränkt::NichtNegativ;
+use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
     gerade::Gerade,
     id::DefinitionId,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    steuerung::{aktualisieren::MitSteuerung, geschwindigkeit::Leiter},
+    steuerung::{aktualisieren::MitSteuerung, geschwindigkeit::LeiterVariante},
     weiche::{
         dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
     },
@@ -26,15 +26,13 @@ pub mod märklin;
 /// Die Definitionen für den Typ `T`.
 pub type DefinitionMap<T> = HashMap<DefinitionId<T>, <T as MitSteuerung>::SelfUnit>;
 
-/// Spurweite, Leitervariante (als Phantomtyp) und alle bekannten Gleise.
-#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-pub struct Zugtyp<L: Leiter> {
+/// Spurweite, Leitervariante und alle bekannten Gleise.
+#[derive(Debug, Clone)]
+pub struct Zugtyp {
     /// Der Name des Zugtyps.
     pub name: String,
     /// Die Leiter-Art des Zugtyps.
-    pub leiter: PhantomData<fn() -> L>,
+    pub leiter: LeiterVariante,
     /// [`Spurweite`].
     pub spurweite: Spurweite,
     /// Alle unterstützten [`Geraden`](crate::gleis::gerade::Gerade).
@@ -54,11 +52,11 @@ pub struct Zugtyp<L: Leiter> {
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,
     /// Verhältnis von maximaler Fahrspannung zu Überspannung zum Umdrehen.
-    pub verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+    pub verhältnis_fahrspannung_überspannung: NullBisEins,
     /// Zeit zum Anhalten vor dem Umdrehen.
     pub stopp_zeit: Duration,
     /// Zeit die zum Umdrehen verwendete Überspannung anliegt.
-    pub umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+    pub umdrehen_zeit: Duration,
     /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
     pub schalten_zeit: Duration,
 }

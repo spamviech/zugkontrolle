@@ -6,11 +6,16 @@ use serde::Deserialize;
 
 use zugkontrolle_anschluss::{pin::pwm, polarität::Polarität};
 use zugkontrolle_gleis::{
-    steuerung::geschwindigkeit::{self as v4, BekannterLeiter, Mittelleiter, Zweileiter},
+    steuerung::geschwindigkeit::{Mittelleiter, Zweileiter},
     zugtyp::Zugtyp,
 };
 
-use crate::daten::{v2::anschluss::OutputSerialisiert, v3, v4::ZugtypSerialisiert};
+use crate::daten::{
+    v2::anschluss::OutputSerialisiert,
+    v3,
+    v4::geschwindigkeit::{self as v4, BekannterLeiter},
+    v6::ZugtypSerialisiert,
+};
 
 /// Ein unterstützten Leiter, mit über Namen identifizierten Zugtypen. Aktuell:
 /// - [`Mittelleiter`] mit "Märklin".
@@ -65,7 +70,8 @@ impl BekannterZugtyp for Mittelleiter {
     type V2 = MittelleiterSerialisiert;
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
-        (name == "Märklin").then(|| ZugtypSerialisiert::from(Zugtyp::märklin()).v3())
+        (name == "Märklin")
+            .then(|| ZugtypSerialisiert::from(Zugtyp::märklin()).v4_mittelleiter().v3())
     }
 }
 
@@ -122,7 +128,7 @@ impl BekannterZugtyp for Zweileiter {
     type V2 = ZweileiterSerialisiert;
 
     fn bekannter_zugtyp(name: &str) -> Option<v3::zugtyp::ZugtypSerialisiert<Self>> {
-        (name == "Lego").then(|| ZugtypSerialisiert::from(Zugtyp::lego()).v3())
+        (name == "Lego").then(|| ZugtypSerialisiert::from(Zugtyp::lego()).v4_zweileiter().v3())
     }
 }
 

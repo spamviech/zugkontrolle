@@ -7,6 +7,7 @@ use iced::{Element, Renderer};
 use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::id::AnyIdSteuerungSerialisiert;
+use zugkontrolle_gleis::steuerung::geschwindigkeit::{LeiterVariante, Mittelleiter, Zweileiter};
 use zugkontrolle_gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
@@ -74,7 +75,7 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 /// Zustand des Auswahl-Fensters.
 #[expect(clippy::module_name_repetitions, reason = "Beheben benötigt Änderung des public API.")]
 #[derive(Debug, Clone, PartialEq)]
-pub enum AuswahlZustand<S> {
+pub enum AuswahlZustand {
     /// Hinzufügen/Verändern eines [`Streckenabschnittes`](steuerung::streckenabschnitt::Streckenabschnitt).
     Streckenabschnitt(
         Option<(
@@ -84,7 +85,7 @@ pub enum AuswahlZustand<S> {
         )>,
     ),
     /// Hinzufügen/Verändern einer [`Geschwindigkeit`](steuerung::geschwindigkeit::Geschwindigkeit).
-    Geschwindigkeit(Option<(steuerung::geschwindigkeit::Name, GeschwindigkeitSerialisiert<S>)>),
+    Geschwindigkeit(Option<(steuerung::geschwindigkeit::Name, GeschwindigkeitSerialisiert)>),
     /// Hinzufügen/Verändern der Anschlüsse einer [`Geraden`](gleis::gerade::Gerade),
     /// oder [`Kurve`](gleis::kurve::Kurve).
     Kontakt(KontaktId, Option<KontaktSerialisiert>, bool),
@@ -100,7 +101,7 @@ pub enum AuswahlZustand<S> {
     ZeigeLizenzen,
 }
 
-impl<S> From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand<S> {
+impl From<(AnyIdSteuerungSerialisiert, bool)> for AuswahlZustand {
     fn from((wert, hat_steuerung): (AnyIdSteuerungSerialisiert, bool)) -> Self {
         use AnyIdSteuerungSerialisiert::{
             DreiwegeWeiche, Gerade, Kreuzung, Kurve, KurvenWeiche, SKurvenWeiche, Weiche,
@@ -152,20 +153,18 @@ pub type KurvenWeicheNachricht = weiche::Nachricht<
     zugkontrolle_gleis::weiche::kurve::RichtungAnschlüsseSerialisiert,
 >;
 
-impl<S> AuswahlZustand<S> {
+impl AuswahlZustand {
     /// Anzeige des Auswahlfensters.
-    pub fn view<'t, L, Nachricht, AktualisierenNachricht>(
+    pub fn view<'t, Nachricht, AktualisierenNachricht>(
         &self,
-        gleise: &'t Gleise<L, AktualisierenNachricht>,
+        gleise: &'t Gleise<AktualisierenNachricht>,
         scrollable_style: Sammlung,
         i2c_settings: I2cSettings,
     ) -> Element<'t, Nachricht, Thema, Renderer>
     where
-        L: LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
-        S: 'static + Clone + Default,
         Nachricht: 't
             + From<streckenabschnitt::AuswahlNachricht>
-            + From<geschwindigkeit::AuswahlNachricht<S>>
+            + From<geschwindigkeit::AuswahlNachricht>
             + From<(kontakt::Nachricht, KontaktId)>
             + From<(WeicheNachricht, WeichenId)>
             + From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)>
@@ -187,9 +186,20 @@ impl<S> AuswahlZustand<S> {
                     gleise.aus_allen_geschwindigkeiten(|name, geschwindigkeit| {
                         (name.clone(), geschwindigkeit.serialisiere())
                     });
-                Element::from(<L as LeiterAnzeige<S, Thema, Renderer>>::auswahl_neu(
+                let leiter_variante = gleise.zugtyp().leiter;
+                // FIXME vmtl. gibt es eine bessere Implementierung
+                let auswahl_neu = match leiter_variante {
+                    LeiterVariante::Mittelleiter => {
+                        <Mittelleiter as LeiterAnzeige<'t, Thema, Renderer>>::auswahl_neu
+                    },
+                    LeiterVariante::Zweileiter => {
+                        <Zweileiter as LeiterAnzeige<'t, Thema, Renderer>>::auswahl_neu
+                    },
+                };
+                Element::from(auswahl_neu(
                     startwert.as_ref(),
                     geschwindigkeiten,
+                    leiter_variante,
                     scrollable_style,
                     i2c_settings,
                 ))

@@ -4,7 +4,6 @@ use std::{collections::HashMap, fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use zugkontrolle_gleis::steuerung::geschwindigkeit::Leiter;
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::mm::Spurweite;
 use zugkontrolle_util::{
@@ -21,7 +20,7 @@ use crate::daten::{
             s_kurve::SKurvenWeicheUnit,
         },
     },
-    v4,
+    v4::{self, geschwindigkeit::Leiter},
 };
 
 #[expect(

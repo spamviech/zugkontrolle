@@ -71,7 +71,7 @@ pub(crate) struct GleiseVecs<LeiterV2> {
 impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
     TryFrom<GleiseVecs<<L as BekannterZugtyp>::V2>> for v3::ZustandSerialisiert<L, S>
 {
-    type Error = LadenFehler<S>;
+    type Error = LadenFehler;
 
     fn try_from(v2: GleiseVecs<<L as BekannterZugtyp>::V2>) -> Result<Self, Self::Error> {
         let Some(zugtyp) = L::bekannter_zugtyp(&v2.name) else {

@@ -28,7 +28,7 @@ use zugkontrolle_anschluss::{
 };
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::{
-    geschwindigkeit::{self, Leiter},
+    geschwindigkeit,
     streckenabschnitt::{Name, Streckenabschnitt, StreckenabschnittSerialisiert},
 };
 use zugkontrolle_gleise::Gleise;
@@ -209,9 +209,9 @@ where
     style::tab_bar::TabBar: style::tab_bar::StyleProvider<'a, Thema>,
 {
     /// Erstelle eine neue [`Auswahl`].
-    pub fn neu<L: Leiter, AktualisierenNachricht>(
+    pub fn neu<AktualisierenNachricht>(
         startwert: Option<&(Name, StreckenabschnittSerialisiert, Option<geschwindigkeit::Name>)>,
-        gleise: &'a Gleise<L, AktualisierenNachricht>,
+        gleise: &'a Gleise<AktualisierenNachricht>,
         scrollable_style: style::Sammlung,
         settings: I2cSettings,
     ) -> Self {

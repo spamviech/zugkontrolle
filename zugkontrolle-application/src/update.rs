@@ -22,7 +22,7 @@ use zugkontrolle_anschluss::{
 use zugkontrolle_gleis::{
     id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
     steuerung::{
-        geschwindigkeit::{self, BekannterLeiter, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
         plan::{Ausführen, Einstellungen},
         streckenabschnitt::{self, Streckenabschnitt},
     },
@@ -39,12 +39,7 @@ use zugkontrolle_widget::{
 
 use crate::{MessageBox, Nachricht, Zugkontrolle};
 
-impl<L, S> Nachricht<L, S>
-where
-    L: 'static + Leiter + Send,
-    <L as Leiter>::Fahrtrichtung: Send,
-    S: 'static + Send,
-{
+impl Nachricht {
     /// Gebe die Nachricht zurück, nachdem mindestens `dauer` vergangen ist.
     async fn nach_sleep(self, dauer: Duration) -> Self {
         let _ = Timer::after(dauer).await;
@@ -52,12 +47,12 @@ where
     }
 
     /// Erzeuge ein [`Task`], dass die Nachricht nach erst weitergibt, wenn mindestens `dauer` vergangen ist.
-    fn als_sleep_task(self, dauer: Duration) -> Task<Nachricht<L, S>> {
+    fn als_sleep_task(self, dauer: Duration) -> Task<Nachricht> {
         Task::perform(self.nach_sleep(dauer), identity)
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
+impl Zugkontrolle {
     /// Aktualisiere die angezeigte [`MessageBox`].
     ///
     /// Normalerweise für eine Fehlermeldung verwendet.
@@ -70,14 +65,14 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     }
 
     /// Aktualisiere das angezeigte [Auswahl-Fenster](AuswahlZustand), z.B. zum anpassen der Anschlüsse eines Gleises.
-    pub fn aktualisiere_auswahlzustand(&mut self, auswahl_zustand: Option<AuswahlZustand<S>>) {
+    pub fn aktualisiere_auswahlzustand(&mut self, auswahl_zustand: Option<AuswahlZustand>) {
         self.auswahl_zustand = auswahl_zustand;
     }
 
     /// Führe eine Aktion aus.
-    pub fn aktion_ausführen<Aktion: Ausführen<L> + Debug>(&mut self, mut aktion: Aktion)
+    pub fn aktion_ausführen<Aktion: Ausführen + Debug>(&mut self, mut aktion: Aktion)
     where
-        <Aktion as Ausführen<L>>::Fehler: Debug,
+        <Aktion as Ausführen>::Fehler: Debug,
     {
         let einstellungen = Einstellungen::from(self.gleise.zugtyp());
         if let Err(fehler) = aktion.ausführen(einstellungen) {
@@ -89,15 +84,11 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     }
 
     /// Führe eine Aktion asynchron aus, ohne auf das Ergebnis zu warten.
-    pub fn async_aktion_ausführen<Aktion: Ausführen<L> + Debug + Send>(
+    pub fn async_aktion_ausführen<Aktion: Ausführen + Debug + Send>(
         &mut self,
         mut aktion: Aktion,
-        aktualisieren: Option<Nachricht<L, S>>,
-    ) where
-        L: 'static + Send,
-        <L as Leiter>::Fahrtrichtung: Send,
-        S: 'static + Send,
-    {
+        aktualisieren: Option<Nachricht>,
+    ) {
         let join_handle =
             aktion.async_ausführen(Einstellungen::from(self.gleise.zugtyp()), self.sender.clone());
         if let Some(aktualisieren) = aktualisieren {
@@ -279,12 +270,7 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     }
 }
 
-impl<'t, L, S> Zugkontrolle<L, S>
-where
-    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + Send,
-    <L as Leiter>::Fahrtrichtung: Send,
-    S: 'static + Send,
-{
+impl<'t> Zugkontrolle {
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
     pub fn gleis_hinzufügen(
         &mut self,
@@ -367,7 +353,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer> + Display, S> Zugkontrolle<L, S> {
+impl<'t> Zugkontrolle {
     /// Entferne eine [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
@@ -379,16 +365,12 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer> + Display, S> Zugkontrolle<L, 
     }
 }
 
-impl<'t, L, S> Zugkontrolle<L, S>
-where
-    L: Display + LeiterAnzeige<'t, S, Thema, Renderer> + Serialisiere<S>,
-    S: Display + Clone + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
-{
+impl<'t> Zugkontrolle {
     /// Füge eine  [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit: GeschwindigkeitSerialisiert<S>,
+        geschwindigkeit: GeschwindigkeitSerialisiert,
     ) {
         use Ergebnis::{Fehler, Wert, WertMitWarnungen};
         self.aktualisiere_auswahlzustand(Some(AuswahlZustand::Geschwindigkeit(Some((
@@ -473,20 +455,15 @@ where
     }
 }
 
-impl<'t, L, S> Zugkontrolle<L, S>
-where
-    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + Send,
-    <L as Leiter>::Fahrtrichtung: Send,
-    S: 'static + Send,
-{
+impl<'t> Zugkontrolle {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
-    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Task<Nachricht<L, S>> {
+    pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Task<Nachricht> {
         self.bewegung = Some(bewegung);
         Nachricht::BewegungAusführen.als_sleep_task(Duration::from_millis(20))
     }
 
     /// Tick für eine Bewegung des Pivot-Punktes.
-    pub fn bewegung_ausführen(&mut self) -> Option<Task<Nachricht<L, S>>> {
+    pub fn bewegung_ausführen(&mut self) -> Option<Task<Nachricht>> {
         if let Some(bewegung) = self.bewegung {
             self.bewegung = Some(bewegung);
             self.gleise.bewege_pivot(
@@ -505,7 +482,7 @@ where
     }
 }
 
-impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
+impl<'t> Zugkontrolle {
     /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [`update`](Gleise::update)-Methode.
     pub fn gleise_zustand_aktualisieren(&mut self, nachricht: ZustandAktualisieren) {
         if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
@@ -517,16 +494,9 @@ impl<'t, L: LeiterAnzeige<'t, S, Thema, Renderer>, S> Zugkontrolle<L, S> {
     }
 }
 
-impl<'t, L, S> Zugkontrolle<L, S>
-where
-    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + BekannterLeiter + Serialisiere<S> + Send,
-    S: 'static + Serialize + Send,
-    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
-    <L as Leiter>::UmdrehenZeit: Serialize,
-    <L as Leiter>::Fahrtrichtung: Clone + Serialize + Send,
-{
+impl<'t> Zugkontrolle {
     /// Speicher den aktuellen Zustand in einer Datei.
-    pub fn speichern(&mut self, pfad: String) -> Task<Nachricht<L, S>> {
+    pub fn speichern(&mut self, pfad: String) -> Task<Nachricht> {
         let ergebnis = self.gleise.speichern(&pfad);
         let speicher_zeit = Instant::now();
         self.speichern_gefärbt = Some((ergebnis.is_ok(), speicher_zeit));
@@ -541,30 +511,9 @@ where
     }
 }
 
-impl<'t, L, S> Zugkontrolle<L, S>
-where
-    L: 'static + LeiterAnzeige<'t, S, Thema, Renderer> + Send,
-    <L as Leiter>::Fahrtrichtung: Send,
-    S: 'static + Send,
-{
+impl Zugkontrolle {
     /// Lade einen neuen Zustand aus einer Datei.
-    pub fn laden(&mut self, pfad: String)
-    where
-        L: BekannterLeiter + Serialisiere<S>,
-        <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
-        <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
-        <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-        S: Debug
-            + Clone
-            + Eq
-            + Hash
-            + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
-            + for<'de> Deserialize<'de>,
-        // zusätzliche Constraints für v2-Kompatibilität
-        L: BekannterZugtyp,
-        S: From<<L as BekannterZugtyp>::V2>,
-        <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
-    {
+    pub fn laden(&mut self, pfad: String) {
         let lade_ergebnis = self.gleise.laden(&mut self.lager.write(), &pfad);
         self.streckenabschnitt_aktuell = None;
         if let Err(fehler) = lade_ergebnis {

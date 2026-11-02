@@ -20,8 +20,11 @@ use zugkontrolle_gleis::{
     id::{AnyDefinitionId, DefinitionId},
     kreuzung::Kreuzung,
     kurve::Kurve,
-    steuerung::aktualisieren::MitSteuerung,
-    steuerung::{geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName},
+    steuerung::{
+        aktualisieren::MitSteuerung,
+        geschwindigkeit::{Leiter, LeiterVariante, Mittelleiter, Zweileiter},
+        streckenabschnitt::Name as StreckenabschnittName,
+    },
     weiche::{
         dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
     },
@@ -59,10 +62,10 @@ where
     R: 't + iced_core::Renderer,
 {
     /// Erzeuge ein [ge`map`tes Element](Element::map).
-    fn mit_teil_nachricht<L: 'static + LeiterAnzeige<'t, S, Thema, R>, S: 'static>(
+    fn mit_teil_nachricht(
         self,
-        konstruktor: impl Fn(Msg) -> Nachricht<L, S> + 'static,
-    ) -> Element<'t, Nachricht<L, S>, Thema, R> {
+        konstruktor: impl Fn(Msg) -> Nachricht + 'static,
+    ) -> Element<'t, Nachricht, Thema, R> {
         self.into().map(konstruktor)
     }
 }
@@ -76,14 +79,9 @@ where
 {
 }
 
-impl<L, S> Zugkontrolle<L, S>
-where
-    L: 'static + Debug + Serialisiere<S> + for<'t> LeiterAnzeige<'t, S, Thema, Renderer> + Send,
-    <L as Leiter>::Fahrtrichtung: Clone + Send,
-    S: 'static + Clone + Default + PartialEq + Send,
-{
+impl Zugkontrolle {
     /// [view](iced::Application::view)-Methode für [`Zugkontrolle`].
-    pub(crate) fn view_impl(&self) -> Element<'_, Nachricht<L, S>, Thema, Renderer> {
+    pub(crate) fn view_impl(&self) -> Element<'_, Nachricht, Thema, Renderer> {
         let Zugkontrolle {
             gleise,
             scrollable_style,
@@ -131,7 +129,7 @@ where
                 .push(Element::from(row_mit_scrollable_und_canvas)),
         );
 
-        let zeige_auswahlzustand = |modal: &AuswahlZustand<S>| {
+        let zeige_auswahlzustand = |modal: &AuswahlZustand| {
             AuswahlZustand::view(modal, gleise, *scrollable_style, *i2c_settings)
         };
         let passthrough_event = |event: &Event| {
@@ -194,7 +192,7 @@ const SKALIEREN_BREITE: f32 = 75.;
 
 #[expect(clippy::too_many_arguments, reason = "Interne Methode, alle Argumente benötigt.")]
 /// Erzeuge die Widgets für die Kopfleiste.
-fn top_row<'t, L, S>(
+fn top_row<'t>(
     aktueller_modus: Modus,
     streckenabschnitt_aktuell: Option<&'t (StreckenabschnittName, Farbe)>,
     streckenabschnitt_festlegen: &'t bool,
@@ -204,12 +202,7 @@ fn top_row<'t, L, S>(
     aktuelles_thema: Thema,
     initialer_pfad: &'t str,
     speichern_gefärbt: Option<bool>,
-) -> Row<'t, Nachricht<L, S>, Thema, Renderer>
-where
-    L: 'static + Debug + LeiterAnzeige<'t, S, Thema, Renderer>,
-    <L as Leiter>::Fahrtrichtung: Clone,
-    S: 'static + Clone,
-{
+) -> Row<'t, Nachricht, Thema, Renderer> {
     let modus_pick_list =
         PickList::new(all::<Modus>().collect_vec(), Some(aktueller_modus), NachrichtClone::Modus);
     let thema_pick_list =
@@ -274,14 +267,12 @@ where
 }
 
 /// Füge für jedes Element der [`DefinitionMap`] einen [`Knopf`] zum `scrollable_column` hinzu.
-fn knöpfe_hinzufügen<'t, L, S, R, T>(
+fn knöpfe_hinzufügen<'t, T>(
     spurweite: Spurweite,
     max_breite: Option<f32>,
-    scrollable_column: &mut Column<'t, NachrichtClone<L, S>, Thema, Renderer>,
+    scrollable_column: &mut Column<'t, NachrichtClone, Thema, Renderer>,
     buttons: &'t DefinitionMap<T>,
 ) where
-    L: 'static + LeiterAnzeige<'t, S, Thema, R>,
-    S: 'static,
     T: MitSteuerung,
     DefinitionId<T>: Into<AnyDefinitionId>,
     <T as MitSteuerung>::SelfUnit: Zeichnen<()> + Clone,
@@ -299,12 +290,12 @@ fn knöpfe_hinzufügen<'t, L, S, R, T>(
 }
 
 /// Erzeuge die Seitenleiste.
-fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S: 'static>(
+fn row_mit_scrollable<'t>(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
-    gleise: &'t Gleise<L, Nachricht<L, S>>,
-) -> Row<'t, Nachricht<L, S>, Thema, Renderer> {
-    let mut scrollable_column: Column<'_, NachrichtClone<_, _>, Thema, Renderer> = Column::new();
+    gleise: &'t Gleise<Nachricht>,
+) -> Row<'t, Nachricht, Thema, Renderer> {
+    let mut scrollable_column: Column<'_, NachrichtClone, Thema, Renderer> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;
 
@@ -315,7 +306,7 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
             macro_rules! knöpfe_hinzufügen {
                 ($($map: expr => $type: ty),* $(,)?) => {
                     max_breite_berechnen!($($map),*);
-                    $(knöpfe_hinzufügen::<L, S, _, $type>(gleise.spurweite(), max_breite, &mut scrollable_column, $map);)*
+                    $(knöpfe_hinzufügen::<$type>(gleise.spurweite(), max_breite, &mut scrollable_column, $map);)*
                 }
             }
             /// Berechne die maximale Breite aller Knöpfe.
@@ -347,10 +338,19 @@ fn row_mit_scrollable<'t, L: 'static + LeiterAnzeige<'t, S, Thema, Renderer>, S:
         },
         Modus::Fahren => {
             scrollable_column = scrollable_column.push(Text::new("Geschwindigkeiten")).spacing(1);
+            // FIXME vmtl. gibt es eine bessere Implementierung
+            let anzeige_neu = match gleise.zugtyp().leiter {
+                LeiterVariante::Mittelleiter => {
+                    <Mittelleiter as LeiterAnzeige<'t, Thema, Renderer>>::anzeige_neu
+                },
+                LeiterVariante::Zweileiter => {
+                    <Zweileiter as LeiterAnzeige<'t, Thema, Renderer>>::anzeige_neu
+                },
+            };
             gleise.mit_allen_geschwindigkeiten(|name, geschwindigkeit| {
                 take_mut::take(&mut scrollable_column, |scrollable_column| {
                     scrollable_column.push(
-                        Element::from(L::anzeige_neu(name, geschwindigkeit))
+                        Element::from(anzeige_neu(name, geschwindigkeit))
                             .map(NachrichtClone::AktionGeschwindigkeit),
                     )
                 });

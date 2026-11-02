@@ -10,11 +10,7 @@ use zugkontrolle_gleis::{
     gerade::{Gerade, GeradeUnit},
     kreuzung::{Kreuzung, KreuzungUnit},
     kurve::{Kurve, KurveUnit},
-    steuerung::{
-        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
-        plan::{self, PlanSerialisiert},
-        streckenabschnitt::{self, StreckenabschnittSerialisiert},
-    },
+    steuerung::streckenabschnitt::{self, StreckenabschnittSerialisiert},
     weiche::{
         dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
         gerade::{Weiche, WeicheUnit},
@@ -36,7 +32,11 @@ use crate::daten::{
         },
         zugtyp::ZugtypSerialisiert,
     },
-    v4,
+    v4::{
+        self,
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
+        plan::{self, PlanSerialisiert},
+    },
 };
 
 pub mod gerade;

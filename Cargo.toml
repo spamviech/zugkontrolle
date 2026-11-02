@@ -1,6 +1,6 @@
 [package]
 name = "zugkontrolle"
-version = "5.2.0"
+version = "6.0.0"
 authors.workspace = true
 readme.workspace = true
 edition.workspace = true
@@ -262,7 +262,7 @@ version = "2.0.0"
 
 [workspace.dependencies.zugkontrolle-application]
 path = "zugkontrolle-application"
-version = "2.0.0"
+version = "3.0.0"
 
 [workspace.dependencies.zugkontrolle-argumente]
 path = "zugkontrolle-argumente"
@@ -270,11 +270,11 @@ version = "1.1.0"
 
 [workspace.dependencies.zugkontrolle-gleis]
 path = "zugkontrolle-gleis"
-version = "2.0.0"
+version = "3.0.0"
 
 [workspace.dependencies.zugkontrolle-gleise]
 path = "zugkontrolle-gleise"
-version = "2.0.1"
+version = "3.0.0"
 
 [workspace.dependencies.zugkontrolle-id]
 path = "zugkontrolle-id"
@@ -307,7 +307,7 @@ version = "1.1.0"
 
 [workspace.dependencies.zugkontrolle-widget]
 path = "zugkontrolle-widget"
-version = "2.0.0"
+version = "3.0.0"
 
 [workspace.dependencies]
 associated_list = "0.2.0"

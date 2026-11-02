@@ -1,6 +1,6 @@
 //! Serialisierte Strukturen von Version 4.X.
 
-use std::{collections::HashMap, fmt::Debug, time::Duration};
+use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,8 +10,7 @@ use zugkontrolle_gleis::{
     kurve::{Kurve, KurveUnit},
     steuerung::{
         aktualisieren::MitSteuerung,
-        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
-        plan::{self, PlanSerialisiert},
+        geschwindigkeit::{Mittelleiter, Zweileiter},
         streckenabschnitt::{self, StreckenabschnittSerialisiert},
     },
     weiche::{
@@ -23,6 +22,17 @@ use zugkontrolle_gleis::{
 };
 use zugkontrolle_typen::{canvas::Position, mm::Spurweite};
 use zugkontrolle_util::eingeschränkt::NichtNegativ;
+
+use crate::daten::{
+    v4::{
+        geschwindigkeit::{GeschwindigkeitSerialisiert, Leiter},
+        plan::PlanSerialisiert,
+    },
+    v6,
+};
+
+pub mod geschwindigkeit;
+pub mod plan;
 
 /// Streckenabschnitte und ihre Namen.
 pub(in crate::daten) type StreckenabschnittMapSerialisiert = HashMap<
@@ -154,4 +164,50 @@ pub struct ZugtypSerialisiert<L: Leiter> {
     pub umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
     /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
     pub schalten_zeit: Duration,
+}
+
+impl v6::ZugtypSerialisiert {
+    /// Konvertiere in die serialisierbare Darstellung eines [`Zugtyp`],
+    /// wie er in Version 3 verwendet wird.
+    pub(crate) fn v4_mittelleiter(self) -> ZugtypSerialisiert<Mittelleiter> {
+        ZugtypSerialisiert {
+            name: self.name,
+            leiter: self.leiter,
+            spurweite: self.spurweite,
+            geraden: self.geraden,
+            kurven: self.kurven,
+            weichen: self.weichen,
+            dreiwege_weichen: self.dreiwege_weichen,
+            kurven_weichen: self.kurven_weichen,
+            s_kurven_weichen: self.s_kurven_weichen,
+            kreuzungen: self.kreuzungen,
+            pwm_frequenz: self.pwm_frequenz,
+            verhältnis_fahrspannung_überspannung: self.verhältnis_fahrspannung_überspannung,
+            stopp_zeit: self.stopp_zeit,
+            umdrehen_zeit: self.umdrehen_zeit,
+            schalten_zeit: self.schalten_zeit,
+        }
+    }
+
+    /// Konvertiere in die serialisierbare Darstellung eines [`Zugtyp`],
+    /// wie er in Version 3 verwendet wird.
+    pub(crate) fn v4_zweileiter(self) -> ZugtypSerialisiert<Zweileiter> {
+        ZugtypSerialisiert {
+            name: self.name,
+            leiter: self.leiter,
+            spurweite: self.spurweite,
+            geraden: self.geraden,
+            kurven: self.kurven,
+            weichen: self.weichen,
+            dreiwege_weichen: self.dreiwege_weichen,
+            kurven_weichen: self.kurven_weichen,
+            s_kurven_weichen: self.s_kurven_weichen,
+            kreuzungen: self.kreuzungen,
+            pwm_frequenz: self.pwm_frequenz,
+            verhältnis_fahrspannung_überspannung: PhantomData,
+            stopp_zeit: self.stopp_zeit,
+            umdrehen_zeit: PhantomData,
+            schalten_zeit: self.schalten_zeit,
+        }
+    }
 }

@@ -2,6 +2,9 @@
 
 ## Unreleased changes
 
+- Ersetzte Zugtyp/Leiter Typ-Parameter durch `enum`.
+  - Dadurch wird ein neues Speicherformat benötigt.
+
 ## 5.1.0
 
 - Füge fehlende schließende Klammer in der `Display`-Implementierung für Input/OutputAnschluss hinzu.

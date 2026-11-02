@@ -1,20 +1,20 @@
 //! Dieses Modul definiert alle Lego (9V) Gleise, die ich zur Verfügung habe.
 
-use std::{f32::consts::PI, marker::PhantomData, sync::LazyLock, time::Duration};
+use std::{f32::consts::PI, sync::LazyLock, time::Duration};
 
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::{
     mm::{Länge, Radius, Spurweite},
     winkel::Winkel,
 };
-use zugkontrolle_util::eingeschränkt::NichtNegativ;
+use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
     erzeuge_zugtyp_maps,
     gerade::{Gerade, GeradeUnit},
     kreuzung::{self, Kreuzung, KreuzungUnit},
     kurve::{Kurve, KurveUnit},
-    steuerung::geschwindigkeit::Zweileiter,
+    steuerung::geschwindigkeit::LeiterVariante,
     weiche::{
         dreiwege::DreiwegeWeiche,
         gerade::Weiche,
@@ -26,7 +26,7 @@ use crate::{
 };
 
 /// Alle bekannten Gleise und Eigenschaften für eine Lego-Eisenbahn.
-static LEGO: LazyLock<Zugtyp<Zweileiter>> = LazyLock::new(|| {
+static LEGO: LazyLock<Zugtyp> = LazyLock::new(|| {
     let geraden = [gerade()];
     let kurven = [kurve()];
     let weichen = [];
@@ -46,7 +46,7 @@ static LEGO: LazyLock<Zugtyp<Zweileiter>> = LazyLock::new(|| {
     );
     Zugtyp {
         name: String::from("Lego"),
-        leiter: PhantomData,
+        leiter: LeiterVariante::Zweileiter,
         spurweite: Spurweite::neu(38.),
         geraden,
         kurven,
@@ -56,17 +56,17 @@ static LEGO: LazyLock<Zugtyp<Zweileiter>> = LazyLock::new(|| {
         s_kurven_weichen,
         kreuzungen,
         pwm_frequenz: NichtNegativ::neu_unchecked(50.),
-        verhältnis_fahrspannung_überspannung: PhantomData,
+        verhältnis_fahrspannung_überspannung: NullBisEins::neu_unchecked(1.),
         stopp_zeit: Duration::from_millis(500),
-        umdrehen_zeit: PhantomData,
+        umdrehen_zeit: Duration::ZERO,
         schalten_zeit: Duration::from_millis(400),
     }
 });
 
-impl Zugtyp<Zweileiter> {
+impl Zugtyp {
     /// [Lego](LEGO).
     #[must_use]
-    pub fn lego() -> &'static Zugtyp<Zweileiter> {
+    pub fn lego() -> &'static Zugtyp {
         &LEGO
     }
 }

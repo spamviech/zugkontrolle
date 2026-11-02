@@ -15,14 +15,14 @@ use zugkontrolle_anschluss::{
     OutputAnschluss, OutputSerialisiert, de_serialisieren::Serialisiere, polarität::Fließend,
 };
 use zugkontrolle_typen::nachschlagen::Nachschlagen;
-use zugkontrolle_util::eingeschränkt::NichtNegativ;
+use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
     steuerung::{
         self,
         aktualisieren::{Aktualisieren, Steuerung},
         geschwindigkeit::{
-            self, AsyncAktion, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
+            self, AsyncAktion, Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
         },
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
@@ -52,25 +52,21 @@ pub enum AsyncNachricht {
 
 /// Einstellungen, die das [`Ausführen`] von Aktionen beeinflussen.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-#[zugkontrolle_clone(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Clone)]
-#[zugkontrolle_clone(<L as Leiter>::UmdrehenZeit: Clone)]
-pub struct Einstellungen<L: Leiter> {
+pub struct Einstellungen {
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,
     /// Verhältnis von maximaler Fahrspannung zu Überspannung zum Umdrehen.
-    pub verhältnis_fahrspannung_überspannung: <L as Leiter>::VerhältnisFahrspannungÜberspannung,
+    pub verhältnis_fahrspannung_überspannung: NullBisEins,
     /// Zeit zum Anhalten vor dem Umdrehen.
     pub stopp_zeit: Duration,
     /// Zeit die zum Umdrehen verwendete Überspannung anliegt.
-    pub umdrehen_zeit: <L as Leiter>::UmdrehenZeit,
+    pub umdrehen_zeit: Duration,
     /// Zeit die Spannung an Weichen anliegt um diese zu schalten.
     pub schalten_zeit: Duration,
 }
 
-impl<L: Leiter> From<Zugtyp<L>> for Einstellungen<L> {
-    fn from(zugtyp: Zugtyp<L>) -> Self {
+impl From<Zugtyp> for Einstellungen {
+    fn from(zugtyp: Zugtyp) -> Self {
         let Zugtyp {
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
@@ -87,7 +83,7 @@ impl<L: Leiter> From<Zugtyp<L>> for Einstellungen<L> {
             kurven_weichen: _,
             s_kurven_weichen: _,
             kreuzungen: _,
-        }: Zugtyp<L> = zugtyp;
+        } = zugtyp;
         Einstellungen {
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
@@ -98,8 +94,8 @@ impl<L: Leiter> From<Zugtyp<L>> for Einstellungen<L> {
     }
 }
 
-impl<L: Leiter> From<&Zugtyp<L>> for Einstellungen<L> {
-    fn from(zugtyp: &Zugtyp<L>) -> Self {
+impl From<&Zugtyp> for Einstellungen {
+    fn from(zugtyp: &Zugtyp) -> Self {
         let Zugtyp {
             pwm_frequenz,
             verhältnis_fahrspannung_überspannung,
@@ -128,7 +124,7 @@ impl<L: Leiter> From<&Zugtyp<L>> for Einstellungen<L> {
 }
 
 /// Etwas ausführbares.
-pub trait Ausführen<L: Leiter> {
+pub trait Ausführen {
     /// Mögliche Fehler, die beim ausführen auftreten können.
     type Fehler;
 
@@ -137,13 +133,13 @@ pub trait Ausführen<L: Leiter> {
     /// ## Errors
     ///
     /// Fehler beim Ausführen. Details hängen vom implementierenden Typ ab.
-    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler>;
+    fn ausführen(&mut self, einstellungen: Einstellungen) -> Result<(), Self::Fehler>;
 
     /// Erstelle einen neuen Thread aus und führe es dort aus.
     /// Wenn ein Fehler auftritt wird dieser über den Channel gesendet.
     fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
-        einstellungen: Einstellungen<L>,
+        einstellungen: Einstellungen,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()>;
 }
@@ -187,16 +183,16 @@ pub(crate) use async_ausführen;
 /// Implementiere ausführen, unter der Annahme, dass der Typ eine `ausführen`-Methode ohne weitere Argumente implementiert.
 macro_rules! impl_ausführen_simple {
     ($type: ty, $ausführen: ident, $fehler: ty, $aktion_beschreibung: expr) => {
-        impl<L: Leiter> Ausführen<L> for $type {
+        impl Ausführen for $type {
             type Fehler = $fehler;
 
-            fn ausführen(&mut self, _einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
+            fn ausführen(&mut self, _einstellungen: Einstellungen) -> Result<(), Self::Fehler> {
                 self.$ausführen()
             }
 
             fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
                 &mut self,
-                _einstellungen: Einstellungen<L>,
+                _einstellungen: Einstellungen,
                 sender: Sender<Nachricht>,
             ) -> JoinHandle<()> {
                 let erzeuge_fehler_nachricht = |clone, fehler| {
@@ -230,7 +226,7 @@ pub struct PlanEnum<Aktion> {
 }
 
 /// Ein Fahrplan.
-pub type Plan<L> = PlanEnum<Aktion<L>>;
+pub type Plan = PlanEnum<Aktion>;
 
 /// Fehler beim Ausführen eines Plans.
 #[derive(Debug)]
@@ -241,19 +237,10 @@ pub struct Fehler {
     pub aktion: usize,
 }
 
-impl<L: Leiter> Ausführen<L> for Plan<L>
-where
-    L: 'static + Leiter + Send + Debug,
-    <L as Leiter>::Fahrtrichtung: Debug + Clone + Send,
-    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
-    <L as Leiter>::UmdrehenZeit: Send,
-{
+impl Ausführen for Plan {
     type Fehler = Fehler;
 
-    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler>
-    where
-        L: Leiter,
-    {
+    fn ausführen(&mut self, einstellungen: Einstellungen) -> Result<(), Self::Fehler> {
         let Plan { aktionen, endlosschleife } = self;
         let mut erstes = true;
         while erstes || *endlosschleife {
@@ -269,7 +256,7 @@ where
 
     fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
-        einstellungen: Einstellungen<L>,
+        einstellungen: Einstellungen,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         let erzeuge_fehler_nachricht = |clone, fehler| {
@@ -292,16 +279,11 @@ where
     reason = "Verwende Konvention TypName->TypNameSerialisiert"
 )]
 /// Serialisierbare Repräsentation eines Fahrplans.
-pub type PlanSerialisiert<L, S> = PlanEnum<AktionSerialisiert<L, S>>;
+pub type PlanSerialisiert = PlanEnum<AktionSerialisiert>;
 
-impl<L: Leiter> Plan<L> {
+impl Plan {
     /// Serialisiere einen [`Plan`].
-    pub fn serialisiere<S>(&self) -> PlanSerialisiert<L, S>
-    where
-        L: Serialisiere<S>,
-        <L as Leiter>::Fahrtrichtung: Clone,
-        S:,
-    {
+    pub fn serialisiere(&self) -> PlanSerialisiert {
         let Plan { aktionen, endlosschleife } = self;
         PlanSerialisiert {
             aktionen: aktionen.iter().map(Aktion::serialisiere).collect(),
@@ -334,8 +316,8 @@ pub(crate) type DreiwegeWeicheSerialisiert = WeicheSerialisiert<
 /// Mapping von der Zahl aus der serialisierten Darstellung zur jeweiligen Gleis-Steuerung.
 #[derive(Debug)]
 #[expect(missing_docs, reason = "Namen sind selbsterklärend.")]
-pub struct SteuerungMaps<L, S> {
-    pub geschwindigkeiten: HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
+pub struct SteuerungMaps {
+    pub geschwindigkeiten: HashMap<GeschwindigkeitSerialisiert, Geschwindigkeit>,
     pub streckenabschnitte: HashMap<OutputSerialisiert, Streckenabschnitt>,
     pub gerade_weichen: HashMap<GeradeWeicheSerialisiert, GeradeWeiche>,
     pub dreiwege_weichen: HashMap<DreiwegeWeicheSerialisiert, DreiwegeWeiche>,
@@ -343,10 +325,10 @@ pub struct SteuerungMaps<L, S> {
     pub kontakte: HashMap<KontaktSerialisiert, Kontakt>,
 }
 
-impl<L, S> SteuerungMaps<L, S> {
+impl SteuerungMaps {
     /// Erzeuge eine neue, leere [`SteuerungMaps`].
     #[must_use]
-    pub fn neu() -> SteuerungMaps<L, S> {
+    pub fn neu() -> SteuerungMaps {
         SteuerungMaps {
             geschwindigkeiten: HashMap::new(),
             streckenabschnitte: HashMap::new(),
@@ -360,9 +342,9 @@ impl<L, S> SteuerungMaps<L, S> {
 
 /// Serialisierbare Repräsentation der nicht bekannten Anschlüsse.
 #[derive(Debug, Clone, zugkontrolle_macros::From)]
-pub enum UnbekannteAnschlüsse<S> {
+pub enum UnbekannteAnschlüsse {
     /// Anschlüsse eine [`Geschwindigkeit`].
-    Geschwindigkeit(UnbekannteGeschwindigkeit<S>),
+    Geschwindigkeit(UnbekannteGeschwindigkeit),
     /// Anschlüsse eines [`Streckenabschnittes`](Streckenabschnitt).
     Streckenabschnitte(UnbekannterStreckenabschnitt),
     /// Anschlüsse einer [`Weiche`].
@@ -371,7 +353,7 @@ pub enum UnbekannteAnschlüsse<S> {
     Kontakt(UnbekannterKontakt),
 }
 
-impl<L: Leiter, S: Eq + Hash> PlanSerialisiert<L, S> {
+impl PlanSerialisiert {
     /// Deserialisiere einen [`Plan`].
     ///
     /// ## Errors
@@ -379,9 +361,9 @@ impl<L: Leiter, S: Eq + Hash> PlanSerialisiert<L, S> {
     /// Fehler beim [`Deserialisieren`](Aktion::deserialisiere) einer [`Aktion`].
     pub fn deserialisiere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
-        bekannte_steuerungen: &SteuerungMaps<L, S>,
+        bekannte_steuerungen: &SteuerungMaps,
         sender: &Sender<Nachricht>,
-    ) -> Result<Plan<L>, UnbekannteAnschlüsse<S>> {
+    ) -> Result<Plan, UnbekannteAnschlüsse> {
         let PlanSerialisiert { aktionen: aktionen_serialisiert, endlosschleife } = self;
         let mut aktionen = Vec::new();
         for aktion in aktionen_serialisiert {
@@ -408,8 +390,8 @@ pub enum AktionEnum<Geschwindigkeit, Streckenabschnitt, Schalten, Warten> {
 }
 
 /// Eine Aktionen in einem Fahrplan.
-pub type Aktion<L> =
-    AktionEnum<AktionGeschwindigkeit<L>, AktionStreckenabschnitt, AnyAktionSchalten, AktionWarten>;
+pub type Aktion =
+    AktionEnum<AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AktionWarten>;
 
 /// Ein Fehler der beim Ausführen einer [`Aktion`] auftreten kann.
 #[derive(Debug)]
@@ -426,16 +408,10 @@ pub enum AktionFehler {
     Ausführen(Box<Fehler>),
 }
 
-impl<L: Leiter> Ausführen<L> for Aktion<L>
-where
-    L: 'static + Leiter + Send + Debug,
-    <L as Leiter>::Fahrtrichtung: Debug + Clone + Send,
-    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
-    <L as Leiter>::UmdrehenZeit: Send,
-{
+impl Ausführen for Aktion {
     type Fehler = AktionFehler;
 
-    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
+    fn ausführen(&mut self, einstellungen: Einstellungen) -> Result<(), Self::Fehler> {
         match self {
             Aktion::Geschwindigkeit(aktion) => {
                 aktion.ausführen(einstellungen).map_err(AktionFehler::Geschwindigkeit)
@@ -455,7 +431,7 @@ where
 
     fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
-        einstellungen: Einstellungen<L>,
+        einstellungen: Einstellungen,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         match self {
@@ -469,21 +445,16 @@ where
 }
 
 /// Serialisierbare Repräsentation einer Aktion in einem Fahrplan.
-pub type AktionSerialisiert<L, S> = AktionEnum<
-    AktionGeschwindigkeitSerialisiert<L, S>,
+pub type AktionSerialisiert = AktionEnum<
+    AktionGeschwindigkeitSerialisiert,
     AktionStreckenabschnittSerialisiert,
     AnyAktionSchaltenSerialisiert,
     AktionWartenSerialisiert,
 >;
 
-impl<L: Leiter> Aktion<L> {
+impl Aktion {
     /// Serialisiere eine [`Aktion`].
-    pub fn serialisiere<S>(&self) -> AktionSerialisiert<L, S>
-    where
-        L: Serialisiere<S>,
-        <L as Leiter>::Fahrtrichtung: Clone,
-        S:,
-    {
+    pub fn serialisiere(&self) -> AktionSerialisiert {
         match self {
             Aktion::Geschwindigkeit(aktion) => {
                 AktionSerialisiert::Geschwindigkeit(aktion.serialisiere())
@@ -498,7 +469,7 @@ impl<L: Leiter> Aktion<L> {
     }
 }
 
-impl<L: Leiter, S: Eq + Hash> AktionSerialisiert<L, S> {
+impl AktionSerialisiert {
     /// Deserialisiere eine [`Aktion`] mithilfe bekannter Anschlüsse.
     ///
     /// ## Errors
@@ -506,9 +477,9 @@ impl<L: Leiter, S: Eq + Hash> AktionSerialisiert<L, S> {
     /// Fehler beim Deserialisieren der Aktion.
     pub fn deserialisiere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
-        bekannte_steuerungen: &SteuerungMaps<L, S>,
+        bekannte_steuerungen: &SteuerungMaps,
         sender: Sender<Nachricht>,
-    ) -> Result<Aktion<L>, UnbekannteAnschlüsse<S>> {
+    ) -> Result<Aktion, UnbekannteAnschlüsse> {
         let reserviert = match self {
             AktionSerialisiert::Geschwindigkeit(aktion) => Aktion::Geschwindigkeit(
                 aktion.deserialisiere(&bekannte_steuerungen.geschwindigkeiten)?,
@@ -537,27 +508,16 @@ impl<L: Leiter, S: Eq + Hash> AktionSerialisiert<L, S> {
 macro_rules! erstelle_aktion_geschwindigkeit {
     (
         $docstring: expr,
-        $type: ident < $($par: ident $(: $con0: ident $(+ $con: ident)*)?),* >,
+        $type: ident,
         $geschwindigkeit: ty,
         $fahrtrichtung: ty;
-        Debug => $($debug: ty),*;
-        Clone => $($clone: ty),*;
         $(
             [$serialize: ident, $deserialize: ident]
-            $ser: expr;
-            $de: expr;
         )?
     ) => {
         #[doc = $docstring]
         #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone $(, $serialize, $deserialize)?)]
-        $(
-            #[zugkontrolle_debug($debug: Debug)]
-        )*
-        $(
-            #[zugkontrolle_clone($clone: Clone)]
-        )*
-        $(#[serde(bound(serialize = $ser, deserialize = $de))])?
-        pub enum $type < $($par $(: $con0 $(+ $con)*)? ),* > {
+        pub enum $type {
             /// Einstellen der Fahrgeschwindigkeit.
             Geschwindigkeit {
                 /// Die Anschlüsse zur Steuerung der Geschwindigkeit.
@@ -583,23 +543,15 @@ macro_rules! erstelle_aktion_geschwindigkeit {
 
 erstelle_aktion_geschwindigkeit! {
     "Eine Aktion mit einer [Geschwindigkeit].",
-    AktionGeschwindigkeit<L: Leiter>,
-    Geschwindigkeit<L>,
-    <L as Leiter>::Fahrtrichtung;
-    Debug => L, <L as Leiter>::Fahrtrichtung;
-    Clone => <L as Leiter>::Fahrtrichtung;
+    AktionGeschwindigkeit,
+    Geschwindigkeit,
+    Fahrtrichtung;
 }
 
-impl<L> Ausführen<L> for AktionGeschwindigkeit<L>
-where
-    L: 'static + Leiter + Send + Debug,
-    <L as Leiter>::Fahrtrichtung: Debug + Clone + Send,
-    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Send,
-    <L as Leiter>::UmdrehenZeit: Send,
-{
+impl Ausführen for AktionGeschwindigkeit {
     type Fehler = geschwindigkeit::Fehler;
 
-    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
+    fn ausführen(&mut self, einstellungen: Einstellungen) -> Result<(), Self::Fehler> {
         match self {
             AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => geschwindigkeit
                 .geschwindigkeit(
@@ -628,7 +580,7 @@ where
 
     fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
-        einstellungen: Einstellungen<L>,
+        einstellungen: Einstellungen,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         let erzeuge_aktualisieren_nachricht = || AsyncNachricht::Aktualisieren.into();
@@ -687,24 +639,15 @@ where
 
 erstelle_aktion_geschwindigkeit! {
     "Serialisierbare Repräsentation für eine Aktion mit einer [Geschwindigkeit].",
-    AktionGeschwindigkeitSerialisiert<L: Leiter, S>,
-    GeschwindigkeitSerialisiert<S>,
-    <L as Leiter>::Fahrtrichtung;
-    Debug => S, <L as Leiter>::Fahrtrichtung;
-    Clone => S, <L as Leiter>::Fahrtrichtung;
+    AktionGeschwindigkeitSerialisiert,
+    GeschwindigkeitSerialisiert,
+    Fahrtrichtung;
     [Serialize, Deserialize]
-    "S: Serialize, <L as Leiter>::Fahrtrichtung: Serialize";
-    "S: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>";
 }
 
-impl<L: Leiter> AktionGeschwindigkeit<L> {
+impl AktionGeschwindigkeit {
     /// Serialisiere eine Aktion mit einer [`Geschwindigkeit`].
-    fn serialisiere<S>(&self) -> AktionGeschwindigkeitSerialisiert<L, S>
-    where
-        L: Serialisiere<S>,
-        <L as Leiter>::Fahrtrichtung: Clone,
-        S:,
-    {
+    fn serialisiere(&self) -> AktionGeschwindigkeitSerialisiert {
         match self {
             AktionGeschwindigkeit::Geschwindigkeit { geschwindigkeit, wert } => {
                 AktionGeschwindigkeitSerialisiert::Geschwindigkeit {
@@ -729,11 +672,9 @@ impl<L: Leiter> AktionGeschwindigkeit<L> {
 
 /// Eine nicht bekannte [`Geschwindigkeit`] soll verwendet werden.
 #[derive(Debug, Clone)]
-pub struct UnbekannteGeschwindigkeit<LeiterSerialisiert>(
-    pub GeschwindigkeitSerialisiert<LeiterSerialisiert>,
-);
+pub struct UnbekannteGeschwindigkeit(pub GeschwindigkeitSerialisiert);
 
-impl<L: Leiter, S: Eq + Hash> AktionGeschwindigkeitSerialisiert<L, S> {
+impl AktionGeschwindigkeitSerialisiert {
     /// Deserialisiere eine Aktion mit einer [`Geschwindigkeit`] mithilfe bekannter Anschlüsse.
     ///
     /// ## Errors
@@ -741,8 +682,8 @@ impl<L: Leiter, S: Eq + Hash> AktionGeschwindigkeitSerialisiert<L, S> {
     /// Die Geschwindigkeit der Aktion ist nicht bekannt.
     pub fn deserialisiere(
         self,
-        bekannte_geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert<S>, Geschwindigkeit<L>>,
-    ) -> Result<AktionGeschwindigkeit<L>, UnbekannteGeschwindigkeit<S>> {
+        bekannte_geschwindigkeiten: &HashMap<GeschwindigkeitSerialisiert, Geschwindigkeit>,
+    ) -> Result<AktionGeschwindigkeit, UnbekannteGeschwindigkeit> {
         let aktion = match self {
             AktionGeschwindigkeitSerialisiert::Geschwindigkeit { geschwindigkeit, wert } => {
                 let geschwindigkeit = bekannte_geschwindigkeiten
@@ -861,10 +802,10 @@ pub enum AnyAktionSchalten<
     SchalteDreiwege(AktionSchalten<Dreiwege, weiche::dreiwege::Richtung>),
 }
 
-impl<L: Leiter> Ausführen<L> for AnyAktionSchalten {
+impl Ausführen for AnyAktionSchalten {
     type Fehler = zugkontrolle_anschluss::Fehler;
 
-    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
+    fn ausführen(&mut self, einstellungen: Einstellungen) -> Result<(), Self::Fehler> {
         match self {
             AnyAktionSchalten::SchalteGerade(aktion) => aktion.ausführen(einstellungen)?,
             AnyAktionSchalten::SchalteKurve(aktion) => aktion.ausführen(einstellungen)?,
@@ -875,7 +816,7 @@ impl<L: Leiter> Ausführen<L> for AnyAktionSchalten {
 
     fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
-        einstellungen: Einstellungen<L>,
+        einstellungen: Einstellungen,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         match self {
@@ -967,24 +908,23 @@ pub struct AktionSchalten<Weiche, Richtung> {
     pub richtung: Richtung,
 }
 
-impl<L, Anschlüsse, T, Richtung> Ausführen<L>
+impl<Anschlüsse, T, Richtung> Ausführen
     for AktionSchalten<Steuerung<Weiche<T, Anschlüsse>>, Richtung>
 where
-    L: Leiter,
     T: 'static + Debug + Clone + steuerung::weiche::Steuerung<Richtung> + Send,
     Richtung: 'static + Debug + Clone + Send,
     Anschlüsse: 'static + Debug + Nachschlagen<Richtung, OutputAnschluss> + Send,
 {
     type Fehler = zugkontrolle_anschluss::Fehler;
 
-    fn ausführen(&mut self, einstellungen: Einstellungen<L>) -> Result<(), Self::Fehler> {
+    fn ausführen(&mut self, einstellungen: Einstellungen) -> Result<(), Self::Fehler> {
         let AktionSchalten { weiche, richtung } = self;
         weiche.as_mut().schalten(richtung.clone(), einstellungen.schalten_zeit)
     }
 
     fn async_ausführen<Nachricht: 'static + From<AsyncNachricht> + Send>(
         &mut self,
-        einstellungen: Einstellungen<L>,
+        einstellungen: Einstellungen,
         sender: Sender<Nachricht>,
     ) -> JoinHandle<()> {
         let erzeuge_aktualisieren_nachricht = || AsyncNachricht::Aktualisieren.into();

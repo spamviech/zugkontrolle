@@ -14,7 +14,7 @@ use zugkontrolle_gleis::{
     kurve::KurveUnit,
     steuerung::{
         aktualisieren::Aktualisieren,
-        geschwindigkeit::{GeschwindigkeitSerialisiert, Leiter, Name as GeschwindigkeitName},
+        geschwindigkeit::{GeschwindigkeitSerialisiert, Name as GeschwindigkeitName},
         plan::{AktionGeschwindigkeit, AktionStreckenabschnitt, AnyAktionSchalten, AsyncNachricht},
         streckenabschnitt::Name as StreckenabschnittName,
     },
@@ -65,10 +65,8 @@ pub enum AnyGleisUnit {
 }
 
 /// Klonbare Nachricht, für Verwendung z.B. mit [`Button`](iced::widget::Button).
-#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
-#[zugkontrolle_debug(L: Debug, <L as Leiter>::Fahrtrichtung: Debug, S: Debug)]
-#[zugkontrolle_clone(L: Debug, <L as Leiter>::Fahrtrichtung: Clone, S: Clone)]
-pub(crate) enum NachrichtClone<L: Leiter, S> {
+#[derive(Debug, Clone)]
+pub(crate) enum NachrichtClone {
     /// Ein neues Gleis hinzufügen.
     Gleis {
         /// Das neue Gleis.
@@ -82,19 +80,19 @@ pub(crate) enum NachrichtClone<L: Leiter, S> {
     Skalieren(Skalar),
     /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit)
     /// im [`Fahren`](Modus::Fahren)-Modus.
-    AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
+    AktionGeschwindigkeit(AktionGeschwindigkeit),
     /// Wechsle den aktuellen Modus.
     Modus(Modus),
     /// Ändere das aktuelle Anzeige-[`Thema`].
     Thema(Thema),
     /// Aktualisiere das Auswahl-Modal.
-    AuswahlModal(Option<AuswahlZustand<S>>),
+    AuswahlModal(Option<AuswahlZustand>),
     /// Aktualisiere die [`MessageBox`].
     MessageBox(Option<MessageBox>),
 }
 
-impl<L: Leiter, S> From<NachrichtClone<L, S>> for Nachricht<L, S> {
-    fn from(nachricht_clone: NachrichtClone<L, S>) -> Self {
+impl From<NachrichtClone> for Nachricht {
+    fn from(nachricht_clone: NachrichtClone) -> Self {
         match nachricht_clone {
             NachrichtClone::Gleis { definition_steuerung, klick_quelle, klick_höhe } => {
                 Nachricht::Gleis { definition_steuerung, klick_quelle, klick_höhe }
@@ -113,16 +111,15 @@ impl<L: Leiter, S> From<NachrichtClone<L, S>> for Nachricht<L, S> {
     }
 }
 
-impl<T, L, S> knopf::Nachricht<T> for NachrichtClone<L, S>
+impl<T> knopf::Nachricht<T> for NachrichtClone
 where
     T: Clone + Into<AnyDefinitionId>,
-    L: Leiter,
 {
     fn nachricht(
         definition: &T,
         klick_quelle: KlickQuelle,
         klick_position: Vektor,
-    ) -> NachrichtClone<L, S> {
+    ) -> NachrichtClone {
         /// Hilfs-Makro für die Verwendung mit [`mit_any_id`].
         macro_rules! erhalte_nachricht {
             ($id: expr) => {
@@ -139,12 +136,8 @@ where
 }
 
 /// Eine Nachricht, die beim [Ausführen](crate::ausführen) der [`Anwendung`](iced::Application) auftreten kann.
-#[derive(zugkontrolle_macros::Debug)]
-#[zugkontrolle_debug(L: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-#[zugkontrolle_debug(S: Debug)]
-#[non_exhaustive]
-pub enum Nachricht<L: Leiter, S> {
+#[derive(Debug)]
+pub enum Nachricht {
     /// Ein neues Gleis hinzufügen.
     Gleis {
         /// Das neue Gleis.
@@ -199,9 +192,9 @@ pub enum Nachricht<L: Leiter, S> {
     /// Laden aus dem übergebenen Pfad.
     Laden(String),
     /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) im [`Fahren`](Modus::Fahren)-Modus.
-    AktionGeschwindigkeit(AktionGeschwindigkeit<L>),
+    AktionGeschwindigkeit(AktionGeschwindigkeit),
     /// Hinzufügen einer neuen [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
-    HinzufügenGeschwindigkeit(GeschwindigkeitName, GeschwindigkeitSerialisiert<S>),
+    HinzufügenGeschwindigkeit(GeschwindigkeitName, GeschwindigkeitSerialisiert),
     /// Löschen einer [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     LöscheGeschwindigkeit(GeschwindigkeitName),
     /// Anpassen der Anschlüsse eines Gleises.
@@ -220,7 +213,7 @@ pub enum Nachricht<L: Leiter, S> {
     /// Ändere das aktuelle Anzeige-[`Thema`].
     Thema(Thema),
     /// Aktualisiere das Auswahl-Modal.
-    AuswahlFenster(Option<AuswahlZustand<S>>),
+    AuswahlFenster(Option<AuswahlZustand>),
     /// Aktualisiere die [`MessageBox`].
     MessageBox(Option<MessageBox>),
     /// Dummy-Nachricht, damit die [`view`](iced::Application::view)-Methode erneut aufgerufen wird.
@@ -232,7 +225,7 @@ pub enum Nachricht<L: Leiter, S> {
     },
 }
 
-impl<L: Leiter, S> From<GleiseNachricht> for Nachricht<L, S> {
+impl From<GleiseNachricht> for Nachricht {
     fn from(nachricht: GleiseNachricht) -> Self {
         match nachricht {
             GleiseNachricht::SetzeStreckenabschnitt(any_id) => {
@@ -307,7 +300,7 @@ impl<L: Leiter, S> From<GleiseNachricht> for Nachricht<L, S> {
     }
 }
 
-impl<L: Leiter, S> From<AsyncNachricht> for Nachricht<L, S> {
+impl From<AsyncNachricht> for Nachricht {
     fn from(fehler: AsyncNachricht) -> Self {
         match fehler {
             AsyncNachricht::Aktualisieren => {
@@ -320,7 +313,7 @@ impl<L: Leiter, S> From<AsyncNachricht> for Nachricht<L, S> {
     }
 }
 
-impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S> {
+impl From<streckenabschnitt::AnzeigeNachricht> for Nachricht {
     fn from(nachricht: streckenabschnitt::AnzeigeNachricht) -> Self {
         match nachricht {
             streckenabschnitt::AnzeigeNachricht::Festlegen(festlegen) => {
@@ -333,13 +326,13 @@ impl<L: Leiter, S> From<streckenabschnitt::AnzeigeNachricht> for Nachricht<L, S>
     }
 }
 
-impl<L: Leiter, S> From<Aktualisieren> for Nachricht<L, S> {
+impl From<Aktualisieren> for Nachricht {
     fn from(_value: Aktualisieren) -> Self {
         Nachricht::AsyncAktualisieren { gleise_neuzeichnen: true }
     }
 }
 
-impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht> for Nachricht<L, S> {
+impl From<streckenabschnitt::AuswahlNachricht> for Nachricht {
     fn from(nachricht: streckenabschnitt::AuswahlNachricht) -> Self {
         use streckenabschnitt::AuswahlNachricht::{Hinzufügen, Lösche, Schließe, Wähle};
         match nachricht {
@@ -353,8 +346,8 @@ impl<L: Leiter, S> From<streckenabschnitt::AuswahlNachricht> for Nachricht<L, S>
     }
 }
 
-impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>> for Nachricht<L, S> {
-    fn from(nachricht: geschwindigkeit::AuswahlNachricht<S>) -> Self {
+impl From<geschwindigkeit::AuswahlNachricht> for Nachricht {
+    fn from(nachricht: geschwindigkeit::AuswahlNachricht) -> Self {
         use geschwindigkeit::AuswahlNachricht::{Hinzufügen, Löschen, Schließen};
         match nachricht {
             Schließen => Nachricht::AuswahlFenster(None),
@@ -365,7 +358,7 @@ impl<L: Leiter, S> From<geschwindigkeit::AuswahlNachricht<S>> for Nachricht<L, S
         }
     }
 }
-impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)> for Nachricht<L, S> {
+impl From<(kontakt::Nachricht, KontaktId)> for Nachricht {
     fn from((nachricht, weichen_id): (kontakt::Nachricht, KontaktId)) -> Self {
         use kontakt::Nachricht::{Festlegen, Schließen};
         match nachricht {
@@ -378,7 +371,7 @@ impl<L: Leiter, S> From<(kontakt::Nachricht, KontaktId)> for Nachricht<L, S> {
     }
 }
 
-impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)> for Nachricht<L, S> {
+impl From<(WeicheNachricht, WeichenId)> for Nachricht {
     fn from((nachricht, weichen_id): (WeicheNachricht, WeichenId)) -> Self {
         use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
@@ -392,7 +385,7 @@ impl<L: Leiter, S> From<(WeicheNachricht, WeichenId)> for Nachricht<L, S> {
     }
 }
 
-impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)> for Nachricht<L, S> {
+impl From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)> for Nachricht {
     fn from((nachricht, gleis_id): (DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)) -> Self {
         use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
@@ -404,7 +397,7 @@ impl<L: Leiter, S> From<(DreiwegeWeicheNachricht, GleisId<DreiwegeWeiche>)> for 
     }
 }
 
-impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)> for Nachricht<L, S> {
+impl From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)> for Nachricht {
     fn from((nachricht, gleis_id): (KurvenWeicheNachricht, GleisId<KurvenWeiche>)) -> Self {
         use weiche::Nachricht::{Festlegen, Schließen};
         match nachricht {
@@ -416,7 +409,7 @@ impl<L: Leiter, S> From<(KurvenWeicheNachricht, GleisId<KurvenWeiche>)> for Nach
     }
 }
 
-impl<L: Leiter, S> From<lizenzen::Nachricht> for Nachricht<L, S> {
+impl From<lizenzen::Nachricht> for Nachricht {
     fn from(nachricht: lizenzen::Nachricht) -> Self {
         use lizenzen::Nachricht::Schließen;
         match nachricht {
@@ -425,14 +418,9 @@ impl<L: Leiter, S> From<lizenzen::Nachricht> for Nachricht<L, S> {
     }
 }
 
-impl<L, S> Nachricht<L, S>
-where
-    L: 'static + Leiter + Send,
-    <L as Leiter>::Fahrtrichtung: Send,
-    S: 'static + Send,
-{
+impl Nachricht {
     /// Konvertiere eine Nachricht in ein [`Task`].
-    pub(crate) fn als_task(self) -> Task<Nachricht<L, S>> {
+    pub(crate) fn als_task(self) -> Task<Nachricht> {
         Task::perform(async { identity(self) }, identity)
     }
 }

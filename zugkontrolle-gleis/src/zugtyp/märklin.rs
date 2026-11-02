@@ -1,6 +1,6 @@
 //! Dieses Modul definiert alle Märklin-Gleise, die mir zur Verfügung stehen.
 
-use std::{marker::PhantomData, sync::LazyLock, time::Duration};
+use std::{sync::LazyLock, time::Duration};
 
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::{
@@ -14,7 +14,7 @@ use crate::{
     gerade::{Gerade, GeradeUnit},
     kreuzung::{self, Kreuzung, KreuzungUnit},
     kurve::{Kurve, KurveUnit},
-    steuerung::geschwindigkeit::Mittelleiter,
+    steuerung::geschwindigkeit::LeiterVariante,
     weiche::{
         dreiwege::{DreiwegeWeiche, DreiwegeWeicheUnit},
         gerade::{Weiche, WeicheUnit},
@@ -26,7 +26,7 @@ use crate::{
 };
 
 /// Alle bekannten Gleise und Eigenschaften für eine Märklin-Eisenbahn.
-static MÄRKLIN: LazyLock<Zugtyp<Mittelleiter>> = LazyLock::new(|| {
+static MÄRKLIN: LazyLock<Zugtyp> = LazyLock::new(|| {
     let geraden = [
         gerade_5106(),
         gerade_5107(),
@@ -71,7 +71,7 @@ static MÄRKLIN: LazyLock<Zugtyp<Mittelleiter>> = LazyLock::new(|| {
     );
     Zugtyp {
         name: String::from("Märklin"),
-        leiter: PhantomData,
+        leiter: LeiterVariante::Mittelleiter,
         spurweite: Spurweite::neu(16.5),
         geraden,
         kurven,
@@ -88,10 +88,10 @@ static MÄRKLIN: LazyLock<Zugtyp<Mittelleiter>> = LazyLock::new(|| {
     }
 });
 
-impl Zugtyp<Mittelleiter> {
+impl Zugtyp {
     /// [Märklin](MÄRKLIN).
     #[must_use]
-    pub fn märklin() -> &'static Zugtyp<Mittelleiter> {
+    pub fn märklin() -> &'static Zugtyp {
         &MÄRKLIN
     }
 }

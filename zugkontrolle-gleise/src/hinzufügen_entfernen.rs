@@ -21,7 +21,7 @@ use crate::{
     },
 };
 
-impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     /// Füge ein neues Gleis an der [Position] mit dem gewählten
     /// [`Streckenabschnitt`](streckenabschnitt::Streckenabschnitt) hinzu.
     ///

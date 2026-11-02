@@ -83,11 +83,7 @@ impl From<ModusArgument> for Modus {
 
 /// Verwalten und Anzeige aller Gleise.
 #[derive(zugkontrolle_macros::Debug)]
-#[zugkontrolle_debug(L: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub struct Gleise<L: Leiter, AktualisierenNachricht> {
+pub struct Gleise<AktualisierenNachricht> {
     /// Der [`Cache`] für die Canvas-Anzeige aller Gleise.
     canvas: Cache,
     /// Der Pivot-Punkt wird links oben auf dem Canvas angezeigt.
@@ -95,7 +91,7 @@ pub struct Gleise<L: Leiter, AktualisierenNachricht> {
     /// Wie groß werden die Gleise angezeigt.
     skalieren: Skalar,
     /// Alle Gleise, Streckenabschnitte, Geschwindigkeiten, Pläne, sowie der verwendete Zugtyp.
-    zustand: Zustand<L>,
+    zustand: Zustand,
     /// Die letzte bekannte Position des Mauszeigers.
     letzte_maus_position: Vektor,
     /// Die letzte bekannte Größe des Canvas.
@@ -108,11 +104,11 @@ pub struct Gleise<L: Leiter, AktualisierenNachricht> {
     sender: Sender<AktualisierenNachricht>,
 }
 
-impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     /// Erstelle ein neues, leeres [`Gleise`]-struct.
     #[must_use]
     pub fn neu(
-        zugtyp: Zugtyp<L>,
+        zugtyp: Zugtyp,
         modus: Modus,
         pivot: Position,
         skalieren: Skalar,
@@ -303,8 +299,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit: Geschwindigkeit<L>,
-    ) -> Option<Geschwindigkeit<L>> {
+        geschwindigkeit: Geschwindigkeit,
+    ) -> Option<Geschwindigkeit> {
         self.zustand.geschwindigkeit_hinzufügen(name, geschwindigkeit)
     }
 
@@ -316,7 +312,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn geschwindigkeit<'s>(
         &'s self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&'s Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<&'s Geschwindigkeit, GeschwindigkeitEntferntFehler> {
         self.zustand.geschwindigkeit(name)
     }
 
@@ -328,7 +324,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn geschwindigkeit_mut<'s>(
         &'s mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&'s mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<&'s mut Geschwindigkeit, GeschwindigkeitEntferntFehler> {
         self.zustand.geschwindigkeit_mut(name)
     }
 
@@ -342,14 +338,14 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     pub fn geschwindigkeit_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<Geschwindigkeit, GeschwindigkeitEntferntFehler> {
         self.zustand.geschwindigkeit_entfernen(name)
     }
 
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub fn mit_allen_geschwindigkeiten(
         &self,
-        mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>),
+        mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit),
     ) {
         self.zustand
             .geschwindigkeiten()
@@ -360,7 +356,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// Alle aktuell bekannten Geschwindigkeiten.
     pub fn aus_allen_geschwindigkeiten<T, C>(
         &self,
-        mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit<L>) -> T,
+        mut funktion: impl FnMut(&geschwindigkeit::Name, &Geschwindigkeit) -> T,
     ) -> C
     where
         C: FromIterator<T>,
@@ -373,7 +369,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 
     /// Verwendeter Zugtyp.
-    pub fn zugtyp(&self) -> &Zugtyp<L> {
+    pub fn zugtyp(&self) -> &Zugtyp {
         self.zustand.zugtyp()
     }
 
@@ -383,7 +379,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     }
 }
 
-impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     /// Assoziiere einen Streckenabschnitt mit einer Geschwindigkeit.
     /// Schlägt fehl, wenn der Streckenabschnitt nicht gefunden wurde.
     ///
@@ -402,10 +398,9 @@ impl<L: Debug + Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht
     }
 }
 
-impl<L, AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Thema, Renderer>
-    for Gleise<L, AktualisierenNachricht>
+impl<AktualisierenNachricht, Thema> Program<NonEmpty<Nachricht>, Thema, Renderer>
+    for Gleise<AktualisierenNachricht>
 where
-    L: Leiter,
     AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     Thema: Clone + Into<u8> + PartialEq + knopf::Catalog,
     u8: TryInto<Thema>,

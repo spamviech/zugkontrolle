@@ -30,7 +30,7 @@ use zugkontrolle_gleis::{
     kurve::Kurve,
     steuerung::{
         aktualisieren::{Aktualisieren, MitSteuerung, SomeAktualisierenSender},
-        geschwindigkeit::{BekannterLeiter, Leiter},
+        geschwindigkeit::{Leiter, LeiterVariante},
         plan::{self, SteuerungMaps, UnbekannteAnschlüsse},
     },
     weiche::{
@@ -47,7 +47,8 @@ use crate::{
         GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
         v2::{self, geschwindigkeit::BekannterZugtyp},
         v3::{self},
-        v4::{GleisSerialisiert, GleiseDatenSerialisiert, ZugtypSerialisiert, ZustandSerialisiert},
+        v4::{self, GleisSerialisiert, GleiseDatenSerialisiert},
+        v6::{ZugtypSerialisiert, ZustandSerialisiert},
     },
 };
 
@@ -82,7 +83,7 @@ impl From<error::DecodeError> for DecodeError {
 
 /// Fehler der beim [`Laden`](Gleise::laden) auftreten kann.
 #[derive(Debug, zugkontrolle_macros::From)]
-pub enum LadenFehler<S> {
+pub enum LadenFehler {
     /// Ein IO-Fehler.
     IO(io::Error),
     /// Fehler beim reservieren eines [`Anschlusses`](anschluss::Anschluss).
@@ -103,7 +104,7 @@ pub enum LadenFehler<S> {
         /// Der Name des Plans.
         plan: plan::Name,
         /// Die unbekannten Anschlüsse.
-        anschlüsse: UnbekannteAnschlüsse<S>,
+        anschlüsse: UnbekannteAnschlüsse,
     },
     /// Ein Gleis mit unbekannter [`DefinitionId`].
     UnbekannteDefinition {
@@ -119,24 +120,24 @@ pub enum LadenFehler<S> {
     },
 }
 
-impl<S> From<input::Fehler> for LadenFehler<S> {
+impl From<input::Fehler> for LadenFehler {
     fn from(fehler: input::Fehler) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
 }
 
-impl<S> From<pcf8574::Fehler> for LadenFehler<S> {
+impl From<pcf8574::Fehler> for LadenFehler {
     fn from(fehler: pcf8574::Fehler) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
 }
 
-impl<S> From<pin::ReservierenFehler> for LadenFehler<S> {
+impl From<pin::ReservierenFehler> for LadenFehler {
     fn from(fehler: pin::ReservierenFehler) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
 }
-impl<S> From<KeineIdVerfügbar> for LadenFehler<S> {
+impl From<KeineIdVerfügbar> for LadenFehler {
     fn from(fehler: KeineIdVerfügbar) -> Self {
         LadenFehler::Anschluss(fehler.into())
     }
@@ -179,14 +180,14 @@ impl GleiseDaten {
 #[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt.")]
 /// Reserviere die Anschlüsse für alle Gleise.
 #[must_use]
-fn reserviere_anschlüsse<T, S, Ss, L>(
+fn reserviere_anschlüsse<T, S, Ss>(
     lager: &mut Lager,
     serialisiert: impl IntoIterator<Item = (zugkontrolle_id::Repräsentation, GleisSerialisiert<T>)>,
     spurweite: Spurweite,
     definitionen: &DefinitionMap<T>,
     anschlüsse: Anschlüsse,
     bekannte_steuerungen: &mut HashMap<Ss, S>,
-    laden_fehler: &mut Vec<LadenFehler<L>>,
+    laden_fehler: &mut Vec<LadenFehler>,
     bekannte_ids: &mut HashMap<zugkontrolle_id::Repräsentation, GleisId<T>>,
     bekannte_definition_ids: &HashMap<zugkontrolle_id::Repräsentation, DefinitionId<T>>,
     arg: &<Ss as Reserviere<S>>::MoveArg,
@@ -326,18 +327,17 @@ impl GleiseDatenSerialisiert {
     #[expect(clippy::too_many_arguments, reason = "Interne Methode.")]
     /// Reserviere alle benötigten Anschlüsse.
     #[must_use]
-    fn reserviere<L, S, Nachricht>(
+    fn reserviere<Nachricht>(
         self,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
         bekannte_ids: &mut IdMaps,
-        bekannte_steuerungen: &mut SteuerungMaps<L, S>,
-        laden_fehler: &mut Vec<LadenFehler<S>>,
+        bekannte_steuerungen: &mut SteuerungMaps,
+        laden_fehler: &mut Vec<LadenFehler>,
         sender: &Sender<Nachricht>,
     ) -> (GleiseDaten, Anschlüsse)
     where
-        L: Leiter,
         Nachricht: 'static + From<Aktualisieren> + Send,
     {
         let GleiseDatenSerialisiert {
@@ -398,12 +398,12 @@ impl GleiseDatenSerialisiert {
     }
 }
 
-impl<L: BekannterLeiter> From<&Zugtyp<L>> for ZugtypSerialisiert<L> {
+impl From<&Zugtyp> for ZugtypSerialisiert {
     /// Erzeuge eine serialisierbare Darstellung eines [`Zugtyp`].
-    fn from(zugtyp: &Zugtyp<L>) -> ZugtypSerialisiert<L> {
+    fn from(zugtyp: &Zugtyp) -> ZugtypSerialisiert {
         let Zugtyp {
             name,
-            leiter: PhantomData,
+            leiter,
             spurweite,
             geraden,
             kurven,
@@ -418,7 +418,7 @@ impl<L: BekannterLeiter> From<&Zugtyp<L>> for ZugtypSerialisiert<L> {
             umdrehen_zeit,
             schalten_zeit,
         } = zugtyp;
-        let leiter = L::NAME.to_owned();
+        let leiter = leiter.to_string();
         /// Erzeuge eine serialisierbare Darstellung für die [`DefinitionMaps`](DefinitionMap).
         macro_rules! erzeuge_zugtyp_maps {
             ($($gleise: ident),* $(,)?) => {$(
@@ -502,9 +502,9 @@ macro_rules! erzeuge_zugtyp_maps {
     )*};
 }
 
-impl<L: BekannterLeiter> ZugtypSerialisiert<L> {
+impl ZugtypSerialisiert {
     /// Erzeuge die Laufzeit-Darstellung für einen [`Zugtyp`].
-    fn reserviere(self) -> Result<(Zugtyp<L>, DefinitionIdMaps), ZugtypDeserialisierenFehler> {
+    fn reserviere(self) -> Result<(Zugtyp, DefinitionIdMaps), ZugtypDeserialisierenFehler> {
         let ZugtypSerialisiert {
             name,
             leiter,
@@ -522,10 +522,8 @@ impl<L: BekannterLeiter> ZugtypSerialisiert<L> {
             umdrehen_zeit,
             schalten_zeit,
         } = self;
-        let gesucht = L::NAME.to_owned();
-        if leiter != gesucht {
-            return Err(ZugtypDeserialisierenFehler::FalscherLeiter(leiter));
-        }
+        let leiter_variante = LeiterVariante::try_from(leiter)
+            .map_err(ZugtypDeserialisierenFehler::FalscherLeiter)?;
 
         let mut bekannte_ids = DefinitionIdMaps::neu();
         erzeuge_zugtyp_maps!(
@@ -541,7 +539,7 @@ impl<L: BekannterLeiter> ZugtypSerialisiert<L> {
 
         let zugtyp = Zugtyp {
             name,
-            leiter: PhantomData,
+            leiter: leiter_variante,
             spurweite,
             geraden,
             kurven,
@@ -561,13 +559,9 @@ impl<L: BekannterLeiter> ZugtypSerialisiert<L> {
     }
 }
 
-impl<L: Leiter> Zustand<L> {
+impl Zustand {
     /// Erzeuge eine Serialisierbare Repräsentation.
-    pub(crate) fn serialisiere<S>(&self) -> ZustandSerialisiert<L, S>
-    where
-        L: Serialisiere<S> + BekannterLeiter,
-        <L as Leiter>::Fahrtrichtung: Clone,
-    {
+    pub(crate) fn serialisiere(&self) -> ZustandSerialisiert {
         let Zustand { zugtyp, geschwindigkeiten, streckenabschnitte, gleise, pläne } = self;
         /// Serialisiere das erste Argument, klone alle folgenden.
         macro_rules! serialisiere_head_clone_tail {
@@ -601,10 +595,7 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Gebe alle im [`Zustand`] verwendeten [`Anschlüsse`] zurück.
-    fn anschlüsse_ausgeben<S>(&mut self) -> Anschlüsse
-    where
-        L: Serialisiere<S>,
-    {
+    fn anschlüsse_ausgeben(&mut self) -> Anschlüsse {
         let Zustand { zugtyp: _, geschwindigkeiten, streckenabschnitte, gleise, pläne: _ } = self;
         let GleiseDaten {
             geraden,
@@ -649,18 +640,14 @@ impl<L: Leiter> Zustand<L> {
     }
 }
 
-impl<L, S> ZustandSerialisiert<L, S>
-where
-    L: BekannterLeiter + Serialisiere<S>,
-    S: Clone + Eq + Hash + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>,
-{
+impl ZustandSerialisiert {
     /// Reserviere alle benötigten Anschlüsse.
     fn reserviere<Nachricht: 'static + From<Aktualisieren> + Send>(
         self,
         lager: &mut Lager,
         anschlüsse: Anschlüsse,
         sender: &Sender<Nachricht>,
-    ) -> Result<(Zustand<L>, Vec<LadenFehler<S>>), ZugtypDeserialisierenFehler> {
+    ) -> Result<(Zustand, Vec<LadenFehler>), ZugtypDeserialisierenFehler> {
         let ZustandSerialisiert { zugtyp, geschwindigkeiten, streckenabschnitte, gleise, pläne } =
             self;
 
@@ -669,7 +656,7 @@ where
         let mut bekannte_ids = IdMaps { definitionen: bekannte_definition_ids, ..IdMaps::neu() };
         let mut bekannte_steuerungen = SteuerungMaps::neu();
 
-        let mut laden_fehler: Vec<LadenFehler<S>> = Vec::new();
+        let mut laden_fehler: Vec<LadenFehler> = Vec::new();
 
         /// Reserviere die benötigten Anschlüsse für die übergebenen [`HashMaps`](HashMap).
         macro_rules! reserviere_maps {
@@ -744,7 +731,7 @@ where
     }
 }
 
-impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     /// Speicher alle Gleise, [`Streckenabschnitte`](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [`Zugtyp`]
     /// in einer Datei.
@@ -752,15 +739,8 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// ## Errors
     ///
     /// Fehler beim Schreiben der Datei.
-    pub fn speichern<S>(&self, pfad: impl AsRef<Path>) -> Result<(), Fehler>
-    where
-        L: Serialisiere<S> + BekannterLeiter,
-        <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize,
-        <L as Leiter>::UmdrehenZeit: Serialize,
-        <L as Leiter>::Fahrtrichtung: Clone + Serialize,
-        S: Serialize,
-    {
-        let serialisiert: ZustandSerialisiert<L, S> = self.zustand.serialisiere();
+    pub fn speichern(&self, pfad: impl AsRef<Path>) -> Result<(), Fehler> {
+        let serialisiert: ZustandSerialisiert = self.zustand.serialisiere();
         let mut file = fs::File::create(pfad)?;
         let _bytes = encode_into_std_write(serialisiert, &mut file, BINCODE_OPTIONS)?;
         Ok(())
@@ -775,25 +755,12 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     /// - Fehler beim Lesen der Datei.
     /// - Invalides Speicherformat der Datei.
     /// - Fehler beim [`Reservieren`](Reserviere::reserviere) der benötigen Anschlüsse.
-    pub fn laden<S>(
+    pub fn laden(
         &mut self,
         lager: &mut Lager,
         pfad: impl AsRef<Path>,
-    ) -> Result<(), NonEmpty<LadenFehler<S>>>
+    ) -> Result<(), NonEmpty<LadenFehler>>
     where
-        L: 'static + BekannterLeiter + Serialisiere<S>,
-        <L as Leiter>::VerhältnisFahrspannungÜberspannung: for<'de> Deserialize<'de>,
-        <L as Leiter>::UmdrehenZeit: for<'de> Deserialize<'de>,
-        <L as Leiter>::Fahrtrichtung: for<'de> Deserialize<'de>,
-        S: Clone
-            + Eq
-            + Hash
-            + Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
-            + for<'de> Deserialize<'de>,
-        // zusätzliche Constraints für v2-Kompatibilität
-        L: BekannterZugtyp,
-        S: From<<L as BekannterZugtyp>::V2>,
-        <L as BekannterZugtyp>::V2: for<'de> Deserialize<'de>,
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
         fn deserialize<T: DeserializeOwned>(slice: &[u8]) -> Result<T, DecodeError> {
@@ -820,16 +787,23 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         let content = fs::read(pfad).map_err(|fehler| NonEmpty::singleton(fehler.into()))?;
         let slice = content.as_slice();
         let mut id_fehler = Vec::new();
-        let zustand_serialisiert: ZustandSerialisiert<L, S> = deserialize(slice)
-            .or_else(|aktuell| match deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
-                Ok(v3) => Ok(v3.v4(&mut id_fehler)),
-                Err(v3) => match deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
-                    Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
-                        Ok(v3_from_v2) => Ok(v3_from_v2.v4(&mut id_fehler)),
-                        Err(fehler) => Err(fehler),
-                    },
-                    Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
-                },
+        let zustand_serialisiert: ZustandSerialisiert = deserialize(slice)
+            .or_else(|aktuell| {
+                // match deserialize::<v4::ZustandSerialisiert<L, S>>(slice) {}
+                // match deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
+                //     Ok(v3) => Ok(v3.v4(&mut id_fehler)),
+                //     Err(v3) => {
+                //         match deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
+                //             Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
+                //                 Ok(v3_from_v2) => Ok(v3_from_v2.v4(&mut id_fehler)),
+                //                 Err(fehler) => Err(fehler),
+                //             },
+                //             Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
+                //         }
+                //     },
+                // };
+                id_fehler.push(KeineIdVerfügbar::für::<()>());
+                todo!()
             })
             .map_err(NonEmpty::singleton)?;
 

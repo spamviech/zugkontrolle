@@ -170,17 +170,16 @@ where
 }
 
 /// Führe die Aktion für das Gleis an der Position des `cursor_oder_finger` aus.
-fn aktion_gleis_an_position<L, AktualisierenNachricht>(
+fn aktion_gleis_an_position<AktualisierenNachricht>(
     bounds: Rectangle,
     cursor_or_finger: Either<Cursor, (Finger, Point)>,
     modus: &ModusDaten,
-    zustand: &Zustand<L>,
+    zustand: &Zustand,
     pivot: &Position,
     skalieren: Skalar,
     sender: &Sender<AktualisierenNachricht>,
 ) -> (EventStatus, Vec<Nachricht>)
 where
-    L: Leiter,
     AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
 {
     let mut nachrichten = Vec::new();
@@ -242,7 +241,7 @@ where
     (status, nachrichten)
 }
 
-impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     /// Behandle ein [`mouse::Event::ButtonPressed`]-, oder [`touch::Event::FingerPressed`]-Event.
     fn maus_oder_touch_pressed(
         &self,
@@ -360,7 +359,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
     ) -> Option<Action<NonEmpty<Nachricht>>>
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
-        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
+        Gleise<AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
     {
         let mut event_status = EventStatus::Ignored;
         let mut messages =
@@ -435,7 +434,7 @@ pub enum AktualisierenFehler {
     EntfernenFehler(EntfernenFehler),
 }
 
-impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     /// Folge-Method für [`update`](Gleise::update), in der die notwendigen
     /// Zustands-Änderungen durchgeführt werden.
     ///

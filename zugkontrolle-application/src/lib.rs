@@ -23,8 +23,7 @@ use zugkontrolle_anschluss::{
 };
 use zugkontrolle_argumente::{Argumente, I2cSettings};
 use zugkontrolle_gleis::steuerung::{
-    geschwindigkeit::{BekannterLeiter, Leiter},
-    streckenabschnitt::Name as StreckenabschnittName,
+    geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName,
 };
 use zugkontrolle_gleis::zugtyp::Zugtyp;
 use zugkontrolle_gleise::{Gleise, daten::v2::geschwindigkeit::BekannterZugtyp};
@@ -58,15 +57,10 @@ pub struct MessageBox {
 }
 
 /// Die Anwendung inklusive des GUI.
-#[derive(zugkontrolle_macros::Debug)]
-#[zugkontrolle_debug(L: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-#[zugkontrolle_debug(S: Debug)]
-pub struct Zugkontrolle<L: Leiter, S> {
+#[derive(Debug)]
+pub struct Zugkontrolle {
     /// Alle Gleise, Streckenabschnitte, und Geschwindigkeiten.
-    gleise: Gleise<L, Nachricht<L, S>>,
+    gleise: Gleise<Nachricht>,
     /// Noch verfügbare Anschlüsse.
     lager: Arc<RwLock<Lager>>,
     /// Der Stil für verwendete [`Scrollable-Widgets`](iced::widget::Scrollable).
@@ -90,13 +84,13 @@ pub struct Zugkontrolle<L: Leiter, S> {
     /// Wie wird der [`Gleise`]-Canvas aktuell bewegt.
     bewegung: Option<Bewegung>,
     /// Der aktuelle Zustand des [`Auswahl-Widgets`](AuswahlZustand).
-    auswahl_zustand: Option<AuswahlZustand<S>>,
+    auswahl_zustand: Option<AuswahlZustand>,
     /// Der aktuelle Zustand des [`Mitteilungs-Widgets`](MessageBox).
     message_box: Option<MessageBox>,
     /// Sender für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
-    sender: Sender<Nachricht<L, S>>,
+    sender: Sender<Nachricht>,
     /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
-    empfänger: Empfänger<Nachricht<L, S>>,
+    empfänger: Empfänger<Nachricht>,
 }
 
 /// Bei der [`Ausführung`](ausführen) potentiell auftretende Fehler.
@@ -110,34 +104,13 @@ pub enum Fehler {
     Anschluss(InitFehler),
 }
 
-impl<L, S> Zugkontrolle<L, S>
-where
-    L: 'static
-        + Debug
-        + Display
-        + for<'l> LeiterAnzeige<'l, S, Thema, Renderer>
-        + Serialisiere<S>
-        + BekannterLeiter
-        + Send,
-    <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize + for<'de> Deserialize<'de> + Send,
-    <L as Leiter>::UmdrehenZeit: Serialize + for<'de> Deserialize<'de> + Send,
-    <L as Leiter>::Fahrtrichtung:
-        Debug + Clone + Serialize + for<'de> Deserialize<'de> + Unpin + Send,
-    S: 'static + Debug + Display + Clone + Default + Eq + Hash + Unpin + Send,
-    S: Reserviere<L, MoveArg = (), RefArg = (), MutRefArg = ()>
-        + Serialize
-        + for<'de> Deserialize<'de>,
-    // zusätzlicher Constraint für v2-Kompatibilität
-    L: BekannterZugtyp,
-    S: From<<L as BekannterZugtyp>::V2>,
-    for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
-{
+impl Zugkontrolle {
     /// Erzeuge eine [`iced::Application`], konfiguriert für die [`Zugkontrolle`]-Logik.
     pub fn application(
         argumente: Argumente,
         lager: Arc<RwLock<Lager>>,
-        zugtyp: &Zugtyp<L>,
-    ) -> iced::Application<impl iced::Program<State = Self, Message = Nachricht<L, S>, Theme = Thema>>
+        zugtyp: &Zugtyp,
+    ) -> iced::Application<impl iced::Program<State = Self, Message = Nachricht, Theme = Thema>>
     {
         iced::application(
             move || Zugkontrolle::new(argumente.clone(), Arc::clone(&lager), zugtyp.clone()),
@@ -173,8 +146,8 @@ where
     pub fn new(
         argumente: Argumente,
         lager: Arc<RwLock<Lager>>,
-        zugtyp: Zugtyp<L>,
-    ) -> (Self, Task<Nachricht<L, S>>) {
+        zugtyp: Zugtyp,
+    ) -> (Self, Task<Nachricht>) {
         let Argumente {
             pfad,
             modus,
@@ -189,7 +162,7 @@ where
             log_datei: _,
         } = argumente;
 
-        let lade_zustand: Task<Nachricht<L, S>>;
+        let lade_zustand: Task<Nachricht>;
         let initialer_pfad: String;
         if let Some(pfad) = pfad {
             lade_zustand = Nachricht::Laden(pfad.clone()).als_task();
@@ -250,7 +223,7 @@ where
     /// this method.
     ///
     /// Any [`Command`] returned will be executed immediately in the background.
-    pub fn update(&mut self, message: Nachricht<L, S>) -> Task<Nachricht<L, S>> {
+    pub fn update(&mut self, message: Nachricht) -> Task<Nachricht> {
         let mut command = Task::none();
 
         match message {
@@ -351,7 +324,7 @@ where
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    pub fn view(&self) -> Element<'_, Nachricht<L, S>, Thema, Renderer> {
+    pub fn view(&self) -> Element<'_, Nachricht, Thema, Renderer> {
         self.view_impl()
     }
 
@@ -370,7 +343,7 @@ where
     /// [`update`](#tymethod.update).
     ///
     /// By default, this method returns an empty [`Subscription`].
-    pub fn subscription(&self) -> Subscription<Nachricht<L, S>> {
+    pub fn subscription(&self) -> Subscription<Nachricht> {
         subscription::from_recipe(self.empfänger.clone())
     }
 }

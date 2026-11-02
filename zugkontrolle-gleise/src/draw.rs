@@ -33,7 +33,7 @@ pub(crate) fn bewege_an_position(frame: &mut Frame<'_>, position: &Position) {
     frame.transformation(&Transformation::Rotation(position.winkel));
 }
 
-impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
+impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     /// [draw](iced::widget::canvas::Program::draw)-Methode für [`Gleise`].
     pub(crate) fn draw_impl<Thema>(
         &self,
@@ -47,7 +47,7 @@ impl<L: Leiter, AktualisierenNachricht> Gleise<L, AktualisierenNachricht> {
         AktualisierenNachricht: 'static + From<Aktualisieren>,
         Thema: Clone + Into<u8> + PartialEq + knopf::Catalog,
         u8: TryInto<Thema>,
-        Gleise<L, AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
+        Gleise<AktualisierenNachricht>: Program<NonEmpty<Nachricht>, Thema, Renderer>,
     {
         let Gleise {
             canvas,

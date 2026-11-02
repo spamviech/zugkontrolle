@@ -71,6 +71,7 @@ pub mod de_serialisieren;
 pub mod v2;
 pub mod v3;
 pub mod v4;
+pub mod v6;
 
 /// Definition und Position eines Gleises.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
@@ -168,27 +169,23 @@ where
 pub(crate) type StreckenabschnittMap =
     HashMap<streckenabschnitt::Name, (Streckenabschnitt, Option<geschwindigkeit::Name>)>;
 /// Geschwindigkeiten und ihre Namen.
-type GeschwindigkeitMap<Leiter> = HashMap<geschwindigkeit::Name, Geschwindigkeit<Leiter>>;
+type GeschwindigkeitMap = HashMap<geschwindigkeit::Name, Geschwindigkeit>;
 
 /// Alle [Gleise](Gleis), [Geschwindigkeiten](Geschwindigkeit),
 /// [`Streckenabschnitte`](Streckenabschnitt), [Pläne](Plan),
 /// sowie der verwendete [`Zugtyp`].
-#[derive(zugkontrolle_macros::Debug)]
-#[zugkontrolle_debug(L: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
-#[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-pub(crate) struct Zustand<L: Leiter> {
+#[derive(Debug)]
+pub(crate) struct Zustand {
     /// Der verwendete Zugtyp.
-    zugtyp: Zugtyp<L>,
+    zugtyp: Zugtyp,
     /// Aktuell bekannte Geschwindigkeiten.
-    geschwindigkeiten: GeschwindigkeitMap<L>,
+    geschwindigkeiten: GeschwindigkeitMap,
     /// Aktuell bekannte Streckenabschnitte.
     streckenabschnitte: StreckenabschnittMap,
     /// Aktuell bekannte Gleise.
     gleise: GleiseDaten,
     /// Aktuell bekannte Pläne.
-    pläne: HashMap<plan::Name, Plan<L>>,
+    pläne: HashMap<plan::Name, Plan>,
 }
 
 /// Die gesuchte [`Geschwindigkeit`] wurde entfernt.
@@ -199,9 +196,9 @@ pub struct GeschwindigkeitEntferntFehler(pub geschwindigkeit::Name);
 #[derive(Debug)]
 pub struct StreckenabschnittEntferntFehler(pub streckenabschnitt::Name);
 
-impl<L: Leiter> Zustand<L> {
+impl Zustand {
     /// Erstelle einen neuen [`Zustand`].
-    pub(crate) fn neu(zugtyp: Zugtyp<L>) -> Self {
+    pub(crate) fn neu(zugtyp: Zugtyp) -> Self {
         Zustand {
             zugtyp,
             geschwindigkeiten: GeschwindigkeitMap::new(),
@@ -212,12 +209,12 @@ impl<L: Leiter> Zustand<L> {
     }
 
     /// Erhalte den verwendeten [Zugtyp].
-    pub(crate) fn zugtyp(&self) -> &Zugtyp<L> {
+    pub(crate) fn zugtyp(&self) -> &Zugtyp {
         &self.zugtyp
     }
 
     /// Erhalte die aktuell bekannten [Geschwindigkeiten](Geschwindigkeit).
-    pub(crate) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap<L> {
+    pub(crate) fn geschwindigkeiten(&self) -> &GeschwindigkeitMap {
         &self.geschwindigkeiten
     }
 
@@ -225,7 +222,7 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn geschwindigkeit(
         &self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<&Geschwindigkeit, GeschwindigkeitEntferntFehler> {
         self.geschwindigkeiten.get(name).ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
     }
 
@@ -233,7 +230,7 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn geschwindigkeit_mut(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<&mut Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<&mut Geschwindigkeit, GeschwindigkeitEntferntFehler> {
         self.geschwindigkeiten
             .get_mut(name)
             .ok_or_else(|| GeschwindigkeitEntferntFehler(name.clone()))
@@ -246,8 +243,8 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn geschwindigkeit_hinzufügen(
         &mut self,
         name: geschwindigkeit::Name,
-        geschwindigkeit: Geschwindigkeit<L>,
-    ) -> Option<Geschwindigkeit<L>> {
+        geschwindigkeit: Geschwindigkeit,
+    ) -> Option<Geschwindigkeit> {
         self.geschwindigkeiten.insert(name, geschwindigkeit)
     }
 
@@ -259,7 +256,7 @@ impl<L: Leiter> Zustand<L> {
     pub(crate) fn geschwindigkeit_entfernen(
         &mut self,
         name: &geschwindigkeit::Name,
-    ) -> Result<Geschwindigkeit<L>, GeschwindigkeitEntferntFehler> {
+    ) -> Result<Geschwindigkeit, GeschwindigkeitEntferntFehler> {
         for (_streckenabschnitt, geschwindigkeit) in self.streckenabschnitte.values_mut() {
             if Some(name) == geschwindigkeit.as_ref() {
                 *geschwindigkeit = None;
@@ -520,9 +517,9 @@ const ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT: Skalar = Skalar(5.);
 /// Alle Verbindungen in der Nähe der übergebenen Position im zugehörigen [`RStern`].
 /// Der erste Rückgabewert sind alle [`Verbindungen`](Verbindung) in der Nähe,
 /// der zweite, ob eine Verbindung der `gehalten_id` darunter war.
-fn überlappende_verbindungen<'t, L: Leiter>(
+fn überlappende_verbindungen<'t>(
     rstern: &'t RStern,
-    zugtyp: &'t Zugtyp<L>,
+    zugtyp: &'t Zugtyp,
     verbindung: &'t Verbindung,
     eigene_id: Option<&'t AnyId>,
     ist_gehalten: impl 't + Fn(AnyId) -> bool,
@@ -605,9 +602,9 @@ fn überlappende_verbindungen<'t, L: Leiter>(
 /// [überlappt](ÜBERLAPPENDE_VERBINDUNG_GENAUIGKEIT) wird die `position` so angepasst,
 /// dass die Verbindungen entgegengesetzt an gleicher Position sind.\
 /// Wenn keine Verbindung überlappt, gebe die `position` unverändert zurück.
-fn einraste_position<L: Leiter, U: Zeichnen<Z>, Z>(
+fn einraste_position<U: Zeichnen<Z>, Z>(
     rstern: &RStern,
-    zugtyp: &Zugtyp<L>,
+    zugtyp: &Zugtyp,
     definition: &U,
     id: Option<&AnyId>,
     z: &Z,
@@ -651,9 +648,9 @@ impl GleiseDaten {
     /// Es wurde kein zur [`DefinitionId`](crate::gleise::id::DefinitionId) gehörende
     /// Definition gefunden, oder es war keine [`GleisId`](crate::gleise::id::GleisId)
     /// verfügbar.
-    fn hinzufügen<L: Leiter>(
+    fn hinzufügen(
         &mut self,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         definition_steuerung: AnyDefinitionIdSteuerung,
         mut position: Position,
         streckenabschnitt: Option<streckenabschnitt::Name>,
@@ -728,9 +725,9 @@ pub enum BewegenFehler {
 
 impl GleiseDaten {
     /// Bewege ein [`Gleis`] an die `neue_position`.
-    fn bewegen<L: Leiter>(
+    fn bewegen(
         &mut self,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         gleis_id: AnyId,
         mut neue_position: Position,
         einrasten: bool,
@@ -1128,9 +1125,9 @@ pub(crate) struct GehaltenVerbindung {
 }
 
 /// Ist die `gleis_id` aktuell gehalten und gibt es im `rstern` Gleise mit überlappender Verbindung.
-fn ist_gehalten_und_andere_verbindung<L: Leiter>(
+fn ist_gehalten_und_andere_verbindung(
     rstern: &RStern,
-    zugtyp: &Zugtyp<L>,
+    zugtyp: &Zugtyp,
     ist_gehalten: impl Fn(AnyId) -> bool,
     gleis_id: &AnyId,
     verbindung: Verbindung,
@@ -1152,10 +1149,10 @@ fn ist_gehalten_und_andere_verbindung<L: Leiter>(
 
 #[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
 /// Zeichne die Verbindungen eines Gleises.
-fn zeichne_verbindungen<T, L: Leiter>(
+fn zeichne_verbindungen<T>(
     frame: &mut Frame<'_>,
     rstern: &RStern,
-    zugtyp: &Zugtyp<L>,
+    zugtyp: &Zugtyp,
     definition: &<T as MitSteuerung>::SelfUnit,
     steuerung: &<T as MitSteuerung>::Steuerung,
     gleis_id: &GleisId<T>,
@@ -1273,10 +1270,10 @@ fn schreibe_gleis_beschreibung_name<T, Thema>(
 
 impl GleiseDaten {
     /// Füge die gefärbten Hintergründe aller Gleise dem Frame hinzu.
-    pub(crate) fn färbe_alle_hintergründe<L: Leiter>(
+    pub(crate) fn färbe_alle_hintergründe(
         &self,
         frame: &mut Frame<'_>,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         streckenabschnitte: &StreckenabschnittMap,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
     ) {
@@ -1324,10 +1321,10 @@ impl GleiseDaten {
     }
 
     /// Füge die Konturen aller Gleise dem Frame hinzu.
-    pub(crate) fn zeichne_alle_konturen<L: Leiter>(
+    pub(crate) fn zeichne_alle_konturen(
         &self,
         frame: &mut Frame<'_>,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         ist_gehalten: impl Fn(AnyId) -> bool,
         farbe: Farbe,
     ) {
@@ -1368,10 +1365,10 @@ impl GleiseDaten {
     }
 
     /// Füge die Darstellung der Verbindungen aller Gleise dem Frame hinzu.
-    pub(crate) fn zeichne_alle_verbindungen<L: Leiter>(
+    pub(crate) fn zeichne_alle_verbindungen(
         &self,
         frame: &mut Frame<'_>,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         ist_gehalten: impl Fn(AnyId) -> bool,
     ) {
         /// Zeichne und Färbe die Verbindungen des zur `$gleis_id` gehörenden Gleises.
@@ -1412,10 +1409,10 @@ impl GleiseDaten {
     }
 
     /// Füge die Namen und Beschreibungen aller Gleise dem Frame hinzu.
-    pub(crate) fn schreibe_alle_namen_und_beschreibungen<L: Leiter, Thema: knopf::Catalog>(
+    pub(crate) fn schreibe_alle_namen_und_beschreibungen<Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         ist_gehalten: impl Fn(AnyId) -> bool,
         farbe: Farbe,
         skalieren: Skalar,
@@ -1461,10 +1458,10 @@ impl GleiseDaten {
 
     #[expect(clippy::too_many_arguments, reason = "Alle Argumente benötigt")]
     /// Füge die Darstellung aller Gleise dem Frame hinzu.
-    pub(crate) fn darstellen_aller_gleise<L: Leiter, Thema: knopf::Catalog>(
+    pub(crate) fn darstellen_aller_gleise<Thema: knopf::Catalog>(
         &self,
         frame: &mut Frame<'_>,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         streckenabschnitte: &StreckenabschnittMap,
         transparent_hintergrund: impl Fn(AnyId, Fließend) -> Transparenz,
         ist_gehalten: impl Fn(AnyId) -> bool,
@@ -1491,9 +1488,9 @@ const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 impl GleiseDaten {
     /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
-    fn gleis_an_position<L: Leiter>(
+    fn gleis_an_position(
         &self,
-        zugtyp: &Zugtyp<L>,
+        zugtyp: &Zugtyp,
         canvas_pos: Vektor,
     ) -> Option<(AnyIdSteuerung, Vektor, Winkel, Option<streckenabschnitt::Name>)> {
         let mut ergebnis = None;
