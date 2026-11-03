@@ -243,23 +243,8 @@ impl Leiter {
     #[must_use]
     pub fn ks_länge(&self) -> Option<usize> {
         match self {
-            Leiter::Mittelleiter(Mittelleiter::Pwm { pin: _, letzter_wert: _, polarität: _ })
-            | Leiter::Zweileiter(Zweileiter::Pwm {
-                geschwindigkeit: _,
-                letzter_wert: _,
-                polarität: _,
-                fahrtrichtung: _,
-            }) => None,
-            Leiter::Mittelleiter(Mittelleiter::KonstanteSpannung {
-                geschwindigkeit,
-                letzter_wert: _,
-                umdrehen: _,
-            })
-            | Leiter::Zweileiter(Zweileiter::KonstanteSpannung {
-                geschwindigkeit,
-                letzter_wert: _,
-                fahrtrichtung: _,
-            }) => Some(geschwindigkeit.len()),
+            Leiter::Mittelleiter(mittelleiter) => mittelleiter.ks_länge(),
+            Leiter::Zweileiter(zweileiter) => zweileiter.ks_länge(),
         }
     }
 
@@ -1040,8 +1025,20 @@ impl Mittelleiter {
         // neue_fahrtrichtung.unreachable()
         todo!()
     }
+
     fn aktuelle_fahrtrichtung(&self) -> Option<Fahrtrichtung> {
         None
+    }
+
+    /// Wie viele Anschlüsse zum einstellen der Geschwindigkeit wurden konfiguriert?
+    #[must_use]
+    pub fn ks_länge(&self) -> Option<usize> {
+        match self {
+            Mittelleiter::Pwm { pin: _, letzter_wert: _, polarität: _ } => None,
+            Mittelleiter::KonstanteSpannung { geschwindigkeit, letzter_wert: _, umdrehen: _ } => {
+                Some(geschwindigkeit.len())
+            },
+        }
     }
 }
 
@@ -1274,6 +1271,24 @@ impl Zweileiter {
             einstellen(neue_fahrtrichtung.into()),
             aktualisieren
         )
+    }
+
+    /// Wie viele Anschlüsse zum einstellen der Geschwindigkeit wurden konfiguriert?
+    #[must_use]
+    pub fn ks_länge(&self) -> Option<usize> {
+        match self {
+            Zweileiter::Pwm {
+                geschwindigkeit: _,
+                letzter_wert: _,
+                polarität: _,
+                fahrtrichtung: _,
+            } => None,
+            Zweileiter::KonstanteSpannung {
+                geschwindigkeit,
+                letzter_wert: _,
+                fahrtrichtung: _,
+            } => Some(geschwindigkeit.len()),
+        }
     }
 }
 

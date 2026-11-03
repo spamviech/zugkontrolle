@@ -189,12 +189,8 @@ impl AuswahlZustand {
                 let leiter_variante = gleise.zugtyp().leiter;
                 // FIXME vmtl. gibt es eine bessere Implementierung
                 let auswahl_neu = match leiter_variante {
-                    LeiterVariante::Mittelleiter => {
-                        <Mittelleiter as LeiterAnzeige<'t, Thema, Renderer>>::auswahl_neu
-                    },
-                    LeiterVariante::Zweileiter => {
-                        <Zweileiter as LeiterAnzeige<'t, Thema, Renderer>>::auswahl_neu
-                    },
+                    LeiterVariante::Mittelleiter => LeiterAnzeige::auswahl_neu::<Thema, Renderer>,
+                    LeiterVariante::Zweileiter => LeiterAnzeige::auswahl_neu::<Thema, Renderer>,
                 };
                 Element::from(auswahl_neu(
                     startwert.as_ref(),

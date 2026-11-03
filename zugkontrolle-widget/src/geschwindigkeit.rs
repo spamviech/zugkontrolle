@@ -354,12 +354,8 @@ where
         let fahrtrichtung_beschreibung = fahrtrichtung_beschreibung.into();
         // FIXME vmtl. gibt es eine bessere Implementierung
         let auswahl_startwert = match leiter_variante {
-            LeiterVariante::Mittelleiter => {
-                <Mittelleiter as LeiterAnzeige<'t, Thema, R>>::auswahl_startwert
-            },
-            LeiterVariante::Zweileiter => {
-                <Zweileiter as LeiterAnzeige<'t, Thema, R>>::auswahl_startwert
-            },
+            LeiterVariante::Mittelleiter => LeiterAnzeige::auswahl_startwert::<Thema, R>,
+            LeiterVariante::Zweileiter => LeiterAnzeige::auswahl_startwert::<Thema, R>,
         };
         let auswahl_startwert = startwert.as_ref().map(|(name, start_geschwindigkeit)| {
             (name.clone(), auswahl_startwert(start_geschwindigkeit))
@@ -668,12 +664,8 @@ where
         for (name, (anschlüsse_str, anschlüsse)) in geschwindigkeiten {
             // FIXME vmtl. gibt es eine bessere Implementierung
             let auswahl_startwert = match leiter_variante {
-                LeiterVariante::Mittelleiter => {
-                    <Mittelleiter as LeiterAnzeige<'t, Thema, R>>::auswahl_startwert
-                },
-                LeiterVariante::Zweileiter => {
-                    <Zweileiter as LeiterAnzeige<'t, Thema, R>>::auswahl_startwert
-                },
+                LeiterVariante::Mittelleiter => LeiterAnzeige::auswahl_startwert::<Thema, R>,
+                LeiterVariante::Zweileiter => LeiterAnzeige::auswahl_startwert::<Thema, R>,
             };
             let bearbeiten = Button::new(Icon::neu(Bootstrap::Feather)).on_press(
                 InterneAuswahlNachricht::Bearbeiten(
@@ -718,26 +710,39 @@ where
     }
 }
 
-// FIXME durch enum ersetzen
+#[derive(Debug)]
+pub enum LeiterAnzeige {
+    Mittelleiter(Mittelleiter),
+    Zweileiter(Zweileiter),
+}
+
 /// Ermöglicht Erstellen und Anpassen einer [`Geschwindigkeit`] mit dieser Leiter-Art.
-pub trait LeiterAnzeige<'t, Thema, R>: Sized {
+impl LeiterAnzeige {
     /// Erstelle eine neue [`Anzeige`].
-    fn anzeige_neu(
+    fn anzeige_neu<'t, Thema, R>(
         name: &Name,
         geschwindigkeit: &Geschwindigkeit,
-    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R>;
+    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R> {
+        todo!()
+    }
 
     /// Erstelle eine neue [`Auswahl`].
-    fn auswahl_neu(
+    pub(crate) fn auswahl_neu<'t, Thema, R>(
         startwert: Option<&(Name, GeschwindigkeitSerialisiert)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert>,
         leiter_variante: LeiterVariante,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Auswahl<'t, Thema, R>;
+    ) -> Auswahl<'t, Thema, R> {
+        todo!()
+    }
 
     /// Erzeuge den [Startwert](AuswahlStartwert) für ein [`Auswahl`]-Widget.
-    fn auswahl_startwert(serialisiert: &GeschwindigkeitSerialisiert) -> AuswahlStartwert;
+    fn auswahl_startwert<'t, Thema, R>(
+        serialisiert: &GeschwindigkeitSerialisiert,
+    ) -> AuswahlStartwert {
+        todo!()
+    }
 }
 
 /// Zurücksetzen des Zustands des [`Anzeige`]-Widgets.
@@ -747,59 +752,79 @@ pub struct ZustandZurücksetzenMittelleiter {
     pub bisherige_geschwindigkeit: u8,
 }
 
-impl<'t, Thema, R> LeiterAnzeige<'t, Thema, R> for Mittelleiter
-where
-    R: 't + text_core::Renderer<Font = Font>,
-    Thema: 't
-        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
-        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
-        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
-        + radio::Catalog
-        + slider::Catalog
-        + text::Catalog
-        + text_input::Catalog
-        + number_input::Catalog
-        + number_input::ExtendedCatalog
-        + slider::Catalog
-        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
-        + card::Catalog,
-    style::container::Container: style::container::StyleProvider<'t, Thema>,
-    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
-    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
-{
-    fn anzeige_neu(
+//Mittelleiter
+impl LeiterAnzeige {
+    fn anzeige_neu_mittelleiter<'t, Thema, R>(
         name: &Name,
-        geschwindigkeit: &Geschwindigkeit,
-    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R> {
+        mittelleiter: &Mittelleiter,
+    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R>
+    where
+        R: 't + text_core::Renderer<Font = Font>,
+        Thema: 't
+            + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+            + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+            + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+            + radio::Catalog
+            + slider::Catalog
+            + text::Catalog
+            + text_input::Catalog
+            + number_input::Catalog
+            + number_input::ExtendedCatalog
+            + slider::Catalog
+            + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+            + card::Catalog,
+        style::container::Container: style::container::StyleProvider<'t, Thema>,
+        TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+        Sammlung: style::sammlung::StyleProvider<'t, Thema>,
+    {
         let zeige_fahrtrichtung = |_none| {
             Button::new(Text::new("Umdrehen"))
                 .on_press(AktionGeschwindigkeit::Umdrehen {
-                    geschwindigkeit: geschwindigkeit.clone(),
+                    geschwindigkeit: todo!("mittelleiter.clone()"),
                 })
                 .into()
         };
-        let clone = geschwindigkeit.clone();
+        let clone = mittelleiter.clone();
         Anzeige::neu(
             name,
-            geschwindigkeit,
-            Geschwindigkeit::ks_länge,
+            todo!("mittelleiter"),
+            |_| todo!("Mittelleiter::ks_länge"),
             move |wert| AktionGeschwindigkeit::Geschwindigkeit {
-                geschwindigkeit: clone.clone(),
+                geschwindigkeit: todo!("clone.clone()"),
                 wert,
             },
             zeige_fahrtrichtung,
         )
     }
 
-    fn auswahl_neu(
-        startwert: Option<&(Name, GeschwindigkeitSerialisiert)>,
+    fn auswahl_neu_mittelleiter<'t, Thema, R>(
+        startwert: Option<&(Name, MittelleiterSerialisiert)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert>,
         leiter_variante: LeiterVariante,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Auswahl<'t, Thema, R> {
+    ) -> Auswahl<'t, Thema, R>
+    where
+        R: 't + text_core::Renderer<Font = Font>,
+        Thema: 't
+            + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+            + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+            + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+            + radio::Catalog
+            + slider::Catalog
+            + text::Catalog
+            + text_input::Catalog
+            + number_input::Catalog
+            + number_input::ExtendedCatalog
+            + slider::Catalog
+            + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+            + card::Catalog,
+        style::container::Container: style::container::StyleProvider<'t, Thema>,
+        TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+        Sammlung: style::sammlung::StyleProvider<'t, Thema>,
+    {
         Auswahl::neu(
-            startwert,
+            todo!("startwert"),
             geschwindigkeiten,
             leiter_variante,
             FahrtrichtungAnschluss::KonstanteSpannung,
@@ -818,23 +843,21 @@ where
         )
     }
 
-    fn auswahl_startwert(serialisiert: &GeschwindigkeitSerialisiert) -> AuswahlStartwert {
-        // match &serialisiert.leiter {
-        //     MittelleiterSerialisiert::Pwm { pin, polarität } => AuswahlStartwert::Pwm {
-        //         umdrehen_anschluss: None,
-        //         pwm_pin: *pin,
-        //         polarität: *polarität,
-        //     },
-        //     MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
-        //         AuswahlStartwert::KonstanteSpannung {
-        //             umdrehen_anschluss: Some(umdrehen.clone()),
-        //             geschwindigkeit_anschlüsse: geschwindigkeit.clone(),
-        //         }
-        //     },
-        // }
-        match &serialisiert.leiter {
-            LeiterSerialisiert::Mittelleiter(mittelleiter_serialisiert) => todo!(),
-            LeiterSerialisiert::Zweileiter(zweileiter_serialisiert) => todo!(),
+    fn auswahl_startwert_mittelleiter<'t, Thema, R>(
+        serialisiert: &MittelleiterSerialisiert,
+    ) -> AuswahlStartwert {
+        match serialisiert {
+            MittelleiterSerialisiert::Pwm { pin, polarität } => AuswahlStartwert::Pwm {
+                umdrehen_anschluss: None,
+                pwm_pin: *pin,
+                polarität: *polarität,
+            },
+            MittelleiterSerialisiert::KonstanteSpannung { geschwindigkeit, umdrehen } => {
+                AuswahlStartwert::KonstanteSpannung {
+                    umdrehen_anschluss: Some(umdrehen.clone()),
+                    geschwindigkeit_anschlüsse: geschwindigkeit.clone(),
+                }
+            },
         }
     }
 }
@@ -848,37 +871,38 @@ pub struct ZustandZurücksetzenZweileiter {
     pub bisherige_fahrtrichtung: Fahrtrichtung,
 }
 
-impl<'t, Thema, R> LeiterAnzeige<'t, Thema, R> for Zweileiter
-where
-    R: 't + text_core::Renderer<Font = Font>,
-    Thema: 't
-        + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
-        + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
-        + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
-        + radio::Catalog
-        + slider::Catalog
-        + text::Catalog
-        + text_input::Catalog
-        + number_input::Catalog
-        + number_input::ExtendedCatalog
-        + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
-        + card::Catalog,
-    style::container::Container: style::container::StyleProvider<'t, Thema>,
-    TabBar: style::tab_bar::StyleProvider<'t, Thema>,
-    Sammlung: style::sammlung::StyleProvider<'t, Thema>,
-{
-    fn anzeige_neu(
+// Zweileiter
+impl LeiterAnzeige {
+    fn anzeige_neu_zweileiter<'t, Thema, R>(
         name: &Name,
-        geschwindigkeit: &Geschwindigkeit,
-    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R> {
-        let geschwindigkeit_radio_clone = geschwindigkeit.clone();
+        zweileiter: &Zweileiter,
+    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R>
+    where
+        R: 't + text_core::Renderer<Font = Font>,
+        Thema: 't
+            + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+            + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+            + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+            + radio::Catalog
+            + slider::Catalog
+            + text::Catalog
+            + text_input::Catalog
+            + number_input::Catalog
+            + number_input::ExtendedCatalog
+            + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+            + card::Catalog,
+        style::container::Container: style::container::StyleProvider<'t, Thema>,
+        TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+        Sammlung: style::sammlung::StyleProvider<'t, Thema>,
+    {
+        let zweileiter_radio_clone = zweileiter.clone();
         let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
             Radio::new(
                 fahrtrichtung.to_string(),
                 fahrtrichtung,
                 Some(*aktuell),
                 move |gewählte_fahrtrichtung| AktionGeschwindigkeit::Fahrtrichtung {
-                    geschwindigkeit: geschwindigkeit_radio_clone.clone(),
+                    geschwindigkeit: todo!("zweileiter_radio_clone.clone()"),
                     fahrtrichtung: gewählte_fahrtrichtung,
                 },
             )
@@ -890,28 +914,46 @@ where
                 .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts, &fahrtrichtung))
                 .into()
         };
-        let geschwindigkeit_clone = geschwindigkeit.clone();
+        let zweileiter_clone = zweileiter.clone();
         Anzeige::neu(
             name,
-            geschwindigkeit,
-            Geschwindigkeit::ks_länge,
+            todo!("zweileiter"),
+            |_| todo!("Zweileiter::ks_länge"),
             move |wert| AktionGeschwindigkeit::Geschwindigkeit {
-                geschwindigkeit: geschwindigkeit_clone.clone(),
+                geschwindigkeit: todo!("zweileiter_clone.clone()"),
                 wert,
             },
             zeige_fahrtrichtung,
         )
     }
 
-    fn auswahl_neu(
-        startwert: Option<&(Name, GeschwindigkeitSerialisiert)>,
+    fn auswahl_neu_zweileiter<'t, Thema, R>(
+        startwert: Option<&(Name, ZweileiterSerialisiert)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert>,
         leiter_variante: LeiterVariante,
         scrollable_style: Sammlung,
         settings: I2cSettings,
-    ) -> Auswahl<'t, Thema, R> {
+    ) -> Auswahl<'t, Thema, R>
+    where
+        R: 't + text_core::Renderer<Font = Font>,
+        Thema: 't
+            + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
+            + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
+            + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
+            + radio::Catalog
+            + slider::Catalog
+            + text::Catalog
+            + text_input::Catalog
+            + number_input::Catalog
+            + number_input::ExtendedCatalog
+            + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
+            + card::Catalog,
+        style::container::Container: style::container::StyleProvider<'t, Thema>,
+        TabBar: style::tab_bar::StyleProvider<'t, Thema>,
+        Sammlung: style::sammlung::StyleProvider<'t, Thema>,
+    {
         Auswahl::neu(
-            startwert,
+            todo!("startwert"),
             geschwindigkeiten,
             leiter_variante,
             FahrtrichtungAnschluss::Immer,
@@ -934,25 +976,23 @@ where
         )
     }
 
-    fn auswahl_startwert(serialisiert: &GeschwindigkeitSerialisiert) -> AuswahlStartwert {
-        // match &serialisiert.leiter {
-        //     ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
-        //         AuswahlStartwert::Pwm {
-        //             umdrehen_anschluss: Some(fahrtrichtung.clone()),
-        //             pwm_pin: *geschwindigkeit,
-        //             polarität: *polarität,
-        //         }
-        //     },
-        //     ZweileiterSerialisiert::KonstanteSpannung { geschwindigkeit, fahrtrichtung } => {
-        //         AuswahlStartwert::KonstanteSpannung {
-        //             umdrehen_anschluss: Some(fahrtrichtung.clone()),
-        //             geschwindigkeit_anschlüsse: geschwindigkeit.clone(),
-        //         }
-        //     },
-        // }
-        match &serialisiert.leiter {
-            LeiterSerialisiert::Mittelleiter(mittelleiter_serialisiert) => todo!(),
-            LeiterSerialisiert::Zweileiter(zweileiter_serialisiert) => todo!(),
+    fn auswahl_startwert_zweileiter<'t, Thema, R>(
+        serialisiert: &ZweileiterSerialisiert,
+    ) -> AuswahlStartwert {
+        match serialisiert {
+            ZweileiterSerialisiert::Pwm { geschwindigkeit, polarität, fahrtrichtung } => {
+                AuswahlStartwert::Pwm {
+                    umdrehen_anschluss: Some(fahrtrichtung.clone()),
+                    pwm_pin: *geschwindigkeit,
+                    polarität: *polarität,
+                }
+            },
+            ZweileiterSerialisiert::KonstanteSpannung { geschwindigkeit, fahrtrichtung } => {
+                AuswahlStartwert::KonstanteSpannung {
+                    umdrehen_anschluss: Some(fahrtrichtung.clone()),
+                    geschwindigkeit_anschlüsse: geschwindigkeit.clone(),
+                }
+            },
         }
     }
 }
