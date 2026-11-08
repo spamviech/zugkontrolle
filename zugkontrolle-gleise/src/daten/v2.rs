@@ -9,7 +9,7 @@ use zugkontrolle_typen::canvas::Position;
 use zugkontrolle_util::void::Void;
 
 use crate::daten::{
-    de_serialisieren::LadenFehler,
+    de_serialisieren::V4DeserialisierenFehler,
     v2::{
         gerade::GeradeSerialisiert,
         geschwindigkeit::{BekannterZugtyp, GeschwindigkeitMapSerialisiert},
@@ -71,11 +71,14 @@ pub(crate) struct GleiseVecs<LeiterV2> {
 impl<L: 'static + BekannterZugtyp, S: From<<L as BekannterZugtyp>::V2>>
     TryFrom<GleiseVecs<<L as BekannterZugtyp>::V2>> for v3::ZustandSerialisiert<L, S>
 {
-    type Error = LadenFehler;
+    type Error = V4DeserialisierenFehler;
 
     fn try_from(v2: GleiseVecs<<L as BekannterZugtyp>::V2>) -> Result<Self, Self::Error> {
         let Some(zugtyp) = L::bekannter_zugtyp(&v2.name) else {
-            return Err(LadenFehler::UnbekannterZugtyp { zugtyp: v2.name, leiter: L::NAME });
+            return Err(V4DeserialisierenFehler::UnbekannterZugtyp {
+                zugtyp: v2.name,
+                leiter: L::NAME,
+            });
         };
 
         let mut ohne_streckenabschnitt = v3::GleiseDatenSerialisiert::neu();

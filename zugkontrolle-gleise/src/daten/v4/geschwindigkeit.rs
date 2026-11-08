@@ -1,10 +1,14 @@
 //! Serialisierbare Darstellung einer [`Geschwindigkeit`] in Version 4.X.
 
+#![expect(clippy::pub_use, reason = "Erlaube einfache Anpassung der Typsignaturen.")]
+
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use zugkontrolle_gleis::steuerung::geschwindigkeit::{Fahrtrichtung, Mittelleiter, Zweileiter};
+use zugkontrolle_gleis::steuerung::geschwindigkeit::{
+    self as v6, Fahrtrichtung, Mittelleiter, Zweileiter,
+};
 use zugkontrolle_util::{eingeschränkt::NullBisEins, void::Void};
 
 pub use zugkontrolle_gleis::steuerung::geschwindigkeit::{
@@ -54,4 +58,12 @@ impl Leiter for Zweileiter {
 pub struct GeschwindigkeitSerialisiert<LeiterSerialisiert> {
     /// Der Leiter der Geschwindigkeit.
     pub leiter: LeiterSerialisiert,
+}
+
+impl<S: Into<v6::LeiterSerialisiert>> From<GeschwindigkeitSerialisiert<S>>
+    for v6::GeschwindigkeitSerialisiert
+{
+    fn from(value: GeschwindigkeitSerialisiert<S>) -> Self {
+        v6::GeschwindigkeitSerialisiert { leiter: value.leiter.into() }
+    }
 }

@@ -4,6 +4,7 @@
 
 - Ersetzte Zugtyp/Leiter Typ-Parameter durch `enum`.
   - Dadurch wird ein neues Speicherformat benötigt.
+  - Es können alle Speicherdateien geladen werden, unabhängig vom Zugtyp.
 
 ## 5.1.0
 

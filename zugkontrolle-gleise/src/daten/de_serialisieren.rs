@@ -30,7 +30,10 @@ use zugkontrolle_gleis::{
     kurve::Kurve,
     steuerung::{
         aktualisieren::{Aktualisieren, MitSteuerung, SomeAktualisierenSender},
-        geschwindigkeit::{Leiter, LeiterVariante},
+        geschwindigkeit::{
+            Leiter, LeiterVariante, Mittelleiter, MittelleiterSerialisiert, Zweileiter,
+            ZweileiterSerialisiert,
+        },
         plan::{self, SteuerungMaps, UnbekannteAnschlüsse},
     },
     weiche::{
@@ -47,7 +50,7 @@ use crate::{
         GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
         v2::{self, geschwindigkeit::BekannterZugtyp},
         v3::{self},
-        v4::{self, GleisSerialisiert, GleiseDatenSerialisiert},
+        v4::{self, GleisSerialisiert, GleiseDatenSerialisiert, plan::FehlendeWeichensteuerung},
         v6::{ZugtypSerialisiert, ZustandSerialisiert},
     },
 };
@@ -94,11 +97,13 @@ pub enum LadenFehler {
     BincodeDeserialisieren {
         /// Fehler beim Deserialisieren nach aktuellem Speicherformat.
         aktuell: DecodeError,
-        /// Fehler beim Deserialisieren nach Version-3 Speicherformat.
-        v3: DecodeError,
-        /// Fehler beim Deserialisieren nach Version-2 Speicherformat.
-        v2: DecodeError,
+        /// Fehler beim Deserialisieren nach Version-4 (oder früher) Speicherformat (Mittelleiter).
+        mittelleiter: V4DeserialisierenFehler,
+        /// Fehler beim Deserialisieren nach Version-4 (oder früher) Speicherformat (Zweileiter).
+        zweileiter: V4DeserialisierenFehler,
     },
+    /// Eine Weichen-Aktion in einem älteren Plan hat keine Steuerung.
+    FehlendeWeichensteuerung(FehlendeWeichensteuerung),
     /// Unbekannte Anschlüsse sollen in einem [`Plan`](plan::Plan) verwendet werden.
     UnbekannteAnschlüsse {
         /// Der Name des Plans.
@@ -110,13 +115,6 @@ pub enum LadenFehler {
     UnbekannteDefinition {
         /// Die Id ohne zugehörigen Eintrag im [`Zugtyp`].
         id: AnyDefinitionId,
-    },
-    /// Unbekannter Zugtyp beim Laden von v2-Speicherdaten.
-    UnbekannterZugtyp {
-        /// Der gespeicherte Zugtyp.
-        zugtyp: String,
-        /// Der Name des aktuellen Leiters.
-        leiter: &'static str,
     },
 }
 
@@ -745,7 +743,6 @@ impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
         let _bytes = encode_into_std_write(serialisiert, &mut file, BINCODE_OPTIONS)?;
         Ok(())
     }
-
     /// Lade Gleise, [`Streckenabschnitte`](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [`Zugtyp`]
     /// aus einer Datei.
@@ -763,20 +760,6 @@ impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     where
         AktualisierenNachricht: 'static + From<Aktualisieren> + Send,
     {
-        fn deserialize<T: DeserializeOwned>(slice: &[u8]) -> Result<T, DecodeError> {
-            let (decoded, bytes): (T, usize) = decode_from_slice(slice, BINCODE_OPTIONS)?;
-            #[expect(
-                clippy::arithmetic_side_effects,
-                reason = "bytes at maximum length of the slice"
-            )]
-            let trailing_bytes = slice.len() - bytes;
-            if trailing_bytes > 0 {
-                Err(DecodeError::TrailingBytes(trailing_bytes))
-            } else {
-                Ok(decoded)
-            }
-        }
-
         // aktuellen Zustand zurücksetzen, bisherige Anschlüsse sammeln
         self.erzwinge_neuzeichnen();
         let anschlüsse = self.zustand.anschlüsse_ausgeben();
@@ -788,23 +771,30 @@ impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
         let slice = content.as_slice();
         let mut id_fehler = Vec::new();
         let zustand_serialisiert: ZustandSerialisiert = deserialize(slice)
-            .or_else(|aktuell| {
-                // match deserialize::<v4::ZustandSerialisiert<L, S>>(slice) {}
-                // match deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
-                //     Ok(v3) => Ok(v3.v4(&mut id_fehler)),
-                //     Err(v3) => {
-                //         match deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
-                //             Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
-                //                 Ok(v3_from_v2) => Ok(v3_from_v2.v4(&mut id_fehler)),
-                //                 Err(fehler) => Err(fehler),
-                //             },
-                //             Err(v2) => Err(LadenFehler::BincodeDeserialisieren { aktuell, v3, v2 }),
-                //         }
-                //     },
-                // };
-                id_fehler.push(KeineIdVerfügbar::für::<()>());
-                todo!()
-            })
+            .or_else(
+                #[expect(clippy::result_large_err, reason = "Viele Fehlerquellen.")]
+                |aktuell| match deserialisiere_v4::<Mittelleiter, MittelleiterSerialisiert>(
+                    slice,
+                    &mut id_fehler,
+                ) {
+                    Ok(mittelleiter) => ZustandSerialisiert::try_from(mittelleiter)
+                        .map_err(LadenFehler::FehlendeWeichensteuerung),
+                    Err(mittelleiter) => {
+                        match deserialisiere_v4::<Zweileiter, ZweileiterSerialisiert>(
+                            slice,
+                            &mut id_fehler,
+                        ) {
+                            Ok(zweileiter) => ZustandSerialisiert::try_from(zweileiter)
+                                .map_err(LadenFehler::FehlendeWeichensteuerung),
+                            Err(zweileiter) => Err(LadenFehler::BincodeDeserialisieren {
+                                aktuell,
+                                mittelleiter,
+                                zweileiter,
+                            }),
+                        }
+                    },
+                },
+            )
             .map_err(NonEmpty::singleton)?;
 
         // reserviere Anschlüsse
@@ -819,5 +809,62 @@ impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
         } else {
             Ok(())
         }
+    }
+}
+
+/// Deserialisiere einen beliebigen Typ aus einem slice.
+fn deserialize<T: DeserializeOwned>(slice: &[u8]) -> Result<T, DecodeError> {
+    let (decoded, bytes): (T, usize) = decode_from_slice(slice, BINCODE_OPTIONS)?;
+    #[expect(clippy::arithmetic_side_effects, reason = "bytes at maximum length of the slice")]
+    let trailing_bytes = slice.len() - bytes;
+    if trailing_bytes > 0 { Err(DecodeError::TrailingBytes(trailing_bytes)) } else { Ok(decoded) }
+}
+
+/// Fehler beim Deserialisieren (laden) gespeicherter Daten im [`v4`] (oder früher) Format
+#[derive(Debug)]
+pub enum V4DeserialisierenFehler {
+    /// (siehe [`LadenFehler::UnbekannterZugtyp`]).
+    UnbekannterZugtyp {
+        /// Der gespeicherte Zugtyp.
+        zugtyp: String,
+        /// Der Name des aktuellen Leiters.
+        leiter: &'static str,
+    },
+    /// (siehe [`LadenFehler::BincodeDeserialisieren`]).
+    BincodeDeserialisieren {
+        /// Fehler beim Deserialisieren nach Version-4 Speicherformat.
+        v4: DecodeError,
+        /// Fehler beim Deserialisieren nach Version-3 Speicherformat.
+        v3: DecodeError,
+        /// Fehler beim Deserialisieren nach Version-2 Speicherformat.
+        v2: DecodeError,
+    },
+}
+
+fn deserialisiere_v4<L, S>(
+    slice: &[u8],
+    id_fehler: &mut Vec<KeineIdVerfügbar>,
+) -> Result<v4::ZustandSerialisiert<L, S>, V4DeserialisierenFehler>
+where
+    L: 'static + v4::geschwindigkeit::Leiter + BekannterZugtyp,
+    for<'de> <L as v4::geschwindigkeit::Leiter>::VerhältnisFahrspannungÜberspannung:
+        Deserialize<'de>,
+    for<'de> <L as v4::geschwindigkeit::Leiter>::UmdrehenZeit: Deserialize<'de>,
+    for<'de> <L as v4::geschwindigkeit::Leiter>::Fahrtrichtung: Deserialize<'de>,
+    for<'de> <L as BekannterZugtyp>::V2: Deserialize<'de>,
+    for<'de> S: From<<L as BekannterZugtyp>::V2> + Deserialize<'de>,
+{
+    match deserialize::<v4::ZustandSerialisiert<L, S>>(slice) {
+        Ok(v4) => Ok(v4),
+        Err(v4) => match deserialize::<v3::ZustandSerialisiert<L, S>>(slice) {
+            Ok(v3) => Ok(v3.v4(id_fehler)),
+            Err(v3) => match deserialize::<v2::GleiseVecs<<L as BekannterZugtyp>::V2>>(slice) {
+                Ok(v2) => match v3::ZustandSerialisiert::try_from(v2) {
+                    Ok(v3_from_v2) => Ok(v3_from_v2.v4(id_fehler)),
+                    Err(fehler) => Err(fehler),
+                },
+                Err(v2) => Err(V4DeserialisierenFehler::BincodeDeserialisieren { v4, v3, v2 }),
+            },
+        },
     }
 }

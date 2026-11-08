@@ -103,7 +103,7 @@ impl Display for Leiter {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, zugkontrolle_macros::From)]
 pub enum LeiterSerialisiert {
     Mittelleiter(MittelleiterSerialisiert),
     Zweileiter(ZweileiterSerialisiert),
@@ -1011,26 +1011,33 @@ impl Mittelleiter {
     fn fahrtrichtung(
         &mut self,
         neue_fahrtrichtung: Fahrtrichtung,
-        _pwm_frequenz: NichtNegativ,
-        _verhältnis_fahrspannung_überspannung: NullBisEins,
-        _stopp_zeit: Duration,
-        _umdrehen_zeit: Duration,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: NullBisEins,
+        stopp_zeit: Duration,
+        umdrehen_zeit: Duration,
     ) -> Result<(), Fehler> {
-        // neue_fahrtrichtung.unreachable()
-        todo!()
+        log::warn!("Mittelleiter::fahrtrichtung({neue_fahrtrichtung})");
+        self.umdrehen(pwm_frequenz, verhältnis_fahrspannung_überspannung, stopp_zeit, umdrehen_zeit)
     }
 
     fn async_fahrtrichtung_allgemein_aux(
-        _mutex: &Arc<Mutex<Self>>,
+        mutex: &Arc<Mutex<Self>>,
         neue_fahrtrichtung: Fahrtrichtung,
-        _pwm_frequenz: NichtNegativ,
-        _verhältnis_fahrspannung_überspannung: NullBisEins,
-        _stopp_zeit: Duration,
-        _umdrehen_zeit: Duration,
-        _aktualisieren: Option<impl FnOnce()>,
+        pwm_frequenz: NichtNegativ,
+        verhältnis_fahrspannung_überspannung: NullBisEins,
+        stopp_zeit: Duration,
+        umdrehen_zeit: Duration,
+        aktualisieren: Option<impl FnOnce()>,
     ) -> Result<(), Fehler> {
-        // neue_fahrtrichtung.unreachable()
-        todo!()
+        log::warn!("Mittelleiter::async_fahrtrichtung_allgemein_aux({neue_fahrtrichtung})");
+        Self::async_umdrehen_allgemein_aux(
+            mutex,
+            pwm_frequenz,
+            verhältnis_fahrspannung_überspannung,
+            stopp_zeit,
+            umdrehen_zeit,
+            aktualisieren,
+        )
     }
 
     fn aktuelle_fahrtrichtung(&self) -> Option<Fahrtrichtung> {
