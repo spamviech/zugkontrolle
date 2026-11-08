@@ -662,7 +662,6 @@ impl Geschwindigkeit {
     }
 }
 
-/// FIXME ist das LeiterSerialisiert-enum ein breaking change für serialisierte Darstellung?
 #[expect(
     clippy::module_name_repetitions,
     reason = "Folgt der allgemeinen Konvention TypName -> TypNameSerialisiert"

@@ -39,7 +39,7 @@ use zugkontrolle_widget::{
     bewegen::Bewegen,
     drehen::Drehen,
     flat_map::FlatMap,
-    geschwindigkeit::{Anzeige, LeiterAnzeige},
+    geschwindigkeit::Anzeige,
     modal::Modal,
     speichern_laden, streckenabschnitt,
     style::{

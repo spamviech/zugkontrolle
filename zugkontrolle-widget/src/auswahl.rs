@@ -4,10 +4,9 @@ use std::fmt::Debug;
 
 use iced::{Element, Renderer};
 
-use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
+use zugkontrolle_anschluss::de_serialisieren::Serialisiere as _;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::id::AnyIdSteuerungSerialisiert;
-use zugkontrolle_gleis::steuerung::geschwindigkeit::{LeiterVariante, Mittelleiter, Zweileiter};
 use zugkontrolle_gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
@@ -24,8 +23,7 @@ use zugkontrolle_gleise::Gleise;
 use zugkontrolle_id::GleisId;
 
 use crate::{
-    geschwindigkeit::{self, LeiterAnzeige},
-    kontakt, lizenzen,
+    geschwindigkeit, kontakt, lizenzen,
     lizenzen::Lizenzen,
     streckenabschnitt,
     style::{sammlung::Sammlung, thema::Thema},
@@ -187,12 +185,7 @@ impl AuswahlZustand {
                         (name.clone(), geschwindigkeit.serialisiere())
                     });
                 let leiter_variante = gleise.zugtyp().leiter;
-                // FIXME vmtl. gibt es eine bessere Implementierung
-                let auswahl_neu = match leiter_variante {
-                    LeiterVariante::Mittelleiter => LeiterAnzeige::auswahl_neu::<Thema, Renderer>,
-                    LeiterVariante::Zweileiter => LeiterAnzeige::auswahl_neu::<Thema, Renderer>,
-                };
-                Element::from(auswahl_neu(
+                Element::from(geschwindigkeit::Auswahl::neu(
                     startwert.as_ref(),
                     geschwindigkeiten,
                     leiter_variante,

@@ -32,9 +32,7 @@ use zugkontrolle_widget::{
     auswahl::AuswahlZustand,
     bewegen::{self, Bewegen, Bewegung},
     drehen::Drehen,
-    fonts,
-    geschwindigkeit::LeiterAnzeige,
-    speichern_laden,
+    fonts, speichern_laden,
     style::{self, thema::Thema},
 };
 
