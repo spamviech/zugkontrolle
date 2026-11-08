@@ -112,25 +112,22 @@ impl<M, Thema, R> Debug for Anzeige<'_, M, Thema, R> {
     }
 }
 
-impl<'t, M, Thema, R> Anzeige<'t, M, Thema, R>
+impl<'t, Thema, R> Anzeige<'t, AktionGeschwindigkeit, Thema, R>
 where
-    M: 't + Clone,
     R: 't + text_core::Renderer,
-    Thema: 't + radio::Catalog + slider::Catalog + text::Catalog,
+    Thema: 't + button::Catalog + radio::Catalog + slider::Catalog + text::Catalog,
 {
     /// Erstelle eine neue [Anzeige] für einen [`Leiter`].
-    pub fn neu<'s>(
-        name: &'s Name,
-        geschwindigkeit: &'s Geschwindigkeit,
-        ks_länge: impl FnOnce(&'s Geschwindigkeit) -> Option<usize>,
-        geschwindigkeit_nachricht: impl Fn(u8) -> M + Clone + 'static,
-        zeige_fahrtrichtung: impl FnOnce(Option<Fahrtrichtung>) -> Element<'t, M, Thema, R>,
-    ) -> Self {
+    #[must_use]
+    pub fn neu<'s>(name: &'s Name, geschwindigkeit: &'s Geschwindigkeit) -> Self {
         let aktuelle_geschwindigkeit = geschwindigkeit.aktuelle_geschwindigkeit();
         let aktuelle_fahrtrichtung = geschwindigkeit.aktuelle_fahrtrichtung();
         let mut column = Column::new().spacing(1).push(Text::new(name.0.clone()));
+
+        let zeige_fahrtrichtung = Self::zeige_fahrtrichtung(geschwindigkeit);
+
         column = column.push({
-            let max = if let Some(länge) = ks_länge(geschwindigkeit) {
+            let max = if let Some(länge) = geschwindigkeit.ks_länge() {
                 u8::try_from(länge).unwrap_or_else(|_else| {
                     error!("Zu viele Anschlüsse mit Konstanter Spannung bei einer Geschwindigkeit: {länge}");
                     u8::MAX
@@ -138,12 +135,57 @@ where
             } else {
                 u8::MAX
             };
-            Slider::new(0..=max, aktuelle_geschwindigkeit, geschwindigkeit_nachricht)
+            let geschwindigkeit_clone2 = geschwindigkeit.clone();
+            let setzte_geschwindigkeit = move |wert| AktionGeschwindigkeit::Geschwindigkeit {
+                geschwindigkeit: geschwindigkeit_clone2.clone(),
+                wert
+            };
+            Slider::new(0..=max, aktuelle_geschwindigkeit, setzte_geschwindigkeit)
                 .width(Length::Fixed(100.))
         });
 
         column = column.push(zeige_fahrtrichtung(aktuelle_fahrtrichtung));
         Anzeige { element: column.into() }
+    }
+
+    fn zeige_fahrtrichtung(
+        geschwindigkeit: &Geschwindigkeit,
+    ) -> Box<dyn FnOnce(Option<Fahrtrichtung>) -> Element<'t, AktionGeschwindigkeit, Thema, R>>
+    {
+        let geschwindigkeit_clone = geschwindigkeit.clone();
+        match geschwindigkeit.leiter_variante() {
+            LeiterVariante::Mittelleiter => Box::new(|_none| {
+                Button::new(Text::new("Umdrehen"))
+                    .on_press(AktionGeschwindigkeit::Umdrehen {
+                        geschwindigkeit: geschwindigkeit_clone,
+                    })
+                    .into()
+            }),
+            LeiterVariante::Zweileiter => {
+                let fahrtrichtung_radio =
+                    |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
+                        Radio::new(
+                            fahrtrichtung.to_string(),
+                            fahrtrichtung,
+                            Some(*aktuell),
+                            move |gewählte_fahrtrichtung| AktionGeschwindigkeit::Fahrtrichtung {
+                                geschwindigkeit: geschwindigkeit_clone,
+                                fahrtrichtung: gewählte_fahrtrichtung,
+                            },
+                        )
+                    };
+                Box::new(|fahrtrichtung: Option<Fahrtrichtung>| {
+                    let fahrtrichtung = fahrtrichtung.unwrap_or(Fahrtrichtung::Vorwärts);
+                    Row::new()
+                        .push((fahrtrichtung_radio.clone())(
+                            Fahrtrichtung::Vorwärts,
+                            &fahrtrichtung,
+                        ))
+                        .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts, &fahrtrichtung))
+                        .into()
+                })
+            },
+        }
     }
 }
 
@@ -754,49 +796,6 @@ pub struct ZustandZurücksetzenMittelleiter {
 
 //Mittelleiter
 impl LeiterAnzeige {
-    fn anzeige_neu_mittelleiter<'t, Thema, R>(
-        name: &Name,
-        mittelleiter: &Mittelleiter,
-    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R>
-    where
-        R: 't + text_core::Renderer<Font = Font>,
-        Thema: 't
-            + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
-            + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
-            + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
-            + radio::Catalog
-            + slider::Catalog
-            + text::Catalog
-            + text_input::Catalog
-            + number_input::Catalog
-            + number_input::ExtendedCatalog
-            + slider::Catalog
-            + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
-            + card::Catalog,
-        style::container::Container: style::container::StyleProvider<'t, Thema>,
-        TabBar: style::tab_bar::StyleProvider<'t, Thema>,
-        Sammlung: style::sammlung::StyleProvider<'t, Thema>,
-    {
-        let zeige_fahrtrichtung = |_none| {
-            Button::new(Text::new("Umdrehen"))
-                .on_press(AktionGeschwindigkeit::Umdrehen {
-                    geschwindigkeit: todo!("mittelleiter.clone()"),
-                })
-                .into()
-        };
-        let clone = mittelleiter.clone();
-        Anzeige::neu(
-            name,
-            todo!("mittelleiter"),
-            |_| todo!("Mittelleiter::ks_länge"),
-            move |wert| AktionGeschwindigkeit::Geschwindigkeit {
-                geschwindigkeit: todo!("clone.clone()"),
-                wert,
-            },
-            zeige_fahrtrichtung,
-        )
-    }
-
     fn auswahl_neu_mittelleiter<'t, Thema, R>(
         startwert: Option<&(Name, MittelleiterSerialisiert)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert>,
@@ -873,60 +872,6 @@ pub struct ZustandZurücksetzenZweileiter {
 
 // Zweileiter
 impl LeiterAnzeige {
-    fn anzeige_neu_zweileiter<'t, Thema, R>(
-        name: &Name,
-        zweileiter: &Zweileiter,
-    ) -> Anzeige<'t, AktionGeschwindigkeit, Thema, R>
-    where
-        R: 't + text_core::Renderer<Font = Font>,
-        Thema: 't
-            + container::Catalog<Class<'t> = style::container::StyleFn<'t, Thema>>
-            + button::Catalog<Class<'t> = style::button::StyleFn<'t, Thema>>
-            + scrollable::Catalog<Class<'t> = style::sammlung::StyleFn<'t, Thema>>
-            + radio::Catalog
-            + slider::Catalog
-            + text::Catalog
-            + text_input::Catalog
-            + number_input::Catalog
-            + number_input::ExtendedCatalog
-            + tab_bar::Catalog<Class<'t> = style::tab_bar::StyleFn<'t, Thema>>
-            + card::Catalog,
-        style::container::Container: style::container::StyleProvider<'t, Thema>,
-        TabBar: style::tab_bar::StyleProvider<'t, Thema>,
-        Sammlung: style::sammlung::StyleProvider<'t, Thema>,
-    {
-        let zweileiter_radio_clone = zweileiter.clone();
-        let fahrtrichtung_radio = |fahrtrichtung: Fahrtrichtung, aktuell: &Fahrtrichtung| {
-            Radio::new(
-                fahrtrichtung.to_string(),
-                fahrtrichtung,
-                Some(*aktuell),
-                move |gewählte_fahrtrichtung| AktionGeschwindigkeit::Fahrtrichtung {
-                    geschwindigkeit: todo!("zweileiter_radio_clone.clone()"),
-                    fahrtrichtung: gewählte_fahrtrichtung,
-                },
-            )
-        };
-        let zeige_fahrtrichtung = |fahrtrichtung: Option<Fahrtrichtung>| {
-            let fahrtrichtung = fahrtrichtung.unwrap_or(Fahrtrichtung::Vorwärts);
-            Row::new()
-                .push((fahrtrichtung_radio.clone())(Fahrtrichtung::Vorwärts, &fahrtrichtung))
-                .push(fahrtrichtung_radio(Fahrtrichtung::Rückwärts, &fahrtrichtung))
-                .into()
-        };
-        let zweileiter_clone = zweileiter.clone();
-        Anzeige::neu(
-            name,
-            todo!("zweileiter"),
-            |_| todo!("Zweileiter::ks_länge"),
-            move |wert| AktionGeschwindigkeit::Geschwindigkeit {
-                geschwindigkeit: todo!("zweileiter_clone.clone()"),
-                wert,
-            },
-            zeige_fahrtrichtung,
-        )
-    }
-
     fn auswahl_neu_zweileiter<'t, Thema, R>(
         startwert: Option<&(Name, ZweileiterSerialisiert)>,
         geschwindigkeiten: BTreeMap<Name, GeschwindigkeitSerialisiert>,

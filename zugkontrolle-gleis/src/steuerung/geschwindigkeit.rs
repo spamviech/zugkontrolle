@@ -466,6 +466,14 @@ impl Geschwindigkeit {
         Geschwindigkeit { leiter: Arc::new(Mutex::new(leiter)) }
     }
 
+    #[must_use]
+    pub fn leiter_variante(&self) -> LeiterVariante {
+        match &*self.lock_leiter() {
+            Leiter::Mittelleiter(_mittelleiter) => LeiterVariante::Mittelleiter,
+            Leiter::Zweileiter(_zweileiter) => LeiterVariante::Zweileiter,
+        }
+    }
+
     /// Helper-Methode um Zugriff auf die Anschlüsse zu bekommen.
     ///
     /// Blockiert solange, bis der Zugriff erhalten wurde.

@@ -39,7 +39,7 @@ use zugkontrolle_widget::{
     bewegen::Bewegen,
     drehen::Drehen,
     flat_map::FlatMap,
-    geschwindigkeit::LeiterAnzeige,
+    geschwindigkeit::{Anzeige, LeiterAnzeige},
     modal::Modal,
     speichern_laden, streckenabschnitt,
     style::{
@@ -338,19 +338,10 @@ fn row_mit_scrollable<'t>(
         },
         Modus::Fahren => {
             scrollable_column = scrollable_column.push(Text::new("Geschwindigkeiten")).spacing(1);
-            // FIXME vmtl. gibt es eine bessere Implementierung
-            let anzeige_neu = match gleise.zugtyp().leiter {
-                LeiterVariante::Mittelleiter => {
-                    <Mittelleiter as LeiterAnzeige<'t, Thema, Renderer>>::anzeige_neu
-                },
-                LeiterVariante::Zweileiter => {
-                    <Zweileiter as LeiterAnzeige<'t, Thema, Renderer>>::anzeige_neu
-                },
-            };
             gleise.mit_allen_geschwindigkeiten(|name, geschwindigkeit| {
                 take_mut::take(&mut scrollable_column, |scrollable_column| {
                     scrollable_column.push(
-                        Element::from(anzeige_neu(name, geschwindigkeit))
+                        Element::from(Anzeige::neu(name, geschwindigkeit))
                             .map(NachrichtClone::AktionGeschwindigkeit),
                     )
                 });
