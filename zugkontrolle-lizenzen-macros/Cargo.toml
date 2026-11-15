@@ -15,7 +15,10 @@ proc-macro = true
 
 [features]
 default = []
+# Do no fail the build if a license for a dependency can't be found.
 allow-missing = []
+# Only use dummy licenses to speed up compilation.
+dummy-licenses = []
 
 [lints]
 workspace = true

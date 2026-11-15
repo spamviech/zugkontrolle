@@ -1,6 +1,8 @@
 //! Parse den output von `cargo metadata` um die crates für das aktuelle `TARGET` zu erhalten
 //! und erzeuge eine Map mit den zugehörigen Lizenzen, eingebunden über [`include_str!`].
 
+#![cfg_attr(feature = "dummy-licenses", expect(unused_imports, reason = "stubbed out"))]
+
 use std::{collections::BTreeMap, iter, path::Path, process::Command, str};
 
 use cargo_metadata::{MetadataCommand, Package, PackageName};
@@ -8,6 +10,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 /// Verwendete crates für das `target`.
+#[cfg(not(feature = "dummy-licenses"))]
 fn verwendete_crates(target: String) -> Result<Vec<Package>, String> {
     let metadata_res = MetadataCommand::new()
         .other_options([String::from("--filter-platform"), target, String::from("--all-features")])
@@ -23,6 +26,7 @@ fn verwendete_crates(target: String) -> Result<Vec<Package>, String> {
 }
 
 /// Alle bekannten targets für die aktuelle `rustc`-Version.
+#[cfg(not(feature = "dummy-licenses"))]
 fn bekannte_targets() -> Result<Vec<String>, String> {
     let stdout = match Command::new("rustc").args(["--print", "target-list"]).output() {
         Ok(output) if output.status.success() => output.stdout,
@@ -54,6 +58,7 @@ fn bekannte_targets() -> Result<Vec<String>, String> {
 }
 
 /// Lizenz-Dateien, die keinen Standard-Dateipfad verwenden.
+#[cfg(not(feature = "dummy-licenses"))]
 fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
     // TODO automatisches ausführen von fetch_licenses.py über std::process::Command
     // alternative direkt in rust, z.B. mit dependency
@@ -70,6 +75,7 @@ fn lizenz_dateien() -> BTreeMap<&'static str, &'static str> {
 }
 
 /// [`crate::target_crate_lizenzen`].
+#[cfg(not(feature = "dummy-licenses"))]
 fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<String>) {
     let verwendete_crates = match verwendete_crates(String::from(target)) {
         Ok(crates) => crates,
@@ -172,6 +178,30 @@ fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
 }
 
 /// [`crate::target_crate_lizenzen`].
+#[cfg(feature = "dummy-licenses")]
+fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> TokenStream {
+    if !input.is_empty() {
+        let fehlermeldung =
+            quote_fehlermeldung(&format!("No argument supported, but \"{input}\" was given."));
+        return quote! {{
+            #fehlermeldung
+            []
+        }};
+    }
+
+    let dummy_lizenz = "Lorem ipsum dolor sit amet, consectetur adipiscing elit  …";
+    let namen = ["dummy-a", "dummy-b", "dummy-c"];
+    let versionen = ["0.4", "1.7.abc", "-a73~"];
+    quote! {{
+        #[cfg(zugkontrolle_target = "dummy")]
+        {&[]}
+        #[cfg(not(zugkontrolle_target = "dummy"))]
+        {&[#((#namen, #versionen, #dummy_lizenz)),*]}
+    }}
+}
+
+/// [`crate::target_crate_lizenzen`].
+#[cfg(not(feature = "dummy-licenses"))]
 fn target_crate_lizenzen_oder_compile_error(input: &TokenStream) -> TokenStream {
     if !input.is_empty() {
         let fehlermeldung =
