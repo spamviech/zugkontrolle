@@ -29,5 +29,6 @@
     "rust-analyzer.check.targets": "aarch64-unknown-linux-gnu",
     "rust-analyzer.cargo.features": [
         "raspi",
+        "zugkontrolle-lizenzen-macros/dummy-licenses"
     ],
 }
