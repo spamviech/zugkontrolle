@@ -4455,7 +4455,6 @@ dependencies = [
 name = "zugkontrolle-macros"
 version = "6.0.0"
 dependencies = [
- "cargo_metadata",
  "heck 0.5.0",
  "proc-macro-crate",
  "proc-macro2",
@@ -4501,7 +4500,6 @@ dependencies = [
 name = "zugkontrolle-widget"
 version = "3.0.0"
 dependencies = [
- "cargo_metadata",
  "enum-iterator",
  "iced",
  "iced_aw",
