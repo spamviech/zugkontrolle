@@ -22,7 +22,6 @@ use zugkontrolle_gleis::{
     id::AnyIdSteuerung,
     steuerung::{
         aktualisieren::{Aktualisieren, Steuerung},
-        geschwindigkeit::Leiter,
         plan::{AktionSchalten, AktionStreckenabschnitt, AnyAktionSchalten},
         streckenabschnitt::Streckenabschnitt,
     },

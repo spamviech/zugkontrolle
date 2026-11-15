@@ -278,19 +278,19 @@ impl TryFrom<AnyAktionSchaltenSerialisiert> for v6::AnyAktionSchaltenSerialisier
         let fehlende_steuerung = |weichenart| FehlendeWeichensteuerung { weichenart, plan: None };
         Ok(match value {
             AnyAktionSchalten::SchalteGerade(aktion) => {
-                v6::AnyAktionSchalten::SchalteGerade(v6::AktionSchalten {
+                v6::AnyAktionSchalten::SchalteGerade(AktionSchalten {
                     weiche: aktion.weiche.steuerung.ok_or_else(|| fehlende_steuerung("Gerade"))?,
                     richtung: aktion.richtung,
                 })
             },
             AnyAktionSchalten::SchalteKurve(aktion) => {
-                v6::AnyAktionSchalten::SchalteKurve(v6::AktionSchalten {
+                v6::AnyAktionSchalten::SchalteKurve(AktionSchalten {
                     weiche: aktion.weiche.steuerung.ok_or_else(|| fehlende_steuerung("Kurve"))?,
                     richtung: aktion.richtung,
                 })
             },
             AnyAktionSchalten::SchalteDreiwege(aktion) => {
-                v6::AnyAktionSchalten::SchalteDreiwege(v6::AktionSchalten {
+                v6::AnyAktionSchalten::SchalteDreiwege(AktionSchalten {
                     weiche: aktion
                         .weiche
                         .steuerung

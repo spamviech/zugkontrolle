@@ -17,7 +17,7 @@ use zugkontrolle_argumente::ModusArgument;
 use zugkontrolle_gleis::{
     steuerung::{
         aktualisieren::Aktualisieren,
-        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        geschwindigkeit::{self, Geschwindigkeit},
         streckenabschnitt::{self, Streckenabschnitt},
     },
     zugtyp::Zugtyp,

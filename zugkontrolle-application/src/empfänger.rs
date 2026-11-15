@@ -11,9 +11,9 @@ use std::{
     task::{Context, Poll},
 };
 
+use iced_futures::futures::stream::Stream;
 use iced_futures::{
     BoxStream,
-    futures::stream::Stream,
     subscription::{EventStream, Hasher, Recipe},
 };
 use log::debug;

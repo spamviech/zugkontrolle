@@ -2,8 +2,7 @@
 
 use std::{
     convert::identity,
-    fmt::{Debug, Display},
-    hash::Hash,
+    fmt::Debug,
     sync::{
         Arc,
         mpsc::{Sender, channel},
@@ -15,18 +14,12 @@ use flexi_logger::FlexiLoggerError;
 use iced::{Element, Renderer, Settings, Size, Subscription, Task, window};
 use iced_futures::subscription;
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
 
-use zugkontrolle_anschluss::{
-    InitFehler, Lager,
-    de_serialisieren::{Reserviere, Serialisiere},
-};
+use zugkontrolle_anschluss::{InitFehler, Lager};
 use zugkontrolle_argumente::{Argumente, I2cSettings};
-use zugkontrolle_gleis::steuerung::{
-    geschwindigkeit::Leiter, streckenabschnitt::Name as StreckenabschnittName,
-};
+use zugkontrolle_gleis::steuerung::streckenabschnitt::Name as StreckenabschnittName;
 use zugkontrolle_gleis::zugtyp::Zugtyp;
-use zugkontrolle_gleise::{Gleise, daten::v2::geschwindigkeit::BekannterZugtyp};
+use zugkontrolle_gleise::Gleise;
 use zugkontrolle_typen::{canvas::Position, farbe::Farbe, vektor::Vektor};
 use zugkontrolle_widget::{
     auswahl::AuswahlZustand,

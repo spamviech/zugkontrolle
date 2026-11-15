@@ -1,7 +1,7 @@
 //! speichern und laden Methode für [`Gleise`].
 
 use std::{
-    collections::HashMap, fs, hash::Hash, io, marker::PhantomData, path::Path, sync::mpsc::Sender,
+    collections::HashMap, fs, hash::Hash, io, path::Path, sync::mpsc::Sender,
 };
 
 use bincode_next::{
@@ -15,7 +15,7 @@ use bincode_next::{
 };
 use nonempty::NonEmpty;
 use rstar::primitives::{GeomWithData, Rectangle};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize as _, de::DeserializeOwned};
 
 use zugkontrolle_anschluss::{
     Lager,
@@ -31,7 +31,7 @@ use zugkontrolle_gleis::{
     steuerung::{
         aktualisieren::{Aktualisieren, MitSteuerung, SomeAktualisierenSender},
         geschwindigkeit::{
-            Leiter, LeiterVariante, Mittelleiter, MittelleiterSerialisiert, Zweileiter,
+            LeiterVariante, Mittelleiter, MittelleiterSerialisiert, Zweileiter,
             ZweileiterSerialisiert,
         },
         plan::{self, SteuerungMaps, UnbekannteAnschlüsse},
@@ -444,9 +444,9 @@ impl From<&Zugtyp> for ZugtypSerialisiert {
             s_kurven_weichen,
             kreuzungen,
             pwm_frequenz: *pwm_frequenz,
-            verhältnis_fahrspannung_überspannung: verhältnis_fahrspannung_überspannung.clone(),
+            verhältnis_fahrspannung_überspannung: *verhältnis_fahrspannung_überspannung,
             stopp_zeit: *stopp_zeit,
-            umdrehen_zeit: umdrehen_zeit.clone(),
+            umdrehen_zeit: *umdrehen_zeit,
             schalten_zeit: *schalten_zeit,
         }
     }

@@ -71,8 +71,8 @@ where
 
 fn from_geschwindigkeiten<S: Into<LeiterSerialisiert>>(
     geschwindigkeiten: HashMap<
-        v4::geschwindigkeit::Name,
-        v4::geschwindigkeit::GeschwindigkeitSerialisiert<S>,
+        geschwindigkeit::Name,
+        geschwindigkeit::GeschwindigkeitSerialisiert<S>,
     >,
 ) -> HashMap<geschwindigkeit::Name, GeschwindigkeitSerialisiert> {
     geschwindigkeiten

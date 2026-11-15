@@ -22,7 +22,7 @@ use crate::{
         self,
         aktualisieren::{Aktualisieren, Steuerung},
         geschwindigkeit::{
-            self, AsyncAktion, Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert, Leiter,
+            self, AsyncAktion, Fahrtrichtung, Geschwindigkeit, GeschwindigkeitSerialisiert,
         },
         kontakt::{Kontakt, KontaktSerialisiert},
         streckenabschnitt::{Streckenabschnitt, StreckenabschnittSerialisiert},
@@ -115,9 +115,9 @@ impl From<&Zugtyp> for Einstellungen {
         } = zugtyp;
         Einstellungen {
             pwm_frequenz: *pwm_frequenz,
-            verhältnis_fahrspannung_überspannung: verhältnis_fahrspannung_überspannung.clone(),
+            verhältnis_fahrspannung_überspannung: *verhältnis_fahrspannung_überspannung,
             stopp_zeit: *stopp_zeit,
-            umdrehen_zeit: umdrehen_zeit.clone(),
+            umdrehen_zeit: *umdrehen_zeit,
             schalten_zeit: *schalten_zeit,
         }
     }
@@ -454,6 +454,7 @@ pub type AktionSerialisiert = AktionEnum<
 
 impl Aktion {
     /// Serialisiere eine [`Aktion`].
+    #[must_use]
     pub fn serialisiere(&self) -> AktionSerialisiert {
         match self {
             Aktion::Geschwindigkeit(aktion) => {
@@ -568,7 +569,7 @@ impl Ausführen for AktionGeschwindigkeit {
                 ),
             AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.fahrtrichtung_allgemein(
-                    fahrtrichtung.clone(),
+                    *fahrtrichtung,
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
@@ -592,7 +593,7 @@ impl Ausführen for AktionGeschwindigkeit {
                 let wert = *wert;
                 let pwm_frequenz = einstellungen.pwm_frequenz;
                 let verhältnis_fahrspannung_überspannung =
-                    einstellungen.verhältnis_fahrspannung_überspannung.clone();
+                    einstellungen.verhältnis_fahrspannung_überspannung;
                 let ausführen = Geschwindigkeit::geschwindigkeit;
                 async_ausführen!(
                     sender,
@@ -621,7 +622,7 @@ impl Ausführen for AktionGeschwindigkeit {
                 ),
             AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 geschwindigkeit.async_fahrtrichtung_allgemein(
-                    fahrtrichtung.clone(),
+                    *fahrtrichtung,
                     einstellungen.pwm_frequenz,
                     einstellungen.verhältnis_fahrspannung_überspannung,
                     einstellungen.stopp_zeit,
@@ -663,7 +664,7 @@ impl AktionGeschwindigkeit {
             AktionGeschwindigkeit::Fahrtrichtung { geschwindigkeit, fahrtrichtung } => {
                 AktionGeschwindigkeitSerialisiert::Fahrtrichtung {
                     geschwindigkeit: geschwindigkeit.serialisiere(),
-                    fahrtrichtung: fahrtrichtung.clone(),
+                    fahrtrichtung: *fahrtrichtung,
                 }
             },
         }

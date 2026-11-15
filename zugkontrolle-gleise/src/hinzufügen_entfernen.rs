@@ -7,7 +7,6 @@ use zugkontrolle_gleis::{
     id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},
     steuerung::{
         aktualisieren::{Aktualisieren, SomeAktualisierenSender},
-        geschwindigkeit::Leiter,
         streckenabschnitt,
     },
 };

@@ -12,7 +12,7 @@ use nonempty::NonEmpty;
 use zugkontrolle_anschluss::polarität::Fließend;
 use zugkontrolle_gleis::{
     id::AnyId,
-    steuerung::{aktualisieren::Aktualisieren, geschwindigkeit::Leiter},
+    steuerung::aktualisieren::Aktualisieren,
 };
 use zugkontrolle_typen::{
     Transparenz,

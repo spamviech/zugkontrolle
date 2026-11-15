@@ -37,7 +37,7 @@ use zugkontrolle_gleis::{
     kurve::Kurve,
     steuerung::{
         aktualisieren::{MitSteuerung, SomeAktualisierenSender},
-        geschwindigkeit::{self, Geschwindigkeit, Leiter},
+        geschwindigkeit::{self, Geschwindigkeit},
         plan::{self, Plan},
         streckenabschnitt::{self, Streckenabschnitt},
     },

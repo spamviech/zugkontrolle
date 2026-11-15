@@ -1,6 +1,6 @@
 //! Methoden für die [view](iced::Application::view)-Methode des [`iced::Application`]-Traits.
 
-use std::fmt::Debug;
+use std::fmt::Debug as _;
 
 use enum_iterator::all;
 use iced::{
@@ -14,7 +14,7 @@ use iced_widget::{PickList, rule, scrollable::Scrollbar};
 use itertools::Itertools as _;
 use log::debug;
 
-use zugkontrolle_anschluss::de_serialisieren::Serialisiere;
+use zugkontrolle_anschluss::de_serialisieren::Serialisiere as _;
 use zugkontrolle_gleis::{
     gerade::Gerade,
     id::{AnyDefinitionId, DefinitionId},
@@ -22,7 +22,6 @@ use zugkontrolle_gleis::{
     kurve::Kurve,
     steuerung::{
         aktualisieren::MitSteuerung,
-        geschwindigkeit::{Leiter, LeiterVariante, Mittelleiter, Zweileiter},
         streckenabschnitt::Name as StreckenabschnittName,
     },
     weiche::{
@@ -290,11 +289,11 @@ fn knöpfe_hinzufügen<'t, T>(
 }
 
 /// Erzeuge die Seitenleiste.
-fn row_mit_scrollable<'t>(
+fn row_mit_scrollable(
     aktueller_modus: Modus,
     scrollable_style: Sammlung,
-    gleise: &'t Gleise<Nachricht>,
-) -> Row<'t, Nachricht, Thema, Renderer> {
+    gleise: &Gleise<Nachricht>,
+) -> Row<'_, Nachricht, Thema, Renderer> {
     let mut scrollable_column: Column<'_, NachrichtClone, Thema, Renderer> = Column::new();
     let scroller_width = scrollable_style.breite();
     let mut width = Length::Shrink;

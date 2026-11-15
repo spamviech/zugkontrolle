@@ -21,10 +21,7 @@ use zugkontrolle_anschluss::{
     pin::pwm,
     polarität::{Fließend, Polarität},
 };
-use zugkontrolle_util::{
-    eingeschränkt::{NichtNegativ, NullBisEins},
-    void::Void,
-};
+use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::steuerung::plan::async_ausführen;
 

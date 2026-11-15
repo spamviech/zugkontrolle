@@ -2,35 +2,31 @@
 
 use std::{
     convert::identity,
-    fmt::{Debug, Display, Write as _},
-    hash::Hash,
+    fmt::{Debug, Write as _},
     thread,
     time::{Duration, Instant},
 };
 
 use async_io::Timer;
-use iced::{Renderer, Task};
+use iced::Task;
 use log::error;
 use nonempty::NonEmpty;
-use serde::{Deserialize, Serialize};
 
 use zugkontrolle_anschluss::{
     OutputSerialisiert,
-    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
+    de_serialisieren::{Anschlüsse, Ergebnis, Reserviere as _, Serialisiere as _},
     polarität::Fließend,
 };
 use zugkontrolle_gleis::{
     id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerungSerialisiert},
     steuerung::{
-        geschwindigkeit::{self, GeschwindigkeitSerialisiert, Leiter},
+        geschwindigkeit::{self, GeschwindigkeitSerialisiert},
         plan::{Ausführen, Einstellungen},
         streckenabschnitt::{self, Streckenabschnitt},
     },
 };
 use zugkontrolle_gleise::{
-    self,
-    daten::{SteuerungAktualisierenFehler, v2::geschwindigkeit::BekannterZugtyp},
-    nachricht::ZustandAktualisieren,
+    self, daten::SteuerungAktualisierenFehler, nachricht::ZustandAktualisieren,
 };
 use zugkontrolle_typen::{farbe::Farbe, klick_quelle::KlickQuelle, skalar::Skalar, vektor::Vektor};
 use zugkontrolle_widget::{auswahl::AuswahlZustand, bewegen::Bewegung, style::thema::Thema};
@@ -268,7 +264,7 @@ impl Zugkontrolle {
     }
 }
 
-impl<'t> Zugkontrolle {
+impl Zugkontrolle {
     /// Füge ein neues Gleis an der gewünschten Höhe hinzu.
     pub fn gleis_hinzufügen(
         &mut self,
@@ -351,7 +347,7 @@ impl<'t> Zugkontrolle {
     }
 }
 
-impl<'t> Zugkontrolle {
+impl Zugkontrolle {
     /// Entferne eine [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     pub fn geschwindigkeit_entfernen(&mut self, name: &geschwindigkeit::Name) {
         if let Err(fehler) = self.gleise.geschwindigkeit_entfernen(name) {
@@ -363,7 +359,7 @@ impl<'t> Zugkontrolle {
     }
 }
 
-impl<'t> Zugkontrolle {
+impl Zugkontrolle {
     /// Füge eine  [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit) hinzu.
     pub fn geschwindigkeit_hinzufügen(
         &mut self,
@@ -453,7 +449,7 @@ impl<'t> Zugkontrolle {
     }
 }
 
-impl<'t> Zugkontrolle {
+impl Zugkontrolle {
     /// Beginne eine kontinuierliche Bewegung des Pivot-Punktes.
     pub fn bewegung_starten(&mut self, bewegung: Bewegung) -> Task<Nachricht> {
         self.bewegung = Some(bewegung);
@@ -480,7 +476,7 @@ impl<'t> Zugkontrolle {
     }
 }
 
-impl<'t> Zugkontrolle {
+impl Zugkontrolle {
     /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [`update`](Gleise::update)-Methode.
     pub fn gleise_zustand_aktualisieren(&mut self, nachricht: ZustandAktualisieren) {
         if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
@@ -492,7 +488,7 @@ impl<'t> Zugkontrolle {
     }
 }
 
-impl<'t> Zugkontrolle {
+impl Zugkontrolle {
     /// Speicher den aktuellen Zustand in einer Datei.
     pub fn speichern(&mut self, pfad: String) -> Task<Nachricht> {
         let ergebnis = self.gleise.speichern(&pfad);
