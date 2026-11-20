@@ -1,9 +1,9 @@
-//! [Nachricht] und zugehörige Hilfsgrößen für das [Ausführen](crate::ausführen) der [`Anwendung`](iced::Application).
+//! [Nachricht] und zugehörige Hilfsgrößen für das [Ausführen](crate::ausführen) der
+//! [`Anwendung`](iced::Application).
 
 use std::{convert::identity, fmt::Debug, time::Instant};
 
 use iced::Task;
-
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_gleis::{
     gerade::GeradeUnit,
@@ -122,7 +122,7 @@ where
     ) -> NachrichtClone {
         /// Hilfs-Makro für die Verwendung mit [`mit_any_id`].
         macro_rules! erhalte_nachricht {
-            ($id: expr) => {
+            ($id:expr) => {
                 AnyDefinitionIdSteuerung::from(($id, None))
             };
         }
@@ -135,7 +135,8 @@ where
     }
 }
 
-/// Eine Nachricht, die beim [Ausführen](crate::ausführen) der [`Anwendung`](iced::Application) auftreten kann.
+/// Eine Nachricht, die beim [Ausführen](crate::ausführen) der [`Anwendung`](iced::Application)
+/// auftreten kann.
 #[derive(Debug)]
 pub enum Nachricht {
     /// Ein neues Gleis hinzufügen.
@@ -159,13 +160,17 @@ pub enum Nachricht {
     Winkel(Winkel),
     /// Ändere den Skalierung-Faktor der Anzeige.
     Skalieren(Skalar),
-    /// Wähle den aktuellen [`Streckenabschnitt`](crate::steuerung::streckenabschnitt::Streckenabschnitt).
+    /// Wähle den aktuellen
+    /// [`Streckenabschnitt`](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     WähleStreckenabschnitt(Option<(StreckenabschnittName, Farbe)>),
-    /// Hinzufügen eines neuen [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt).
+    /// Hinzufügen eines neuen
+    /// [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     HinzufügenStreckenabschnitt(
-        /// Der Name der assoziierten [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
+        /// Der Name der assoziierten
+        /// [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
         Option<GeschwindigkeitName>,
-        /// Der Name des neuen [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt).
+        /// Der Name des neuen
+        /// [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt).
         StreckenabschnittName,
         /// Die Farbe, mit der Gleise eingefärbt werden sollen.
         Farbe,
@@ -174,11 +179,12 @@ pub enum Nachricht {
     ),
     /// Lösche einen [`Streckenabschnitt`](crate::steuerung::streckenabschnitt::Streckenabschnitt).
     LöscheStreckenabschnitt(StreckenabschnittName),
-    /// Setze den [`Streckenabschnitt`](crate::steuerung::streckenabschnitt::Streckenabschnitt) des spezifizierten Gleises,
-    /// sofern es über [`StreckenabschnittFestlegen`](Nachricht::StreckenabschnittFestlegen)
-    /// aktiviert wurde.
+    /// Setze den [`Streckenabschnitt`](crate::steuerung::streckenabschnitt::Streckenabschnitt) des
+    /// spezifizierten Gleises, sofern es über
+    /// [`StreckenabschnittFestlegen`](Nachricht::StreckenabschnittFestlegen) aktiviert wurde.
     SetzeStreckenabschnitt(AnyId),
-    /// Einstellen, ob bei Klick auf ein Gleis der [`Streckenabschnitt`](crate::steuerung::streckenabschnitt::Streckenabschnitt)
+    /// Einstellen, ob bei Klick auf ein Gleis der
+    /// [`Streckenabschnitt`](crate::steuerung::streckenabschnitt::Streckenabschnitt)
     /// auf den aktuellen gesetzt werden soll
     /// (beeinflusst Reaktion auf [`SetzeStreckenabschnitt`](Nachricht::SetzeStreckenabschnitt)).
     StreckenabschnittFestlegen(bool),
@@ -191,24 +197,26 @@ pub enum Nachricht {
     EntferneSpeichernFarbe(Instant),
     /// Laden aus dem übergebenen Pfad.
     Laden(String),
-    /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) im [`Fahren`](Modus::Fahren)-Modus.
+    /// Eine Aktion einer [Geschwindigkeit](crate::steuerung::geschwindigkeit::Geschwindigkeit) im
+    /// [`Fahren`](Modus::Fahren)-Modus.
     AktionGeschwindigkeit(AktionGeschwindigkeit),
-    /// Hinzufügen einer neuen [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
+    /// Hinzufügen einer neuen
+    /// [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     HinzufügenGeschwindigkeit(GeschwindigkeitName, GeschwindigkeitSerialisiert),
     /// Löschen einer [`Geschwindigkeit`](crate::steuerung::geschwindigkeit::Geschwindigkeit).
     LöscheGeschwindigkeit(GeschwindigkeitName),
     /// Anpassen der Anschlüsse eines Gleises.
     AnschlüsseAnpassen(AnyIdSteuerungSerialisiert),
-    /// Ein Gleis mit [`Streckenabschnitt`](crate::steuerung::Streckenabschnitt) ohne spezielle Aktion
-    /// wurde im [`Fahren`](Modus::Fahren)-Modus angeklickt.
+    /// Ein Gleis mit [`Streckenabschnitt`](crate::steuerung::Streckenabschnitt) ohne spezielle
+    /// Aktion wurde im [`Fahren`](Modus::Fahren)-Modus angeklickt.
     StreckenabschnittUmschalten(AktionStreckenabschnitt),
     /// Ein [Weiche](steuerung::Weiche) wurde im [`Fahren`](Modus::Fahren)-Modus angeklickt.
     WeicheSchalten(AnyAktionSchalten),
     /// Eine GUI-Nachricht für Änderungen des Zustandes des [`Gleise`](crate::gleise::Gleise)-Typs.
     ///
-    /// Notwendig, weil die [`update`](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
-    /// und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen werden soll
-    /// ([`State`](iced::widget::canvas::Program::State) dadurch nicht möglich).
+    /// Notwendig, weil die [`update`](iced::widget::canvas::Program::update)-Methode keinen `&mut
+    /// self`-Zugriff erlaubt und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen
+    /// werden soll ([`State`](iced::widget::canvas::Program::State) dadurch nicht möglich).
     GleiseZustandAktualisieren(ZustandAktualisieren),
     /// Ändere das aktuelle Anzeige-[`Thema`].
     Thema(Thema),
@@ -220,7 +228,8 @@ pub enum Nachricht {
     ///
     /// Signalisiert eine Anzeige-relevante Änderung, die nicht durch das GUI ausgelöst wurde.
     AsyncAktualisieren {
-        /// Soll das Canvas der [`Gleise`](zugkontrolle_gleise::Gleise)-Struktur neu gezeichnet werden.
+        /// Soll das Canvas der [`Gleise`](zugkontrolle_gleise::Gleise)-Struktur neu gezeichnet
+        /// werden.
         gleise_neuzeichnen: bool,
     },
 }

@@ -3,7 +3,6 @@
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::{kurve as v4, steuerung::kontakt::KontaktSerialisiert};
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 

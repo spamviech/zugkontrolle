@@ -22,6 +22,11 @@ pub struct Vektor {
 }
 
 impl Vektor {
+    /// Einheitsvektor in x-Richtung.
+    pub const EX: Vektor = Vektor { x: Skalar(1.), y: Skalar(0.) };
+    /// Einheitsvektor in y-Richtung.
+    pub const EY: Vektor = Vektor { x: Skalar(0.), y: Skalar(1.) };
+
     /// Nullvektor.
     ///
     /// - additiv neutrales Element.
@@ -30,12 +35,6 @@ impl Vektor {
     pub fn null_vektor() -> Self {
         Vektor { x: Skalar(0.), y: Skalar(0.) }
     }
-
-    /// Einheitsvektor in x-Richtung.
-    pub const EX: Vektor = Vektor { x: Skalar(1.), y: Skalar(0.) };
-
-    /// Einheitsvektor in y-Richtung.
-    pub const EY: Vektor = Vektor { x: Skalar(0.), y: Skalar(1.) };
 
     /// Erzeuge einen Vektor aus seinen Polarkoordinaten.
     ///
@@ -52,7 +51,8 @@ impl Vektor {
 
     /// Normalisiere den Vektor auf länge `Skalar(1.)`.
     ///
-    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit [`Länge`](Vektor::länge) `0` angewendet wird.
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn die Methode auf einen Vektor mit
+    /// [`Länge`](Vektor::länge) `0` angewendet wird.
     pub fn normalisiere(&mut self) {
         #[expect(
             clippy::arithmetic_side_effects,
@@ -75,8 +75,9 @@ impl Vektor {
 
     /// Skalarprodukt zweier Vektoren.
     ///
-    /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() * self.winkel(other).cos()`.
-    /// Insbesondere gilt `self.länge() == self.skalarprodukt(self).sqrt()`.
+    /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() *
+    /// self.winkel(other).cos()`. Insbesondere gilt `self.länge() ==
+    /// self.skalarprodukt(self).sqrt()`.
     #[must_use]
     pub fn skalarprodukt(&self, other: &Self) -> Skalar {
         #[expect(
@@ -100,7 +101,8 @@ impl Vektor {
     ///
     /// Definiert über [`Vektor::skalarprodukt`].
     ///
-    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn ein Vektor mit [`Länge`](Vektor::länge) `0` beteiligt ist.
+    /// Erzeugt einen [NaN](f32::NAN)-Wert, wenn ein Vektor mit [`Länge`](Vektor::länge) `0`
+    /// beteiligt ist.
     #[must_use]
     pub fn winkel(&self, other: &Self) -> Winkel {
         #[expect(

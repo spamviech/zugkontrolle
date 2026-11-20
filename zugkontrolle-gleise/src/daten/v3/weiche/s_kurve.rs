@@ -1,7 +1,6 @@
 //! Serialisierbare Darstellung einer [`SKurvenWeiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::weiche::s_kurve as v4;
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 

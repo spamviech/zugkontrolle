@@ -25,9 +25,9 @@ pub mod pfad;
 
 /// Newtype auf [`iced::widget::canvas::Frame`], dessen Methoden meine Typen verwenden.
 ///
-/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom [`Frame`](iced_renderer::Frame) liegt.
-/// Anschließend werden die Koordinaten um `pivot.winkel` gedreht.
-/// Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
+/// Alle Koordinaten werden so transformiert, dass `pivot.punkt` auf (0,0) vom
+/// [`Frame`](iced_renderer::Frame) liegt. Anschließend werden die Koordinaten um `pivot.winkel`
+/// gedreht. Danach werden alle Koordinaten mit dem `skalieren`-Faktor multipliziert.
 pub struct Frame<'t>(&'t mut geometry::Frame<Renderer>);
 
 impl Debug for Frame<'_> {
@@ -65,17 +65,17 @@ impl<'t> Frame<'t> {
     /// Zeichne die Buchstaben des [Textes](Text) auf den [`Frame`]
     /// und fülle sie mit der gewünschten Farbe.
     ///
-    /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von [`iced::widget::canvas::Frame`]
-    /// treten hier ebenfalls auf!
+    /// **Warnung:** Probleme bezüglich Transformation/Rotation/Skalierung von
+    /// [`iced::widget::canvas::Frame`] treten hier ebenfalls auf!
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text);
     }
 
-    /// Speichere die aktuelle Transformations-Matrix des [`Frame`] und führe die gegebenen Operation aus.
-    /// Anschließend wird die Transformations-Matrix wiederhergestellt.
+    /// Speichere die aktuelle Transformations-Matrix des [`Frame`] und führe die gegebenen
+    /// Operation aus. Anschließend wird die Transformations-Matrix wiederhergestellt.
     ///
-    /// Diese Methode ist nützlich um mehrere Transformationen zusammenzufassen und Zeichen-Operationen
-    /// in verschiedenen Koordinaten-Systemen durchzuführen.
+    /// Diese Methode ist nützlich um mehrere Transformationen zusammenzufassen und
+    /// Zeichen-Operationen in verschiedenen Koordinaten-Systemen durchzuführen.
     pub fn with_save(&mut self, action: impl for<'s> FnOnce(&'s mut Frame<'s>)) {
         self.0.with_save(|frame| action(&mut Frame(frame)));
     }

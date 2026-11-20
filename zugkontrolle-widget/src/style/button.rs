@@ -1,12 +1,11 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Button`].
 
+#[doc(inline)]
+pub use button::{Style, StyleFn};
 use iced_core::{Background, Color};
 use iced_widget::button;
 
 use crate::style::thema::Thema;
-
-#[doc(inline)]
-pub use button::{Style, StyleFn};
 
 /// Weißer Hintergrund.
 pub const WEIẞ: Button = Button::hintergrund_grau(1.);

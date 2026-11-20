@@ -148,7 +148,8 @@ impl Pin {
                 .and_then(|(polarity, frequency, duty_cycle)| {
                     // Vermutlich sind beide Werte in Ordnung,
                     // die Funktion wird aber nicht häufig aufgerufen.
-                    // Die Performance-Kosten durch das zusätzliche Überprüfen spielen daher keine Rolle.
+                    // Die Performance-Kosten durch das zusätzliche Überprüfen spielen daher keine
+                    // Rolle.
                     let frequenz = NichtNegativ::try_from(frequency).ok()?;
                     let betriebszyklus = NullBisEins::try_from(duty_cycle).ok()?;
                     Some(pwm::Konfiguration {

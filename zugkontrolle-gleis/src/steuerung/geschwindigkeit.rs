@@ -14,7 +14,6 @@ use log::{debug, error};
 use nonempty::NonEmpty;
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::{
     Lager, OutputAnschluss, OutputSerialisiert,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
@@ -152,8 +151,8 @@ impl Serialisiere<LeiterSerialisiert> for Leiter {
 
 impl Reserviere<Leiter> for LeiterSerialisiert {
     type MoveArg = ();
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,
@@ -504,17 +503,20 @@ impl Geschwindigkeit {
 /// Verwende die `erzeuge_aktualisieren_nachricht`-closure und erzeuge eine neue closure,
 /// bei der das Ergebnis über den `sender`geschickt wird.
 macro_rules! sende_aktualisieren_nachricht {
-    ($sender: expr, $erzeuge_aktualisieren_nachricht: expr) => {{
+    ($sender:expr, $erzeuge_aktualisieren_nachricht:expr) => {{
         let sender_clone = $sender.clone();
         let erzeuge_aktualisieren_nachricht_clone = $erzeuge_aktualisieren_nachricht.clone();
         erzeuge_aktualisieren_nachricht_clone.map(|erzeuge_nachricht| {
             move || {
                 if let Err(fehler) = sender_clone.send(erzeuge_nachricht()) {
-                    debug!("Kein Empfänger für Aktualisieren-Nachricht bei Umdrehen einer Geschwindigkeit: {fehler:?}");
+                    debug!(
+                        "Kein Empfänger für Aktualisieren-Nachricht bei Umdrehen einer \
+                         Geschwindigkeit: {fehler:?}"
+                    );
                 }
             }
         })
-    }}
+    }};
 }
 
 /// Notwendige Informationen zum asynchronen Ausführen einer Aktion.
@@ -712,8 +714,8 @@ impl Serialisiere<GeschwindigkeitSerialisiert> for Geschwindigkeit {
 
 impl Reserviere<Geschwindigkeit> for GeschwindigkeitSerialisiert {
     type MoveArg = <LeiterSerialisiert as Reserviere<Leiter>>::MoveArg;
-    type RefArg = <LeiterSerialisiert as Reserviere<Leiter>>::RefArg;
     type MutRefArg = <LeiterSerialisiert as Reserviere<Leiter>>::MutRefArg;
+    type RefArg = <LeiterSerialisiert as Reserviere<Leiter>>::RefArg;
 
     fn reserviere(
         self,
@@ -750,7 +752,8 @@ fn geschwindigkeit_pwm(
     Ok(())
 }
 
-/// Stelle eine durch mehrere [Anschlüsse](crate::anschluss::Anschluss) gesteuerte [`Geschwindigkeit`] ein.
+/// Stelle eine durch mehrere [Anschlüsse](crate::anschluss::Anschluss) gesteuerte
+/// [`Geschwindigkeit`] ein.
 fn geschwindigkeit_ks(
     geschwindigkeit: &mut NonEmpty<OutputAnschluss>,
     letzter_wert: &mut u8,
@@ -919,8 +922,8 @@ impl Serialisiere<MittelleiterSerialisiert> for Mittelleiter {
 
 impl Reserviere<Mittelleiter> for MittelleiterSerialisiert {
     type MoveArg = ();
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,
@@ -1312,8 +1315,8 @@ impl Serialisiere<ZweileiterSerialisiert> for Zweileiter {
 
 impl Reserviere<Zweileiter> for ZweileiterSerialisiert {
     type MoveArg = ();
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,

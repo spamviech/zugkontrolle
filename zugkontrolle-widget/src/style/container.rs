@@ -1,5 +1,7 @@
 //! Style Strukturen für die Hintergrund-Farbe eines [`iced::widget::Container`].
 
+#[doc(inline)]
+pub use container::{Style, StyleFn};
 use iced_core::{
     Background, Color,
     border::{self, Border},
@@ -8,9 +10,6 @@ use iced_core::{
 use iced_widget::container;
 
 use crate::style::thema::Thema;
-
-#[doc(inline)]
-pub use container::{Style, StyleFn};
 
 /// Weißer Hintergrund.
 pub const WEIẞ: Container = Container::hintergrund_grau(1.);
@@ -45,7 +44,8 @@ pub enum Container {
         /// Radius der abgerundeten Ecken.
         radius: border::Radius,
     },
-    /// Style-Struktur für die Auswahl einer [`Pcf8574-Beschreibung`](crate::anschluss::pcf8574::Beschreibung).
+    /// Style-Struktur für die Auswahl einer
+    /// [`Pcf8574-Beschreibung`](crate::anschluss::pcf8574::Beschreibung).
     Pcf8574Beschreibung,
 }
 

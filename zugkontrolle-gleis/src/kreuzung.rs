@@ -2,13 +2,13 @@
 
 #![expect(
     clippy::pub_use,
-    reason = "Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], [`RichtungAnschlüsseSerialisiert`]"
+    reason = "Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], \
+              [`RichtungAnschlüsseSerialisiert`]"
 )]
 
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_macros::{alias_serialisiert_unit, impl_nachschlagen};
 use zugkontrolle_typen::{
     Innerhalb, MitName, Transparenz, Zeichnen,
@@ -25,12 +25,11 @@ use zugkontrolle_typen::{
     winkel::{self, Winkel},
 };
 
+pub use crate::weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert};
 use crate::{
     gerade, kurve,
     steuerung::{self, weiche::MitRichtung},
 };
-
-pub use crate::weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert};
 
 /// Die Steuerung einer [`Kreuzung`].
 type Steuerung = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;

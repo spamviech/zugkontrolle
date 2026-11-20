@@ -17,7 +17,6 @@ use iced::{
 };
 use log::{debug, error, trace, warn};
 use nonempty::{NonEmpty, nonempty};
-
 use zugkontrolle_gleis::{
     id::AnyIdSteuerung,
     steuerung::{
@@ -476,7 +475,8 @@ impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
                             debug!("Gehaltenes Gleis für {quelle:?} entfernt.");
                         } else {
                             warn!(
-                                "Gehaltenes Gleis für {quelle:?} soll entfernt werden, aber ist nicht vorhanden!"
+                                "Gehaltenes Gleis für {quelle:?} soll entfernt werden, aber ist \
+                                 nicht vorhanden!"
                             );
                         }
                     }

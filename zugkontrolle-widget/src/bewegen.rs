@@ -11,7 +11,6 @@ use iced_widget::{
     canvas::{Fill, fill::Rule},
 };
 use itertools::{Itertools as _, MinMaxResult};
-
 use zugkontrolle_gleise::knopf;
 use zugkontrolle_typen::{
     canvas::{

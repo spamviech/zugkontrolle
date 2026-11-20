@@ -66,13 +66,13 @@ pub use crate::erzeuge_any_enum;
 /// Helper-Macro für [`mit_any_id`]: Erzeuge die passende Referenz von `$wert`,
 /// ausgehend von einem (optionalen) `ref` oder `mut` suffix.
 macro_rules! als_ref {
-    (mut $wert: expr) => {
+    (mut $wert:expr) => {
         &mut $wert
     };
-    (ref $wert: expr) => {
+    (ref $wert:expr) => {
         &$wert
     };
-    ($wert: expr) => {
+    ($wert:expr) => {
         &$wert
     };
 }
@@ -187,7 +187,7 @@ impl AnyIdSteuerung {
     pub fn id(&self) -> AnyId {
         /// Hilfs-Macro zur Verwendung mit [`mit_any_id!`].
         macro_rules! id_aux {
-            ($id: expr, $steuerung: expr) => {
+            ($id:expr, $steuerung:expr) => {
                 AnyId::from($id.clone())
             };
         }
@@ -213,7 +213,7 @@ impl AnyIdSteuerung {
     pub fn serialisiere(&self) -> AnyIdSteuerungSerialisiert {
         /// Hilfs-Macro zur Verwendung mit [`mit_any_id!`].
         macro_rules! serialisiere_aux {
-            ($id: expr, $steuerung: expr) => {
+            ($id:expr, $steuerung:expr) => {
                 AnyIdSteuerungSerialisiert::from((
                     $id.clone(),
                     $steuerung.as_ref().map(|steuerung| Serialisiere::serialisiere(steuerung)),
@@ -242,7 +242,7 @@ impl AnyIdSteuerungSerialisiert {
     pub fn id(&self) -> AnyId {
         /// Hilfs-Macro zur Verwendung mit [`mit_any_id!`].
         macro_rules! id_aux {
-            ($id: expr, $steuerung: expr) => {
+            ($id:expr, $steuerung:expr) => {
                 AnyId::from($id.clone())
             };
         }

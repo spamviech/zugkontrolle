@@ -11,7 +11,6 @@ use iced::{
 use iced_widget::{PickList, rule, scrollable::Scrollbar};
 use itertools::Itertools as _;
 use log::debug;
-
 use zugkontrolle_gleis::{
     gerade::Gerade,
     id::{AnyDefinitionId, DefinitionId},
@@ -295,7 +294,8 @@ fn row_mit_scrollable(
     match aktueller_modus {
         Modus::Bauen => {
             let mut max_breite = None;
-            /// Wrapper um [`knöpfe_hinzufügen`] für mehrere [`DefinitionMap`] mit unterschiedlichen Elementen.
+            /// Wrapper um [`knöpfe_hinzufügen`] für mehrere [`DefinitionMap`] mit unterschiedlichen
+            /// Elementen.
             macro_rules! knöpfe_hinzufügen {
                 ($($map: expr => $type: ty),* $(,)?) => {
                     max_breite_berechnen!($($map),*);

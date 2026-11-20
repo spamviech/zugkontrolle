@@ -1,7 +1,6 @@
 //! Serialisierbare Darstellung einer Weichen-Steuerung in Version 3.
 
 use serde::Deserialize;
-
 use zugkontrolle_gleis::steuerung::weiche as v4;
 
 use crate::daten::v2::weiche::steuerung::Name;

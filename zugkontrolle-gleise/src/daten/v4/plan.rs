@@ -5,8 +5,8 @@
 use std::{fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::polarität::Fließend;
+pub use zugkontrolle_gleis::steuerung::plan::Name;
 use zugkontrolle_gleis::{
     steuerung::{
         geschwindigkeit::{Fahrtrichtung, LeiterSerialisiert},
@@ -22,8 +22,6 @@ use zugkontrolle_gleis::{
 use zugkontrolle_util::void::Void;
 
 use crate::daten::v4::geschwindigkeit::{GeschwindigkeitSerialisiert, Leiter};
-
-pub use zugkontrolle_gleis::steuerung::plan::Name;
 
 /// Eine Weichen-Aktion eines älteren Plans besitzt keine Steuerung.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,7 +109,8 @@ where
     }
 }
 
-/// Erstelle den Datentyp für eine Geschwindigkeits-Aktion oder seine serialisierbare Repräsentation.
+/// Erstelle den Datentyp für eine Geschwindigkeits-Aktion oder seine serialisierbare
+/// Repräsentation.
 macro_rules! erstelle_aktion_geschwindigkeit {
     (
         $docstring: expr,
@@ -255,7 +254,8 @@ pub enum AnyAktionSchalten<
     Kurve = KurvenWeicheSerialisiert,
     Dreiwege = DreiwegeWeicheSerialisiert,
 > {
-    /// Schalten einer [Weiche](weiche::gerade::Weiche), [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche)
+    /// Schalten einer [Weiche](weiche::gerade::Weiche),
+    /// [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche)
     /// oder [`Kreuzung`](crate::gleis::kreuzung::Kreuzung).
     SchalteGerade(AktionSchalten<Gerade, weiche::gerade::Richtung>),
     /// Schalten einer [`KurvenWeiche`](weiche::kurve::KurvenWeiche).

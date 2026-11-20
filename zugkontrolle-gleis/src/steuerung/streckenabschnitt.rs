@@ -7,7 +7,6 @@ use std::{
 
 use parking_lot::{Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::{
     Fehler, Lager, OutputAnschluss, OutputSerialisiert,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
@@ -72,7 +71,8 @@ impl Streckenabschnitt {
         self.lock_anschluss().fließend()
     }
 
-    /// Erhalte Zugriff auf den [`Anschluss`](crate::anschluss::Anschluss) zur Steuerung des Streckenabschnittes.
+    /// Erhalte Zugriff auf den [`Anschluss`](crate::anschluss::Anschluss) zur Steuerung des
+    /// Streckenabschnittes.
     ///
     /// Blockiert, bis der Zugriff erhalten wurde.
     pub fn lock_anschluss(&self) -> MutexGuard<'_, OutputAnschluss> {
@@ -148,8 +148,8 @@ impl Serialisiere<StreckenabschnittSerialisiert> for Streckenabschnitt {
 
 impl Reserviere<Streckenabschnitt> for StreckenabschnittSerialisiert {
     type MoveArg = ();
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,

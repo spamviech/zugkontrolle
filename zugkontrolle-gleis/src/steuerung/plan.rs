@@ -10,7 +10,6 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::{
     OutputAnschluss, OutputSerialisiert, de_serialisieren::Serialisiere, polarität::Fließend,
 };
@@ -181,9 +180,10 @@ macro_rules! async_ausführen {
 }
 pub(crate) use async_ausführen;
 
-/// Implementiere ausführen, unter der Annahme, dass der Typ eine `ausführen`-Methode ohne weitere Argumente implementiert.
+/// Implementiere ausführen, unter der Annahme, dass der Typ eine `ausführen`-Methode ohne weitere
+/// Argumente implementiert.
 macro_rules! impl_ausführen_simple {
-    ($type: ty, $ausführen: ident, $fehler: ty, $aktion_beschreibung: expr) => {
+    ($type:ty, $ausführen:ident, $fehler:ty, $aktion_beschreibung:expr) => {
         impl Ausführen for $type {
             type Fehler = $fehler;
 
@@ -506,7 +506,8 @@ impl AktionSerialisiert {
     }
 }
 
-/// Erstelle den Datentyp für eine Geschwindigkeits-Aktion oder seine serialisierbare Repräsentation.
+/// Erstelle den Datentyp für eine Geschwindigkeits-Aktion oder seine serialisierbare
+/// Repräsentation.
 macro_rules! erstelle_aktion_geschwindigkeit {
     (
         $docstring: expr,
@@ -795,7 +796,8 @@ pub enum AnyAktionSchalten<
     Kurve = Steuerung<KurvenWeiche>,
     Dreiwege = Steuerung<DreiwegeWeiche>,
 > {
-    /// Schalten einer [Weiche](weiche::gerade::Weiche), [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche)
+    /// Schalten einer [Weiche](weiche::gerade::Weiche),
+    /// [`SKurvenWeiche`](weiche::s_kurve::SKurvenWeiche)
     /// oder [`Kreuzung`](crate::gleis::kreuzung::Kreuzung).
     SchalteGerade(AktionSchalten<Gerade, weiche::gerade::Richtung>),
     /// Schalten einer [`KurvenWeiche`](weiche::kurve::KurvenWeiche).

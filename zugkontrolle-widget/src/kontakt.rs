@@ -17,7 +17,6 @@ use iced_widget::{
     container, radio, scrollable,
     text_input::{self, TextInput},
 };
-
 use zugkontrolle_anschluss::{InputSerialisiert, trigger::Trigger};
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::kontakt::{KontaktSerialisiert, Name};
@@ -28,7 +27,8 @@ use crate::{
     style::{self, sammlung::Sammlung, tab_bar::TabBar},
 };
 
-/// Zustand eines Widgets zur [`Auswahl`] der Anschlüsse eines [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
+/// Zustand eines Widgets zur [`Auswahl`] der Anschlüsse eines
+/// [`Kontaktes`](crate::steuerung::kontakt::Kontakt).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Zustand {
     /// Der aktuelle gewählte Name.
@@ -36,7 +36,8 @@ struct Zustand {
     /// Der aktuell gewählte Anschluss.
     anschluss: InputSerialisiert,
     /// Der aktuell gewählte [`Trigger`],
-    /// wann [`warte_auf_trigger`](crate::steuerung::kontakt::Kontakt::warte_auf_trigger) ein Ergebnis liefert.
+    /// wann [`warte_auf_trigger`](crate::steuerung::kontakt::Kontakt::warte_auf_trigger) ein
+    /// Ergebnis liefert.
     trigger: Trigger,
     /// Hat das zu bearbeitende Gleis aktuell eine Steuerung. Beeinflusst den Namen des Knopfes für
     /// "Keine Anschlüsse"/"Anschlüsse entfernen".

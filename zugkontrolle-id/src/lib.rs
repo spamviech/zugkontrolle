@@ -59,8 +59,9 @@ impl<T> GleisId<T> {
 
     /// Erhalte eine eindeutige Zahl für die [`GleisId`].
     ///
-    /// Die selbe [`GleisId`], sowie alle ihre Kopien, werde bei jedem Aufruf die selbe Zahl zurückgeben.
-    /// Zwei gleichzeitig existierende [`GleisIds`](GleisId) werden unterschiedliche Zahlen zurückgeben.
+    /// Die selbe [`GleisId`], sowie alle ihre Kopien, werde bei jedem Aufruf die selbe Zahl
+    /// zurückgeben. Zwei gleichzeitig existierende [`GleisIds`](GleisId) werden unterschiedliche
+    /// Zahlen zurückgeben.
     ///
     /// Sobald die letzte Kopie einer [`GleisId`] gedroppt wird kann es sein,
     /// dass eine andere [`GleisId`] die selbe Zahl zurückgibt.

@@ -14,7 +14,6 @@ use flexi_logger::FlexiLoggerError;
 use iced::{Element, Renderer, Settings, Size, Subscription, Task, window};
 use iced_futures::subscription;
 use parking_lot::RwLock;
-
 use zugkontrolle_anschluss::{InitFehler, Lager};
 use zugkontrolle_argumente::{Argumente, I2cSettings};
 use zugkontrolle_gleis::steuerung::streckenabschnitt::Name as StreckenabschnittName;
@@ -60,7 +59,8 @@ pub struct Zugkontrolle {
     i2c_settings: I2cSettings,
     /// Der aktuell aktivierte Streckenabschnitt.
     streckenabschnitt_aktuell: Option<(StreckenabschnittName, Farbe)>,
-    /// Führt das anklicken eines Gleises zum setzen des [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt)?
+    /// Führt das anklicken eines Gleises zum setzen des
+    /// [`Streckenabschnittes`](crate::steuerung::streckenabschnitt::Streckenabschnitt)?
     streckenabschnitt_aktuell_festlegen: bool,
     /// Zustand für Anzeigen des Widgets für die Positions-Steuerung des [`Gleise`]-canvas.
     bewegen: Bewegen,
@@ -78,9 +78,11 @@ pub struct Zugkontrolle {
     auswahl_zustand: Option<AuswahlZustand>,
     /// Der aktuelle Zustand des [`Mitteilungs-Widgets`](MessageBox).
     message_box: Option<MessageBox>,
-    /// Sender für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
+    /// Sender für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet
+    /// werden.
     sender: Sender<Nachricht>,
-    /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel) gesendet werden.
+    /// Empfänger für asynchrone [Nachrichten](Nachricht), die über einen [`Kanal`](channel)
+    /// gesendet werden.
     empfänger: Empfänger<Nachricht>,
 }
 

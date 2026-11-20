@@ -14,7 +14,6 @@ use bincode_next::{
 use nonempty::NonEmpty;
 use rstar::primitives::{GeomWithData, Rectangle};
 use serde::{Deserialize, de::DeserializeOwned};
-
 use zugkontrolle_anschluss::{
     Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
@@ -55,8 +54,8 @@ use crate::{
 
 /// [`bincode`]-Optionen, bei denen trailing bytes abgelehnt werden.
 ///
-/// Im Gegensatz zu [`DefaultOptions`] verwendet [die Standard-Funktion](bincode::deserialize) fixint-encoding.
-/// <https://docs.rs/bincode/1.3.3/bincode/config/index.html#options-struct-vs-bincode-functions>.
+/// Im Gegensatz zu [`DefaultOptions`] verwendet [die Standard-Funktion](bincode::deserialize)
+/// fixint-encoding. <https://docs.rs/bincode/1.3.3/bincode/config/index.html#options-struct-vs-bincode-functions>.
 const BINCODE_OPTIONS: Configuration<
     LittleEndian,
     Fixint,
@@ -606,7 +605,7 @@ impl Zustand {
         let mut anschlüsse = Anschlüsse::default();
         /// Gebe das erste Argument zurück.
         macro_rules! head {
-            ($head: ident $(, $tail: ident)* $(,)?) => {
+            ($head:ident $(, $tail:ident)* $(,)?) => {
                 $head
             };
         }
@@ -741,6 +740,7 @@ impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
         let _bytes = encode_into_std_write(serialisiert, &mut file, BINCODE_OPTIONS)?;
         Ok(())
     }
+
     /// Lade Gleise, [`Streckenabschnitte`](streckenabschnitt::Streckenabschnitt),
     /// [Geschwindigkeiten](geschwindigkeit::Geschwindigkeit) und den verwendeten [`Zugtyp`]
     /// aus einer Datei.

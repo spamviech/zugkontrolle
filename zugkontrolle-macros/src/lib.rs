@@ -44,7 +44,8 @@ pub fn from_derive(from_derive: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-/// Erzeuge eine Struktur und zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Implementierung für das Enum.
+/// Erzeuge eine Struktur und zugehörige `zugkontrolle::nachschlagen::Nachschlagen`-Implementierung
+/// für das Enum.
 pub fn impl_nachschlagen(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr with Punctuated::parse_terminated);
     let ast = parse_macro_input!(item);
@@ -87,8 +88,8 @@ pub fn erstelle_richtung(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// Internes Macro mit sehr spezifischen Voraussetzungen.
 ///
-/// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den Serialisiert-Typ
-/// (Argument) über eine `serialisiere`-Methode möglich ist!
+/// Es wird erwartet, dass der default-Typ ein Option ist und eine Konvertierung in den
+/// Serialisiert-Typ (Argument) über eine `serialisiere`-Methode möglich ist!
 pub fn alias_serialisiert_unit(attr: TokenStream, item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item);
 

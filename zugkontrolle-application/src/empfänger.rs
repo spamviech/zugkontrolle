@@ -19,7 +19,8 @@ use iced_futures::{
 use log::debug;
 use parking_lot::Mutex;
 
-/// Warte auf eine Nachricht, kann als Ergebnis von [`subscription`](iced::Application::subscription)
+/// Warte auf eine Nachricht, kann als Ergebnis von
+/// [`subscription`](iced::Application::subscription)
 /// über [`from_recipe`](iced::Subscription::from_recipe) verwendet werden.
 #[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
 pub struct Empfänger<Nachricht, Id = ()> {

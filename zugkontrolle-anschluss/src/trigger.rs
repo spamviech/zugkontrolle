@@ -15,10 +15,12 @@ use crate::{level::Level, rpi_pal::gpio};
 pub enum Trigger {
     /// Deaktiviert, es wird kein Event ausgelöst.
     Disabled = 0,
-    /// Löse ein Event aus, wenn die Spannung von [Low](Level::Low) auf [`High`](Level::High) wechselt.
+    /// Löse ein Event aus, wenn die Spannung von [Low](Level::Low) auf [`High`](Level::High)
+    /// wechselt.
     #[default]
     RisingEdge = 1,
-    /// Löse ein Event aus, wenn die Spannung von [High](Level::High) auf [`Low`](Level::Low) wechselt.
+    /// Löse ein Event aus, wenn die Spannung von [High](Level::High) auf [`Low`](Level::Low)
+    /// wechselt.
     FallingEdge = 2,
     /// Löse ein Event bei jeder Veränderung aus.
     Both = 3,

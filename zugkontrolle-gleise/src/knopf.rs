@@ -15,7 +15,6 @@ use iced::{
     },
 };
 use log::debug;
-
 use zugkontrolle_id::GleisId;
 use zugkontrolle_typen::{
     Zeichnen,
@@ -109,7 +108,8 @@ pub struct Zustand {
     canvas: Cache,
     /// Ist der Cursor aktuell innerhalb des Knopfes.
     in_bounds: bool,
-    /// Wurde ein neues Gleis durch einen Mausklick hinzugefügt, bevor die Maus wieder losgelassen wurde.
+    /// Wurde ein neues Gleis durch einen Mausklick hinzugefügt, bevor die Maus wieder losgelassen
+    /// wurde.
     cursor_grabbed: bool,
 }
 

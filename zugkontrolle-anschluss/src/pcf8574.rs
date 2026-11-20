@@ -16,7 +16,6 @@ use itertools::iproduct;
 use log::{debug, error};
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
-
 use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_util::{
@@ -872,12 +871,13 @@ impl InputPort {
     /// oder der [`input::Pin`] out of scope geht.
     ///
     /// ## Keine synchronen Interrupts
-    /// Obwohl [`rpi_pal`] prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu groß.
-    /// Siehe die Dokumentation der
+    /// Obwohl [`rpi_pal`] prinzipiell synchrone Interrupts unterstützt sind die Einschränkungen zu
+    /// groß. Siehe die Dokumentation der
     /// [`poll_interrupts`](https://docs.rs/rpi_pal/0.12.0/rpi_pal/gpio/struct.Gpio.html#method.poll_interrupts)
     /// Methode.
     /// > Calling `poll_interrupts` blocks any other calls to `poll_interrupts` or
-    /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins simultaneously
+    /// > `InputPin::poll_interrupt` until it returns. If you need to poll multiple pins
+    /// > simultaneously
     /// > on different threads, consider using asynchronous interrupts with
     /// > `InputPin::set_async_interrupt` instead.
     ///

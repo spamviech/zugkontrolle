@@ -17,7 +17,8 @@ use thiserror::Error;
 
 /// Zahlen-typ, der über [`Id::repräsentation`] erhalten werden kann.
 ///
-/// Implementierungs-Detail: aktuell verwenden Eq, Ord, Hash-Instanzen von [`Id`] diese Repräsentation.
+/// Implementierungs-Detail: aktuell verwenden Eq, Ord, Hash-Instanzen von [`Id`] diese
+/// Repräsentation.
 pub type Repräsentation = u32;
 
 /// Alle aktuelle bereits verwendete Ids.
@@ -140,7 +141,8 @@ impl<T> Id<T> {
     /// Die selbe [`Id`] wird bei jedem Aufruf die selbe Zahl zurückgeben.
     /// Zwei gleichzeitig existierende [`Ids`](Id) werden unterschiedliche Zahlen zurückgeben.
     ///
-    /// Sobald eine [Id] gedroppt wird kann es sein, dass eine andere [`Id`] die selbe Zahl zurückgibt.
+    /// Sobald eine [Id] gedroppt wird kann es sein, dass eine andere [`Id`] die selbe Zahl
+    /// zurückgibt.
     #[must_use]
     pub fn repräsentation(&self) -> Repräsentation {
         self.id
@@ -149,11 +151,11 @@ impl<T> Id<T> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     use std::{collections::HashSet, iter::repeat_with};
 
     use zugkontrolle_test_util::{Expectation, expect_eq, expect_true, init_test_logging};
+
+    use super::*;
 
     #[test]
     fn eindeutig() -> Result<(), Expectation> {

@@ -3,7 +3,6 @@
 use std::{collections::HashMap, marker::PhantomData, time::Duration};
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::{
     gerade::GeradeUnit,
     kreuzung::KreuzungUnit,
@@ -103,8 +102,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{plan, plan_v6};
     use std::time::Duration;
+
     use zugkontrolle_anschluss::polarität::Fließend;
     use zugkontrolle_gleis::{
         steuerung::{
@@ -114,6 +113,8 @@ mod tests {
         weiche::{dreiwege, gerade, kurve, orientierung::Orientierung},
     };
     use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
+
+    use super::{plan, plan_v6};
 
     #[test]
     fn aktionen_konvertieren() {

@@ -7,11 +7,13 @@ use crate::{rpi_pal::gpio, trigger::Trigger};
 /// Interrupt trigger event.
 #[derive(Debug, Copy, Clone)]
 pub struct Event {
-    /// Best estimate of time of event occurrence, measured in elapsed time since the system was booted.
+    /// Best estimate of time of event occurrence, measured in elapsed time since the system was
+    /// booted.
     pub timestamp: Duration,
     /// Sequence number for this event in the sequence of interrupt trigger events for this pin.
     pub seqno: u32,
-    /// Interrupt trigger. This will contain either [`Trigger::RisingEdge`] or [`Trigger::FallingEdge`].
+    /// Interrupt trigger. This will contain either [`Trigger::RisingEdge`] or
+    /// [`Trigger::FallingEdge`].
     pub trigger: Trigger,
 }
 

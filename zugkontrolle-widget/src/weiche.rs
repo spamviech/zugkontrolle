@@ -17,7 +17,6 @@ use iced_widget::{
     container, radio, scrollable,
     text_input::{self, TextInput},
 };
-
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::weiche::{Name, WeicheSerialisiert};
@@ -29,7 +28,8 @@ use crate::{
     style::{self, sammlung::Sammlung},
 };
 
-/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer [`Weiche`](crate::steuerung::weiche::Weiche).
+/// Zustand eines Widgets zur [Auswahl] der Anschlüsse einer
+/// [`Weiche`](crate::steuerung::weiche::Weiche).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Zustand<AnschlüsseSerialisiert> {
     /// Der aktuell gewählte Name.

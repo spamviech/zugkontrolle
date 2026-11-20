@@ -11,7 +11,6 @@ use async_io::Timer;
 use iced::Task;
 use log::error;
 use nonempty::NonEmpty;
-
 use zugkontrolle_anschluss::{
     OutputSerialisiert,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere as _, Serialisiere as _},
@@ -40,7 +39,8 @@ impl Nachricht {
         self
     }
 
-    /// Erzeuge ein [`Task`], dass die Nachricht nach erst weitergibt, wenn mindestens `dauer` vergangen ist.
+    /// Erzeuge ein [`Task`], dass die Nachricht nach erst weitergibt, wenn mindestens `dauer`
+    /// vergangen ist.
     fn als_sleep_task(self, dauer: Duration) -> Task<Nachricht> {
         Task::perform(self.nach_sleep(dauer), identity)
     }
@@ -58,7 +58,8 @@ impl Zugkontrolle {
         self.message_box = message_box;
     }
 
-    /// Aktualisiere das angezeigte [Auswahl-Fenster](AuswahlZustand), z.B. zum anpassen der Anschlüsse eines Gleises.
+    /// Aktualisiere das angezeigte [Auswahl-Fenster](AuswahlZustand), z.B. zum anpassen der
+    /// Anschlüsse eines Gleises.
     pub fn aktualisiere_auswahlzustand(&mut self, auswahl_zustand: Option<AuswahlZustand>) {
         self.auswahl_zustand = auswahl_zustand;
     }
@@ -176,7 +177,8 @@ impl Zugkontrolle {
                     fehlermeldung = Some((
                         format!("Streckenabschnitt {name:?} anpassen"),
                         format!(
-                            "{bisherige_nachricht}Streckenabschnitt {name:?} angepasst: {ersetzt:?}"
+                            "{bisherige_nachricht}Streckenabschnitt {name:?} angepasst: \
+                             {ersetzt:?}"
                         ),
                     ));
                 }
@@ -208,8 +210,9 @@ impl Zugkontrolle {
     }
 
     /// Ändere den [`Streckenabschnitt`] für ein Gleis zum aktuellen Streckenabschnitt,
-    /// falls es nicht mit [`streckenabschnitt_festlegen`](Zugkontrolle::streckenabschnitt_festlegen)
-    /// deaktiviert wurde.
+    /// falls es nicht mit
+    /// [`streckenabschnitt_festlegen`](Zugkontrolle::streckenabschnitt_festlegen) deaktiviert
+    /// wurde.
     pub fn gleis_setzte_streckenabschnitt(&mut self, any_id: AnyId) {
         if self.streckenabschnitt_aktuell_festlegen
             && let Err(fehler) = self.gleise.setze_streckenabschnitt(
@@ -477,7 +480,8 @@ impl Zugkontrolle {
 }
 
 impl Zugkontrolle {
-    /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner [`update`](Gleise::update)-Methode.
+    /// Aktualisiere den Zustand des [Gleise]-Typs, ausgehend von Nachrichten aus seiner
+    /// [`update`](Gleise::update)-Methode.
     pub fn gleise_zustand_aktualisieren(&mut self, nachricht: ZustandAktualisieren) {
         if let Err(fehler) = self.gleise.zustand_aktualisieren(nachricht) {
             self.aktualisiere_message_box(Some(MessageBox {

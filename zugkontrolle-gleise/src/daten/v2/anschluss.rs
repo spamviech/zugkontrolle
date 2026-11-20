@@ -1,7 +1,6 @@
 //! Serialisierbare Darstellung von Anschlüssen in Version 2.
 
 use serde::Deserialize;
-
 use zugkontrolle_anschluss::{
     InputSerialisiert as V4_InputSerialisiert, OutputSerialisiert as V4_OutputSerialisiert,
     level::Level,

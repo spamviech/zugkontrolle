@@ -12,7 +12,6 @@ use iced::{
     },
 };
 use nonempty::NonEmpty;
-
 use zugkontrolle_argumente::ModusArgument;
 use zugkontrolle_gleis::{
     steuerung::{

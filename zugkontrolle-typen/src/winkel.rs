@@ -22,8 +22,8 @@ pub const ZERO: Winkel = Winkel(0.);
 
 /// Winkel \[`Bogenmaß\`].
 ///
-/// Die [`PartialEq`]- und [`PartialOrd`]-Instanzen sind abgeleitet und normalisieren die Winkel NICHT,
-/// bevor sie verglichen werden.
+/// Die [`PartialEq`]- und [`PartialOrd`]-Instanzen sind abgeleitet und normalisieren die Winkel
+/// NICHT, bevor sie verglichen werden.
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Winkel(pub f32);
 

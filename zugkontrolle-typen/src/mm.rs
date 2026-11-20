@@ -8,7 +8,7 @@ use crate::skalar::Skalar;
 
 /// Erstelle `neu` und `als_skalar`-Methoden.
 macro_rules! erstelle_neu_und_als_skalar {
-    ($doc_neu: expr, $doc_als_skalar: expr $(,)?) => {
+    ($doc_neu:expr, $doc_als_skalar:expr $(,)?) => {
         #[doc = $doc_neu]
         #[must_use]
         pub const fn neu(radius: f32) -> Self {

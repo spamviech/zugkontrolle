@@ -5,15 +5,13 @@
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::steuerung::geschwindigkeit::{
     self as v6, Fahrtrichtung, Mittelleiter, Zweileiter,
 };
-use zugkontrolle_util::{eingeschränkt::NullBisEins, void::Void};
-
 pub use zugkontrolle_gleis::steuerung::geschwindigkeit::{
     MittelleiterSerialisiert, Name, ZweileiterSerialisiert,
 };
+use zugkontrolle_util::{eingeschränkt::NullBisEins, void::Void};
 
 /// Ein [`Leiter`] ermöglicht ein Einstellen der Geschwindigkeit und Umdrehen der Fahrtrichtung.
 pub trait Leiter {
@@ -34,9 +32,9 @@ pub trait BekannterLeiter: Leiter + Sized {
 }
 
 impl Leiter for Mittelleiter {
+    type Fahrtrichtung = Void;
     type UmdrehenZeit = Duration;
     type VerhältnisFahrspannungÜberspannung = NullBisEins;
-    type Fahrtrichtung = Void;
 }
 
 impl BekannterLeiter for Mittelleiter {
@@ -48,9 +46,9 @@ impl BekannterLeiter for Zweileiter {
 }
 
 impl Leiter for Zweileiter {
+    type Fahrtrichtung = Fahrtrichtung;
     type UmdrehenZeit = PhantomData<Duration>;
     type VerhältnisFahrspannungÜberspannung = PhantomData<NullBisEins>;
-    type Fahrtrichtung = Fahrtrichtung;
 }
 
 /// Serialisierbare Repräsentation einer [`Geschwindigkeit`].

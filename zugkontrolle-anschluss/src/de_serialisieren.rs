@@ -1,4 +1,5 @@
-//! Traits zum serialisieren und reservieren der benötigten [`Anschlüsse`](crate::anschluss::Anschluss).
+//! Traits zum serialisieren und reservieren der benötigten
+//! [`Anschlüsse`](crate::anschluss::Anschluss).
 
 use either::Either;
 use log::error;
@@ -43,21 +44,14 @@ impl Anschlüsse {
 /// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
-/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
-///   dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
-///   ```
-///   let clone = s.clone();
-///   if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
-///       assert_eq!(anschluss.serialisiere(), clone)
-///   }
-///   ```
+/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war, dann ist
+///   [`serialisiere`](Serialisiere::serialisiere) das inverse davon. ``` let clone = s.clone(); if
+///   let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
+///   assert_eq!(anschluss.serialisiere(), clone) } ```
 /// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
-///   [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
-///   ```
-///   let s = r.serialisiere();
-///   s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
-///       && anschluss == r
-///   ```
+///   [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`. ``` let
+///   s = r.serialisiere(); s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss,
+///   anschlüsse} && anschluss == r ```
 pub trait Serialisiere<S>: Sized {
     /// Erstelle eine serialisierbare Repräsentation.
     fn serialisiere(&self) -> S;
@@ -116,21 +110,14 @@ impl<R> Ergebnis<R> {
 /// (angenommen `r: R`, `s: S`, `lager: Lager`, `anschlüsse: Anschlüsse`
 /// und `arg: <R as Reserviere<S>>::Arg`):
 ///
-/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war,
-///   dann ist [`serialisiere`](Serialisiere::serialisiere) das inverse davon.
-///   ```
-///   let clone = s.clone();
-///   if let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
-///       assert_eq!(anschluss.serialisiere(), clone)
-///   }
-///   ```
+/// - Wenn [`reserviere`](Reserviere::reserviere) erfolgreich war, dann ist
+///   [`serialisiere`](Serialisiere::serialisiere) das inverse davon. ``` let clone = s.clone(); if
+///   let Ergebnis::Wert {anschluss, ..} = s.reserviere(lager, anschlüsse, arg) {
+///   assert_eq!(anschluss.serialisiere(), clone) } ```
 /// - Sofern kein Klon von `r` existiert ist [`reserviere`](Reserviere::reserviere) das inverse zu
-///   [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`.
-///   ```
-///   let s = r.serialisiere();
-///   s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss, anschlüsse}
-///       && anschluss == r
-///   ```
+///   [`serialisiere`](Serialisiere::serialisiere) durch Zuhilfenahme von `r.anschlüsse()`. ``` let
+///   s = r.serialisiere(); s.reserviere(lager, r.anschlüsse(), arg) == Ergebnis::Wert {anschluss,
+///   anschlüsse} && anschluss == r ```
 pub trait Reserviere<R> {
     /// Extra Move-Argument zum reservieren der Anschlüsse.
     type MoveArg;
@@ -257,8 +244,8 @@ where
     S: Reserviere<R>,
 {
     type MoveArg = <S as Reserviere<R>>::MoveArg;
-    type RefArg = <S as Reserviere<R>>::RefArg;
     type MutRefArg = <S as Reserviere<R>>::MutRefArg;
+    type RefArg = <S as Reserviere<R>>::RefArg;
 
     fn reserviere(
         self,
@@ -308,8 +295,8 @@ where
     <S as Reserviere<R>>::MoveArg: Clone,
 {
     type MoveArg = <S as Reserviere<R>>::MoveArg;
-    type RefArg = <S as Reserviere<R>>::RefArg;
     type MutRefArg = <S as Reserviere<R>>::MutRefArg;
+    type RefArg = <S as Reserviere<R>>::RefArg;
 
     fn reserviere(
         self,
@@ -371,8 +358,8 @@ where
     <S as Reserviere<R>>::MoveArg: Clone,
 {
     type MoveArg = <S as Reserviere<R>>::MoveArg;
-    type RefArg = <S as Reserviere<R>>::RefArg;
     type MutRefArg = <S as Reserviere<R>>::MutRefArg;
+    type RefArg = <S as Reserviere<R>>::RefArg;
 
     fn reserviere(
         self,

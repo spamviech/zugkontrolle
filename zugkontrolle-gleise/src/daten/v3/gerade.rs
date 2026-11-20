@@ -1,7 +1,6 @@
 //! Serialisierbare Darstellung einer [`Gerade`] in Version 3.
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::{gerade as v4, steuerung::kontakt::KontaktSerialisiert};
 use zugkontrolle_typen::skalar::Skalar;
 

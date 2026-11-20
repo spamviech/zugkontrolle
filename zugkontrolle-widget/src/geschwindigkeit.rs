@@ -28,7 +28,6 @@ use iced_widget::{
 };
 use log::error;
 use nonempty::NonEmpty;
-
 use zugkontrolle_anschluss::{OutputSerialisiert, pin::pwm, polarität::Polarität};
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::steuerung::{
@@ -90,7 +89,10 @@ where
         column = column.push({
             let max = if let Some(länge) = geschwindigkeit.ks_länge() {
                 u8::try_from(länge).unwrap_or_else(|_else| {
-                    error!("Zu viele Anschlüsse mit Konstanter Spannung bei einer Geschwindigkeit: {länge}");
+                    error!(
+                        "Zu viele Anschlüsse mit Konstanter Spannung bei einer Geschwindigkeit: \
+                         {länge}"
+                    );
                     u8::MAX
                 })
             } else {
@@ -99,7 +101,7 @@ where
             let geschwindigkeit_clone2 = geschwindigkeit.clone();
             let setzte_geschwindigkeit = move |wert| AktionGeschwindigkeit::Geschwindigkeit {
                 geschwindigkeit: geschwindigkeit_clone2.clone(),
-                wert
+                wert,
             };
             Slider::new(0..=max, aktuelle_geschwindigkeit, setzte_geschwindigkeit)
                 .width(Length::Fixed(100.))
@@ -167,7 +169,8 @@ enum TabId {
     /// Auswahl für Steuerung über einen Pwm-Pin wird angezeigt.
     #[default]
     Pwm,
-    /// Auswahl für Steuerung über mehrere Anschlüsse mit unterschiedlicher konstanter Spannung wird angezeigt.
+    /// Auswahl für Steuerung über mehrere Anschlüsse mit unterschiedlicher konstanter Spannung wird
+    /// angezeigt.
     KonstanteSpannung,
 }
 

@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
-
 use zugkontrolle_gleis::steuerung::streckenabschnitt as v4;
 use zugkontrolle_typen::farbe::Farbe;
 

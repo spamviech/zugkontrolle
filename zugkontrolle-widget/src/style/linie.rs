@@ -2,11 +2,10 @@
 
 use iced_core::Color;
 use iced_widget::rule;
-
-use crate::style::thema::Thema;
-
 #[doc(inline)]
 pub use rule::{Style, StyleFn};
+
+use crate::style::thema::Thema;
 
 /// Style-Struktur für eine Trennlinie.
 pub const TRENNLINIE: Linie = Linie { farbe: None, breite: 1, radius: 0. };

@@ -3,7 +3,6 @@
 use std::{collections::HashMap, fmt::Debug, marker::PhantomData, time::Duration};
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::{
     gerade::{Gerade, GeradeUnit},
     kreuzung::{Kreuzung, KreuzungUnit},
@@ -51,8 +50,12 @@ pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> =
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
 #[serde(bound(
-    serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize, S: Serialize",
-    deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
+    serialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as \
+                 Leiter>::UmdrehenZeit: Serialize, <L as Leiter>::Fahrtrichtung: Serialize, S: \
+                 Serialize",
+    deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: \
+                   Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as \
+                   Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
 ))]
 pub(crate) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
@@ -130,8 +133,10 @@ impl GleiseDatenSerialisiert {
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[serde(bound(
-    serialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize",
-    deserialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>",
+    serialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as \
+                 Leiter>::UmdrehenZeit: Serialize",
+    deserialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as \
+                   Leiter>::UmdrehenZeit: Deserialize<'de>",
 ))]
 pub struct ZugtypSerialisiert<L: Leiter> {
     /// Der Name des Zugtyps.

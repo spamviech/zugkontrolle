@@ -3,7 +3,6 @@
 use std::{f32::consts::PI, fmt::Debug};
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::{level::Level, trigger::Trigger};
 use zugkontrolle_macros::{alias_serialisiert_unit, impl_nachschlagen};
 use zugkontrolle_typen::{

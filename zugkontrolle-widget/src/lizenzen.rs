@@ -13,7 +13,6 @@ use iced_widget::{
     rule,
     scrollable::{self, Scrollable},
 };
-
 use zugkontrolle_lizenzen::{LizenzenMap, TARGET_LIZENZEN};
 use zugkontrolle_util::unicase_ord::UniCaseOrd;
 
@@ -73,7 +72,8 @@ pub struct Lizenzen<'a, Thema, R>(
 
 /// Der [`Abstand`](Space) zwischen Widgets in Pixel.
 const PADDING: f32 = 5.;
-/// Die Breite der [`Trennlinie`](Rule) zwischen der Auswahl-Liste und dem aktuell gezeigten Lizenztext.
+/// Die Breite der [`Trennlinie`](Rule) zwischen der Auswahl-Liste und dem aktuell gezeigten
+/// Lizenztext.
 const TRENNLINIE_BREITE: u32 = 1;
 
 impl<'a, Thema, R> Lizenzen<'a, Thema, R>

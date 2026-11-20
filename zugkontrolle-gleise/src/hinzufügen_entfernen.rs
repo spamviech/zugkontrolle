@@ -1,7 +1,6 @@
 //! Methoden zum hinzufügen, verschieben und entfernen von Gleisen.
 
 use log::{debug, error};
-
 use zugkontrolle_anschluss::Lager;
 use zugkontrolle_gleis::{
     id::{AnyDefinitionIdSteuerung, AnyId, AnyIdSteuerung, AnyIdSteuerungSerialisiert},

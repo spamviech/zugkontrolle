@@ -2,11 +2,11 @@
 
 #![expect(
     clippy::pub_use,
-    reason = "Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], [`RichtungAnschlüsseSerialisiert`]"
+    reason = "Wiederverwenden von public Items [`Richtung`], [`RichtungAnschlüsse`], \
+              [`RichtungAnschlüsseSerialisiert`]"
 )]
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_macros::alias_serialisiert_unit;
 use zugkontrolle_typen::{
     Innerhalb, MitName, Transparenz, Zeichnen,
@@ -23,6 +23,7 @@ use zugkontrolle_typen::{
     winkel::{self, Winkel},
 };
 
+pub use crate::weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert};
 use crate::{
     gerade, kurve,
     steuerung::{self, weiche::MitRichtung},
@@ -31,8 +32,6 @@ use crate::{
         orientierung::Orientierung,
     },
 };
-
-pub use crate::weiche::gerade::{Richtung, RichtungAnschlüsse, RichtungAnschlüsseSerialisiert};
 
 /// Steuerung einer [`SKurvenWeiche`].
 type Steuerung = steuerung::weiche::Weiche<Richtung, RichtungAnschlüsse>;

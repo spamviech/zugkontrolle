@@ -100,7 +100,8 @@ impl Drop for Pwm {
         match pwm {
             Some(pwm) => {
                 error!(
-                    "Dropped pwm channel {:?} was still available: {:?}\nDropped without restoring: {:?}",
+                    "Dropped pwm channel {:?} was still available: {:?}\nDropped without \
+                     restoring: {:?}",
                     self.channel, pwm, self
                 );
             },

@@ -3,7 +3,6 @@
 use std::fmt::Debug;
 
 use iced::{Element, Renderer};
-
 use zugkontrolle_anschluss::de_serialisieren::Serialisiere as _;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_gleis::id::AnyIdSteuerungSerialisiert;
@@ -74,7 +73,8 @@ type KurvenWeicheSerialisiert = steuerung::weiche::WeicheSerialisiert<
 #[expect(clippy::module_name_repetitions, reason = "Beheben benötigt Änderung des public API.")]
 #[derive(Debug, Clone, PartialEq)]
 pub enum AuswahlZustand {
-    /// Hinzufügen/Verändern eines [`Streckenabschnittes`](steuerung::streckenabschnitt::Streckenabschnitt).
+    /// Hinzufügen/Verändern eines
+    /// [`Streckenabschnittes`](steuerung::streckenabschnitt::Streckenabschnitt).
     Streckenabschnitt(
         Option<(
             steuerung::streckenabschnitt::Name,

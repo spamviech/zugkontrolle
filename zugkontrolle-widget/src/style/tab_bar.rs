@@ -3,11 +3,10 @@
 
 use iced_aw::style::{self, tab_bar};
 use iced_core::{Background, Color};
-
-use crate::style::thema::Thema;
-
 #[doc(inline)]
 pub use tab_bar::Style;
+
+use crate::style::thema::Thema;
 
 /// A styling function for a [`TabBar`](iced_aw::tab_bar::TabBar).
 pub type StyleFn<'a, Theme> = style::status::StyleFn<'a, Theme, Style>;

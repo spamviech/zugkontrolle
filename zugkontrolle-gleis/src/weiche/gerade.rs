@@ -3,7 +3,6 @@
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_macros::{alias_serialisiert_unit, erstelle_richtung};
 use zugkontrolle_typen::{
     Innerhalb, MitName, Transparenz, Zeichnen,

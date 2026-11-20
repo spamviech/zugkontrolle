@@ -13,7 +13,6 @@ use log::error;
 use nonempty::NonEmpty;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::{
     Fehler, InputAnschluss, InputSerialisiert, Lager,
     de_serialisieren::{Anschlüsse, Ergebnis, Reserviere, Serialisiere},
@@ -56,7 +55,8 @@ pub struct Kontakt {
     senders: Arc<Mutex<Vec<SomeLevelSender>>>,
 }
 
-/// Entferne den Anschluss aus dem Either und ersetzte ihn durch seine serialisierbare Repräsentation.
+/// Entferne den Anschluss aus dem Either und ersetzte ihn durch seine serialisierbare
+/// Repräsentation.
 fn entferne_anschluss<T: Serialisiere<S>, S: Clone>(either: &mut Either<T, S>) -> Either<T, S> {
     let serialisiert = serialisiere_anschluss(either);
     #[expect(clippy::absolute_paths, reason = "std::mem::replace soll offensichtlich sein.")]
@@ -117,8 +117,7 @@ impl Kontakt {
         let aktualisieren_sender = Mutex::new(aktualisieren_sender);
         let set_async_interrupt_result =
             anschluss.setze_async_interrupt(Trigger::Both, move |event| {
-                let neues_level = event.trigger.neues_level()
-                    .expect("Unexpected Trigger value.");
+                let neues_level = event.trigger.neues_level().expect("Unexpected Trigger value.");
                 {
                     let mut guard = letztes_level_clone.lock();
                     let letztes_level_mut = guard.as_mut();
@@ -127,7 +126,8 @@ impl Kontakt {
                 let callback_aufrufen = (trigger_copy & event.trigger) != Trigger::Disabled;
                 if let Err(fehler) = aktualisieren_sender.lock().send(Aktualisieren) {
                     log::error!(
-                        "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des Kontaktes {}: {:?}",
+                        "Kein Empfänger für Aktualisieren-Nachricht bei Level-Änderung des \
+                         Kontaktes {}: {:?}",
                         name_clone.0,
                         fehler
                     );
@@ -138,13 +138,18 @@ impl Kontakt {
                     let mut next = aktuelle_senders.len().checked_sub(1);
                     while let Some(index) = next {
                         // 0 <= index < senders.len()
-                        #[expect(clippy::indexing_slicing, reason = "range-based for-loop nicht sinnvoll, da disconnected Sender entfernt werden sollen.")]
+                        #[expect(
+                            clippy::indexing_slicing,
+                            reason = "range-based for-loop nicht sinnvoll, da disconnected Sender \
+                                      entfernt werden sollen."
+                        )]
                         match aktuelle_senders[index].send(neues_level) {
                             Ok(()) => next = index.checked_sub(1),
                             Err(SendError(_level)) => {
                                 // channel was disconnected, so no need to send to it anymore.
-                                // swap_remove ist kein Problem, da in zukünftigen Schleifendurchläufen
-                                // nur Sender mit kleinerem Index betrachtet werden.
+                                // swap_remove ist kein Problem, da in zukünftigen
+                                // Schleifendurchläufen nur Sender mit kleinerem Index betrachtet
+                                // werden.
                                 let _ = aktuelle_senders.swap_remove(index);
                             },
                         }
@@ -252,8 +257,8 @@ impl Serialisiere<KontaktSerialisiert> for Kontakt {
 
 impl Reserviere<Kontakt> for KontaktSerialisiert {
     type MoveArg = SomeAktualisierenSender;
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,

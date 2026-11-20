@@ -11,7 +11,6 @@ use iced_widget::{
     text, text_input,
 };
 use log::error;
-
 use zugkontrolle_anschluss::{
     InputAnschluss, InputSerialisiert, OutputAnschluss, OutputSerialisiert,
     level::Level,
@@ -53,7 +52,8 @@ struct Zustand<T> {
     beschreibung: Beschreibung,
     /// Der aktuell ausgewählte Port.
     port: kleiner_8,
-    /// Zusätzlicher Zustand für die Auswahl eines [Input-](InputAnschluss) oder [`OutputAnschlusses`](OutputAnschluss).
+    /// Zusätzlicher Zustand für die Auswahl eines [Input-](InputAnschluss) oder
+    /// [`OutputAnschlusses`](OutputAnschluss).
     modus: T,
 }
 
@@ -76,7 +76,8 @@ enum InterneNachricht<T> {
     Variante(Variante),
     /// Neuer aktuell gewählter Port für einen Pcf8574.
     Port(u8),
-    /// Neuer Zustand für die Auswahl eines [Input-](InputAnschluss) oder [`OutputAnschlusses`](OutputAnschluss).
+    /// Neuer Zustand für die Auswahl eines [Input-](InputAnschluss) oder
+    /// [`OutputAnschlusses`](OutputAnschluss).
     Modus(T),
 }
 
@@ -245,7 +246,8 @@ where
     Sammlung: sammlung::StyleProvider<'a, Thema>,
     TabBar: crate::style::tab_bar::StyleProvider<'a, Thema>,
 {
-    /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
+    /// Erstelle ein Widget zur Auswahl eines
+    /// [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
     pub fn neu_output(
         start_wert: Option<&'a OutputAnschluss>,
@@ -268,7 +270,8 @@ where
         Self::neu_output_aux(active_tab, pin, beschreibung, port, modus, scrollable_style, settings)
     }
 
-    /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
+    /// Erstelle ein Widget zur Auswahl eines
+    /// [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     #[must_use]
     pub fn neu_output_s(
         start_wert: Option<&OutputSerialisiert>,
@@ -295,7 +298,8 @@ where
         )
     }
 
-    /// Erstelle ein Widget zur Auswahl eines [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
+    /// Erstelle ein Widget zur Auswahl eines
+    /// [`OutputAnschluss`](crate::anschluss::OutputAnschluss).
     fn neu_output_aux(
         active_tab: TabId,
         start_pin: Option<u8>,

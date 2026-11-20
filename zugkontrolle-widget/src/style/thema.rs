@@ -13,7 +13,6 @@ use iced_widget::{
     slider, text, text_input,
 };
 use int_enum::IntEnum;
-
 use zugkontrolle_argumente::ThemaArgument;
 use zugkontrolle_gleise::knopf;
 use zugkontrolle_typen::farbe::Farbe;

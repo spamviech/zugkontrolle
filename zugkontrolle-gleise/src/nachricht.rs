@@ -1,4 +1,5 @@
-//! Eine GUI-Nachricht als Reaktion auf Interaktion mit dem [`Canvas`](iced::widget::canvas::Canvas).
+//! Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
+//! [`Canvas`](iced::widget::canvas::Canvas).
 
 use std::time::Instant;
 
@@ -21,7 +22,8 @@ pub(crate) struct Gehalten {
     pub bewegt: bool,
 }
 
-/// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem [`Canvas`](iced::widget::canvas::Canvas).
+/// Eine GUI-Nachricht als Reaktion auf Interaktion mit dem
+/// [`Canvas`](iced::widget::canvas::Canvas).
 #[derive(zugkontrolle_macros::Debug)]
 pub enum Nachricht {
     /// Setze den Streckenabschnitt für ein Gleis.
@@ -35,9 +37,9 @@ pub enum Nachricht {
     AnschlüsseAnpassen(AnyIdSteuerungSerialisiert),
     /// Eine GUI-Nachricht für Änderungen des Zustandes.
     ///
-    /// Notwendig, weil die [`update`](iced::widget::canvas::Program::update)-Methode keinen `&mut self`-Zugriff erlaubt
-    /// und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen werden soll
-    /// ([`State`](iced::widget::canvas::Program::State) dadurch nicht möglich).
+    /// Notwendig, weil die [`update`](iced::widget::canvas::Program::update)-Methode keinen `&mut
+    /// self`-Zugriff erlaubt und auf den Zustand auch von außerhalb der GUI-Funktionen zugegriffen
+    /// werden soll ([`State`](iced::widget::canvas::Program::State) dadurch nicht möglich).
     ZustandAktualisieren(ZustandAktualisieren),
 }
 

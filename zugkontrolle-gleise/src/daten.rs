@@ -20,7 +20,6 @@ use rstar::{
     RTree, RTreeObject as _,
     primitives::{GeomWithData, Rectangle},
 };
-
 use thiserror::Error;
 use zugkontrolle_anschluss::{
     Fehler, Lager,
@@ -63,9 +62,8 @@ use zugkontrolle_typen::{
     winkel::{self, Winkel},
 };
 
-use crate::knopf;
-
 use self::v4::GleisSerialisiert;
+use crate::knopf;
 
 pub mod de_serialisieren;
 pub mod v2;
@@ -125,10 +123,10 @@ where
 {
     type MoveArg =
         <<T as MitSteuerung>::Serialisiert as Reserviere<<T as MitSteuerung>::Steuerung>>::MoveArg;
-    type RefArg = HashMap<zugkontrolle_id::Repräsentation, DefinitionId<T>>;
     type MutRefArg = <<T as MitSteuerung>::Serialisiert as Reserviere<
         <T as MitSteuerung>::Steuerung,
     >>::MutRefArg;
+    type RefArg = HashMap<zugkontrolle_id::Repräsentation, DefinitionId<T>>;
 
     fn reserviere(
         self,
@@ -372,7 +370,8 @@ impl Zustand {
         self.gleise.entfernen(gleis_id.into())
     }
 
-    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [`GleisId`].
+    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der
+    /// [`GleisId`].
     ///
     /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
     /// [`Streckenabschnittes`](Streckenabschnitt) (falls einer gesetzt war).
@@ -552,7 +551,7 @@ fn überlappende_verbindungen<'t>(
         /// Hilfs-Makro für [`mit_any_id`]:
         /// Erhalte alle Verbindungen für die `kandidat_id` und ob sie aktuell gehalten ist.
         macro_rules! erhalte_alle_verbindungen {
-            ($definitionen:expr, $gleis_id: expr, $definition_id: expr) => {{
+            ($definitionen:expr, $gleis_id:expr, $definition_id:expr) => {{
                 let kandidat_id = AnyId::from($gleis_id.clone());
                 let nicht_eigene_id = Some(&kandidat_id) != eigene_id;
                 nicht_eigene_id.then(|| {
@@ -658,7 +657,7 @@ impl GleiseDaten {
     ) -> Result<AnyId, HinzufügenFehler> {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! hinzufügen_aux {
-            ($gleise: expr, $definitionen: expr, $definition_id: expr, $steuerung: expr) => {{
+            ($gleise:expr, $definitionen:expr, $definition_id:expr, $steuerung:expr) => {{
                 // Erhalte Definition.
                 let Some(definition) = $definitionen.get(&$definition_id) else {
                     return Err(HinzufügenFehler::DefinitionNichtGefunden(AnyDefinitionId::from(
@@ -734,7 +733,7 @@ impl GleiseDaten {
     ) -> Result<(), BewegenFehler> {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! bewegen_aux {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr) => {{
+            ($gleise:expr, $definitionen:expr, $gleis_id:expr) => {{
                 // Erhalte Referenz auf das Gleis.
                 let Some((gleis, rectangle)) = $gleise.get_mut(&$gleis_id) else {
                     return Err(BewegenFehler::GleisNichtGefunden(AnyId::from($gleis_id)));
@@ -807,8 +806,10 @@ impl GleiseDaten {
     fn entfernen(&mut self, gleis_id: AnyId) -> Result<AnyGleis, EntfernenFehler> {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! entfernen_aux {
-            ($gleise: expr, $gleis_id: expr) => {{
-                let Some((gleis, rectangle)) = $gleise.remove(&$gleis_id) else { return Err(EntfernenFehler(AnyId::from($gleis_id))) };
+            ($gleise:expr, $gleis_id:expr) => {{
+                let Some((gleis, rectangle)) = $gleise.remove(&$gleis_id) else {
+                    return Err(EntfernenFehler(AnyId::from($gleis_id)));
+                };
                 let id_clone = $gleis_id.clone();
                 let result = self.rstern.remove(&GeomWithData::new(
                     rectangle,
@@ -819,7 +820,8 @@ impl GleiseDaten {
                 ));
                 if result.is_none() {
                     error!(
-                        "Rectangle für Gleis {gleis:?} mit Id {id_clone:?} konnte nicht entfernt werden!"
+                        "Rectangle für Gleis {gleis:?} mit Id {id_clone:?} konnte nicht entfernt \
+                         werden!"
                     );
                 }
                 Ok(AnyGleis::from(gleis))
@@ -829,7 +831,8 @@ impl GleiseDaten {
     }
 }
 
-/// Fehler beim [setzen des Streckenabschnitts](crate::gleise::Gleise::setzte_streckenabschnitt) eines Gleises.
+/// Fehler beim [setzen des Streckenabschnitts](crate::gleise::Gleise::setzte_streckenabschnitt)
+/// eines Gleises.
 #[derive(Debug, Clone, Error)]
 pub struct SetzteStreckenabschnittFehler(AnyId, Option<streckenabschnitt::Name>);
 
@@ -840,7 +843,8 @@ impl Display for SetzteStreckenabschnittFehler {
             Some(streckenabschnitt) => {
                 write!(
                     formatter,
-                    "Fehler beim setzten den Streckenabschnittes {streckenabschnitt} für Gleis {:?}!",
+                    "Fehler beim setzten den Streckenabschnittes {streckenabschnitt} für Gleis \
+                     {:?}!",
                     self.0
                 )
             },
@@ -856,7 +860,8 @@ impl Display for SetzteStreckenabschnittFehler {
 }
 
 impl GleiseDaten {
-    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der [`GleisId`].
+    /// Setzte (oder entferne) den [Streckenabschnitt] für das [Gleis] assoziiert mit der
+    /// [`GleisId`].
     ///
     /// Rückgabewert ist der [`Name`](streckenabschnitt::Name) des bisherigen
     /// [`Streckenabschnittes`](Streckenabschnitt) (falls einer gesetzt war).
@@ -871,7 +876,7 @@ impl GleiseDaten {
     ) -> Result<Option<streckenabschnitt::Name>, SetzteStreckenabschnittFehler> {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! setze_streckenabschnitt_aux {
-            ($gleise: expr, $gleis_id: expr) => {{
+            ($gleise:expr, $gleis_id:expr) => {{
                 let Some((gleis, _rectangle)) = $gleise.get_mut(&$gleis_id) else {
                     return Err(SetzteStreckenabschnittFehler(
                         AnyId::from($gleis_id),
@@ -919,7 +924,8 @@ impl GleiseDaten {
 pub enum SteuerungAktualisierenFehler {
     /// Das Gleis wurde nicht gefunden.
     GleisNichtGefunden(AnyId),
-    /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [`Anschlüsse`](anschluss::Anschluss).
+    /// Ein Fehler beim [Reservieren](crate::anschluss::Reserviere::reserviere) der
+    /// [`Anschlüsse`](anschluss::Anschluss).
     Reservieren {
         /// Der Fehler beim reservieren der neuen Anschlüsse.
         fehler: NonEmpty<Fehler>,
@@ -927,7 +933,8 @@ pub enum SteuerungAktualisierenFehler {
         /// sowie eine Repräsentation der ursprünglichen Anschlüsse.
         wiederherstellen_fehler: Option<(NonEmpty<Fehler>, String)>,
     },
-    /// Warnungen beim [Reservieren](crate::anschluss::Reserviere::reserviere) der [`Anschlüsse`](anschluss::Anschluss).
+    /// Warnungen beim [Reservieren](crate::anschluss::Reserviere::reserviere) der
+    /// [`Anschlüsse`](anschluss::Anschluss).
     ReservierenWarnung(NonEmpty<Fehler>),
 }
 
@@ -1012,7 +1019,7 @@ impl GleiseDaten {
     fn hat_steuerung(&self, gleis: AnyId) -> Result<bool, GleisNichtGefunden> {
         /// Hilfs-Makro für [`mit_any_id`].
         macro_rules! hat_steuerung_aux {
-            ($gleise: expr, $gleis_id: expr) => {{
+            ($gleise:expr, $gleis_id:expr) => {{
                 let (
                     Gleis { steuerung, definition: _, position: _, streckenabschnitt: _ },
                     _rectangle,
@@ -1279,7 +1286,14 @@ impl GleiseDaten {
     ) {
         /// Färbe den Hintergrund des zur `$gleis_id` gehörenden Gleises.
         macro_rules! färbe_hintergrund {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+            (
+                $gleise:expr,
+                $definitionen:expr,
+                $gleis_id:expr,
+                $definition_id:expr,
+                $spurweite:expr,
+                $position:expr
+            ) => {{
                 let Some((gleis, _rectangle)) = $gleise.get($gleis_id) else {
                     error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
                     continue;
@@ -1330,7 +1344,14 @@ impl GleiseDaten {
     ) {
         /// Zeichne den Kontur des zur `$gleis_id` gehörenden Gleises.
         macro_rules! zeichne_kontur {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+            (
+                $gleise:expr,
+                $definitionen:expr,
+                $gleis_id:expr,
+                $definition_id:expr,
+                $spurweite:expr,
+                $position:expr
+            ) => {{
                 let Some((gleis, _rectangle)) = $gleise.get($gleis_id) else {
                     error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
                     continue;
@@ -1373,7 +1394,14 @@ impl GleiseDaten {
     ) {
         /// Zeichne und Färbe die Verbindungen des zur `$gleis_id` gehörenden Gleises.
         macro_rules! zeichne_verbindungen {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr) => {{
+            (
+                $gleise:expr,
+                $definitionen:expr,
+                $gleis_id:expr,
+                $definition_id:expr,
+                $spurweite:expr,
+                $position:expr
+            ) => {{
                 let Some((gleis, _rectangle)) = $gleise.get($gleis_id) else {
                     error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
                     continue;
@@ -1420,7 +1448,15 @@ impl GleiseDaten {
     ) {
         /// Erzeuge den Text für Name und Beschreibung des zur `$gleis_id` gehörenden Gleises.
         macro_rules! schreibe_name_und_beschreibung {
-            ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr, $spurweite: expr, $position: expr, $thema: expr) => {{
+            (
+                $gleise:expr,
+                $definitionen:expr,
+                $gleis_id:expr,
+                $definition_id:expr,
+                $spurweite:expr,
+                $position:expr,
+                $thema:expr
+            ) => {{
                 let Some((gleis, _rectangle)) = $gleise.get($gleis_id) else {
                     error!("Gleis mit Id '{:?}' nicht gefunden!", $gleis_id);
                     continue;
@@ -1487,7 +1523,8 @@ impl GleiseDaten {
 const KLICK_GENAUIGKEIT: Skalar = Skalar(5.);
 
 impl GleiseDaten {
-    /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises an der gesuchten Position.
+    /// Erhalte die Id, Steuerung, relative Klick-Position, Winkel und Streckenabschnitt des Gleises
+    /// an der gesuchten Position.
     fn gleis_an_position(
         &self,
         zugtyp: &Zugtyp,
@@ -1508,7 +1545,7 @@ impl GleiseDaten {
             let rotated_pos = relative_pos.rotiert(&(-position.winkel));
             /// Hilfs-Makro für [`mit_any_id`].
             macro_rules! gleis_an_position_aux {
-                ($gleise: expr, $definitionen: expr, $gleis_id: expr, $definition_id: expr) => {{
+                ($gleise:expr, $definitionen:expr, $gleis_id:expr, $definition_id:expr) => {{
                     let (gleis, _rectangle) = $gleise.get($gleis_id)?;
                     let definition = $definitionen.get($definition_id)?;
                     let erzeuge_ergebnis_für_gleis = || {

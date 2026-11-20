@@ -1,7 +1,6 @@
 //! Serialisierbare Darstellung einer [`Kurve`] in Version 2.
 
 use serde::Deserialize;
-
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
 use crate::daten::{v2::anschluss::KontaktSerialisiert, v3};

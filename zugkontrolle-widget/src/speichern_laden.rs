@@ -30,7 +30,8 @@ impl Debug for ZeigeDateiDialog {
     }
 }
 
-/// Die interne Nachricht zum Identifizieren des gedrückten [`Button`] in einem [`SpeichernLaden`]-Widget.
+/// Die interne Nachricht zum Identifizieren des gedrückten [`Button`] in einem
+/// [`SpeichernLaden`]-Widget.
 #[derive(Debug, Clone)]
 enum InterneNachricht {
     /// Speichern gewünscht.

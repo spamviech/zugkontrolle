@@ -12,7 +12,6 @@ use iced_core::{
     touch,
     widget::tree::Tree,
 };
-
 use zugkontrolle_typen::{farbe::Farbe, skalar::Skalar, vektor::Vektor, winkel};
 
 /// Widget zur Farbwahl.

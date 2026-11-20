@@ -106,7 +106,8 @@ impl Rechteck {
     }
 }
 
-/// Hilfsfunktion für [`Rechteck::aus_vektoren`]: erhalten Vektoren mit minimalen und maximalen Werten.
+/// Hilfsfunktion für [`Rechteck::aus_vektoren`]: erhalten Vektoren mit minimalen und maximalen
+/// Werten.
 fn min_max((min, max): (Vektor, Vektor), wert: Vektor) -> (Vektor, Vektor) {
     (
         Vektor { x: min.x.min(&wert.x), y: min.y.min(&wert.y) },

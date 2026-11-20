@@ -8,7 +8,6 @@ use std::{
 
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
-
 use thiserror::Error;
 use zugkontrolle_argumente::I2cSettings;
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
@@ -331,8 +330,8 @@ impl Serialisiere<OutputSerialisiert> for OutputAnschluss {
 
 impl Reserviere<OutputAnschluss> for OutputSerialisiert {
     type MoveArg = ();
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,
@@ -629,8 +628,9 @@ fn reserviere_input_port(
 
 impl Reserviere<InputAnschluss> for InputSerialisiert {
     type MoveArg = ();
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
+
     fn reserviere(
         self,
         lager: &mut Lager,

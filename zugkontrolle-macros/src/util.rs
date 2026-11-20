@@ -62,7 +62,8 @@ pub(crate) fn partitioniere_generics(generics: &Generics) -> PartitionierteGener
 
 /// Look for attributes prefixed with name and construct a where-clause from it.
 /// E.g. `#[zugkontrolle_clone(M: Clone, <C as Trait>::A: Clone)]`
-/// becomes `M: Clone, <C as Trait>::A: Clone` to allow more flexibility than the normal derive-macros.
+/// becomes `M: Clone, <C as Trait>::A: Clone` to allow more flexibility than the normal
+/// derive-macros.
 pub(crate) fn parse_attributes_fn(
     attrs: &[Attribute],
     name: &str,
@@ -90,7 +91,8 @@ pub(crate) fn parse_attributes_fn(
     Ok(intermediate.into_iter().flat_map(Punctuated::into_iter))
 }
 
-/// Helper für [`parse_attributes_fn`]: Match das [Result] und gebe bei [`Err`] direkt `quote!(compile_error(#fehler));` zurück.
+/// Helper für [`parse_attributes_fn`]: Match das [Result] und gebe bei [`Err`] direkt
+/// `quote!(compile_error(#fehler));` zurück.
 macro_rules! parse_attributes {
     ($attrs:expr, $name:expr) => {
         match $crate::util::parse_attributes_fn($attrs, $name) {

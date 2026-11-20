@@ -10,7 +10,6 @@ use iced::{
         stroke::{self, Stroke},
     },
 };
-
 use iced_widget::Action;
 use zugkontrolle_gleise::knopf::Catalog as _;
 use zugkontrolle_typen::{

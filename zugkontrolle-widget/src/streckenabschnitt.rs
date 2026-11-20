@@ -22,7 +22,6 @@ use iced_widget::{
     scrollable::{self, Scrollable},
     text_input::{self, TextInput},
 };
-
 use zugkontrolle_anschluss::{
     OutputSerialisiert, de_serialisieren::Serialisiere as _, polarität::Polarität,
 };

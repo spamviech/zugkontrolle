@@ -1,7 +1,6 @@
 //! Serialisierbare Darstellung eines [`Weiche`] in Version 3.
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::OutputSerialisiert;
 use zugkontrolle_gleis::weiche::gerade as v4;
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};

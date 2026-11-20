@@ -1,7 +1,6 @@
 //! Mehrfach verwendete Utility Funktionen.
 
 use iced::{Rectangle, mouse::Cursor};
-
 use zugkontrolle_typen::{canvas::Position, skalar::Skalar, vektor::Vektor};
 
 /// Position des Cursors auf einem canvas mit `bounds`.

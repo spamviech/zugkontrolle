@@ -2,7 +2,6 @@
 
 use nonempty::NonEmpty;
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_util::eingeschränkt::{NichtNegativ, NullBisEins};
 
 use crate::{
@@ -217,8 +216,8 @@ impl Serialisiere<Serialisiert> for Pin {
 
 impl Reserviere<Pin> for Serialisiert {
     type MoveArg = ();
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,

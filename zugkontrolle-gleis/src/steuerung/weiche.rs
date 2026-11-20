@@ -12,7 +12,6 @@ use std::{
 use log::debug;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::{
     Fehler, Lager, OutputAnschluss,
     de_serialisieren::{self, Anschlüsse, Reserviere, Serialisiere},
@@ -149,9 +148,10 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
         if let Some(aktualisieren) = aktualisieren {
             aktualisieren();
         }
-        /// Rufe bei einem [`Err`]  [`zurücksetzten`](WeicheSteuerung::zurücksetzen) auf und geben den Fehler zurück.
+        /// Rufe bei einem [`Err`]  [`zurücksetzten`](WeicheSteuerung::zurücksetzen) auf und geben
+        /// den Fehler zurück.
         macro_rules! bei_fehler_zurücksetzen {
-            ($result: expr) => {
+            ($result:expr) => {
                 if let Err(fehler) = $result {
                     let mut richtung_guard = richtung.lock();
                     let weiche_richtung = richtung_guard.as_mut();
@@ -200,7 +200,8 @@ impl<T, Anschlüsse> Weiche<T, Anschlüsse> {
                 move || {
                     if let Err(fehler) = sender_clone.send(erzeuge_nachricht()) {
                         debug!(
-                            "Kein Empfänger für Aktualisieren-Nachricht bei Schalten der Weiche {name_arc_clone}: {fehler:?}"
+                            "Kein Empfänger für Aktualisieren-Nachricht bei Schalten der Weiche \
+                             {name_arc_clone}: {fehler:?}"
                         );
                     }
                 }
@@ -284,8 +285,8 @@ where
     S: Reserviere<R, MoveArg = (), RefArg = (), MutRefArg = ()>,
 {
     type MoveArg = SomeAktualisierenSender;
-    type RefArg = ();
     type MutRefArg = ();
+    type RefArg = ();
 
     fn reserviere(
         self,

@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
-
 use zugkontrolle_gleis::steuerung::plan;
 use zugkontrolle_typen::canvas::Position;
 use zugkontrolle_util::void::Void;

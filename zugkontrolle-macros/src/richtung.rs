@@ -1,4 +1,5 @@
-//! Erzeuge Richtung enum und RichtungAnschlüsse(Serialisiert) Strukturen mit Lookup-Implementierung.
+//! Erzeuge Richtung enum und RichtungAnschlüsse(Serialisiert) Strukturen mit
+//! Lookup-Implementierung.
 
 use heck::ToSnakeCase as _;
 use proc_macro_crate::{FoundCrate, crate_name};

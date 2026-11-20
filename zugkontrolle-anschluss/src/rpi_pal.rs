@@ -3,12 +3,11 @@
 #[cfg(not(feature = "raspi"))]
 use std::fmt::{self, Debug, Formatter};
 
-#[cfg(not(feature = "raspi"))]
-use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
-
 #[cfg(feature = "raspi")]
 // wird nur für die Fallback-Implementierung benötigt.
 use num_traits as _;
+#[cfg(not(feature = "raspi"))]
+use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 #[cfg(feature = "raspi")]
 // wird nur für die Fallback-Implementierung benötigt.
 use take_mut as _;
@@ -49,7 +48,8 @@ impl<T, F> ElementOderKonstruktor<T, F> {
     ///
     /// ## Panics
     ///
-    /// Wenn ein [`Konstruktor`](ElementOderKonstruktor::Konstruktor) enthalten war wird [`panic!`] aufgerufen.
+    /// Wenn ein [`Konstruktor`](ElementOderKonstruktor::Konstruktor) enthalten war wird [`panic!`]
+    /// aufgerufen.
     fn erhalte_element_mut_unchecked(&mut self) -> &mut T {
         match self {
             ElementOderKonstruktor::Element(element) => element,
@@ -68,8 +68,9 @@ impl<T, F> ElementOderKonstruktor<T, F> {
 #[cfg(not(feature = "raspi"))]
 impl<T, F: FnOnce() -> T> ElementOderKonstruktor<T, F> {
     /// Stellt sicher, dass danach ein Wert enthalten ist.
-    /// Wenn davor kein Wert enthalten ist wird der [`Konstruktor`](ElementOderKonstruktor::Konstruktor) ausgeführt,
-    /// ansonsten bleibt das [`Element`](ElementOderKonstruktor::Element) unverändert.
+    /// Wenn davor kein Wert enthalten ist wird der
+    /// [`Konstruktor`](ElementOderKonstruktor::Konstruktor) ausgeführt, ansonsten bleibt das
+    /// [`Element`](ElementOderKonstruktor::Element) unverändert.
     fn initialisiere_wenn_notwendig(&mut self) {
         take_mut::take(self, |element_oder_konstruktor| match element_oder_konstruktor {
             ElementOderKonstruktor::Element(_) => element_oder_konstruktor,
@@ -81,7 +82,8 @@ impl<T, F: FnOnce() -> T> ElementOderKonstruktor<T, F> {
 }
 
 #[cfg(not(feature = "raspi"))]
-/// Mutex mit einem Wert, oder eine (potentiell nicht-konstanten) Funktion um den initialen Wert zu erzeugen.
+/// Mutex mit einem Wert, oder eine (potentiell nicht-konstanten) Funktion um den initialen Wert zu
+/// erzeugen.
 #[derive(Debug)]
 struct LazyMutex<T, F = fn() -> T>(Mutex<ElementOderKonstruktor<T, F>>);
 
@@ -98,7 +100,8 @@ impl<T, F: FnOnce() -> T> LazyMutex<T, F> {
     /// [`Mutex::lock`].
     fn lock(&self) -> MappedMutexGuard<'_, T> {
         let mut write_guard = self.0.lock();
-        // Stelle sicher, dass das Element initialisiert ist (write-Berechtigung wird sowieso benötigt).
+        // Stelle sicher, dass das Element initialisiert ist (write-Berechtigung wird sowieso
+        // benötigt).
         write_guard.initialisiere_wenn_notwendig();
         // Gebe eine WriteGuard auf das Element zurück.
         MutexGuard::map(write_guard, ElementOderKonstruktor::erhalte_element_mut_unchecked)

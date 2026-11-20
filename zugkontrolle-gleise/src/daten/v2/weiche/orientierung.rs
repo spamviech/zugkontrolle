@@ -1,7 +1,7 @@
-//! Serialisierbare Darstellung der Orientierung einer [`Weiche`], in welche Richtung geht die Kurve. in Version 3.
+//! Serialisierbare Darstellung der Orientierung einer [`Weiche`], in welche Richtung geht die
+//! Kurve. in Version 3.
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::weiche::orientierung as v4;
 
 /// Die Orientierung einer [`Weiche`], in welche Richtung geht die Kurve.

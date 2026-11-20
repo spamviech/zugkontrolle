@@ -147,7 +147,8 @@ const ANGLE_OUTWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE);
 /// Der Winkel der nach innen gehenden Kurve als [`Winkel`].
 const ANGLE_INWARDS: Winkel = Winkel(ANGLE_OUTWARDS_VALUE - ANGLE_VALUE);
 
-/// Eine Lego-Weiche. Nach einer zusätzlichen [Gerade]/[`Kurve`] sind beide Gleise auf der selben Höhe.
+/// Eine Lego-Weiche. Nach einer zusätzlichen [Gerade]/[`Kurve`] sind beide Gleise auf der selben
+/// Höhe.
 #[must_use]
 pub fn weiche(orientierung: Orientierung) -> SKurvenWeicheUnit {
     SKurvenWeiche::neu(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, orientierung)

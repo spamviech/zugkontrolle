@@ -19,7 +19,7 @@ pub struct InvaliderWert<T>(pub T);
 ///
 /// Die Implementierungen für [`Add`] und [`Sub`] sind saturating.
 macro_rules! definiere_u8_typ {
-    ($ident: ident, $max: expr, $docstring: tt) => {
+    ($ident:ident, $max:expr, $docstring:tt) => {
         #[doc = $docstring]
         /// [Add]-Implementierung verwendet [`saturating_add`](u8::saturating_add).
         #[derive(
@@ -101,11 +101,10 @@ macro_rules! definiere_u8_typ {
         }
 
         impl $ident {
-            /// Kleinster Wert (0).
-            pub const MIN: Self = $ident(0);
-
             /// Größter darstellbarer Wert.
             pub const MAX: Self = $ident($max);
+            /// Kleinster Wert (0).
+            pub const MIN: Self = $ident(0);
 
             /// Versuche einen neuen
             #[doc = stringify!([$ident])]

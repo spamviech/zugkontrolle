@@ -1,7 +1,6 @@
 //! Hilfs-Struktur, die bei [`AsMut`]-Zugriff eine [`Aktualisieren`]-Nachricht erzeugt.
 
 use log::error;
-
 use zugkontrolle_util::erstelle_sender_trait_existential;
 
 use crate::{

@@ -7,7 +7,6 @@ use std::{
 };
 
 use kommandozeilen_argumente::{EnumArgument, Parse};
-
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
 #[derive(Debug, Clone, Parse)]

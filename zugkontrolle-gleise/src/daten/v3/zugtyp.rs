@@ -3,7 +3,6 @@
 use std::{collections::HashMap, fmt::Debug, time::Duration};
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_id::eindeutig::KeineIdVerfügbar;
 use zugkontrolle_typen::mm::Spurweite;
 use zugkontrolle_util::{
@@ -32,8 +31,10 @@ use crate::daten::{
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[serde(bound(
-    serialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as Leiter>::UmdrehenZeit: Serialize",
-    deserialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>",
+    serialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Serialize, <L as \
+                 Leiter>::UmdrehenZeit: Serialize",
+    deserialize = "<L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as \
+                   Leiter>::UmdrehenZeit: Deserialize<'de>",
 ))]
 pub struct ZugtypSerialisiert<L: Leiter> {
     /// Der Name des Zugtyps.

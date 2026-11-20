@@ -1,7 +1,6 @@
 //! Serialisierbare Darstellung einer [`DreiwegeWeiche`] in Version 2.
 
 use serde::Deserialize;
-
 use zugkontrolle_typen::{skalar::Skalar, winkel::Winkel};
 
 use crate::daten::{

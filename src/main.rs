@@ -5,7 +5,6 @@ use std::sync::Arc;
 use flexi_logger::{Duplicate, FileSpec, FlexiLoggerError, LogSpecBuilder, Logger, LoggerHandle};
 use log::LevelFilter;
 use parking_lot::RwLock;
-
 use zugkontrolle_anschluss::Lager;
 use zugkontrolle_application::{Fehler, Zugkontrolle};
 use zugkontrolle_argumente::{Argumente, ZugtypArgument};

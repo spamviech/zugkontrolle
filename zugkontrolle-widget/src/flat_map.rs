@@ -1,4 +1,5 @@
-//! Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
+//! Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden
+//! können.
 
 use std::fmt;
 
@@ -16,7 +17,8 @@ use iced_core::{
     },
 };
 
-/// Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden können.
+/// Wie [`Map`](iced_native::element::Map), nur dass mehrere Nachrichten zurückgegeben werden
+/// können.
 pub struct FlatMap<'a, A, I, Thema, R> {
     /// Das ursprüngliche Widget.
     element: Element<'a, A, Thema, R>,

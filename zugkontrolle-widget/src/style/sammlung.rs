@@ -5,11 +5,10 @@ use iced_core::{
     border::{self, Border},
 };
 use iced_widget::scrollable::{self, Rail, Scroller};
-
-use crate::style::thema::Thema;
-
 #[doc(inline)]
 pub use scrollable::{Style, StyleFn};
+
+use crate::style::thema::Thema;
 
 /// Style-Struktur für ein [`iced::widget::Scrollable`]
 /// mit fester [`Scroller-Breite`](iced_native::widget::scrollable::Properties::scroller_width).
@@ -32,7 +31,8 @@ impl Sammlung {
         Sammlung { breite }
     }
 
-    /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width) des [`Scrollable`](iced::widget::Scrollable).
+    /// Die [Scroller-Breite](iced_native::widget::scrollable::Properties::scroller_width) des
+    /// [`Scrollable`](iced::widget::Scrollable).
     #[must_use]
     pub fn breite(&self) -> f32 {
         self.breite

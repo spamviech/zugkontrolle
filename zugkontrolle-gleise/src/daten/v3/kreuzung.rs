@@ -3,7 +3,6 @@
 use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_gleis::kreuzung as v4;
 use zugkontrolle_typen::skalar::Skalar;
 

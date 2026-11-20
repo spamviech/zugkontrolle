@@ -3,7 +3,6 @@
 use std::{fmt::Debug, hash::Hash};
 
 use serde::{Deserialize, Serialize};
-
 use zugkontrolle_anschluss::{level::Level, trigger::Trigger};
 use zugkontrolle_macros::alias_serialisiert_unit;
 use zugkontrolle_typen::{

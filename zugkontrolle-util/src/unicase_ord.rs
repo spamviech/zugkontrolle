@@ -1,8 +1,9 @@
 //! Eine String-newtype mit auf [`UniCase`]-basierter [`Ord`]-Instanz.
 //!
-//! Die [Eq]-Instanz vergleicht Strings unter Berücksichtigung der Groß-/Kleinschreibung (wie [`str`]).
-//! Die [`Ord`]-Instanz vergleicht (wie [`UniCase`]) ohne Berücksichtigung der Groß-/Kleinschreibung,
-//! nur bei Gleichheit wird sie ebenfalls berücksichtigt ([Ord]-Instanz von [`str`]).
+//! Die [Eq]-Instanz vergleicht Strings unter Berücksichtigung der Groß-/Kleinschreibung (wie
+//! [`str`]). Die [`Ord`]-Instanz vergleicht (wie [`UniCase`]) ohne Berücksichtigung der
+//! Groß-/Kleinschreibung, nur bei Gleichheit wird sie ebenfalls berücksichtigt ([Ord]-Instanz von
+//! [`str`]).
 
 use std::{
     cmp::Ordering,
@@ -13,9 +14,10 @@ use unicase::UniCase;
 
 /// Eine String-newtype mit auf [`UniCase`]-basierter [`Ord`]-Instanz.
 ///
-/// Die [Eq]-Instanz vergleicht Strings unter Berücksichtigung der Groß-/Kleinschreibung (wie [`str`]).
-/// Die [`Ord`]-Instanz vergleicht (wie [`UniCase`]) ohne Berücksichtigung der Groß-/Kleinschreibung,
-/// nur bei Gleichheit wird sie ebenfalls berücksichtigt ([Ord]-Instanz von [`str`]).
+/// Die [Eq]-Instanz vergleicht Strings unter Berücksichtigung der Groß-/Kleinschreibung (wie
+/// [`str`]). Die [`Ord`]-Instanz vergleicht (wie [`UniCase`]) ohne Berücksichtigung der
+/// Groß-/Kleinschreibung, nur bei Gleichheit wird sie ebenfalls berücksichtigt ([Ord]-Instanz von
+/// [`str`]).
 #[derive(Debug, Clone, Copy)]
 pub struct UniCaseOrd<S>(UniCase<S>);
 

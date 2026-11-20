@@ -8,12 +8,8 @@ use iced::{
     widget::canvas::{Geometry, Program},
 };
 use nonempty::NonEmpty;
-
 use zugkontrolle_anschluss::polarität::Fließend;
-use zugkontrolle_gleis::{
-    id::AnyId,
-    steuerung::aktualisieren::Aktualisieren,
-};
+use zugkontrolle_gleis::{id::AnyId, steuerung::aktualisieren::Aktualisieren};
 use zugkontrolle_typen::{
     Transparenz,
     canvas::{Frame, Position, pfad::Transformation},

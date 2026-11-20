@@ -5,7 +5,6 @@ use std::{collections::HashMap, fmt::Debug};
 use associated_list::{AssocList, entry::Entry};
 use log::error;
 use serde::Deserialize;
-
 use zugkontrolle_gleis::{
     gerade::{Gerade, GeradeUnit},
     kreuzung::{Kreuzung, KreuzungUnit},
@@ -136,7 +135,8 @@ struct NächsteDefinitionIds {
 }
 
 impl NächsteDefinitionIds {
-    /// Erzeuge eine neue [`NächsteDefinitionIds`], die alle mit [`Some(0)`](Some) initialisiert wurden.
+    /// Erzeuge eine neue [`NächsteDefinitionIds`], die alle mit [`Some(0)`](Some) initialisiert
+    /// wurden.
     fn neu() -> NächsteDefinitionIds {
         NächsteDefinitionIds {
             geraden: Some(0),
@@ -271,9 +271,10 @@ pub(in crate::daten) type GeschwindigkeitMapSerialisiert<LeiterSerialisiert> = H
 #[zugkontrolle_debug(<L as Leiter>::VerhältnisFahrspannungÜberspannung: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::UmdrehenZeit: Debug)]
 #[zugkontrolle_debug(<L as Leiter>::Fahrtrichtung: Debug)]
-#[serde(bound(
-    deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: Deserialize<'de>",
-))]
+#[serde(bound(deserialize = "L: Leiter, <L as Leiter>::VerhältnisFahrspannungÜberspannung: \
+                             Deserialize<'de>, <L as Leiter>::UmdrehenZeit: Deserialize<'de>, \
+                             <L as Leiter>::Fahrtrichtung: Deserialize<'de>, S: \
+                             Deserialize<'de>",))]
 pub(crate) struct ZustandSerialisiert<L: Leiter, S> {
     /// Der serialisierbare Zugtyp.
     pub zugtyp: ZugtypSerialisiert<L>,

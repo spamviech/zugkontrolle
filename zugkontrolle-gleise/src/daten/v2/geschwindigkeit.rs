@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
-
 use zugkontrolle_anschluss::{pin::pwm, polarität::Polarität};
 use zugkontrolle_gleis::{
     steuerung::geschwindigkeit::{Mittelleiter, Zweileiter},

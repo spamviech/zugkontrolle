@@ -159,7 +159,8 @@ fn target_crate_lizenzen_impl(target: &str) -> (TokenStream, Vec<String>) {
     (token_stream, fehlermeldungen)
 }
 
-/// Anzeige einer Fehlermeldung, je nach feature als [`compile_error`] oder `#[deprecated]` struct usage.
+/// Anzeige einer Fehlermeldung, je nach feature als [`compile_error`] oder `#[deprecated]` struct
+/// usage.
 fn quote_fehlermeldung(fehlermeldung: &str) -> TokenStream {
     #[cfg(not(feature = "allow-missing"))]
     return quote! {{
