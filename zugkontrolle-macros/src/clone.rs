@@ -6,8 +6,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
     Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed, Ident, Token,
-    Variant, WhereClause,
-    punctuated::{self},
+    Variant, WhereClause, punctuated,
 };
 
 use crate::util::{

@@ -1,7 +1,5 @@
 //! Methoden für die [view](iced::Application::view)-Methode des [`iced::Application`]-Traits.
 
-use std::fmt::Debug as _;
-
 use enum_iterator::all;
 use iced::{
     Alignment, Element, Event, Length, Renderer, mouse, touch,
@@ -14,16 +12,12 @@ use iced_widget::{PickList, rule, scrollable::Scrollbar};
 use itertools::Itertools as _;
 use log::debug;
 
-use zugkontrolle_anschluss::de_serialisieren::Serialisiere as _;
 use zugkontrolle_gleis::{
     gerade::Gerade,
     id::{AnyDefinitionId, DefinitionId},
     kreuzung::Kreuzung,
     kurve::Kurve,
-    steuerung::{
-        aktualisieren::MitSteuerung,
-        streckenabschnitt::Name as StreckenabschnittName,
-    },
+    steuerung::{aktualisieren::MitSteuerung, streckenabschnitt::Name as StreckenabschnittName},
     weiche::{
         dreiwege::DreiwegeWeiche, gerade::Weiche, kurve::KurvenWeiche, s_kurve::SKurvenWeiche,
     },

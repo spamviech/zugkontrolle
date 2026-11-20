@@ -1,8 +1,6 @@
 //! speichern und laden Methode für [`Gleise`].
 
-use std::{
-    collections::HashMap, fs, hash::Hash, io, path::Path, sync::mpsc::Sender,
-};
+use std::{collections::HashMap, fs, hash::Hash, io, path::Path, sync::mpsc::Sender};
 
 use bincode_next::{
     self,
@@ -15,7 +13,7 @@ use bincode_next::{
 };
 use nonempty::NonEmpty;
 use rstar::primitives::{GeomWithData, Rectangle};
-use serde::{Deserialize, Serialize as _, de::DeserializeOwned};
+use serde::{Deserialize, de::DeserializeOwned};
 
 use zugkontrolle_anschluss::{
     Lager,
@@ -49,7 +47,7 @@ use crate::{
     daten::{
         GleisMap, GleiseDaten, RStern, RSternEintrag, Zustand,
         v2::{self, geschwindigkeit::BekannterZugtyp},
-        v3::{self},
+        v3,
         v4::{self, GleisSerialisiert, GleiseDatenSerialisiert, plan::FehlendeWeichensteuerung},
         v6::{ZugtypSerialisiert, ZustandSerialisiert},
     },
@@ -738,7 +736,7 @@ impl<AktualisierenNachricht> Gleise<AktualisierenNachricht> {
     ///
     /// Fehler beim Schreiben der Datei.
     pub fn speichern(&self, pfad: impl AsRef<Path>) -> Result<(), Fehler> {
-        let serialisiert: ZustandSerialisiert = self.zustand.serialisiere();
+        let serialisiert = self.zustand.serialisiere();
         let mut file = fs::File::create(pfad)?;
         let _bytes = encode_into_std_write(serialisiert, &mut file, BINCODE_OPTIONS)?;
         Ok(())
@@ -820,7 +818,7 @@ fn deserialize<T: DeserializeOwned>(slice: &[u8]) -> Result<T, DecodeError> {
     if trailing_bytes > 0 { Err(DecodeError::TrailingBytes(trailing_bytes)) } else { Ok(decoded) }
 }
 
-/// Fehler beim Deserialisieren (laden) gespeicherter Daten im [`v4`] (oder früher) Format
+/// Fehler beim Deserialisieren (laden) gespeicherter Daten im [`v4`] (oder früher) Format.
 #[derive(Debug)]
 pub enum V4DeserialisierenFehler {
     /// (siehe [`LadenFehler::UnbekannterZugtyp`]).
@@ -841,6 +839,7 @@ pub enum V4DeserialisierenFehler {
     },
 }
 
+/// Hilfsfunktion zum Deserialisieren von Version-4 (oder älter) Speicherformat.
 fn deserialisiere_v4<L, S>(
     slice: &[u8],
     id_fehler: &mut Vec<KeineIdVerfügbar>,

@@ -61,15 +61,16 @@ where
     fn try_from(value: v4::ZustandSerialisiert<L, S>) -> Result<Self, Self::Error> {
         Ok(ZustandSerialisiert {
             zugtyp: value.zugtyp.into(),
-            geschwindigkeiten: from_geschwindigkeiten(value.geschwindigkeiten),
+            geschwindigkeiten: from_geschwindigkeiten_v4(value.geschwindigkeiten),
             streckenabschnitte: value.streckenabschnitte,
             gleise: value.gleise,
-            pläne: try_from_pläne(value.pläne)?,
+            pläne: try_from_pläne_v4(value.pläne)?,
         })
     }
 }
 
-fn from_geschwindigkeiten<S: Into<LeiterSerialisiert>>(
+/// Konvertiere [`GeschwindigkeitSerialisiert`] aus ihrer v4-Repräsentation.
+fn from_geschwindigkeiten_v4<S: Into<LeiterSerialisiert>>(
     geschwindigkeiten: HashMap<
         geschwindigkeit::Name,
         geschwindigkeit::GeschwindigkeitSerialisiert<S>,
@@ -81,7 +82,8 @@ fn from_geschwindigkeiten<S: Into<LeiterSerialisiert>>(
         .collect()
 }
 
-fn try_from_pläne<L: geschwindigkeit::Leiter, S>(
+/// Konvertiere [`PlanSerialisiert`] aus ihrer v4-Repräsentation.
+fn try_from_pläne_v4<L: geschwindigkeit::Leiter, S>(
     pläne: HashMap<plan::Name, plan::PlanSerialisiert<L, S>>,
 ) -> Result<HashMap<plan::Name, PlanSerialisiert>, plan::FehlendeWeichensteuerung>
 where
@@ -115,31 +117,39 @@ mod tests {
 
     #[test]
     fn aktionen_konvertieren() {
-        let strom = plan::AktionStreckenabschnitt::Strom {
-            streckenabschnitt: 7_u8,
-            fließend: Fließend::Fließend,
-        };
-        let strom: plan_v6::AktionStreckenabschnitt<u16> = strom.into();
-        assert!(matches!(
-            strom,
-            plan_v6::AktionStreckenabschnitt::Strom {
-                streckenabschnitt: 7,
-                fließend: Fließend::Fließend
-            }
-        ));
+        {
+            let strom = plan::AktionStreckenabschnitt::Strom {
+                streckenabschnitt: 7u8,
+                fließend: Fließend::Fließend,
+            };
+            let strom: plan_v6::AktionStreckenabschnitt<u16> = strom.into();
+            assert!(matches!(
+                strom,
+                plan_v6::AktionStreckenabschnitt::Strom {
+                    streckenabschnitt: 7,
+                    fließend: Fließend::Fließend
+                }
+            ));
+        }
 
-        let warten: plan::AktionWarten<u8> = plan::AktionWarten::WartenAuf { kontakt: 3 };
-        let warten: plan_v6::AktionWarten<u16> = warten.into();
-        assert!(matches!(warten, plan_v6::AktionWarten::WartenAuf { kontakt: 3 }));
-        let warten: plan::AktionWarten<u8> =
-            plan::AktionWarten::WartenFür { zeit: Duration::from_secs(2) };
-        let warten: plan_v6::AktionWarten<u16> = warten.into();
-        assert!(
-            matches!(warten, plan_v6::AktionWarten::WartenFür { zeit } if zeit == Duration::from_secs(2))
-        );
+        {
+            let warten: plan::AktionWarten<u8> = plan::AktionWarten::WartenAuf { kontakt: 3 };
+            let warten: plan_v6::AktionWarten<u16> = warten.into();
+            assert!(matches!(warten, plan_v6::AktionWarten::WartenAuf { kontakt: 3 }));
+        }
+
+        {
+            let warten: plan::AktionWarten<u8> =
+                plan::AktionWarten::WartenFür { zeit: Duration::from_secs(2) };
+            let warten: plan_v6::AktionWarten<u16> = warten.into();
+            assert!(
+                matches!(warten, plan_v6::AktionWarten::WartenFür { zeit } if zeit == Duration::from_secs(2))
+            );
+        }
     }
 
     #[test]
+    #[expect(clippy::too_many_lines, reason = "test function")]
     fn weichen_aktionen_mit_und_ohne_steuerung() {
         let gerade_steuerung = weiche::WeicheSerialisiert::neu(
             weiche::Name("Gerade".into()),
@@ -242,21 +252,24 @@ mod tests {
             ),
         ];
         for (weichenart, aktion) in fehlende {
-            let ergebnis = plan_v6::AnyAktionSchaltenSerialisiert::try_from(aktion.clone());
+            let ergebnis_aktion = plan_v6::AnyAktionSchaltenSerialisiert::try_from(aktion.clone());
             assert!(
-                matches!(ergebnis, Err(fehler) if fehler.weichenart == weichenart && fehler.plan.is_none())
+                matches!(ergebnis_aktion, Err(fehler) if fehler.weichenart == weichenart && fehler.plan.is_none())
             );
-            let innerer_plan = plan::PlanSerialisiert::<Mittelleiter, MittelleiterSerialisiert> {
-                aktionen: vec![plan::AktionEnum::Schalten(aktion)],
-                endlosschleife: false,
-            };
-            let äußerer_plan = plan::PlanSerialisiert::<Mittelleiter, MittelleiterSerialisiert> {
-                aktionen: vec![plan::AktionEnum::Ausführen(innerer_plan)],
-                endlosschleife: true,
-            };
+            let innerer_plan_fehlend =
+                plan::PlanSerialisiert::<Mittelleiter, MittelleiterSerialisiert> {
+                    aktionen: vec![plan::AktionEnum::Schalten(aktion)],
+                    endlosschleife: false,
+                };
+            let äußerer_plan_fehlend =
+                plan::PlanSerialisiert::<Mittelleiter, MittelleiterSerialisiert> {
+                    aktionen: vec![plan::AktionEnum::Ausführen(innerer_plan_fehlend)],
+                    endlosschleife: true,
+                };
             let name = plan::Name("Fahrplan".into());
-            let ergebnis =
-                super::try_from_pläne([(name.clone(), äußerer_plan)].into_iter().collect());
+            let ergebnis = super::try_from_pläne_v4(
+                [(name.clone(), äußerer_plan_fehlend)].into_iter().collect(),
+            );
             assert!(
                 matches!(ergebnis, Err(fehler) if fehler.weichenart == weichenart && fehler.plan == Some(name))
             );

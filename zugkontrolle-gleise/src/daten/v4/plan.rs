@@ -173,7 +173,7 @@ erstelle_aktion_geschwindigkeit! {
 
 /// Helper-Trait to write generic code for a type or [`Void`].
 trait FahrtrichtungOrVoid {
-    /// Return the value
+    /// Return the value.
     fn fahrtrichtung(self) -> Fahrtrichtung;
 }
 

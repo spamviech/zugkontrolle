@@ -12,7 +12,7 @@ use iced_core::{Alignment, Element, Font, Length, text as text_core, widget::tex
 use iced_widget::{
     Row,
     button::{self, Button},
-    text_input::{self},
+    text_input,
 };
 use rfd::{AsyncFileDialog, FileHandle};
 

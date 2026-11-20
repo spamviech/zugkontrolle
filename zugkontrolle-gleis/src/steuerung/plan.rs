@@ -51,7 +51,8 @@ pub enum AsyncNachricht {
 }
 
 /// Einstellungen, die das [`Ausführen`] von Aktionen beeinflussen.
-#[derive(zugkontrolle_macros::Debug, zugkontrolle_macros::Clone)]
+#[expect(missing_copy_implementations, reason = "Zu groß für Copy.")]
+#[derive(Debug, Clone)]
 pub struct Einstellungen {
     /// Frequenz in Herz für den Pwm-Antrieb.
     pub pwm_frequenz: NichtNegativ,
